@@ -127,7 +127,7 @@ var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down toggle view | Home/End first/last",
-    landmarks: "Landmarks", pl: "P/L", lthsth: "LTH/STH",
+    landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
     signalLabel: "Bottom Signal when", signalUnit: "% of USD Invested is in Loss",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
@@ -137,15 +137,15 @@ var T = {
     totalSupply: "Total Supply ", lthSupply: "LTH Supply ", sthSupply: "STH Supply ",
     inProfit: "In Profit ", inLoss: "In Loss ", source: "Source: local BRK node",
     poweredBy: "Powered by <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> & <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a>",
-    hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ",
+    hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", usdProfit: "USD Invested in Profit: ", usdLoss: "USD Invested in Loss: ", btcProfit: "BTC Supply in Profit: ", btcLoss: "BTC Supply in Loss: ",
     langBtn: "\u4e2d\u6587", bottomSigHover: "BOTTOM SIGNAL (",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Make sure BRK is running on localhost:3110",
-    sth: "Short-Term Holders", lth: "Long-Term Holders", profitLoss: "Profit/Loss"
+    sth: "Short-Term Holders", lth: "Long-Term Holders", profitLoss: "Profit/Loss", spot: "Spot"
   },
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3 \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
-    landmarks: "\u91cd\u8981\u65f6\u523b", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
+    landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
     signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
@@ -155,10 +155,10 @@ var T = {
     totalSupply: "\u603b\u4f9b\u5e94 ", lthSupply: "\u957f\u671f\u6301\u6709\u8005\u4f9b\u5e94 ", sthSupply: "\u77ed\u671f\u6301\u6709\u8005\u4f9b\u5e94 ",
     inProfit: "\u76c8\u5229 ", inLoss: "\u4e8f\u635f ", source: "\u6570\u636e\u6765\u6e90: \u672c\u5730 BRK \u8282\u70b9",
     poweredBy: "\u7531 <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> \u548c <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a> \u63d0\u4f9b\u652f\u6301",
-    hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ",
+    hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", usdProfit: "\u7f8e\u5143\u6295\u8d44\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u6295\u8d44\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u4e8f\u635f: ",
     langBtn: "EN", bottomSigHover: "\u5e95\u90e8\u4fe1\u53f7 (",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
-    sth: "\u77ed\u671f\u6301\u6709\u8005", lth: "\u957f\u671f\u6301\u6709\u8005", profitLoss: "\u76c8/\u4e8f"
+    sth: "\u77ed\u671f\u6301\u6709\u8005", lth: "\u957f\u671f\u6301\u6709\u8005", profitLoss: "\u76c8/\u4e8f", spot: "\u73b0\u4ef7"
   }
 };
 
@@ -168,6 +168,26 @@ function applyLang() {
   document.getElementById("langBtn").textContent = t("langBtn");
   if(document.getElementById("footer")) document.getElementById("footer").innerHTML = t("poweredBy");
   document.getElementById("landmarks").options[0].textContent = t("landmarks");
+  var lm = document.getElementById("landmarks");
+  var cyc = lang==="zh" ? "周期" : "Cycle";
+  var tp = lang==="zh" ? "顶部" : "Top";
+  var bt = lang==="zh" ? "底部" : "Bottom";
+  var groups = lm.querySelectorAll("optgroup");
+  for (var gi = 0; gi < groups.length; gi++) {
+    groups[gi].label = cyc + " " + (gi+1);
+    var opts = groups[gi].querySelectorAll("option");
+    for (var oi = 0; oi < opts.length; oi++) {
+      var v = opts[oi].value;
+      var parts = v.split("-");
+      var d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+      var mon = lang==="zh" ? (d.getMonth()+1)+"月" : d.toLocaleString("en",{month:"short"});
+      var yr = d.getFullYear();
+      var price = opts[oi].textContent.match(/\(.*\)/);
+      price = price ? " " + price[0] : "";
+      var isTop = opts[oi].textContent.indexOf("Top") >= 0 || opts[oi].textContent.indexOf("顶部") >= 0;
+      opts[oi].textContent = (isTop ? tp : bt) + ": " + mon + " " + yr + price;
+    }
+  }
   document.getElementById("btnPL").textContent = t("pl");
   document.getElementById("btnSplit").textContent = t("lthsth");
   document.getElementById("loading").textContent = t("loading");
@@ -302,7 +322,7 @@ function loadAndRender() {
     var maxPrice = prices.reduce(function(a,b){return a>b?a:b},0);
     var binWidth = maxPrice / NUM_BINS;
     var aggAll = aggregate(rawAll, binWidth);
-    var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  Spot: " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A");
+    var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A");
     document.getElementById("dateDisplay").textContent = dispText;
     var data = { dateStr: dateStr, spot: spot, aggAll: aggAll, binWidth: binWidth, maxPrice: maxPrice, rawAll: rawAll };
     data.realizedCap = aggAll.reduce(function(s,b){return s+b.invested;}, 0);
@@ -361,7 +381,7 @@ function renderChart(data) {
     statusEl.style.animation = "none";
   }
 
-  var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  Spot: " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A");
+  var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A");
   document.getElementById("dateDisplay").textContent = dispText;
 
   var traces = [];
@@ -485,7 +505,7 @@ function renderChart(data) {
   var annotations = [
     {xref:"paper",yref:"paper",x:0.02,y:0.98,text:annText,showarrow:false,align:"left",font:{size:13,family:FONT}},
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@renshuBTC</span>",showarrow:false,font:{family:FONT}},
-    {xref:"paper",yref:"paper",x:0.02,y:0.02,text:"Powered by Bitcoin Research Kit and Bitcoin Core Node",showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
+    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301" : "Powered by Bitcoin Research Kit & Bitcoin Core"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
   if (yClipped) {
     annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at 99th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
@@ -507,9 +527,9 @@ function renderChart(data) {
       shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.25)",width:6},layer:"above"});
     }
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:2},layer:"above"});
-    var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br>" + hpt + spotCumul.toFixed(1) + "%";
+    var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + (isCoin ? "<br>" + t("btcProfit") + profitPct + "%<br>" + t("btcLoss") + lossPct + "%" : "<br>" + t("usdProfit") + profitPct + "%<br>" + t("usdLoss") + lossPct + "%");
     if (isBottom) labelText += "<br><b>" + t("bottomSigHover") + redPct.toFixed(0) + "% Red)</b>";
-    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",font:{color:spotLineColor,size:12,family:FONT},bgcolor:"rgba(17,17,17,0.8)",borderpad:4});
+    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",align:"left",font:{color:spotLineColor,size:12,family:FONT},bgcolor:"rgba(17,17,17,0.8)",borderpad:4});
   }
 
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
@@ -525,7 +545,7 @@ function renderChart(data) {
     yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:11}},
     yaxis2:{title:{text:t("pctTotal"),font:{family:FONT,size:13}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11}},
     annotations:annotations,shapes:shapes,
-    margin:{l:80,r:80,t:90,b:60},hovermode:"closest"
+    margin:{l:80,r:80,t:90,b:80},hovermode:"closest"
   };
   Plotly.react("chart", traces, layout, {responsive:true});
 }
