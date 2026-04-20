@@ -72,11 +72,11 @@
   </div>
   <select id="landmarks">
     <option value="">Landmarks</option>
-    <optgroup label="Cycle 1"><option value="2011-06-08">Top: Jun 2011 ($32)</option><option value="2011-11-18">Bottom: Nov 2011 ($2)</option></optgroup>
-    <optgroup label="Cycle 2"><option value="2013-11-29">Top: Nov 2013 ($1,163)</option><option value="2015-01-14">Bottom: Jan 2015 ($152)</option></optgroup>
-    <optgroup label="Cycle 3"><option value="2017-12-17">Top: Dec 2017 ($19,783)</option><option value="2018-12-15">Bottom: Dec 2018 ($3,122)</option></optgroup>
-    <optgroup label="Cycle 4"><option value="2021-11-10">Top: Nov 2021 ($69,000)</option><option value="2022-11-21">Bottom: Nov 2022 ($15,476)</option></optgroup>
     <optgroup label="Cycle 5"><option value="2025-10-06">Top: Oct 2025 ($126,198)</option></optgroup>
+    <optgroup label="Cycle 4"><option value="2021-11-10">Top: Nov 2021 ($69,000)</option><option value="2022-11-21">Bottom: Nov 2022 ($15,476)</option></optgroup>
+    <optgroup label="Cycle 3"><option value="2017-12-17">Top: Dec 2017 ($19,783)</option><option value="2018-12-15">Bottom: Dec 2018 ($3,122)</option></optgroup>
+    <optgroup label="Cycle 2"><option value="2013-11-29">Top: Nov 2013 ($1,163)</option><option value="2015-01-14">Bottom: Jan 2015 ($152)</option></optgroup>
+    <optgroup label="Cycle 1"><option value="2011-06-08">Top: Jun 2011 ($32)</option><option value="2011-11-18">Bottom: Nov 2011 ($2)</option></optgroup>
   </select>
   <div class="ctrl-sep"></div>
   <div class="mode-toggle">
@@ -174,7 +174,7 @@ function applyLang() {
   var bt = lang==="zh" ? "底部" : "Bottom";
   var groups = lm.querySelectorAll("optgroup");
   for (var gi = 0; gi < groups.length; gi++) {
-    groups[gi].label = cyc + " " + (gi+1);
+    groups[gi].label = cyc + " " + (5-gi);
     var opts = groups[gi].querySelectorAll("option");
     for (var oi = 0; oi < opts.length; oi++) {
       var v = opts[oi].value;
