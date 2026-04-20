@@ -147,11 +147,11 @@ var BASE = "https://bitview.space";
 var GENESIS = new Date(2009, 0, 3);
 var NUM_BINS = 625;
 var SMOOTH_WINDOW = 5;
-var PROFIT_COLOR = "#00D26A";
-var LOSS_COLOR = "#FF3B3B";
-var LTH_COLOR = "#4488FF";
-var STH_COLOR = "#FFD700";
-var CUMUL_COLOR = "#ff8c00";
+var PROFIT_COLOR = "#00e676";
+var LOSS_COLOR = "#ff1744";
+var LTH_COLOR = "#5599ff";
+var STH_COLOR = "#e6a817";
+var CUMUL_COLOR = "rgba(38,198,218,0.45)";
 var SPOT_COLOR = "#ff8c00";
 var GLOW_COLOR = "#ff8c00";
 var FONT = "'Source Code Pro', Consolas, monospace";
@@ -604,9 +604,9 @@ function renderChart(data) {
         pD.push(pds);pP.push(priceArray[pi]);
       }
     }
-    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:"rgba(255,255,255,0.6)",width:2},hoverinfo:"skip",showlegend:true,name:"BTC/USD"});
-    if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ffffff",size:9,line:{color:"rgba(255,255,255,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
-    shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.4)",width:1,dash:"dot"}});
+    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:"#ffffff",width:3},hoverinfo:"skip",showlegend:true,name:"BTC/USD"});
+    if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ffffff",size:11,line:{color:"#ffffff",width:2}},hoverinfo:"skip",showlegend:false});}
+    shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.6)",width:1.5,dash:"dot"}});
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
   }
