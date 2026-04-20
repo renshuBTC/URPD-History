@@ -27,7 +27,6 @@
   #thresholdWrap label { color: #999; }
   #thresholdInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   #thresholdInput:focus { border-color: #ff8c00; outline: none; }
-  #thresholdSlider { width: 60px; accent-color: #ff8c00; }
   #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; }
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
@@ -100,10 +99,9 @@
   </div>
   <div class="ctrl-sep"></div>
   <div id="thresholdWrap">
-    <label>Bottom Signal when</label>
-    <input type="range" id="thresholdSlider" min="0" max="100" value="80">
-    <input type="number" id="thresholdInput" min="0" max="100" value="80">
-    <label>% of USD Invested is in Loss</label>
+    <label>Adjustable bottom signal</label>
+    <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <label>% USD invested in loss</label>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
@@ -173,7 +171,7 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
-    signalLabel: "Bottom Signal when", signalUnit: "% of USD Invested is in Loss",
+    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
@@ -191,7 +189,7 @@ var T = {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
-    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
+    signalLabel: "\u89e6\u53d1\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
@@ -643,21 +641,10 @@ document.querySelectorAll("#intervalBar .iv").forEach(function(btn) {
   });
 });
 
-document.getElementById("thresholdSlider").addEventListener("input", function(e){
-  var v = parseFloat(e.target.value);
-  if (!isNaN(v) && v >= 0 && v <= 100) {
-    bottomThreshold = v;
-    document.getElementById("thresholdInput").value = v;
-    var dateStr = allDates[currentIdx];
-    var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
-    if (cache[cacheKey]) renderChart(cache[cacheKey]);
-  }
-});
 document.getElementById("thresholdInput").addEventListener("input", function(e){
   var v = parseFloat(e.target.value);
   if (!isNaN(v) && v >= 0 && v <= 100) {
     bottomThreshold = v;
-    document.getElementById("thresholdSlider").value = v;
     var dateStr = allDates[currentIdx];
     var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
     if (cache[cacheKey]) renderChart(cache[cacheKey]);
