@@ -27,6 +27,9 @@
   #thresholdWrap label { color: #999; }
   #thresholdInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   #thresholdInput:focus { border-color: #ff8c00; outline: none; }
+  #btnSigPrev, #btnSigNext { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 3px 8px; font-family: inherit; font-size: 10px; cursor: pointer; border-radius: 2px; letter-spacing: 0.5px; transition: all 0.15s; margin-left: 3px; }
+  #btnSigPrev:hover, #btnSigNext:hover { background: #3a3a3a; color: #FFE600; border-color: #FFE600; }
+  #btnSigPrev:disabled, #btnSigNext:disabled { opacity: 0.4; cursor: not-allowed; }
   #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; }
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
@@ -102,6 +105,8 @@
     <label>Adjustable bottom signal</label>
     <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label>% USD invested in loss</label>
+    <button id="btnSigPrev" title="Previous signal date">&#9664; Sig</button>
+    <button id="btnSigNext" title="Next signal date">Sig &#9654;</button>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
@@ -712,6 +717,58 @@ document.getElementById("thresholdInput").addEventListener("input", function(e){
     if (cache[cacheKey]) renderChart(cache[cacheKey]);
   }
 });
+
+var signalScanning = false;
+async function findSignalDate(dir) {
+  if (signalScanning) return;
+  signalScanning = true;
+  var bp = document.getElementById("btnSigPrev");
+  var bn = document.getElementById("btnSigNext");
+  bp.disabled = true; bn.disabled = true;
+  var statusEl = document.getElementById("status");
+  var BATCH = 30;
+  var scanned = 0;
+  var i = currentIdx + dir;
+  while (i >= 0 && i < allDates.length && scanned < 5000) {
+    var batch = [];
+    for (var b = 0; b < BATCH && i >= 0 && i < allDates.length; b++, i += dir) batch.push(i);
+    statusEl.textContent = "Scanning " + allDates[batch[0]] + " ... " + allDates[batch[batch.length-1]] + " (" + scanned + " checked)";
+    // Check cache first
+    var found = -1;
+    for (var ci = 0; ci < batch.length; ci++) {
+      var ck = allDates[batch[ci]] + "_pl";
+      if (cache[ck] && cache[ck].redPct >= bottomThreshold) { found = batch[ci]; break; }
+    }
+    if (found >= 0) { currentIdx = found; break; }
+    // Parallel fetch uncached
+    var uncached = batch.filter(function(idx){ return !cache[allDates[idx]+"_pl"]; });
+    if (uncached.length > 0) {
+      var results = await Promise.all(uncached.map(function(idx){
+        var ds = allDates[idx];
+        return fetchJSON(BASE+"/api/series/cost-basis/all/"+ds).then(function(raw){
+          var sp = getSpotFromCache(ds);
+          return {idx:idx, rp:computeRedPct(raw,sp)};
+        }).catch(function(){ return {idx:idx, rp:0}; });
+      }));
+      results.sort(function(a,b){ return dir>0 ? a.idx-b.idx : b.idx-a.idx; });
+      for (var ri = 0; ri < results.length; ri++) {
+        if (results[ri].rp >= bottomThreshold) { found = results[ri].idx; break; }
+      }
+      if (found >= 0) { currentIdx = found; break; }
+    }
+    scanned += batch.length;
+  }
+  signalScanning = false;
+  bp.disabled = false; bn.disabled = false;
+  if (found >= 0) { loadAndRender(); }
+  else {
+    statusEl.textContent = "No signal found (" + scanned + " dates scanned)";
+    setTimeout(function(){ statusEl.textContent = allDates.length + t("statusLoaded"); }, 3000);
+  }
+}
+
+document.getElementById("btnSigPrev").onclick = function(){ findSignalDate(-1); };
+document.getElementById("btnSigNext").onclick = function(){ findSignalDate(1); };
 
 document.addEventListener("keydown", function(e){
   if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
