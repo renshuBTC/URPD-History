@@ -181,6 +181,8 @@ var coinMode = false;
 var bottomThreshold = 80;
 var cache = {};
 var spotCache = {};
+var signalCache = {};
+var signalScanId = 0;
 var lang = "en";
 
 var T = {
@@ -403,6 +405,7 @@ function loadAndRender() {
     data.realizedCap = aggAll.reduce(function(s,b){return s+b.invested;}, 0);
     data.totalSupply = aggAll.reduce(function(s,b){return s+b.supply;}, 0);
     data.redPct = computeRedPct(rawAll, spot);
+    signalCache[dateStr] = data.redPct;
     data.btcRedPct = computeBtcRedPct(rawAll, spot);
     if (splitMode) {
       return Promise.all([
@@ -432,6 +435,36 @@ function loadAndRender() {
     document.getElementById("status").textContent = "Error: " + e.message;
     document.getElementById("loading").style.display = "none";
   });
+}
+
+
+// Background scan signal dates in the 1-year window
+function scanSignalWindow(dateStr, scanId) {
+  var cutoff = new Date(dateStr + "T00:00:00");
+  cutoff.setFullYear(cutoff.getFullYear() - 1);
+  var cStr = cutoff.toISOString().split("T")[0];
+  var windowDates = allDates.filter(function(d) { return d >= cStr && d <= dateStr; });
+  var toScan = windowDates.filter(function(d) { return signalCache[d] === undefined; });
+  if (toScan.length === 0) return;
+  var BATCH = 20;
+  var idx = 0;
+  function nextBatch() {
+    if (scanId !== signalScanId) return;
+    if (idx >= toScan.length) {
+      var cacheKey = allDates[currentIdx] + (splitMode ? "_split" : "_pl");
+      if (cache[cacheKey]) renderChart(cache[cacheKey]);
+      return;
+    }
+    var batch = toScan.slice(idx, idx + BATCH);
+    idx += BATCH;
+    Promise.all(batch.map(function(d) {
+      return fetchJSON(BASE + "/api/series/cost-basis/all/" + d).then(function(raw) {
+        var spot = getSpotFromCache(d);
+        signalCache[d] = computeRedPct(raw, spot);
+      }).catch(function() { signalCache[d] = 0; });
+    })).then(nextBatch);
+  }
+  nextBatch();
 }
 
 function renderChart(data) {
@@ -656,6 +689,20 @@ function renderChart(data) {
     }
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
+    // Signal markers on price chart
+    var sigDates=[],sigPrices=[];
+    for(var si=0;si<pD.length;si++){
+      var sRedPct=signalCache[pD[si]];
+      if(sRedPct!==undefined&&sRedPct>=bottomThreshold){
+        sigDates.push(pD[si]);sigPrices.push(pP[si]);
+      }
+    }
+    if(sigDates.length>0){
+      traces.push({x:sigDates,y:sigPrices,type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#FFE600",size:7,symbol:"diamond",line:{color:"rgba(255,230,0,0.6)",width:1}},hovertemplate:"%{x}<br>$%{y:,.0f}<br>Signal<extra></extra>",showlegend:false});
+    }
+    // Trigger background scan for uncached dates
+    signalScanId++;
+    scanSignalWindow(dateStr, signalScanId);
   }
   Plotly.react("chart", traces, layout, {responsive:true});
 }
