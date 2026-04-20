@@ -20,8 +20,8 @@
   #chart { width: 100%; height: calc(100vh - 70px); }
   #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 24px; color: #ff8c00; display: none; z-index: 999; }
   @keyframes glowPulse {
-    0%, 100% { text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff8c00, 0 0 40px #ff8c00; }
-    50% { text-shadow: 0 0 20px #ff8c00, 0 0 40px #ff8c00, 0 0 80px #ff8c00; }
+    0%, 100% { text-shadow: 0 0 10px #FFE600, 0 0 20px #FFE600, 0 0 40px #FFE600; }
+    50% { text-shadow: 0 0 20px #FFE600, 0 0 40px #FFE600, 0 0 80px #FFE600; }
   }
   #thresholdWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
   #thresholdWrap label { color: #999; }
@@ -408,14 +408,14 @@ function renderChart(data) {
   var lthRC = data.lthRC, sthRC = data.sthRC, maxPrice = data.maxPrice, redPct = data.redPct;
   var isSplit = splitMode && aggLTH && aggSTH;
   var isCoin = coinMode;
-  var isBottom = !isCoin && redPct >= bottomThreshold;
+  var isBottom = redPct >= bottomThreshold;
 
   var statusEl = document.getElementById("status");
   if (isBottom) {
     statusEl.textContent = t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix");
-    statusEl.style.color = "#ff8c00";
-    statusEl.style.background = "#1a1000";
-    statusEl.style.borderBottom = "2px solid #ff8c00";
+    statusEl.style.color = "#FFE600";
+    statusEl.style.background = "#1a1800";
+    statusEl.style.borderBottom = "2px solid #FFE600";
     statusEl.style.animation = "glowPulse 2s ease-in-out infinite";
   } else {
     statusEl.textContent = allDates.length + t("statusLoaded");
