@@ -45,7 +45,18 @@
   #dateDropdown .dd-item:hover { background: #252525; color: #ff8c00; }
   #dateDropdown .dd-item.dd-current { color: #ff8c00; font-weight: bold; }
   #dateDropdown .dd-year { padding: 3px 10px; font-size: 10px; color: #555; font-weight: bold; border-bottom: 1px solid #2a2a2a; background: #111; position: sticky; top: 0; z-index: 1; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; }
-  #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: auto; letter-spacing: 0.5px; transition: all 0.15s; }
+  #explainBtn { background: #0d1117; color: #8b949e; border: 1px solid #1c2733; padding: 3px 7px; font-family: inherit; font-size: 11px; font-weight:700; cursor: pointer; border-radius: 1px; letter-spacing: 0.5px; transition: all 0.15s; }
+  #explainBtn:hover { background: #161b22; color: #ff8c00; border-color: #ff8c00; }
+  #explainWrap { position:relative; display:inline-block; }
+  #explainPanel { display:none; position:absolute; top:100%; right:0; width:460px; max-height:75vh; overflow-y:auto; background:#0d1117; border:1px solid #1c2733; border-radius:2px; z-index:9999; padding:24px 28px; margin-top:6px; box-shadow:0 4px 24px rgba(0,0,0,0.8); }
+  #explainPanel::-webkit-scrollbar { width:4px; }
+  #explainPanel::-webkit-scrollbar-track { background:#0d1117; }
+  #explainPanel::-webkit-scrollbar-thumb { background:#1c2733; border-radius:0; }
+  #explainPanel h2 { color:#ff8c00; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin:0 0 20px 0; text-align:left; padding-bottom:10px; border-bottom:2px solid #ff8c00; }
+  #explainPanel h3 { color:#e8e8e8; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin:22px 0 8px 0; border-bottom:none; padding:0; }
+  #explainPanel .formula { background:#0a0e14; border-left:3px solid #ff8c00; border-top:none; border-right:none; border-bottom:none; border-radius:0; padding:10px 14px; margin:8px 0 12px 0; font-size:12px; color:#ff8c00; white-space:pre-wrap; line-height:1.6; font-family:'Source Code Pro',Consolas,monospace; letter-spacing:0.5px; }
+  #explainPanel .desc { color:#8b949e; margin:4px 0 8px 0; font-size:12px; line-height:1.65; font-weight:400; letter-spacing:0.2px; }
+  #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; }
   #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 4px; }
 </style>
@@ -94,6 +105,40 @@
     <input type="number" id="thresholdInput" min="0" max="100" value="80">
     <label>% of USD Invested is in Loss</label>
   </div>
+  <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
+<h2 id="explainTitle">Understanding URPD</h2>
+
+<h3>UTXO Realized Price Distribution (URPD)</h3>
+<div class="desc">Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved. Each bar represents how much BTC has its cost basis in that price range.</div>
+
+<h3>URPD (USD-weighted) — Invested Wealth</h3>
+<div class="desc">Weights each UTXO by its dollar value at acquisition. Shows where capital is concentrated.</div>
+<div class="formula" id="f1">Invested Wealth(P) = P · S(P)</div>
+
+<h3>URPD (BTC-weighted) — Supply Distribution</h3>
+<div class="desc">Shows raw BTC supply at each cost-basis price, unweighted by dollar value.</div>
+<div class="formula" id="f2">S(P) = Σ utxo.value  where utxo.price ∈ [P, P + ΔP)</div>
+
+<h3>Realized Cap</h3>
+<div class="desc">The total value of all UTXOs priced at their last-moved price. Reflects the aggregate cost basis of the entire supply.</div>
+<div class="formula" id="f3">RC = Σᵢ Pᵢ · Sᵢ  for all price bins i</div>
+
+<h3>Long-Term Holders (LTH)</h3>
+<div class="desc">UTXOs that have not moved for ≥ 155 days. Represents conviction holders and long-term accumulators.</div>
+<div class="formula" id="f4">LTH = { utxo | age(utxo) ≥ 155 days }</div>
+
+<h3>Short-Term Holders (STH)</h3>
+<div class="desc">UTXOs that have moved within the last 155 days. Represents recent buyers, traders, and speculators.</div>
+<div class="formula" id="f5">STH = { utxo | age(utxo) < 155 days }</div>
+
+<h3>Supply in Profit / Loss</h3>
+<div class="desc">Percentage of invested wealth (USD) or supply (BTC) with cost basis below/above spot price.</div>
+<div class="formula" id="f6">Profit % = Σ W(P) for P ≤ Spot  /  Σ W(P) × 100</div>
+
+<h3>Bottom Signal</h3>
+<div class="desc">Triggers when USD invested wealth in loss exceeds the threshold. Historically coincides with cycle bottoms.</div>
+<div class="formula" id="f7">Signal when: Loss% ≥ Threshold (default 80%)</div>
+</div></div>
   <button id="langBtn">中文</button>
 </div>
 <div id="status">Left/Right navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down toggle view | Home/End first/last</div>
@@ -586,6 +631,7 @@ document.getElementById("btnBTC").onclick = function(){
 };
 
 // Language toggle
+
 document.getElementById("langBtn").onclick = function(){
   lang = (lang === "en") ? "zh" : "en";
   applyLang();
@@ -755,6 +801,79 @@ async function init() {
   }
 }
 init();
+</script>
+
+<script>
+document.getElementById("explainBtn").onclick = function(e){
+  e.stopPropagation();
+  var p = document.getElementById("explainPanel");
+  p.style.display = p.style.display === "block" ? "none" : "block";
+  updateExplainerLang();
+};
+document.addEventListener("click", function(e){
+  var panel = document.getElementById("explainPanel");
+  var wrap = document.getElementById("explainWrap");
+  if (panel.style.display === "block" && !wrap.contains(e.target)) panel.style.display = "none";
+});
+function updateExplainerLang() {
+  var box = document.getElementById("explainPanel");
+  if (lang === "zh") {
+    box.querySelector("#explainTitle").textContent = "\u7406\u89e3 URPD";
+    var h3s = box.querySelectorAll("h3");
+    var descs = box.querySelectorAll(".desc");
+    h3s[0].textContent = "UTXO \u5df2\u5b9e\u73b0\u4ef7\u683c\u5206\u5e03 (URPD)";
+    descs[0].textContent = "\u663e\u793a\u6bd4\u7279\u5e01\u4f9b\u5e94\u6309\u6bcf\u4e2aUTXO\u6700\u540e\u79fb\u52a8\u65f6\u7684\u4ef7\u683c\u5206\u5e03\u3002\u6bcf\u4e2a\u67f1\u72b6\u56fe\u4ee3\u8868\u8be5\u4ef7\u683c\u8303\u56f4\u5185\u7684BTC\u6210\u672c\u57fa\u7840\u3002";
+    h3s[1].textContent = "URPD (\u7f8e\u5143\u52a0\u6743) \u2014 \u6295\u8d44\u8d22\u5bcc";
+    descs[1].textContent = "\u6309\u83b7\u53d6\u65f6\u7684\u7f8e\u5143\u4ef7\u503c\u5bf9\u6bcf\u4e2aUTXO\u52a0\u6743\u3002\u663e\u793a\u8d44\u672c\u96c6\u4e2d\u5728\u54ea\u91cc\u3002";
+    h3s[2].textContent = "URPD (BTC\u52a0\u6743) \u2014 \u4f9b\u5e94\u5206\u5e03";
+    descs[2].textContent = "\u663e\u793a\u6bcf\u4e2a\u6210\u672c\u57fa\u7840\u4ef7\u683c\u7684\u539f\u59cbBTC\u4f9b\u5e94\uff0c\u4e0d\u6309\u7f8e\u5143\u4ef7\u503c\u52a0\u6743\u3002";
+    h3s[3].textContent = "\u5df2\u5b9e\u73b0\u5e02\u503c (Realized Cap)";
+    descs[3].textContent = "\u6240\u6709UTXO\u6309\u5176\u6700\u540e\u79fb\u52a8\u4ef7\u683c\u8ba1\u4ef7\u7684\u603b\u4ef7\u503c\u3002\u4e0e\u5e02\u503c\u4e0d\u540c\uff0c\u5b83\u53cd\u6620\u6574\u4e2a\u4f9b\u5e94\u7684\u603b\u6210\u672c\u57fa\u7840\u3002";
+    h3s[4].textContent = "\u957f\u671f\u6301\u6709\u8005 (LTH)";
+    descs[4].textContent = "\u8d85\u8fc7155\u5929\u672a\u79fb\u52a8\u7684UTXO\u3002\u4ee3\u8868\u575a\u5b9a\u6301\u6709\u8005\u548c\u957f\u671f\u79ef\u7d2f\u8005\u3002";
+    h3s[5].textContent = "\u77ed\u671f\u6301\u6709\u8005 (STH)";
+    descs[5].textContent = "\u5728\u8fc7\u53bb155\u5929\u5185\u79fb\u52a8\u7684UTXO\u3002\u4ee3\u8868\u8fd1\u671f\u4e70\u5bb6\u3001\u4ea4\u6613\u8005\u548c\u6295\u673a\u8005\u3002";
+    h3s[6].textContent = "\u4f9b\u5e94\u76c8\u5229 / \u4e8f\u635f";
+    descs[6].textContent = "\u5728\u73b0\u4ef7\u7ebf\u5904\uff0c\u6210\u672c\u57fa\u7840\u4f4e\u4e8e\u73b0\u4ef7\u7684\u6295\u8d44\u8d22\u5bcc(\u7f8e\u5143)\u6216\u4f9b\u5e94(BTC)\u767e\u5206\u6bd4\u4e3a\u201c\u76c8\u5229\u201d\uff1b\u9ad8\u4e8e\u73b0\u4ef7\u7684\u4e3a\u201c\u4e8f\u635f\u201d\u3002";
+    h3s[7].textContent = "\u5e95\u90e8\u4fe1\u53f7";
+    if(document.getElementById("f1")) document.getElementById("f1").textContent = "\u6295\u8d44\u8d22\u5bcc(P) = \u4ef7\u683c P \u00b7 \u4f9b\u5e94\u91cf S(P)";
+    if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 UTXO\u91d1\u989d\uff0c\u5176\u4e2d UTXO\u4ef7\u683c \u2208 [P, P + \u0394P)";
+    if(document.getElementById("f3")) document.getElementById("f3").textContent = "\u5df2\u5b9e\u73b0\u5e02\u503c = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62\uff0c\u904d\u5386\u6240\u6709\u4ef7\u683c\u533a\u95f4 i";
+    if(document.getElementById("f4")) document.getElementById("f4").textContent = "LTH = { UTXO | UTXO\u5e74\u9f84 \u2265 155 \u5929 }";
+    if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { UTXO | UTXO\u5e74\u9f84 < 155 \u5929 }";
+    if(document.getElementById("f6")) document.getElementById("f6").textContent = "\u76c8\u5229% = \u03a3 W(P)\uff0c\u5176\u4e2d P \u2264 \u73b0\u4ef7 / \u03a3 W(P) \u00d7 100";
+    if(document.getElementById("f7")) document.getElementById("f7").textContent = "\u4fe1\u53f7\u89e6\u53d1\u6761\u4ef6: \u4e8f\u635f% \u2265 \u9608\u503c (\u9ed8\u8ba4 80%)";
+    descs[7].textContent = "\u5f53\u7f8e\u5143\u6295\u8d44\u8d22\u5bcc\u4e8f\u635f\u767e\u5206\u6bd4\u8d85\u8fc7\u7528\u6237\u5b9a\u4e49\u7684\u9608\u503c(\u9ed8\u8ba480%)\u65f6\u89e6\u53d1\u3002\u5386\u53f2\u4e0a\uff0c\u6781\u7aef\u4e8f\u635f\u6c34\u5e73\u4e0e\u5468\u671f\u5e95\u90e8\u5438\u5408\u3002";
+    box.querySelector(".close-btn").textContent = "\u5173\u95ed";
+  } else {
+    box.querySelector("#explainTitle").textContent = "Understanding URPD";
+    var h3s = box.querySelectorAll("h3");
+    var descs = box.querySelectorAll(".desc");
+    h3s[0].textContent = "UTXO Realized Price Distribution (URPD)";
+    descs[0].textContent = "Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved. Each bar represents how much BTC has its cost basis in that price range.";
+    h3s[1].textContent = "URPD (USD-weighted) \u2014 Invested Wealth";
+    descs[1].textContent = "Weights each UTXO by its dollar value at acquisition. Shows where capital is concentrated.";
+    h3s[2].textContent = "URPD (BTC-weighted) \u2014 Supply Distribution";
+    descs[2].textContent = "Shows raw BTC supply at each cost-basis price, unweighted by dollar value.";
+    h3s[3].textContent = "Realized Cap";
+    descs[3].textContent = "The total value of all UTXOs priced at their last-moved price. Unlike market cap, it reflects the aggregate cost basis of the entire supply.";
+    h3s[4].textContent = "Long-Term Holders (LTH)";
+    descs[4].textContent = "UTXOs that have not moved for \u2265 155 days. Represents conviction holders and long-term accumulators.";
+    h3s[5].textContent = "Short-Term Holders (STH)";
+    descs[5].textContent = "UTXOs that have moved within the last 155 days. Represents recent buyers, traders, and speculators.";
+    h3s[6].textContent = "Supply in Profit / Loss";
+    descs[6].textContent = "At the spot price line, the percentage of invested wealth (USD) or supply (BTC) with a cost basis below spot is \"in profit\"; above spot is \"in loss\".";
+    h3s[7].textContent = "Bottom Signal";
+    if(document.getElementById("f1")) document.getElementById("f1").textContent = "Invested Wealth(P) = P \u00b7 S(P)";
+    if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 utxo.value  where utxo.price \u2208 [P, P + \u0394P)";
+    if(document.getElementById("f3")) document.getElementById("f3").textContent = "RC = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62  for all price bins i";
+    if(document.getElementById("f4")) document.getElementById("f4").textContent = "LTH = { utxo | age(utxo) \u2265 155 days }";
+    if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { utxo | age(utxo) < 155 days }";
+    if(document.getElementById("f6")) document.getElementById("f6").textContent = "Profit % = \u03a3 W(P) for P \u2264 Spot  /  \u03a3 W(P) \u00d7 100";
+    if(document.getElementById("f7")) document.getElementById("f7").textContent = "Signal when: Loss% \u2265 Threshold (default 80%)";
+    descs[7].textContent = "Triggers when the percentage of USD invested wealth in loss exceeds a user-defined threshold (default 80%). Historically, extreme loss levels have coincided with cycle bottoms.";
+  }
+}
 </script>
 </body>
 </html>
