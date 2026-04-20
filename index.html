@@ -156,6 +156,18 @@ var SPOT_COLOR = "#ff8c00";
 var GLOW_COLOR = "#FFE600";
 var FONT = "'Source Code Pro', Consolas, monospace";
 
+var LANDMARKS = [
+  {d:"2011-06-08",p:32,l:"C1 Top"},
+  {d:"2011-11-18",p:2,l:"C1 Bot"},
+  {d:"2013-11-29",p:1163,l:"C2 Top"},
+  {d:"2015-01-14",p:152,l:"C2 Bot"},
+  {d:"2017-12-17",p:19783,l:"C3 Top"},
+  {d:"2018-12-15",p:3122,l:"C3 Bot"},
+  {d:"2021-11-10",p:69000,l:"C4 Top"},
+  {d:"2022-11-21",p:15476,l:"C4 Bot"},
+  {d:"2025-10-06",p:126198,l:"C5 Top"}
+];
+
 var allDates = [];
 var currentIdx = 0;
 var priceArray = null;
@@ -623,6 +635,20 @@ function renderChart(data) {
     traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:"#ffffff",width:3},hoverinfo:"skip",showlegend:true,name:"BTC/USD"});
     if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:12,line:{color:"#ffffff",width:2}},hoverinfo:"skip",showlegend:false});}
     shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.6)",width:1.5,dash:"dot"}});
+    // Cycle tops & bottoms on price line
+    var lmD=[],lmP=[],lmT=[],lmC=[],lmS=[];
+    for(var li=0;li<LANDMARKS.length;li++){
+      var lm=LANDMARKS[li];
+      if(lm.d>=cStr){
+        lmD.push(lm.d);lmP.push(lm.p);lmT.push(lm.l);
+        var isTop=lm.l.indexOf("Top")>=0;
+        lmC.push(isTop?"#ff1744":"#00e676");
+        lmS.push(isTop?"triangle-down":"triangle-up");
+      }
+    }
+    if(lmD.length>0){
+      traces.push({x:lmD,y:lmP,type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:lmC,size:12,symbol:lmS,line:{color:"#ffffff",width:1}},text:lmT,textposition:lmD.map(function(_,i){return lmS[i]==="triangle-down"?"top center":"bottom center";}),textfont:{color:"#ffffff",size:10,family:FONT},hoverinfo:"skip",showlegend:false});
+    }
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
   }
