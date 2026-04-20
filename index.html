@@ -590,6 +590,26 @@ function renderChart(data) {
     annotations:annotations,shapes:shapes,
     margin:{l:80,r:80,t:90,b:80},hovermode:"closest"
   };
+  // BTC price overlay (1yr trailing)
+  if (priceArray && priceArray.length > 0) {
+    var pD=[],pP=[];
+    var cutoff=new Date(dateStr+"T00:00:00");
+    cutoff.setFullYear(cutoff.getFullYear()-1);
+    var cStr=cutoff.toISOString().split("T")[0];
+    for(var pi=0;pi<priceArray.length;pi++){
+      if(typeof priceArray[pi]==="number"&&priceArray[pi]>0){
+        var pd=new Date(2009,0,3+pi);
+        var pds=pd.toISOString().split("T")[0];
+        if(pds<cStr)continue;
+        pD.push(pds);pP.push(priceArray[pi]);
+      }
+    }
+    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:"rgba(255,255,255,0.6)",width:2},hoverinfo:"skip",showlegend:true,name:"BTC/USD"});
+    if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ffffff",size:9,line:{color:"rgba(255,255,255,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
+    shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.4)",width:1,dash:"dot"}});
+    layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
+    layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
+  }
   Plotly.react("chart", traces, layout, {responsive:true});
 }
 
