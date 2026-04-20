@@ -605,7 +605,7 @@ function renderChart(data) {
       }
     }
     traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:"#ffffff",width:3},hoverinfo:"skip",showlegend:true,name:"BTC/USD"});
-    if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ffffff",size:11,line:{color:"#ffffff",width:2}},hoverinfo:"skip",showlegend:false});}
+    if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:12,line:{color:"#ffffff",width:2}},hoverinfo:"skip",showlegend:false});}
     shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.6)",width:1.5,dash:"dot"}});
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
