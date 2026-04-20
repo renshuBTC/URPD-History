@@ -27,7 +27,6 @@
   #thresholdWrap label { color: #999; }
   #thresholdInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   #thresholdInput:focus { border-color: #ff8c00; outline: none; }
-  #thresholdSlider { width: 60px; accent-color: #ff8c00; }
   #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; }
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
@@ -100,10 +99,9 @@
   </div>
   <div class="ctrl-sep"></div>
   <div id="thresholdWrap">
-    <label>Bottom Signal when</label>
-    <input type="range" id="thresholdSlider" min="0" max="100" value="80">
-    <input type="number" id="thresholdInput" min="0" max="100" value="80">
-    <label>% of USD Invested is in Loss</label>
+    <label>Adjustable bottom signal</label>
+    <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <label>% USD invested in loss</label>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
@@ -161,6 +159,7 @@ var FONT = "'Source Code Pro', Consolas, monospace";
 var allDates = [];
 var currentIdx = 0;
 var priceArray = null;
+var showPriceOverlay = true;
 var splitMode = false;
 var coinMode = false;
 var bottomThreshold = 80;
@@ -173,7 +172,7 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
-    signalLabel: "Bottom Signal when", signalUnit: "% of USD Invested is in Loss",
+    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
@@ -593,7 +592,7 @@ function renderChart(data) {
     margin:{l:80,r:80,t:90,b:80},hovermode:"closest"
   };
   // BTC price overlay (1yr trailing)
-  if (priceArray && priceArray.length > 0) {
+  if (showPriceOverlay && priceArray && priceArray.length > 0) {
     var pD=[],pP=[];
     var cutoff=new Date(dateStr+"T00:00:00");
     cutoff.setFullYear(cutoff.getFullYear()-1);
@@ -610,16 +609,19 @@ function renderChart(data) {
     if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
     shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.4)",width:1,dash:"dot"}});
     // Cycle landmark markers on price chart
+    var cyc2=lang==="zh"?"周期":"Cycle";
+    var tp2=lang==="zh"?"顶部":"Top";
+    var bt2=lang==="zh"?"底部":"Bottom";
     var LANDMARKS=[
-      {d:"2011-06-08",p:32,l:"Cycle 1 Top",top:true},
-      {d:"2011-11-18",p:2,l:"Cycle 1 Bottom",top:false},
-      {d:"2013-11-29",p:1163,l:"Cycle 2 Top",top:true},
-      {d:"2015-01-14",p:152,l:"Cycle 2 Bottom",top:false},
-      {d:"2017-12-17",p:19783,l:"Cycle 3 Top",top:true},
-      {d:"2018-12-15",p:3122,l:"Cycle 3 Bottom",top:false},
-      {d:"2021-11-10",p:69000,l:"Cycle 4 Top",top:true},
-      {d:"2022-11-21",p:15476,l:"Cycle 4 Bottom",top:false},
-      {d:"2025-10-06",p:126198,l:"Cycle 5 Top",top:true}
+      {d:"2011-06-08",p:32,l:cyc2+" 1 "+tp2,top:true},
+      {d:"2011-11-18",p:2,l:cyc2+" 1 "+bt2,top:false},
+      {d:"2013-11-29",p:1163,l:cyc2+" 2 "+tp2,top:true},
+      {d:"2015-01-14",p:152,l:cyc2+" 2 "+bt2,top:false},
+      {d:"2017-12-17",p:19783,l:cyc2+" 3 "+tp2,top:true},
+      {d:"2018-12-15",p:3122,l:cyc2+" 3 "+bt2,top:false},
+      {d:"2021-11-10",p:69000,l:cyc2+" 4 "+tp2,top:true},
+      {d:"2022-11-21",p:15476,l:cyc2+" 4 "+bt2,top:false},
+      {d:"2025-10-06",p:126198,l:cyc2+" 5 "+tp2,top:true}
     ];
     var lmD=[],lmP=[],lmT=[],lmC=[],lmS=[];
     for(var li=0;li<LANDMARKS.length;li++){
@@ -637,6 +639,14 @@ function renderChart(data) {
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
   }
   Plotly.react("chart", traces, layout, {responsive:true});
+  document.getElementById("chart").removeAllListeners("plotly_legendclick");
+  document.getElementById("chart").on("plotly_legendclick", function(evtData) {
+    if (evtData.data[evtData.curveNumber].name === "BTC/USD") {
+      showPriceOverlay = !showPriceOverlay;
+      loadAndRender();
+      return false;
+    }
+  });
 }
 
 function goTo(idx) {
@@ -687,21 +697,10 @@ document.querySelectorAll("#intervalBar .iv").forEach(function(btn) {
   });
 });
 
-document.getElementById("thresholdSlider").addEventListener("input", function(e){
-  var v = parseFloat(e.target.value);
-  if (!isNaN(v) && v >= 0 && v <= 100) {
-    bottomThreshold = v;
-    document.getElementById("thresholdInput").value = v;
-    var dateStr = allDates[currentIdx];
-    var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
-    if (cache[cacheKey]) renderChart(cache[cacheKey]);
-  }
-});
 document.getElementById("thresholdInput").addEventListener("input", function(e){
   var v = parseFloat(e.target.value);
   if (!isNaN(v) && v >= 0 && v <= 100) {
     bottomThreshold = v;
-    document.getElementById("thresholdSlider").value = v;
     var dateStr = allDates[currentIdx];
     var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
     if (cache[cacheKey]) renderChart(cache[cacheKey]);
