@@ -592,7 +592,7 @@ function renderChart(data) {
     margin:{l:80,r:80,t:90,b:80},hovermode:"closest"
   };
   // BTC price overlay (1yr trailing)
-  if (showPriceOverlay && priceArray && priceArray.length > 0) {
+  if (priceArray && priceArray.length > 0) {
     var pD=[],pP=[];
     var cutoff=new Date(dateStr+"T00:00:00");
     cutoff.setFullYear(cutoff.getFullYear()-1);
@@ -605,9 +605,9 @@ function renderChart(data) {
         pD.push(pds);pP.push(priceArray[pi]);
       }
     }
-    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:"rgba(255,255,255,0.6)",width:2},hoverinfo:"skip",showlegend:true,name:"BTC/USD"});
-    if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
-    shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.4)",width:1,dash:"dot"}});
+    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(255,255,255,0.6)":"rgba(0,0,0,0)",width:showPriceOverlay?2:0},hoverinfo:"skip",showlegend:true,name:"BTC/USD",visible:true});
+    if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
+    if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.4)",width:1,dash:"dot"}});}
     // Cycle landmark markers on price chart
     var cyc2=lang==="zh"?"周期":"Cycle";
     var tp2=lang==="zh"?"顶部":"Top";
@@ -628,11 +628,11 @@ function renderChart(data) {
       var lm=LANDMARKS[li];
       if(lm.d>=cStr){
         lmD.push(lm.d);lmP.push(lm.p);lmT.push(lm.l);
-        lmC.push(lm.top?"#ff1744":"#00e676");
+        lmC.push("rgba(255,255,255,0.6)");
         lmS.push(lm.top?"triangle-down":"triangle-up");
       }
     }
-    if(lmD.length>0){
+    if(showPriceOverlay&&lmD.length>0){
       traces.push({x:lmD,y:lmP,type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:lmC,size:10,symbol:lmS,line:{color:"rgba(0,0,0,0.5)",width:1}},text:lmT,textposition:lmD.map(function(_,i){return lmS[i]==="triangle-down"?"top center":"bottom center";}),textfont:{color:lmC,size:9,family:"Source Code Pro, Consolas, monospace"},hoverinfo:"skip",showlegend:false});
     }
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
