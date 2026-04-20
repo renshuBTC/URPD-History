@@ -20,16 +20,14 @@
   #chart { width: 100%; height: calc(100vh - 70px); }
   #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 24px; color: #ff8c00; display: none; z-index: 999; }
   @keyframes glowPulse {
-    0%, 100% { text-shadow: 0 0 10px #FFE600, 0 0 20px #FFE600, 0 0 40px #FFE600; }
-    50% { text-shadow: 0 0 20px #FFE600, 0 0 40px #FFE600, 0 0 80px #FFE600; }
+    0%, 100% { text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff8c00, 0 0 40px #ff8c00; }
+    50% { text-shadow: 0 0 20px #ff8c00, 0 0 40px #ff8c00, 0 0 80px #ff8c00; }
   }
   #thresholdWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
   #thresholdWrap label { color: #999; }
   #thresholdInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   #thresholdInput:focus { border-color: #ff8c00; outline: none; }
-  #btnSigPrev, #btnSigNext { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 3px 8px; font-family: inherit; font-size: 10px; cursor: pointer; border-radius: 2px; letter-spacing: 0.5px; transition: all 0.15s; margin-left: 3px; }
-  #btnSigPrev:hover, #btnSigNext:hover { background: #3a3a3a; color: #FFE600; border-color: #FFE600; }
-  #btnSigPrev:disabled, #btnSigNext:disabled { opacity: 0.4; cursor: not-allowed; }
+  #thresholdSlider { width: 60px; accent-color: #ff8c00; }
   #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; }
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
@@ -102,11 +100,10 @@
   </div>
   <div class="ctrl-sep"></div>
   <div id="thresholdWrap">
-    <label>Adjustable bottom signal</label>
-    <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
-    <label>% USD invested in loss</label>
-    <button id="btnSigPrev" title="Previous signal date">&#9664; Sig</button>
-    <button id="btnSigNext" title="Next signal date">Sig &#9654;</button>
+    <label>Bottom Signal when</label>
+    <input type="range" id="thresholdSlider" min="0" max="100" value="80">
+    <input type="number" id="thresholdInput" min="0" max="100" value="80">
+    <label>% of USD Invested is in Loss</label>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
@@ -161,18 +158,6 @@ var SPOT_COLOR = "#ff8c00";
 var GLOW_COLOR = "#FFE600";
 var FONT = "'Source Code Pro', Consolas, monospace";
 
-var LANDMARKS = [
-  {d:"2011-06-08",p:32,l:"Cycle 1 Top"},
-  {d:"2011-11-18",p:2,l:"Cycle 1 Bottom"},
-  {d:"2013-11-29",p:1163,l:"Cycle 2 Top"},
-  {d:"2015-01-14",p:152,l:"Cycle 2 Bottom"},
-  {d:"2017-12-17",p:19783,l:"Cycle 3 Top"},
-  {d:"2018-12-15",p:3122,l:"Cycle 3 Bottom"},
-  {d:"2021-11-10",p:69000,l:"Cycle 4 Top"},
-  {d:"2022-11-21",p:15476,l:"Cycle 4 Bottom"},
-  {d:"2025-10-06",p:126198,l:"Cycle 5 Top"}
-];
-
 var allDates = [];
 var currentIdx = 0;
 var priceArray = null;
@@ -181,8 +166,6 @@ var coinMode = false;
 var bottomThreshold = 80;
 var cache = {};
 var spotCache = {};
-var signalCache = {};
-var signalScanId = 0;
 var lang = "en";
 
 var T = {
@@ -190,8 +173,8 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
-    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss",
-    bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss", bottomSignalSuffixBTC: "% of BTC Supply in Loss",
+    signalLabel: "Bottom Signal when", signalUnit: "% of USD Invested is in Loss",
+    bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
     priceUSD: "Price [USD]", usdInvested: "USD Invested", btcSupply: "BTC Supply", pctTotal: "Percent of Total",
@@ -208,8 +191,8 @@ var T = {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
-    signalLabel: "\u89e6\u53d1\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
-    bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f", bottomSignalSuffixBTC: "% \u7684BTC\u4f9b\u5e94\u5904\u4e8e\u4e8f\u635f",
+    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
+    bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u7f8e\u5143\u6295\u8d44", btcSupply: "BTC \u4f9b\u5e94", pctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4",
@@ -350,21 +333,6 @@ function computeRedPct(rawAll, spot) {
   return total > 0 ? 100 * redInv / total : 0;
 }
 
-function computeBtcRedPct(rawAll, spot) {
-  if (!spot || spot <= 0) return 0;
-  var greenSup = 0, redSup = 0;
-  var keys = Object.keys(rawAll);
-  for (var k = 0; k < keys.length; k++) {
-    var p = parseFloat(keys[k]);
-    if (isNaN(p)) continue;
-    var sup = rawAll[keys[k]];
-    if (p <= spot) greenSup += sup;
-    else redSup += sup;
-  }
-  var total = greenSup + redSup;
-  return total > 0 ? 100 * redSup / total : 0;
-}
-
 function setViewMode(idx) {
   viewIdx = idx;
   var m = VIEW_MODES[idx];
@@ -405,8 +373,6 @@ function loadAndRender() {
     data.realizedCap = aggAll.reduce(function(s,b){return s+b.invested;}, 0);
     data.totalSupply = aggAll.reduce(function(s,b){return s+b.supply;}, 0);
     data.redPct = computeRedPct(rawAll, spot);
-    signalCache[dateStr] = data.redPct;
-    data.btcRedPct = computeBtcRedPct(rawAll, spot);
     if (splitMode) {
       return Promise.all([
         fetchJSON(BASE + "/api/series/cost-basis/lth/" + dateStr),
@@ -437,50 +403,20 @@ function loadAndRender() {
   });
 }
 
-
-// Background scan signal dates in the 1-year window
-function scanSignalWindow(dateStr, scanId) {
-  var cutoff = new Date(dateStr + "T00:00:00");
-  cutoff.setFullYear(cutoff.getFullYear() - 1);
-  var cStr = cutoff.toISOString().split("T")[0];
-  var windowDates = allDates.filter(function(d) { return d >= cStr && d <= dateStr; });
-  var toScan = windowDates.filter(function(d) { return signalCache[d] === undefined; });
-  if (toScan.length === 0) return;
-  var BATCH = 20;
-  var idx = 0;
-  function nextBatch() {
-    if (scanId !== signalScanId) return;
-    if (idx >= toScan.length) {
-      var cacheKey = allDates[currentIdx] + (splitMode ? "_split" : "_pl");
-      if (cache[cacheKey]) renderChart(cache[cacheKey]);
-      return;
-    }
-    var batch = toScan.slice(idx, idx + BATCH);
-    idx += BATCH;
-    Promise.all(batch.map(function(d) {
-      return fetchJSON(BASE + "/api/series/cost-basis/all/" + d).then(function(raw) {
-        var spot = getSpotFromCache(d);
-        signalCache[d] = computeRedPct(raw, spot);
-      }).catch(function() { signalCache[d] = 0; });
-    })).then(nextBatch);
-  }
-  nextBatch();
-}
-
 function renderChart(data) {
   var dateStr = data.dateStr, spot = data.spot, aggAll = data.aggAll, binWidth = data.binWidth;
   var aggLTH = data.aggLTH, aggSTH = data.aggSTH, realizedCap = data.realizedCap, totalSupply = data.totalSupply;
   var lthRC = data.lthRC, sthRC = data.sthRC, maxPrice = data.maxPrice, redPct = data.redPct;
   var isSplit = splitMode && aggLTH && aggSTH;
   var isCoin = coinMode;
-  var isBottom = redPct >= bottomThreshold;
+  var isBottom = !isCoin && redPct >= bottomThreshold;
 
   var statusEl = document.getElementById("status");
   if (isBottom) {
     statusEl.textContent = t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix");
-    statusEl.style.color = "#FFE600";
-    statusEl.style.background = "#1a1a00";
-    statusEl.style.borderBottom = "2px solid #FFE600";
+    statusEl.style.color = "#ff8c00";
+    statusEl.style.background = "#1a1000";
+    statusEl.style.borderBottom = "2px solid #ff8c00";
     statusEl.style.animation = "glowPulse 2s ease-in-out infinite";
   } else {
     statusEl.textContent = allDates.length + t("statusLoaded");
@@ -631,9 +567,9 @@ function renderChart(data) {
       else break;
     }
     if (isBottom) {
-      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,230,0,0.08)",width:20},layer:"above"});
-      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,230,0,0.16)",width:12},layer:"above"});
-      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,230,0,0.3)",width:6},layer:"above"});
+      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.06)",width:20},layer:"above"});
+      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.12)",width:12},layer:"above"});
+      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.25)",width:6},layer:"above"});
     }
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:2},layer:"above"});
     var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + (isCoin ? "<br>" + t("btcProfit") + profitPct + "%<br>" + t("btcLoss") + lossPct + "%" : "<br>" + t("usdProfit") + profitPct + "%<br>" + t("usdLoss") + lossPct + "%");
@@ -670,39 +606,35 @@ function renderChart(data) {
         pD.push(pds);pP.push(priceArray[pi]);
       }
     }
-    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:"#ffffff",width:3},hoverinfo:"skip",showlegend:true,name:"BTC/USD"});
-    if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:12,line:{color:"#ffffff",width:2}},hoverinfo:"skip",showlegend:false});}
-    shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.6)",width:1.5,dash:"dot"}});
-    // Cycle tops & bottoms on price line
+    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:"rgba(255,255,255,0.6)",width:2},hoverinfo:"skip",showlegend:true,name:"BTC/USD"});
+    if(spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
+    shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.4)",width:1,dash:"dot"}});
+    // Cycle landmark markers on price chart
+    var LANDMARKS=[
+      {d:"2011-06-08",p:32,l:"Cycle 1 Top",top:true},
+      {d:"2011-11-18",p:2,l:"Cycle 1 Bottom",top:false},
+      {d:"2013-11-29",p:1163,l:"Cycle 2 Top",top:true},
+      {d:"2015-01-14",p:152,l:"Cycle 2 Bottom",top:false},
+      {d:"2017-12-17",p:19783,l:"Cycle 3 Top",top:true},
+      {d:"2018-12-15",p:3122,l:"Cycle 3 Bottom",top:false},
+      {d:"2021-11-10",p:69000,l:"Cycle 4 Top",top:true},
+      {d:"2022-11-21",p:15476,l:"Cycle 4 Bottom",top:false},
+      {d:"2025-10-06",p:126198,l:"Cycle 5 Top",top:true}
+    ];
     var lmD=[],lmP=[],lmT=[],lmC=[],lmS=[];
     for(var li=0;li<LANDMARKS.length;li++){
       var lm=LANDMARKS[li];
       if(lm.d>=cStr){
         lmD.push(lm.d);lmP.push(lm.p);lmT.push(lm.l);
-        var isTop=lm.l.indexOf("Top")>=0;
-        lmC.push(isTop?"#ff1744":"#00e676");
-        lmS.push(isTop?"triangle-down":"triangle-up");
+        lmC.push(lm.top?"#ff1744":"#00e676");
+        lmS.push(lm.top?"triangle-down":"triangle-up");
       }
     }
     if(lmD.length>0){
-      traces.push({x:lmD,y:lmP,type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:lmC,size:12,symbol:lmS,line:{color:"#ffffff",width:1}},text:lmT,textposition:lmD.map(function(_,i){return lmS[i]==="triangle-down"?"top center":"bottom center";}),textfont:{color:"#ffffff",size:10,family:FONT},hoverinfo:"skip",showlegend:false});
+      traces.push({x:lmD,y:lmP,type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:lmC,size:10,symbol:lmS,line:{color:"rgba(0,0,0,0.5)",width:1}},text:lmT,textposition:lmD.map(function(_,i){return lmS[i]==="triangle-down"?"top center":"bottom center";}),textfont:{color:lmC,size:9,family:"Source Code Pro, Consolas, monospace"},hoverinfo:"skip",showlegend:false});
     }
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
-    // Signal markers on price chart
-    var sigDates=[],sigPrices=[];
-    for(var si=0;si<pD.length;si++){
-      var sRedPct=signalCache[pD[si]];
-      if(sRedPct!==undefined&&sRedPct>=bottomThreshold){
-        sigDates.push(pD[si]);sigPrices.push(pP[si]);
-      }
-    }
-    if(sigDates.length>0){
-      traces.push({x:sigDates,y:sigPrices,type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#FFE600",size:7,symbol:"diamond",line:{color:"rgba(255,230,0,0.6)",width:1}},hovertemplate:"%{x}<br>$%{y:,.0f}<br>Signal<extra></extra>",showlegend:false});
-    }
-    // Trigger background scan for uncached dates
-    signalScanId++;
-    scanSignalWindow(dateStr, signalScanId);
   }
   Plotly.react("chart", traces, layout, {responsive:true});
 }
@@ -755,67 +687,26 @@ document.querySelectorAll("#intervalBar .iv").forEach(function(btn) {
   });
 });
 
-document.getElementById("thresholdInput").addEventListener("input", function(e){
+document.getElementById("thresholdSlider").addEventListener("input", function(e){
   var v = parseFloat(e.target.value);
   if (!isNaN(v) && v >= 0 && v <= 100) {
     bottomThreshold = v;
+    document.getElementById("thresholdInput").value = v;
     var dateStr = allDates[currentIdx];
     var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
     if (cache[cacheKey]) renderChart(cache[cacheKey]);
   }
 });
-
-var signalScanning = false;
-async function findSignalDate(dir) {
-  if (signalScanning) return;
-  signalScanning = true;
-  var bp = document.getElementById("btnSigPrev");
-  var bn = document.getElementById("btnSigNext");
-  bp.disabled = true; bn.disabled = true;
-  var statusEl = document.getElementById("status");
-  var BATCH = 30;
-  var scanned = 0;
-  var i = currentIdx + dir;
-  while (i >= 0 && i < allDates.length && scanned < 5000) {
-    var batch = [];
-    for (var b = 0; b < BATCH && i >= 0 && i < allDates.length; b++, i += dir) batch.push(i);
-    statusEl.textContent = "Scanning " + allDates[batch[0]] + " ... " + allDates[batch[batch.length-1]] + " (" + scanned + " checked)";
-    // Check cache first
-    var found = -1;
-    for (var ci = 0; ci < batch.length; ci++) {
-      var ck = allDates[batch[ci]] + "_pl";
-      if (cache[ck] && cache[ck].redPct >= bottomThreshold) { found = batch[ci]; break; }
-    }
-    if (found >= 0) { currentIdx = found; break; }
-    // Parallel fetch uncached
-    var uncached = batch.filter(function(idx){ return !cache[allDates[idx]+"_pl"]; });
-    if (uncached.length > 0) {
-      var results = await Promise.all(uncached.map(function(idx){
-        var ds = allDates[idx];
-        return fetchJSON(BASE+"/api/series/cost-basis/all/"+ds).then(function(raw){
-          var sp = getSpotFromCache(ds);
-          return {idx:idx, rp:computeRedPct(raw,sp)};
-        }).catch(function(){ return {idx:idx, rp:0}; });
-      }));
-      results.sort(function(a,b){ return dir>0 ? a.idx-b.idx : b.idx-a.idx; });
-      for (var ri = 0; ri < results.length; ri++) {
-        if (results[ri].rp >= bottomThreshold) { found = results[ri].idx; break; }
-      }
-      if (found >= 0) { currentIdx = found; break; }
-    }
-    scanned += batch.length;
+document.getElementById("thresholdInput").addEventListener("input", function(e){
+  var v = parseFloat(e.target.value);
+  if (!isNaN(v) && v >= 0 && v <= 100) {
+    bottomThreshold = v;
+    document.getElementById("thresholdSlider").value = v;
+    var dateStr = allDates[currentIdx];
+    var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
+    if (cache[cacheKey]) renderChart(cache[cacheKey]);
   }
-  signalScanning = false;
-  bp.disabled = false; bn.disabled = false;
-  if (found >= 0) { loadAndRender(); }
-  else {
-    statusEl.textContent = "No signal found (" + scanned + " dates scanned)";
-    setTimeout(function(){ statusEl.textContent = allDates.length + t("statusLoaded"); }, 3000);
-  }
-}
-
-document.getElementById("btnSigPrev").onclick = function(){ findSignalDate(-1); };
-document.getElementById("btnSigNext").onclick = function(){ findSignalDate(1); };
+});
 
 document.addEventListener("keydown", function(e){
   if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
@@ -855,8 +746,6 @@ document.getElementById("landmarks").addEventListener("change", function(e){
     document.getElementById("dateInput").value = e.target.value;
     jumpToDate();
     e.target.value = "";
-    this.blur();
-    this.blur();
   }
 });
 
