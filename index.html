@@ -172,7 +172,7 @@ var T = {
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
     signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss",
-    bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
+    bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss", bottomSignalSuffixBTC: "% of BTC Supply in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
     priceUSD: "Price [USD]", usdInvested: "USD Invested", btcSupply: "BTC Supply", pctTotal: "Percent of Total",
@@ -190,7 +190,7 @@ var T = {
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
     signalLabel: "\u89e6\u53d1\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
-    bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
+    bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f", bottomSignalSuffixBTC: "% \u7684BTC\u4f9b\u5e94\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u7f8e\u5143\u6295\u8d44", btcSupply: "BTC \u4f9b\u5e94", pctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4",
@@ -331,6 +331,21 @@ function computeRedPct(rawAll, spot) {
   return total > 0 ? 100 * redInv / total : 0;
 }
 
+function computeBtcRedPct(rawAll, spot) {
+  if (!spot || spot <= 0) return 0;
+  var greenSup = 0, redSup = 0;
+  var keys = Object.keys(rawAll);
+  for (var k = 0; k < keys.length; k++) {
+    var p = parseFloat(keys[k]);
+    if (isNaN(p)) continue;
+    var sup = rawAll[keys[k]];
+    if (p <= spot) greenSup += sup;
+    else redSup += sup;
+  }
+  var total = greenSup + redSup;
+  return total > 0 ? 100 * redSup / total : 0;
+}
+
 function setViewMode(idx) {
   viewIdx = idx;
   var m = VIEW_MODES[idx];
@@ -371,6 +386,7 @@ function loadAndRender() {
     data.realizedCap = aggAll.reduce(function(s,b){return s+b.invested;}, 0);
     data.totalSupply = aggAll.reduce(function(s,b){return s+b.supply;}, 0);
     data.redPct = computeRedPct(rawAll, spot);
+    data.btcRedPct = computeBtcRedPct(rawAll, spot);
     if (splitMode) {
       return Promise.all([
         fetchJSON(BASE + "/api/series/cost-basis/lth/" + dateStr),
@@ -407,7 +423,7 @@ function renderChart(data) {
   var lthRC = data.lthRC, sthRC = data.sthRC, maxPrice = data.maxPrice, redPct = data.redPct;
   var isSplit = splitMode && aggLTH && aggSTH;
   var isCoin = coinMode;
-  var isBottom = !isCoin && redPct >= bottomThreshold;
+  var isBottom = redPct >= bottomThreshold;
 
   var statusEl = document.getElementById("status");
   if (isBottom) {
