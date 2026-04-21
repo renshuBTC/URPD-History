@@ -8,7 +8,7 @@
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; height: 100%; }
-  #controls { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: wrap; }
+  #controls { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; background: #1a1a1a; border-bottom: 1px solid #333; }
   #controls button { background: #252525; color: #d4d4d4; border: 1px solid #555; padding: 4px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
   #controls button:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .mode-toggle { display: flex; gap: 2px; }
@@ -38,6 +38,8 @@
   #dateInput:hover { border-color: #888 !important; }
   #binInput:focus { border-color: #ff8c00; outline: none; }
   #binInput:hover { border-color: #888; }
+  #binInput:focus { border-color: #ff8c00; outline: none; }
+  #binInput:hover { border-color: #888; }
   #dateInput:focus { border-color: #ff8c00 !important; outline: none; }
   #dateDropdown::-webkit-scrollbar { width: 5px; }
   #dateDropdown::-webkit-scrollbar-track { background: #141414; }
@@ -48,7 +50,7 @@
   #dateDropdown .dd-year { padding: 3px 10px; font-size: 10px; color: #555; font-weight: bold; border-bottom: 1px solid #2a2a2a; background: #111; position: sticky; top: 0; z-index: 1; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; }
   #explainBtn { background: #0d1117; color: #8b949e; border: 1px solid #1c2733; padding: 3px 7px; font-family: inherit; font-size: 11px; font-weight:700; cursor: pointer; border-radius: 1px; letter-spacing: 0.5px; transition: all 0.15s; }
   #explainBtn:hover { background: #161b22; color: #ff8c00; border-color: #ff8c00; }
-  #explainWrap { position:relative; display:inline-block; }
+  #explainWrap { position:relative; display:inline-block; flex-shrink: 0; }
   #explainPanel { display:none; position:absolute; top:100%; right:0; width:460px; max-height:75vh; overflow-y:auto; background:#0d1117; border:1px solid #1c2733; border-radius:2px; z-index:9999; padding:24px 28px; margin-top:6px; box-shadow:0 4px 24px rgba(0,0,0,0.8); }
   #explainPanel::-webkit-scrollbar { width:4px; }
   #explainPanel::-webkit-scrollbar-track { background:#0d1117; }
@@ -57,7 +59,7 @@
   #explainPanel h3 { color:#e8e8e8; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin:22px 0 8px 0; border-bottom:none; padding:0; }
   #explainPanel .formula { background:#0a0e14; border-left:3px solid #ff8c00; border-top:none; border-right:none; border-bottom:none; border-radius:0; padding:10px 14px; margin:8px 0 12px 0; font-size:12px; color:#ff8c00; white-space:pre-wrap; line-height:1.6; font-family:'Source Code Pro',Consolas,monospace; letter-spacing:0.5px; }
   #explainPanel .desc { color:#8b949e; margin:4px 0 8px 0; font-size:12px; line-height:1.65; font-weight:400; letter-spacing:0.2px; }
-  #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; }
+  #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; flex-shrink: 0; }
   #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 4px; }
 </style>
@@ -155,6 +157,7 @@ var BASE = "https://bitview.space";
 var GENESIS = new Date(2009, 0, 3);
 var NUM_BINS = 625;
 var MAX_BINS = 625;
+var MAX_BINS = 625;
 var SMOOTH_WINDOW = 5;
 var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
@@ -181,7 +184,7 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
-    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss", binsLabel: "Bins",
+    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss", binsLabel: "Bins", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
@@ -199,7 +202,7 @@ var T = {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
-    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f", binsLabel: "\u533a\u95f4",
+    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f", binsLabel: "\u533a\u95f4", binsLabel: "\u533a\u95f4",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
@@ -209,9 +212,27 @@ var T = {
     inProfit: "\u76c8\u5229 ", inLoss: "\u4e8f\u635f ", source: "\u6570\u636e\u6765\u6e90: \u672c\u5730 BRK \u8282\u70b9",
     poweredBy: "\u7531 <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> \u548c <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a> \u63d0\u4f9b\u652f\u6301",
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", usdProfit: "\u7f8e\u5143\u6295\u8d44\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u6295\u8d44\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u4e8f\u635f: ",
-    langBtn: "EN", bottomSigHover: "\u5e95\u90e8\u4fe1\u53f7 (",
+    langBtn: "\u65e5\u672c\u8a9e", bottomSigHover: "\u5e95\u90e8\u4fe1\u53f7 (",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
     sth: "\u77ed\u671f\u6301\u6709\u8005", lth: "\u957f\u671f\u6301\u6709\u8005", profitLoss: "\u76c8/\u4e8f", spot: "\u73b0\u4ef7"
+  },
+  ja: {
+    loading: "\u8aad\u307f\u8fbc\u307f\u4e2d...", loadingDates: "\u65e5\u4ed8\u3092\u8aad\u307f\u8fbc\u307f\u4e2d...",
+    statusLoaded: " \u65e5\u5206\u8aad\u307f\u8fbc\u307f\u6e08\u307f\u3002\u5de6/\u53f3/A/D \u30ca\u30d3\u30b2\u30fc\u30b7\u30e7\u30f3 | 1-4 \u9593\u9694 (1\u65e5/1\u9031/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u8868\u793a\u5207\u66ff | Home/End \u6700\u521d/\u6700\u5f8c",
+    landmarks: "\u30e9\u30f3\u30c9\u30de\u30fc\u30af", cycleLandmarks: "\u30b5\u30a4\u30af\u30eb\u30e9\u30f3\u30c9\u30de\u30fc\u30af", top: "\u5929\u4e95", bottom: "\u5e95", pl: "\u640d\u76ca", lthsth: "\u9577/\u77ed\u671f",
+    signalLabel: "\u5e95\u30b7\u30b0\u30ca\u30eb\u95be\u5024", signalUnit: "% \u7c73\u30c9\u30eb\u6295\u8cc7\u304c\u640d\u5931", binsLabel: "\u30d3\u30f3",
+    bottomSignal: "\u5e95\u30b7\u30b0\u30ca\u30eb \u2014 ", bottomSignalSuffix: "% \u306e\u7c73\u30c9\u30eb\u6295\u8cc7\u304c\u640d\u5931",
+    titleUSD: "URPD (\u7c73\u30c9\u30eb\u52a0\u91cd) ", titleUSDCohort: "URPD (\u7c73\u30c9\u30eb\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
+    titleBTC: "URPD (BTC\u52a0\u91cd) ", titleBTCCohort: "URPD (BTC\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
+    priceUSD: "\u4fa1\u683c [\u7c73\u30c9\u30eb]", usdInvested: "\u7c73\u30c9\u30eb\u6295\u8cc7\u984d", btcSupply: "BTC \u4f9b\u7d66\u91cf", pctTotal: "\u5168\u4f53\u306b\u5bfe\u3059\u308b\u5272\u5408",
+    realisedCap: "\u5b9f\u73fe\u6642\u4fa1\u7dcf\u984d ", lthRC: "LTH \u5b9f\u73fe\u6642\u4fa1\u7dcf\u984d ", sthRC: "STH \u5b9f\u73fe\u6642\u4fa1\u7dcf\u984d ",
+    totalSupply: "\u7dcf\u4f9b\u7d66\u91cf ", lthSupply: "LTH \u4f9b\u7d66\u91cf ", sthSupply: "STH \u4f9b\u7d66\u91cf ",
+    inProfit: "\u542b\u307f\u76ca ", inLoss: "\u640d\u5931 ", source: "\u30c7\u30fc\u30bf\u30bd\u30fc\u30b9: \u30ed\u30fc\u30ab\u30eb BRK \u30ce\u30fc\u30c9",
+    poweredBy: "<a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> & <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a> \u63d0\u4f9b",
+    hoverPrice: "\u4fa1\u683c: $", hoverPctTotal: "\u5168\u4f53\u306b\u5bfe\u3059\u308b\u5272\u5408: ", usdProfit: "\u7c73\u30c9\u30eb\u6295\u8cc7\u542b\u307f\u76ca: ", usdLoss: "\u7c73\u30c9\u30eb\u6295\u8cc7\u640d\u5931: ", btcProfit: "BTC \u4f9b\u7d66\u542b\u307f\u76ca: ", btcLoss: "BTC \u4f9b\u7d66\u640d\u5931: ",
+    langBtn: "EN", bottomSigHover: "\u5e95\u30b7\u30b0\u30ca\u30eb (",
+    notFound: "\u6b63\u78ba\u306a\u65e5\u4ed8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3002\u6700\u5bc4\u308a: ", errBRK: "BRK \u304c localhost:3110 \u3067\u5b9f\u884c\u4e2d\u304b\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044",
+    sth: "\u77ed\u671f\u4fdd\u6709\u8005", lth: "\u9577\u671f\u4fdd\u6709\u8005", profitLoss: "\u640d\u76ca", spot: "\u73fe\u5728\u4fa1\u683c"
   }
 };
 
@@ -222,9 +243,9 @@ function applyLang() {
   if(document.getElementById("footer")) document.getElementById("footer").innerHTML = t("poweredBy");
   document.getElementById("landmarks").options[0].textContent = t("landmarks");
   var lm = document.getElementById("landmarks");
-  var cyc = lang==="zh" ? "周期" : "Cycle";
-  var tp = lang==="zh" ? "顶部" : "Top";
-  var bt = lang==="zh" ? "底部" : "Bottom";
+  var cyc = lang==="zh" ? "周期" : lang==="ja" ? "サイクル" : "Cycle";
+  var tp = lang==="zh" ? "顶部" : lang==="ja" ? "天井" : "Top";
+  var bt = lang==="zh" ? "底部" : lang==="ja" ? "底" : "Bottom";
   var groups = lm.querySelectorAll("optgroup");
   for (var gi = 0; gi < groups.length; gi++) {
     groups[gi].label = cyc + " " + (5-gi);
@@ -233,7 +254,7 @@ function applyLang() {
       var v = opts[oi].value;
       var parts = v.split("-");
       var d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-      var mon = lang==="zh" ? (d.getMonth()+1)+"月" : d.toLocaleString("en",{month:"short"});
+      var mon = lang==="zh" ? (d.getMonth()+1)+"月" : lang==="ja" ? (d.getMonth()+1)+"月" : d.toLocaleString("en",{month:"short"});
       var yr = d.getFullYear();
       var price = opts[oi].textContent.match(/\(.*\)/);
       price = price ? " " + price[0] : "";
@@ -244,6 +265,8 @@ function applyLang() {
   document.getElementById("btnPL").textContent = t("pl");
   document.getElementById("btnSplit").textContent = t("lthsth");
   document.getElementById("loading").textContent = t("loading");
+  var binLabels = document.querySelectorAll("#binWrap label");
+  if (binLabels[0]) binLabels[0].textContent = t("binsLabel");
   var binLabels = document.querySelectorAll("#binWrap label");
   if (binLabels[0]) binLabels[0].textContent = t("binsLabel");
   var labels = document.querySelectorAll("#thresholdWrap label");
@@ -564,7 +587,7 @@ function renderChart(data) {
   var annotations = [
     {xref:"paper",yref:"paper",x:0.02,y:0.98,text:annText,showarrow:false,align:"left",font:{size:13,family:FONT}},
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@renshuBTC</span>",showarrow:false,font:{family:FONT}},
-    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301" : "Powered by Bitcoin Research Kit & Bitcoin Core"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
+    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b" : "Powered by Bitcoin Research Kit & Bitcoin Core"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
   if (yClipped) {
     annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at 99th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
@@ -624,9 +647,9 @@ function renderChart(data) {
     if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
     if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.4)",width:1,dash:"dot"}});}
     // Cycle landmark markers on price chart
-    var cyc2=lang==="zh"?"周期":"Cycle";
-    var tp2=lang==="zh"?"顶部":"Top";
-    var bt2=lang==="zh"?"底部":"Bottom";
+    var cyc2=lang==="zh"?"周期":lang==="ja"?"サイクル":"Cycle";
+    var tp2=lang==="zh"?"顶部":lang==="ja"?"天井":"Top";
+    var bt2=lang==="zh"?"底部":lang==="ja"?"底":"Bottom";
     var LANDMARKS=[
       {d:"2011-06-08",p:32,l:cyc2+" 1 "+tp2,top:true},
       {d:"2011-11-18",p:2,l:cyc2+" 1 "+bt2,top:false},
@@ -702,7 +725,9 @@ document.getElementById("btnBTC").onclick = function(){
 // Language toggle
 
 document.getElementById("langBtn").onclick = function(){
-  lang = (lang === "en") ? "zh" : "en";
+  if (lang === "en") lang = "zh";
+  else if (lang === "zh") lang = "ja";
+  else lang = "en";
   applyLang();
 };
 
@@ -720,6 +745,21 @@ document.getElementById("thresholdInput").addEventListener("input", function(e){
     var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
     if (cache[cacheKey]) renderChart(cache[cacheKey]);
   }
+});
+
+document.getElementById("binInput").addEventListener("change", function(e){
+  var v = parseInt(e.target.value);
+  if (isNaN(v) || v < 10) v = 10;
+  if (v > MAX_BINS) v = MAX_BINS;
+  e.target.value = v;
+  if (v !== NUM_BINS) {
+    NUM_BINS = v;
+    cache = {};
+    loadAndRender();
+  }
+});
+document.getElementById("binInput").addEventListener("keydown", function(e){
+  if (e.key === "Enter") { e.preventDefault(); this.blur(); }
 });
 
 document.getElementById("binInput").addEventListener("change", function(e){
@@ -891,7 +931,35 @@ document.addEventListener("click", function(e){
 });
 function updateExplainerLang() {
   var box = document.getElementById("explainPanel");
-  if (lang === "zh") {
+  if (lang === "ja") {
+    box.querySelector("#explainTitle").textContent = "URPD \u3092\u7406\u89e3\u3059\u308b";
+    var h3s = box.querySelectorAll("h3");
+    var descs = box.querySelectorAll(".desc");
+    h3s[0].textContent = "UTXO \u5b9f\u73fe\u4fa1\u683c\u5206\u5e03 (URPD)";
+    descs[0].textContent = "\u5404UTXO\u304c\u6700\u5f8c\u306b\u79fb\u52d5\u3057\u305f\u4fa1\u683c\u5e2f\u3054\u3068\u306e\u30d3\u30c3\u30c8\u30b3\u30a4\u30f3\u4f9b\u7d66\u5206\u5e03\u3002\u5404\u30d0\u30fc\u306f\u305d\u306e\u4fa1\u683c\u5e2f\u306e\u53d6\u5f97\u539f\u4fa1\u3092\u6301\u3064BTC\u91cf\u3092\u8868\u3057\u307e\u3059\u3002";
+    h3s[1].textContent = "URPD (\u7c73\u30c9\u30eb\u52a0\u91cd) \u2014 \u6295\u8cc7\u8cc7\u7523";
+    descs[1].textContent = "\u5404UTXO\u3092\u53d6\u5f97\u6642\u306e\u30c9\u30eb\u4fa1\u5024\u3067\u52a0\u91cd\u3002\u8cc7\u672c\u304c\u3069\u3053\u306b\u96c6\u4e2d\u3057\u3066\u3044\u308b\u304b\u3092\u8868\u793a\u3057\u307e\u3059\u3002";
+    h3s[2].textContent = "URPD (BTC\u52a0\u91cd) \u2014 \u4f9b\u7d66\u5206\u5e03";
+    descs[2].textContent = "\u5404\u53d6\u5f97\u539f\u4fa1\u306b\u304a\u3051\u308bBTC\u4f9b\u7d66\u91cf\u3092\u305d\u306e\u307e\u307e\u8868\u793a\u3002\u30c9\u30eb\u4fa1\u5024\u3067\u306e\u52a0\u91cd\u306a\u3057\u3002";
+    h3s[3].textContent = "\u5b9f\u73fe\u6642\u4fa1\u7dcf\u984d (Realized Cap)";
+    descs[3].textContent = "\u5168UTXO\u3092\u6700\u5f8c\u306e\u79fb\u52d5\u4fa1\u683c\u3067\u8a55\u4fa1\u3057\u305f\u7dcf\u4fa1\u5024\u3002\u6642\u4fa1\u7dcf\u984d\u3068\u306f\u7570\u306a\u308a\u3001\u4f9b\u7d66\u5168\u4f53\u306e\u7dcf\u53d6\u5f97\u539f\u4fa1\u3092\u53cd\u6620\u3057\u307e\u3059\u3002";
+    h3s[4].textContent = "\u9577\u671f\u4fdd\u6709\u8005 (LTH)";
+    descs[4].textContent = "155\u65e5\u4ee5\u4e0a\u79fb\u52d5\u3057\u3066\u3044\u306a\u3044UTXO\u3002\u78ba\u4fe1\u3092\u6301\u3063\u305f\u4fdd\u6709\u8005\u3084\u9577\u671f\u7a4d\u7acb\u8005\u3092\u8868\u3057\u307e\u3059\u3002";
+    h3s[5].textContent = "\u77ed\u671f\u4fdd\u6709\u8005 (STH)";
+    descs[5].textContent = "\u904e\u53bb155\u65e5\u4ee5\u5185\u306b\u79fb\u52d5\u3057\u305fUTXO\u3002\u6700\u8fd1\u306e\u8cfc\u5165\u8005\u3001\u30c8\u30ec\u30fc\u30c0\u30fc\u3001\u6295\u6a5f\u5bb6\u3092\u8868\u3057\u307e\u3059\u3002";
+    h3s[6].textContent = "\u4f9b\u7d66\u306e\u542b\u307f\u76ca / \u640d\u5931";
+    descs[6].textContent = "\u73fe\u5728\u4fa1\u683c\u30e9\u30a4\u30f3\u306b\u304a\u3044\u3066\u3001\u53d6\u5f97\u539f\u4fa1\u304c\u73fe\u5728\u4fa1\u683c\u4ee5\u4e0b\u306e\u6295\u8cc7\u8cc7\u7523(\u7c73\u30c9\u30eb)\u307e\u305f\u306f\u4f9b\u7d66\u91cf(BTC)\u306e\u5272\u5408\u304c\u300c\u542b\u307f\u76ca\u300d\u3001\u4ee5\u4e0a\u304c\u300c\u640d\u5931\u300d\u3002";
+    h3s[7].textContent = "\u5e95\u30b7\u30b0\u30ca\u30eb";
+    if(document.getElementById("f1")) document.getElementById("f1").textContent = "\u6295\u8cc7\u8cc7\u7523(P) = \u4fa1\u683c P \u00b7 \u4f9b\u7d66\u91cf S(P)";
+    if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 UTXO\u984d\u3001UTXO\u4fa1\u683c \u2208 [P, P + \u0394P)";
+    if(document.getElementById("f3")) document.getElementById("f3").textContent = "\u5b9f\u73fe\u6642\u4fa1\u7dcf\u984d = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62 \u5168\u4fa1\u683c\u5e2f i";
+    if(document.getElementById("f4")) document.getElementById("f4").textContent = "LTH = { UTXO | UTXO\u7d4c\u904e\u65e5\u6570 \u2265 155\u65e5 }";
+    if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { UTXO | UTXO\u7d4c\u904e\u65e5\u6570 < 155\u65e5 }";
+    if(document.getElementById("f6")) document.getElementById("f6").textContent = "\u542b\u307f\u76ca% = \u03a3 W(P) P \u2264 \u73fe\u5728\u4fa1\u683c / \u03a3 W(P) \u00d7 100";
+    if(document.getElementById("f7")) document.getElementById("f7").textContent = "\u30b7\u30b0\u30ca\u30eb\u6761\u4ef6: \u640d\u5931% \u2265 \u95be\u5024 (\u30c7\u30d5\u30a9\u30eb\u30c8 80%)";
+    descs[7].textContent = "\u7c73\u30c9\u30eb\u6295\u8cc7\u8cc7\u7523\u306e\u640d\u5931\u5272\u5408\u304c\u30e6\u30fc\u30b6\u30fc\u5b9a\u7fa9\u306e\u95be\u5024(\u30c7\u30d5\u30a9\u30eb\u30c8 80%)\u3092\u8d85\u3048\u305f\u3068\u304d\u306b\u767a\u52d5\u3002\u6b74\u53f2\u7684\u306b\u3001\u6975\u7aef\u306a\u640d\u5931\u6c34\u6e96\u306f\u30b5\u30a4\u30af\u30eb\u5e95\u3068\u4e00\u81f4\u3057\u307e\u3059\u3002";
+    box.querySelector(".close-btn").textContent = "\u9589\u3058\u308b";
+  } else if (lang === "zh") {
     box.querySelector("#explainTitle").textContent = "\u7406\u89e3 URPD";
     var h3s = box.querySelectorAll("h3");
     var descs = box.querySelectorAll(".desc");
