@@ -36,6 +36,8 @@
   #landmarks:focus { border-color: #ff8c00; outline: none; }
   #dateInput { transition: border-color 0.15s; }
   #dateInput:hover { border-color: #888 !important; }
+  #binInput:focus { border-color: #ff8c00; outline: none; }
+  #binInput:hover { border-color: #888; }
   #dateInput:focus { border-color: #ff8c00 !important; outline: none; }
   #dateDropdown::-webkit-scrollbar { width: 5px; }
   #dateDropdown::-webkit-scrollbar-track { background: #141414; }
@@ -103,6 +105,12 @@
     <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label>% USD invested in loss</label>
   </div>
+  <div class="ctrl-sep"></div>
+  <div id="binWrap" style="display:flex;align-items:center;gap:5px;font-size:11px;">
+    <label style="color:#999;">Bins</label>
+    <input type="text" id="binInput" value="625" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:42px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <label style="color:#555;font-size:10px;">/625</label>
+  </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
 
@@ -146,6 +154,7 @@
 var BASE = "https://bitview.space";
 var GENESIS = new Date(2009, 0, 3);
 var NUM_BINS = 625;
+var MAX_BINS = 625;
 var SMOOTH_WINDOW = 5;
 var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
@@ -172,7 +181,7 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
-    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss",
+    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
@@ -190,7 +199,7 @@ var T = {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
-    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
+    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f", binsLabel: "\u533a\u95f4",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
@@ -235,6 +244,8 @@ function applyLang() {
   document.getElementById("btnPL").textContent = t("pl");
   document.getElementById("btnSplit").textContent = t("lthsth");
   document.getElementById("loading").textContent = t("loading");
+  var binLabels = document.querySelectorAll("#binWrap label");
+  if (binLabels[0]) binLabels[0].textContent = t("binsLabel");
   var labels = document.querySelectorAll("#thresholdWrap label");
   if (labels[0]) labels[0].textContent = t("signalLabel");
   if (labels[1]) labels[1].textContent = t("signalUnit");
@@ -709,6 +720,21 @@ document.getElementById("thresholdInput").addEventListener("input", function(e){
     var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
     if (cache[cacheKey]) renderChart(cache[cacheKey]);
   }
+});
+
+document.getElementById("binInput").addEventListener("change", function(e){
+  var v = parseInt(e.target.value);
+  if (isNaN(v) || v < 10) v = 10;
+  if (v > MAX_BINS) v = MAX_BINS;
+  e.target.value = v;
+  if (v !== NUM_BINS) {
+    NUM_BINS = v;
+    cache = {};
+    loadAndRender();
+  }
+});
+document.getElementById("binInput").addEventListener("keydown", function(e){
+  if (e.key === "Enter") { e.preventDefault(); this.blur(); }
 });
 
 document.addEventListener("keydown", function(e){
