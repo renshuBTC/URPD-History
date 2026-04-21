@@ -443,14 +443,18 @@ function renderChart(data) {
     if (isCoin) {
       var lthSupV = smooth(chartPrices.map(function(p){return lthMap[p] ? lthMap[p].supply : 0;}));
       var sthSupV = smooth(chartPrices.map(function(p){return sthMap[p] ? sthMap[p].supply : 0;}));
-      traces.push({x:chartPrices,y:sthSupV,type:"bar",name:t("sth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:STH_COLOR,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>STH: %{y:,.2f} BTC<extra></extra>"});
-      traces.push({x:chartPrices,y:lthSupV,type:"bar",name:t("lth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:LTH_COLOR,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>LTH: %{y:,.2f} BTC<extra></extra>"});
+      var sthColors=chartPrices.map(function(p){return spot&&p>spot?STH_COLOR+"66":STH_COLOR;});
+      var lthColors=chartPrices.map(function(p){return spot&&p>spot?LTH_COLOR+"66":LTH_COLOR;});
+      traces.push({x:chartPrices,y:sthSupV,type:"bar",name:t("sth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:sthColors,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>STH: %{y:,.2f} BTC<extra></extra>"});
+      traces.push({x:chartPrices,y:lthSupV,type:"bar",name:t("lth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:lthColors,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>LTH: %{y:,.2f} BTC<extra></extra>"});
       valuesForAxis = chartPrices.map(function(_,i){return lthSupV[i]+sthSupV[i];});
     } else {
       var lthInv = smooth(chartPrices.map(function(p){return lthMap[p] ? lthMap[p].invested : 0;}));
       var sthInv = smooth(chartPrices.map(function(p){return sthMap[p] ? sthMap[p].invested : 0;}));
-      traces.push({x:chartPrices,y:sthInv,type:"bar",name:t("sth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:STH_COLOR,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>STH: %{y:$,.0f}<extra></extra>"});
-      traces.push({x:chartPrices,y:lthInv,type:"bar",name:t("lth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:LTH_COLOR,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>LTH: %{y:$,.0f}<extra></extra>"});
+      var sthColors=chartPrices.map(function(p){return spot&&p>spot?STH_COLOR+"66":STH_COLOR;});
+      var lthColors=chartPrices.map(function(p){return spot&&p>spot?LTH_COLOR+"66":LTH_COLOR;});
+      traces.push({x:chartPrices,y:sthInv,type:"bar",name:t("sth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:sthColors,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>STH: %{y:$,.0f}<extra></extra>"});
+      traces.push({x:chartPrices,y:lthInv,type:"bar",name:t("lth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:lthColors,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>LTH: %{y:$,.0f}<extra></extra>"});
       valuesForAxis = chartPrices.map(function(_,i){return lthInv[i]+sthInv[i];});
     }
     var total1 = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
