@@ -123,19 +123,22 @@
     #btnNext:active, #btnLast:active { background: #ff8c00; color: #000; }
     /* Chart takes center */
     #status { display: none; }
-    #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100dvh - 42px) !important; }
-    @supports not (height: 100dvh) { #chart { height: calc(100vh - 42px) !important; } }
-    /* Controls strip at bottom center */
-    #controls { position: fixed; bottom: 0; left: 48px; right: 48px; z-index: 1000; order: 2; padding: 2px 6px; gap: 2px 4px; border-top: 1px solid #333; background: rgba(26,26,26,0.95); }
-    #controls button { padding: 3px 6px; font-size: 10px; }
-    #dateDisplay { font-size: 9px; width: auto; min-width: unset; order: -1; width: 100%; text-align: center; }
-    #intervalBar .iv { padding: 2px 5px; font-size: 9px; }
-    .mode-toggle button { padding: 2px 5px; font-size: 9px; }
-    #dateInput { width: 80px; font-size: 10px; }
-    #landmarks { width: 90px; font-size: 10px; }
+    #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100dvh - 28px) !important; }
+    @supports not (height: 100dvh) { #chart { height: calc(100vh - 28px) !important; } }
+    /* Controls strip at bottom center — single compact row */
+    #controls { position: fixed; bottom: 0; left: 48px; right: 48px; z-index: 1000; order: 2; padding: 1px 4px; gap: 1px 3px; border-top: 1px solid #333; background: rgba(26,26,26,0.95); flex-wrap: nowrap; overflow-x: auto; }
+    #controls button { padding: 2px 5px; font-size: 9px; white-space: nowrap; }
+    #dateDisplay { font-size: 8px; min-width: unset; order: -1; white-space: nowrap; padding: 1px 4px; }
+    #intervalBar { margin: 0; padding: 0; }
+    #intervalBar .iv { padding: 2px 4px; font-size: 9px; }
+    .mode-toggle button { padding: 2px 4px; font-size: 9px; }
+    #dateInput { width: 70px; font-size: 9px; padding: 2px 4px !important; }
+    #landmarks { width: 80px; font-size: 9px; padding: 2px 4px; }
     #dateDropdownWrap { display: none; }
-    #thresholdWrap label { display: none !important; }
-    #binWrap label { display: none !important; }
+    #thresholdWrap { display: none !important; }
+    #binWrap { display: none !important; }
+    #explainWrap { display: none !important; }
+    #langBtn { display: none !important; }
   }
 </style>
 </head>
