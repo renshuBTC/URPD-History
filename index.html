@@ -163,7 +163,8 @@
   body.landscape-phone #controls #intervalBar .iv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; border-radius: 2px !important; }
   /* Mode toggles: 24px container */
   body.landscape-phone .mode-toggle { gap: 1px; display: flex; align-items: center; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 24px; }
-  body.landscape-phone #controls .mode-toggle button { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
+  body.landscape-phone #controls .mode-toggle button { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; color: #d4d4d4 !important; }
+  body.landscape-phone #controls .mode-toggle button.active { background: #ff8c00 !important; color: #000 !important; border-radius: 2px !important; font-weight: bold; }
   /* Date input */
   body.landscape-phone #dateDropdownWrap { display: inline-flex !important; align-items: center; height: 24px; }
   body.landscape-phone #dateInput { width: 68px !important; }
@@ -177,10 +178,10 @@
   body.landscape-phone #binWrap { display: flex !important; align-items: center; gap: 3px; height: 24px; }
   body.landscape-phone #binWrap label { display: inline !important; font-size: 9px; white-space: nowrap; line-height: 24px; }
   /* Explain button */
-  body.landscape-phone #explainWrap { margin-left: 0 !important; display: flex !important; align-items: center; height: 24px; }
+  body.landscape-phone #explainWrap { margin-left: 0 !important; display: flex !important; align-items: center; height: 24px; order: 98 !important; }
   body.landscape-phone #explainBtn { background: #252525 !important; color: #d4d4d4 !important; font-weight: 700; }
   /* Lang button */
-  body.landscape-phone #langBtn { display: flex !important; align-items: center; }
+  body.landscape-phone #langBtn { display: flex !important; align-items: center; order: 99 !important; }
 </style>
 </head>
 <body>
