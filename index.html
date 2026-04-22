@@ -1056,24 +1056,7 @@ async function init() {
     document.getElementById("status").textContent = t("errBRK");
   }
 }
-// Touch swipe navigation (single-finger only, ignore pinch)
-(function(){
-  var chart = document.getElementById("chart");
-  var sx = 0;
-  var singleTouch = false;
-  chart.addEventListener("touchstart", function(e){
-    singleTouch = (e.touches.length === 1);
-    sx = e.touches[0].clientX;
-  }, {passive:true});
-  chart.addEventListener("touchmove", function(e){
-    if (e.touches.length > 1) singleTouch = false;
-  }, {passive:true});
-  chart.addEventListener("touchend", function(e){
-    if (!singleTouch) return;
-    var dx = e.changedTouches[0].clientX - sx;
-    if (Math.abs(dx) > 50) { goTo(currentIdx + (dx < 0 ? stepSize : -stepSize)); }
-  }, {passive:true});
-})();
+// Touch swipe navigation disabled — use nav buttons instead
 
 // Detect landscape phone and toggle class + move nav buttons
 var _navInBody = false;
