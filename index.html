@@ -1045,11 +1045,33 @@ async function init() {
   }, {passive:true});
 })();
 
-// Detect landscape phone and toggle class
+// Detect landscape phone and toggle class + move nav buttons
+var _navInBody = false;
 function updateLandscapeClass() {
   var touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   var land = touch && window.innerWidth > window.innerHeight && window.innerHeight < 800;
   document.body.classList.toggle('landscape-phone', land);
+  var bf = document.getElementById("btnFirst");
+  var bp = document.getElementById("btnPrev");
+  var bn = document.getElementById("btnNext");
+  var bl = document.getElementById("btnLast");
+  if (land && !_navInBody) {
+    // Move nav buttons to <body> so position:fixed works on iOS Safari
+    document.body.appendChild(bf);
+    document.body.appendChild(bp);
+    document.body.appendChild(bn);
+    document.body.appendChild(bl);
+    _navInBody = true;
+  } else if (!land && _navInBody) {
+    // Move nav buttons back into #controls in original position
+    var controls = document.getElementById("controls");
+    var dateDisplay = document.getElementById("dateDisplay");
+    controls.insertBefore(bf, dateDisplay);
+    controls.insertBefore(bp, dateDisplay);
+    controls.insertBefore(bn, dateDisplay.nextSibling);
+    controls.insertBefore(bl, bn.nextSibling);
+    _navInBody = false;
+  }
 }
 updateLandscapeClass();
 
