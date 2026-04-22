@@ -43,8 +43,6 @@
   #dateInput:hover { border-color: #888 !important; }
   #binInput:focus { border-color: #ff8c00; outline: none; }
   #binInput:hover { border-color: #888; }
-  #binInput:focus { border-color: #ff8c00; outline: none; }
-  #binInput:hover { border-color: #888; }
   #dateInput:focus { border-color: #ff8c00 !important; outline: none; }
   #dateDropdown::-webkit-scrollbar { width: 5px; }
   #dateDropdown::-webkit-scrollbar-track { background: #141414; }
@@ -168,7 +166,7 @@
   /* Date input */
   body.landscape-phone #dateDropdownWrap { display: inline-flex !important; align-items: center; height: 24px; }
   body.landscape-phone #dateInput { width: 68px !important; }
-  body.landscape-phone #dateDropdown { display: none !important; }
+  body.landscape-phone #dateDropdown { max-width: 200px !important; font-size: 10px !important; }
   /* Landmarks select */
   body.landscape-phone #landmarks { width: 72px !important; background-image: none !important; }
   /* Threshold — verbose labels */
@@ -277,7 +275,6 @@ var BASE = "https://bitview.space";
 var GENESIS = new Date(2009, 0, 3);
 var NUM_BINS = 625;
 var MAX_BINS = 625;
-var MAX_BINS = 625;
 var SMOOTH_WINDOW = 5;
 var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
@@ -304,7 +301,7 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
-    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss", binsLabel: "Bins", binsLabel: "Bins",
+    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
@@ -322,7 +319,7 @@ var T = {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
-    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f", binsLabel: "\u533a\u95f4", binsLabel: "\u533a\u95f4",
+    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f", binsLabel: "\u533a\u95f4",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
@@ -378,15 +375,13 @@ function applyLang() {
       var yr = d.getFullYear();
       var price = opts[oi].textContent.match(/\(.*\)/);
       price = price ? " " + price[0] : "";
-      var isTop = opts[oi].textContent.indexOf("Top") >= 0 || opts[oi].textContent.indexOf("顶部") >= 0;
+      var isTop = opts[oi].textContent.indexOf("Top") >= 0 || opts[oi].textContent.indexOf("顶部") >= 0 || opts[oi].textContent.indexOf("天井") >= 0;
       opts[oi].textContent = (isTop ? tp : bt) + ": " + mon + " " + yr + price;
     }
   }
   document.getElementById("btnPL").textContent = t("pl");
   document.getElementById("btnSplit").textContent = t("lthsth");
   document.getElementById("loading").textContent = t("loading");
-  var binLabels = document.querySelectorAll("#binWrap label");
-  if (binLabels[0]) binLabels[0].textContent = t("binsLabel");
   var binLabels = document.querySelectorAll("#binWrap label");
   if (binLabels[0]) binLabels[0].textContent = t("binsLabel");
   var labels = document.querySelectorAll("#thresholdWrap label");
@@ -929,21 +924,6 @@ document.getElementById("binInput").addEventListener("keydown", function(e){
   if (e.key === "Enter") { e.preventDefault(); this.blur(); }
 });
 
-document.getElementById("binInput").addEventListener("change", function(e){
-  var v = parseInt(e.target.value);
-  if (isNaN(v) || v < 10) v = 10;
-  if (v > MAX_BINS) v = MAX_BINS;
-  e.target.value = v;
-  if (v !== NUM_BINS) {
-    NUM_BINS = v;
-    cache = {};
-    loadAndRender();
-  }
-});
-document.getElementById("binInput").addEventListener("keydown", function(e){
-  if (e.key === "Enter") { e.preventDefault(); this.blur(); }
-});
-
 document.addEventListener("keydown", function(e){
   if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
   if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); goTo(currentIdx - stepSize); }
@@ -1163,7 +1143,7 @@ function updateExplainerLang() {
     if(document.getElementById("f6")) document.getElementById("f6").textContent = "\u542b\u307f\u76ca% = \u03a3 W(P) P \u2264 \u73fe\u5728\u4fa1\u683c / \u03a3 W(P) \u00d7 100";
     if(document.getElementById("f7")) document.getElementById("f7").textContent = "\u30b7\u30b0\u30ca\u30eb\u6761\u4ef6: \u640d\u5931% \u2265 \u95be\u5024 (\u30c7\u30d5\u30a9\u30eb\u30c8 80%)";
     descs[7].textContent = "\u7c73\u30c9\u30eb\u6295\u8cc7\u8cc7\u7523\u306e\u640d\u5931\u5272\u5408\u304c\u30e6\u30fc\u30b6\u30fc\u5b9a\u7fa9\u306e\u95be\u5024(\u30c7\u30d5\u30a9\u30eb\u30c8 80%)\u3092\u8d85\u3048\u305f\u3068\u304d\u306b\u767a\u52d5\u3002\u6b74\u53f2\u7684\u306b\u3001\u6975\u7aef\u306a\u640d\u5931\u6c34\u6e96\u306f\u30b5\u30a4\u30af\u30eb\u5e95\u3068\u4e00\u81f4\u3057\u307e\u3059\u3002";
-    box.querySelector(".close-btn").textContent = "\u9589\u3058\u308b";
+    var cb = box.querySelector(".close-btn"); if (cb) cb.textContent = "\u9589\u3058\u308b";
   } else if (lang === "zh") {
     box.querySelector("#explainTitle").textContent = "\u7406\u89e3 URPD";
     var h3s = box.querySelectorAll("h3");
@@ -1191,7 +1171,7 @@ function updateExplainerLang() {
     if(document.getElementById("f6")) document.getElementById("f6").textContent = "\u76c8\u5229% = \u03a3 W(P)\uff0c\u5176\u4e2d P \u2264 \u73b0\u4ef7 / \u03a3 W(P) \u00d7 100";
     if(document.getElementById("f7")) document.getElementById("f7").textContent = "\u4fe1\u53f7\u89e6\u53d1\u6761\u4ef6: \u4e8f\u635f% \u2265 \u9608\u503c (\u9ed8\u8ba4 80%)";
     descs[7].textContent = "\u5f53\u7f8e\u5143\u6295\u8d44\u8d22\u5bcc\u4e8f\u635f\u767e\u5206\u6bd4\u8d85\u8fc7\u7528\u6237\u5b9a\u4e49\u7684\u9608\u503c(\u9ed8\u8ba480%)\u65f6\u89e6\u53d1\u3002\u5386\u53f2\u4e0a\uff0c\u6781\u7aef\u4e8f\u635f\u6c34\u5e73\u4e0e\u5468\u671f\u5e95\u90e8\u5438\u5408\u3002";
-    box.querySelector(".close-btn").textContent = "\u5173\u95ed";
+    var cb = box.querySelector(".close-btn"); if (cb) cb.textContent = "\u5173\u95ed";
   } else {
     box.querySelector("#explainTitle").textContent = "Understanding URPD";
     var h3s = box.querySelectorAll("h3");
