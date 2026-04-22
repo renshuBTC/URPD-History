@@ -740,13 +740,15 @@ function renderChart(data) {
   // Mobile: reduce x-axis ticks, shorter labels, upright
   if (isMob) {
     xTickvals = []; xTicktext = [];
-    var mTicks = isLand ? 15 : 10;
+    var mTicks = isLand ? 10 : 6;
     var mStep = maxPrice / mTicks;
     var mRound = Math.pow(10, Math.floor(Math.log10(mStep)));
+    if (mRound < 5000) mRound = 5000;
     for (var mi = 0; mi <= mTicks; mi++) {
       var mv = mi * mStep;
       if (mv === 0) { xTickvals.push(0); xTicktext.push("$0"); continue; }
       var mr = Math.round(mv / mRound) * mRound;
+      if (xTickvals.length > 0 && mr === xTickvals[xTickvals.length - 1]) continue;
       xTickvals.push(mr);
       var mt;
       if (mr >= 1e6) { mt = "$" + Math.round(mr/1e6) + "M"; }
