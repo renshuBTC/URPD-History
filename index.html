@@ -159,26 +159,23 @@
   body.landscape-phone #thresholdWrap input { width: 28px !important; }
   /* Interval bar: 24px container */
   body.landscape-phone #intervalBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
-  body.landscape-phone #intervalBar .iv { background: #1a1a1a !important; border-color: transparent !important; height: 18px !important; line-height: 16px !important; padding: 0 5px !important; }
-  body.landscape-phone #intervalBar .iv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; }
+  body.landscape-phone #intervalBar .iv { background: #1a1a1a !important; border: none !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
+  body.landscape-phone #intervalBar .iv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; border-radius: 2px !important; }
   /* Mode toggles: 24px container */
   body.landscape-phone .mode-toggle { gap: 1px; display: flex; align-items: center; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 24px; }
-  body.landscape-phone .mode-toggle button { background: #1a1a1a !important; border-color: transparent !important; height: 18px !important; line-height: 16px !important; padding: 0 5px !important; }
+  body.landscape-phone .mode-toggle button { background: #1a1a1a !important; border: none !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
   /* Date input */
   body.landscape-phone #dateDropdownWrap { display: inline-flex !important; align-items: center; height: 24px; }
   body.landscape-phone #dateInput { width: 68px !important; }
   body.landscape-phone #dateDropdown { display: none !important; }
   /* Landmarks select */
   body.landscape-phone #landmarks { width: 72px !important; background-image: none !important; }
-  /* Threshold */
+  /* Threshold — verbose labels */
   body.landscape-phone #thresholdWrap { display: flex !important; align-items: center; gap: 3px; height: 24px; }
-  body.landscape-phone #thresholdWrap label { display: none; }
-  body.landscape-phone #thresholdWrap::before { content: "Sig"; font-size: 9px; color: #888; font-family: inherit; line-height: 24px; }
-  body.landscape-phone #thresholdWrap::after { content: "%"; font-size: 9px; color: #888; font-family: inherit; line-height: 24px; }
-  /* Bins */
+  body.landscape-phone #thresholdWrap label { display: inline !important; font-size: 9px; color: #888; font-family: inherit; line-height: 24px; white-space: nowrap; }
+  /* Bins — verbose labels */
   body.landscape-phone #binWrap { display: flex !important; align-items: center; gap: 3px; height: 24px; }
-  body.landscape-phone #binWrap label { display: none; }
-  body.landscape-phone #binWrap::before { content: "Bins"; font-size: 9px; color: #888; font-family: inherit; line-height: 24px; }
+  body.landscape-phone #binWrap label { display: inline !important; font-size: 9px; white-space: nowrap; line-height: 24px; }
   /* Explain button */
   body.landscape-phone #explainWrap { margin-left: 0 !important; display: flex !important; align-items: center; height: 24px; }
   body.landscape-phone #explainBtn { background: #252525 !important; color: #d4d4d4 !important; font-weight: 700; }
