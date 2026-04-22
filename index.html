@@ -108,39 +108,32 @@
     #btnNext  { flex-grow: 1; order: 33 !important; font-size: 16px; border-right: none; }
   }
 
-  /* ---- Landscape phone: gameboy layout ---- */
-  @media (orientation: landscape) and (max-height: 500px),
-         (orientation: landscape) and (hover: none) and (pointer: coarse) and (max-height: 700px) {
-    body { flex-direction: row !important; }
-    /* Left D-pad: << on top, < below */
-    #btnFirst, #btnPrev { position: fixed !important; left: 0 !important; z-index: 1001; width: 48px !important; background: rgba(26,26,26,0.92) !important; border: none !important; border-right: 1px solid #333 !important; color: #ff8c00; font-size: 20px !important; font-weight: bold; -webkit-tap-highlight-color: transparent; flex-basis: auto !important; flex-grow: 0 !important; order: unset !important; padding: 0 !important; }
-    #btnFirst { top: 0; height: 50%; border-bottom: 1px solid #333 !important; }
-    #btnPrev { top: 50%; height: 50%; }
-    #btnFirst:active, #btnPrev:active { background: #ff8c00 !important; color: #000; }
-    /* Right D-pad: >> on top, > below */
-    #btnNext, #btnLast { position: fixed !important; right: 0 !important; z-index: 1001; width: 48px !important; background: rgba(26,26,26,0.92) !important; border: none !important; border-left: 1px solid #333 !important; color: #ff8c00; font-size: 20px !important; font-weight: bold; -webkit-tap-highlight-color: transparent; flex-basis: auto !important; flex-grow: 0 !important; order: unset !important; padding: 0 !important; }
-    #btnLast { top: 0; height: 50%; border-bottom: 1px solid #333 !important; }
-    #btnNext { top: 50%; height: 50%; }
-    #btnNext:active, #btnLast:active { background: #ff8c00 !important; color: #000; }
-    /* Chart takes center */
-    #status { display: none; }
-    #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100dvh - 28px) !important; }
-    @supports not (height: 100dvh) { #chart { height: calc(100vh - 28px) !important; } }
-    /* Controls strip at bottom center — single compact row */
-    #controls { position: fixed; bottom: 0; left: 48px; right: 48px; z-index: 1000; order: 2; padding: 1px 4px; gap: 1px 3px; border-top: 1px solid #333; background: rgba(26,26,26,0.95); flex-wrap: nowrap; overflow-x: auto; }
-    #controls button { padding: 2px 5px; font-size: 9px; white-space: nowrap; }
-    #dateDisplay { font-size: 8px; min-width: unset; order: -1; white-space: nowrap; padding: 1px 4px; }
-    #intervalBar { margin: 0; padding: 0; }
-    #intervalBar .iv { padding: 2px 4px; font-size: 9px; }
-    .mode-toggle button { padding: 2px 4px; font-size: 9px; }
-    #dateInput { width: 70px; font-size: 9px; padding: 2px 4px !important; }
-    #landmarks { width: 80px; font-size: 9px; padding: 2px 4px; }
-    #dateDropdownWrap { display: none; }
-    #thresholdWrap { display: none !important; }
-    #binWrap { display: none !important; }
-    #explainWrap { display: none !important; }
-    #langBtn { display: none !important; }
-  }
+  /* ---- Landscape phone: gameboy layout (JS-toggled class) ---- */
+  body.landscape-phone { flex-direction: row !important; }
+  body.landscape-phone #btnFirst, body.landscape-phone #btnPrev { position: fixed !important; left: 0 !important; z-index: 1001; width: 48px !important; background: rgba(26,26,26,0.92) !important; border: none !important; border-right: 1px solid #333 !important; color: #ff8c00; font-size: 20px !important; font-weight: bold; -webkit-tap-highlight-color: transparent; flex-basis: auto !important; flex-grow: 0 !important; order: unset !important; padding: 0 !important; }
+  body.landscape-phone #btnFirst { top: 0; height: 50%; border-bottom: 1px solid #333 !important; }
+  body.landscape-phone #btnPrev { top: 50%; height: 50%; }
+  body.landscape-phone #btnFirst:active, body.landscape-phone #btnPrev:active { background: #ff8c00 !important; color: #000; }
+  body.landscape-phone #btnNext, body.landscape-phone #btnLast { position: fixed !important; right: 0 !important; z-index: 1001; width: 48px !important; background: rgba(26,26,26,0.92) !important; border: none !important; border-left: 1px solid #333 !important; color: #ff8c00; font-size: 20px !important; font-weight: bold; -webkit-tap-highlight-color: transparent; flex-basis: auto !important; flex-grow: 0 !important; order: unset !important; padding: 0 !important; }
+  body.landscape-phone #btnLast { top: 0; height: 50%; border-bottom: 1px solid #333 !important; }
+  body.landscape-phone #btnNext { top: 50%; height: 50%; }
+  body.landscape-phone #btnNext:active, body.landscape-phone #btnLast:active { background: #ff8c00 !important; color: #000; }
+  body.landscape-phone #status { display: none; }
+  body.landscape-phone #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100dvh - 28px) !important; }
+  @supports not (height: 100dvh) { body.landscape-phone #chart { height: calc(100vh - 28px) !important; } }
+  body.landscape-phone #controls { position: fixed; bottom: 0; left: 48px; right: 48px; z-index: 1000; order: 2; padding: 1px 4px; gap: 1px 3px; border-top: 1px solid #333; background: rgba(26,26,26,0.95); flex-wrap: nowrap; overflow-x: auto; }
+  body.landscape-phone #controls button { padding: 2px 5px; font-size: 9px; white-space: nowrap; }
+  body.landscape-phone #dateDisplay { font-size: 8px; min-width: unset; order: -1; white-space: nowrap; padding: 1px 4px; }
+  body.landscape-phone #intervalBar { margin: 0; padding: 0; }
+  body.landscape-phone #intervalBar .iv { padding: 2px 4px; font-size: 9px; }
+  body.landscape-phone .mode-toggle button { padding: 2px 4px; font-size: 9px; }
+  body.landscape-phone #dateInput { width: 70px; font-size: 9px; padding: 2px 4px !important; }
+  body.landscape-phone #landmarks { width: 80px; font-size: 9px; padding: 2px 4px; }
+  body.landscape-phone #dateDropdownWrap { display: none; }
+  body.landscape-phone #thresholdWrap { display: none !important; }
+  body.landscape-phone #binWrap { display: none !important; }
+  body.landscape-phone #explainWrap { display: none !important; }
+  body.landscape-phone #langBtn { display: none !important; }
 </style>
 </head>
 <body>
@@ -1051,8 +1044,17 @@ async function init() {
   }, {passive:true});
 })();
 
+// Detect landscape phone and toggle class
+function updateLandscapeClass() {
+  var touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  var land = touch && window.innerWidth > window.innerHeight && window.innerHeight < 800;
+  document.body.classList.toggle('landscape-phone', land);
+}
+updateLandscapeClass();
+
 // Re-render on orientation change
 window.addEventListener("resize", function(){
+  updateLandscapeClass();
   if (allDates.length > 0) loadAndRender();
 });
 
