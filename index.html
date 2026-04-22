@@ -136,46 +136,54 @@
   body.landscape-phone #btnNext:active, body.landscape-phone #btnLast:active { background: #333 !important; color: #fff !important; }
   body.landscape-phone #status { display: none; }
   body.landscape-phone #chart { order: 1; flex: 1; margin: 0 44px; width: calc(100% - 88px) !important; min-height: 0; }
-  /* Landscape control bar — 2-row wrap, uniform 20px height */
+  /* Landscape control bar — 2-row wrap, uniform 24px row height */
   body.landscape-phone #controls { order: 2; margin: 0 44px; padding: 2px 4px; padding-bottom: max(2px, env(safe-area-inset-bottom)); border-top: 1px solid #555; background: #1a1a1a; display: flex !important; flex-wrap: wrap; align-items: center; justify-content: flex-start; flex-shrink: 0; gap: 2px 5px; }
   body.landscape-phone #controls > * { flex-shrink: 0; }
   body.landscape-phone #controls .ctrl-sep { display: none !important; }
   body.landscape-phone #dateDisplay { display: none !important; }
-  /* All interactive elements: 20px outer height */
+  /* Shared: every button/input/select forced to 24px, iOS-reset */
   body.landscape-phone #controls button,
   body.landscape-phone #controls input,
-  body.landscape-phone #controls select { height: 20px !important; line-height: 18px !important; font-size: 9px; font-family: inherit; border: 1px solid #555; border-radius: 2px; box-sizing: border-box; }
-  body.landscape-phone #controls button { background: #252525; color: #d4d4d4; padding: 0 6px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  body.landscape-phone #controls select {
+    height: 24px !important; line-height: 22px !important; font-size: 9px !important;
+    font-family: inherit; border: 1px solid #555 !important; border-radius: 2px !important;
+    box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important;
+    background: #252525 !important; color: #d4d4d4 !important; padding: 0 6px !important;
+    margin: 0; vertical-align: middle;
+  }
+  body.landscape-phone #controls button { cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
   body.landscape-phone #controls button.active { background: #ff8c00 !important; color: #000 !important; border-color: #ff8c00 !important; font-weight: bold; }
-  /* Interval bar: 20px container, 14px inner buttons */
-  body.landscape-phone #intervalBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 20px; }
-  body.landscape-phone #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 0 5px; height: 14px !important; line-height: 12px !important; font-size: 9px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; }
-  body.landscape-phone #intervalBar .iv.active { background: #ff8c00; color: #000; font-weight: bold; }
-  /* Mode toggles: 20px container, 14px inner buttons */
-  body.landscape-phone .mode-toggle { gap: 1px; display: flex; align-items: center; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 20px; }
-  body.landscape-phone .mode-toggle button { background: #1a1a1a !important; border-color: transparent !important; padding: 0 5px; height: 14px !important; line-height: 12px !important; }
+  /* Orange-value inputs override */
+  body.landscape-phone #thresholdWrap input,
+  body.landscape-phone #binWrap input { color: #ff8c00 !important; text-align: center; width: 32px !important; }
+  body.landscape-phone #thresholdWrap input { width: 28px !important; }
+  /* Interval bar: 24px container */
+  body.landscape-phone #intervalBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
+  body.landscape-phone #intervalBar .iv { background: #1a1a1a !important; border-color: transparent !important; height: 18px !important; line-height: 16px !important; padding: 0 5px !important; }
+  body.landscape-phone #intervalBar .iv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; }
+  /* Mode toggles: 24px container */
+  body.landscape-phone .mode-toggle { gap: 1px; display: flex; align-items: center; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 24px; }
+  body.landscape-phone .mode-toggle button { background: #1a1a1a !important; border-color: transparent !important; height: 18px !important; line-height: 16px !important; padding: 0 5px !important; }
   /* Date input */
-  body.landscape-phone #dateDropdownWrap { display: inline-flex !important; align-items: center; height: 20px; }
-  body.landscape-phone #dateInput { width: 68px; padding: 0 4px !important; background: #1e1e1e; color: #d4d4d4; }
+  body.landscape-phone #dateDropdownWrap { display: inline-flex !important; align-items: center; height: 24px; }
+  body.landscape-phone #dateInput { width: 68px !important; }
   body.landscape-phone #dateDropdown { display: none !important; }
   /* Landmarks select */
-  body.landscape-phone #landmarks { width: 72px; padding: 0 4px; background: #1e1e1e; color: #d4d4d4; -webkit-appearance: none; appearance: none; }
+  body.landscape-phone #landmarks { width: 72px !important; background-image: none !important; }
   /* Threshold */
-  body.landscape-phone #thresholdWrap { display: flex !important; align-items: center; gap: 3px; height: 20px; }
+  body.landscape-phone #thresholdWrap { display: flex !important; align-items: center; gap: 3px; height: 24px; }
   body.landscape-phone #thresholdWrap label { display: none; }
-  body.landscape-phone #thresholdWrap::before { content: "Sig"; font-size: 8px; color: #888; font-family: inherit; line-height: 20px; }
-  body.landscape-phone #thresholdWrap::after { content: "%"; font-size: 8px; color: #888; font-family: inherit; line-height: 20px; }
-  body.landscape-phone #thresholdWrap input { width: 28px; text-align: center; padding: 0 3px; background: #1e1e1e; color: #ff8c00; }
+  body.landscape-phone #thresholdWrap::before { content: "Sig"; font-size: 9px; color: #888; font-family: inherit; line-height: 24px; }
+  body.landscape-phone #thresholdWrap::after { content: "%"; font-size: 9px; color: #888; font-family: inherit; line-height: 24px; }
   /* Bins */
-  body.landscape-phone #binWrap { display: flex !important; align-items: center; gap: 3px; height: 20px; }
+  body.landscape-phone #binWrap { display: flex !important; align-items: center; gap: 3px; height: 24px; }
   body.landscape-phone #binWrap label { display: none; }
-  body.landscape-phone #binWrap::before { content: "Bins"; font-size: 8px; color: #888; font-family: inherit; line-height: 20px; }
-  body.landscape-phone #binWrap input { width: 32px; text-align: center; padding: 0 3px; background: #1e1e1e; color: #ff8c00; }
+  body.landscape-phone #binWrap::before { content: "Bins"; font-size: 9px; color: #888; font-family: inherit; line-height: 24px; }
   /* Explain button */
-  body.landscape-phone #explainWrap { margin-left: 0 !important; display: flex !important; align-items: center; height: 20px; }
-  body.landscape-phone #explainBtn { background: #0d1117 !important; color: #8b949e !important; border: 1px solid #1c2733 !important; padding: 0 5px; font-weight: 700; }
+  body.landscape-phone #explainWrap { margin-left: 0 !important; display: flex !important; align-items: center; height: 24px; }
+  body.landscape-phone #explainBtn { background: #252525 !important; color: #d4d4d4 !important; font-weight: 700; }
   /* Lang button */
-  body.landscape-phone #langBtn { display: flex !important; align-items: center; background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 0 5px; border-radius: 2px; }
+  body.landscape-phone #langBtn { display: flex !important; align-items: center; }
 </style>
 </head>
 <body>
