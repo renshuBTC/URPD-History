@@ -120,11 +120,11 @@
   body.landscape-phone #btnNext { top: 50%; height: 50%; }
   body.landscape-phone #btnNext:active, body.landscape-phone #btnLast:active { background: #ff8c00 !important; color: #000; }
   body.landscape-phone #status { display: none; }
-  body.landscape-phone #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100dvh - 28px) !important; }
-  @supports not (height: 100dvh) { body.landscape-phone #chart { height: calc(100vh - 28px) !important; } }
+  body.landscape-phone #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100dvh - 40px) !important; }
+  @supports not (height: 100dvh) { body.landscape-phone #chart { height: calc(100vh - 40px) !important; } }
   body.landscape-phone #controls { position: fixed; bottom: 0; left: 48px; right: 48px; z-index: 1000; order: 2; padding: 1px 4px; gap: 1px 3px; border-top: 1px solid #333; background: rgba(26,26,26,0.95); flex-wrap: nowrap; overflow-x: auto; }
   body.landscape-phone #controls button { padding: 2px 5px; font-size: 9px; white-space: nowrap; }
-  body.landscape-phone #dateDisplay { font-size: 8px; min-width: unset; order: -1; white-space: nowrap; padding: 1px 4px; }
+  body.landscape-phone #dateDisplay { display: none !important; }
   body.landscape-phone #intervalBar { margin: 0; padding: 0; }
   body.landscape-phone #intervalBar .iv { padding: 2px 4px; font-size: 9px; }
   body.landscape-phone .mode-toggle button { padding: 2px 4px; font-size: 9px; }
@@ -724,7 +724,7 @@ function renderChart(data) {
     if (annotations.length >= 2) annotations[1] = Object.assign({}, annotations[1], {text:""});
   }
 
-  var margins = isMob ? (isLand ? {l:35,r:30,t:30,b:12} : {l:35,r:30,t:40,b:15}) : {l:80,r:80,t:90,b:80};
+  var margins = isMob ? (isLand ? {l:35,r:30,t:30,b:30} : {l:35,r:30,t:40,b:15}) : {l:80,r:80,t:90,b:80};
 
   var layout = {
     title:{text:titleText,x:0.5,xanchor:"center",font:{size:isMob?11:20,family:FONT,color:"#ff8c00"}},
