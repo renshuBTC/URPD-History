@@ -112,15 +112,15 @@
   @media (max-height: 500px) and (orientation: landscape) {
     body { flex-direction: row !important; }
     /* Left D-pad: << on top, < below */
-    #btnFirst, #btnPrev { position: fixed; left: 0; z-index: 1001; width: 48px; background: rgba(26,26,26,0.92); border: none; border-right: 1px solid #333; color: #ff8c00; font-size: 20px; font-weight: bold; -webkit-tap-highlight-color: transparent; }
-    #btnFirst { top: 0; height: 50%; border-bottom: 1px solid #333; }
+    #btnFirst, #btnPrev { position: fixed !important; left: 0 !important; z-index: 1001; width: 48px !important; background: rgba(26,26,26,0.92) !important; border: none !important; border-right: 1px solid #333 !important; color: #ff8c00; font-size: 20px !important; font-weight: bold; -webkit-tap-highlight-color: transparent; flex-basis: auto !important; flex-grow: 0 !important; order: unset !important; padding: 0 !important; }
+    #btnFirst { top: 0; height: 50%; border-bottom: 1px solid #333 !important; }
     #btnPrev { top: 50%; height: 50%; }
-    #btnFirst:active, #btnPrev:active { background: #ff8c00; color: #000; }
+    #btnFirst:active, #btnPrev:active { background: #ff8c00 !important; color: #000; }
     /* Right D-pad: >> on top, > below */
-    #btnNext, #btnLast { position: fixed; right: 0; z-index: 1001; width: 48px; background: rgba(26,26,26,0.92); border: none; border-left: 1px solid #333; color: #ff8c00; font-size: 20px; font-weight: bold; -webkit-tap-highlight-color: transparent; }
-    #btnLast { top: 0; height: 50%; border-bottom: 1px solid #333; }
+    #btnNext, #btnLast { position: fixed !important; right: 0 !important; z-index: 1001; width: 48px !important; background: rgba(26,26,26,0.92) !important; border: none !important; border-left: 1px solid #333 !important; color: #ff8c00; font-size: 20px !important; font-weight: bold; -webkit-tap-highlight-color: transparent; flex-basis: auto !important; flex-grow: 0 !important; order: unset !important; padding: 0 !important; }
+    #btnLast { top: 0; height: 50%; border-bottom: 1px solid #333 !important; }
     #btnNext { top: 50%; height: 50%; }
-    #btnNext:active, #btnLast:active { background: #ff8c00; color: #000; }
+    #btnNext:active, #btnLast:active { background: #ff8c00 !important; color: #000; }
     /* Chart takes center */
     #status { display: none; }
     #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100dvh - 28px) !important; }
