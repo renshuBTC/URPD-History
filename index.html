@@ -2,7 +2,8 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>URPD History — @renshuBTC</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bitcoin URPD History - @renshuBTC</title>
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
@@ -62,6 +63,76 @@
   #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; flex-shrink: 0; }
   #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 4px; }
+  /* ---- Mobile: general (portrait & landscape) ---- */
+  @media (max-width: 900px) {
+    body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+    #controls { order: 2; flex-wrap: wrap; gap: 4px 6px; padding: 6px 6px; padding-bottom: max(6px, env(safe-area-inset-bottom)); justify-content: center; border-bottom: none; border-top: 1px solid #333; }
+    #controls button { padding: 8px 10px; font-size: 11px; -webkit-tap-highlight-color: transparent; }
+    #controls button:active { background: #ff8c00; color: #000; }
+    .ctrl-sep { display: none; }
+    #dateDisplay { min-width: unset; font-size: 11px; width: 100%; order: -1; padding: 2px 0; }
+    #dateInput { width: 100px; font-size: 11px; }
+    #landmarks { width: 110px; font-size: 11px; padding: 4px 6px; }
+    /* Dropdowns open upward on mobile so they don't go off-screen */
+    #dateDropdown { top: auto !important; bottom: 100% !important; max-height: 50vh !important; }
+    #thresholdWrap { font-size: 10px; gap: 3px; }
+    #thresholdWrap label { display: none; }
+    #thresholdInput { width: 32px; }
+    #binWrap { font-size: 10px; gap: 3px; }
+    #binWrap label { display: none; }
+    #explainWrap { order: 10; }
+    #explainPanel { width: 90vw; right: -20px; bottom: 100%; top: auto; padding: 16px; margin-top: 0; margin-bottom: 6px; }
+    #status { display: none; }
+    #chart { order: 1; flex: 1; width: 100%; }
+  }
+
+  /* ---- Portrait phone: right-thumb optimized ---- */
+  @media (max-width: 480px) {
+    #controls { gap: 4px 5px; padding: 5px 6px; padding-bottom: max(5px, env(safe-area-inset-bottom)); }
+    /* Date display: full-width top row */
+    #dateDisplay { width: 100%; order: -2; text-align: center; font-size: 10px; padding: 2px 0 4px 0; }
+    /* Explainer before lang button */
+    #explainWrap { order: 2 !important; margin-left: 0 !important; }
+    #langBtn { order: 3 !important; }
+    /* Bottom nav row: << >> < > */
+    #btnFirst, #btnPrev, #btnNext, #btnLast {
+      order: 30 !important; padding: 12px 0;
+      flex-basis: 0; border-top: 1px solid #333; border-right: 1px solid #333;
+    }
+    #btnFirst { flex-grow: 0.7; order: 30 !important; }
+    #btnLast  { flex-grow: 0.7; order: 31 !important; }
+    #btnPrev  { flex-grow: 1; order: 32 !important; font-size: 16px; }
+    #btnNext  { flex-grow: 1; order: 33 !important; font-size: 16px; border-right: none; }
+  }
+
+  /* ---- Landscape phone: gameboy layout ---- */
+  @media (max-height: 500px) and (orientation: landscape) {
+    body { flex-direction: row !important; }
+    /* Left D-pad: << on top, < below */
+    #btnFirst, #btnPrev { position: fixed; left: 0; z-index: 1001; width: 48px; background: rgba(26,26,26,0.92); border: none; border-right: 1px solid #333; color: #ff8c00; font-size: 20px; font-weight: bold; -webkit-tap-highlight-color: transparent; }
+    #btnFirst { top: 0; height: 50%; border-bottom: 1px solid #333; }
+    #btnPrev { top: 50%; height: 50%; }
+    #btnFirst:active, #btnPrev:active { background: #ff8c00; color: #000; }
+    /* Right D-pad: >> on top, > below */
+    #btnNext, #btnLast { position: fixed; right: 0; z-index: 1001; width: 48px; background: rgba(26,26,26,0.92); border: none; border-left: 1px solid #333; color: #ff8c00; font-size: 20px; font-weight: bold; -webkit-tap-highlight-color: transparent; }
+    #btnLast { top: 0; height: 50%; border-bottom: 1px solid #333; }
+    #btnNext { top: 50%; height: 50%; }
+    #btnNext:active, #btnLast:active { background: #ff8c00; color: #000; }
+    /* Chart takes center */
+    #status { display: none; }
+    #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100vh - 42px) !important; }
+    /* Controls strip at bottom center */
+    #controls { position: fixed; bottom: 0; left: 48px; right: 48px; z-index: 1000; order: 2; padding: 2px 6px; gap: 2px 4px; border-top: 1px solid #333; background: rgba(26,26,26,0.95); }
+    #controls button { padding: 3px 6px; font-size: 10px; }
+    #dateDisplay { font-size: 9px; width: auto; min-width: unset; order: -1; width: 100%; text-align: center; }
+    #intervalBar .iv { padding: 2px 5px; font-size: 9px; }
+    .mode-toggle button { padding: 2px 5px; font-size: 9px; }
+    #dateInput { width: 80px; font-size: 10px; }
+    #landmarks { width: 90px; font-size: 10px; }
+    #dateDropdownWrap { display: none; }
+    #thresholdWrap label { display: none !important; }
+    #binWrap label { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -617,18 +688,62 @@ function renderChart(data) {
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
   var yAxisPrefix = isCoin ? "" : "$";
 
+  var isMob = window.innerWidth <= 900 || window.innerHeight <= 500;
+  var isLand = window.innerHeight <= 500 && window.innerWidth > window.innerHeight;
+  var isPort = isMob && !isLand;
+
+  // Mobile: reduce x-axis ticks, shorter labels, upright
+  if (isMob) {
+    xTickvals = []; xTicktext = [];
+    var mTicks = 10;
+    var mStep = maxPrice / mTicks;
+    for (var mi = 0; mi <= mTicks; mi++) {
+      var mv = mi * mStep;
+      if (mv === 0) { xTickvals.push(0); xTicktext.push("$0"); continue; }
+      var md = Math.pow(10, Math.floor(Math.log10(mv)) - 1);
+      var mr = Math.ceil(mv / md) * md;
+      xTickvals.push(mr);
+      var mt;
+      if (mr >= 1e6) { mt = "$" + Math.round(mr/1e6) + "M"; }
+      else if (mr >= 1e3) { mt = "$" + Math.round(mr/1e3) + "K"; }
+      else { mt = "$" + Math.round(mr); }
+      xTicktext.push(mt);
+    }
+  }
+
+  // Mobile: hide verbose annotations, scale down
+  if (isMob) {
+    // Hide "Powered by" annotation
+    if (annotations.length >= 3) annotations[2] = Object.assign({}, annotations[2], {text:""});
+    // Scale down stats annotation
+    if (annotations.length >= 1) annotations[0] = Object.assign({}, annotations[0], {font:{size:9,family:FONT}});
+    // Scale down watermark
+    if (annotations.length >= 2) annotations[1] = Object.assign({}, annotations[1], {text:""});
+  }
+
+  var margins = isMob ? (isLand ? {l:35,r:30,t:30,b:12} : {l:35,r:30,t:40,b:15}) : {l:80,r:80,t:90,b:80};
+
   var layout = {
-    title:{text:titleText,x:0.5,xanchor:"center",font:{size:20,family:FONT,color:"#ff8c00"}},
+    title:{text:titleText,x:0.5,xanchor:"center",font:{size:isMob?11:20,family:FONT,color:"#ff8c00"}},
     font:{family:FONT,color:"#ff8c00"},
     paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
     barmode:isSplit?"stack":"overlay",bargap:0,
-    legend:{orientation:"h",yanchor:"bottom",y:1.02,xanchor:"center",x:0.5,font:{family:FONT,size:12}},
-    xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11}},
-    yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:11}},
-    yaxis2:{title:{text:t("pctTotal"),font:{family:FONT,size:13}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11}},
+    legend:isMob?{visible:false}:{orientation:"h",yanchor:"bottom",y:1.02,xanchor:"center",x:0.5,font:{family:FONT,size:12}},
+    xaxis:{title:isMob?{text:""}:{text:t("priceUSD"),font:{family:FONT,size:13}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:isMob?6:11},tickangle:isMob?0:undefined},
+    yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:13}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:isMob?7:11}},
+    yaxis2:{title:isMob?{text:""}:{text:t("pctTotal"),font:{family:FONT,size:13}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:isMob?7:11}},
     annotations:annotations,shapes:shapes,
-    margin:{l:80,r:80,t:90,b:80},hovermode:"closest"
+    margin:margins,hovermode:"closest"
   };
+
+  // Mobile: show spot label smaller
+  if (isMob && spot && spot > 0) {
+    for (var ai = 0; ai < annotations.length; ai++) {
+      if (annotations[ai].x === spot && annotations[ai].xref === "x") {
+        annotations[ai] = Object.assign({}, annotations[ai], {font:{color:annotations[ai].font.color,size:8,family:FONT}});
+      }
+    }
+  }
   // BTC price overlay (1yr trailing)
   if (priceArray && priceArray.length > 0) {
     var pD=[],pP=[];
@@ -676,7 +791,7 @@ function renderChart(data) {
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
   }
-  Plotly.react("chart", traces, layout, {responsive:true});
+  Plotly.react("chart", traces, layout, {responsive:true, displayModeBar: !isPort});
   document.getElementById("chart").removeAllListeners("plotly_legendclick");
   document.getElementById("chart").on("plotly_legendclick", function(evtData) {
     if (evtData.data[evtData.curveNumber].name === "BTC/USD") {
@@ -914,6 +1029,22 @@ async function init() {
     document.getElementById("status").textContent = t("errBRK");
   }
 }
+// Touch swipe navigation
+(function(){
+  var chart = document.getElementById("chart");
+  var sx = 0;
+  chart.addEventListener("touchstart", function(e){ sx = e.touches[0].clientX; }, {passive:true});
+  chart.addEventListener("touchend", function(e){
+    var dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) > 50) { goTo(currentIdx + (dx < 0 ? stepSize : -stepSize)); }
+  }, {passive:true});
+})();
+
+// Re-render on orientation change
+window.addEventListener("resize", function(){
+  if (allDates.length > 0) loadAndRender();
+});
+
 init();
 </script>
 
