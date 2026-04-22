@@ -65,7 +65,8 @@
   .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 4px; }
   /* ---- Mobile: general (portrait & landscape) ---- */
   @media (max-width: 900px) {
-    body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+    body { overflow: hidden; height: 100dvh; height: 100vh; display: flex; flex-direction: column; }
+    @supports (height: 100dvh) { body { height: 100dvh; } }
     #controls { order: 2; flex-wrap: wrap; gap: 4px 6px; padding: 6px 6px; padding-bottom: max(6px, env(safe-area-inset-bottom)); justify-content: center; border-bottom: none; border-top: 1px solid #333; }
     #controls button { padding: 8px 10px; font-size: 11px; -webkit-tap-highlight-color: transparent; }
     #controls button:active { background: #ff8c00; color: #000; }
@@ -122,7 +123,8 @@
     #btnNext:active, #btnLast:active { background: #ff8c00; color: #000; }
     /* Chart takes center */
     #status { display: none; }
-    #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100vh - 42px) !important; }
+    #chart { order: 1; flex: 1; margin: 0 48px; width: calc(100% - 96px) !important; height: calc(100dvh - 42px) !important; }
+    @supports not (height: 100dvh) { #chart { height: calc(100vh - 42px) !important; } }
     /* Controls strip at bottom center */
     #controls { position: fixed; bottom: 0; left: 48px; right: 48px; z-index: 1000; order: 2; padding: 2px 6px; gap: 2px 4px; border-top: 1px solid #333; background: rgba(26,26,26,0.95); }
     #controls button { padding: 3px 6px; font-size: 10px; }
