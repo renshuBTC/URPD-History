@@ -137,7 +137,7 @@
   body.landscape-phone #status { display: none; }
   body.landscape-phone #chart { order: 1; flex: 1; margin: 0 44px; width: calc(100% - 88px) !important; min-height: 0; }
   /* Landscape control bar — 2-row wrap, uniform 24px row height */
-  body.landscape-phone #controls { order: 2; margin: 0 44px; padding: 2px 4px; padding-bottom: max(2px, env(safe-area-inset-bottom)); border-top: 1px solid #555; background: #1a1a1a; display: flex !important; flex-wrap: wrap; align-items: center; justify-content: flex-start; flex-shrink: 0; gap: 2px 5px; }
+  body.landscape-phone #controls { order: 2; margin: 0 44px; padding: 2px 4px; padding-bottom: max(2px, env(safe-area-inset-bottom)); border-top: 1px solid #555; background: #1a1a1a; display: flex !important; flex-wrap: wrap; align-items: center; justify-content: center; flex-shrink: 0; gap: 2px 5px; }
   body.landscape-phone #controls > * { flex-shrink: 0; }
   body.landscape-phone #controls .ctrl-sep { display: none !important; }
   body.landscape-phone #dateDisplay { display: none !important; }
@@ -159,11 +159,11 @@
   body.landscape-phone #thresholdWrap input { width: 28px !important; }
   /* Interval bar: 24px container */
   body.landscape-phone #intervalBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
-  body.landscape-phone #intervalBar .iv { background: #1a1a1a !important; border: none !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
-  body.landscape-phone #intervalBar .iv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; border-radius: 2px !important; }
+  body.landscape-phone #controls #intervalBar .iv { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
+  body.landscape-phone #controls #intervalBar .iv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; border-radius: 2px !important; }
   /* Mode toggles: 24px container */
   body.landscape-phone .mode-toggle { gap: 1px; display: flex; align-items: center; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 24px; }
-  body.landscape-phone .mode-toggle button { background: #1a1a1a !important; border: none !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
+  body.landscape-phone #controls .mode-toggle button { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
   /* Date input */
   body.landscape-phone #dateDropdownWrap { display: inline-flex !important; align-items: center; height: 24px; }
   body.landscape-phone #dateInput { width: 68px !important; }
