@@ -741,19 +741,22 @@ function renderChart(data) {
   if (isMob) {
     xTickvals = []; xTicktext = [];
     var mTicks = isLand ? 10 : 6;
-    var mStep = maxPrice / mTicks;
-    var mRound = Math.pow(10, Math.floor(Math.log10(mStep)));
-    if (mRound < 5000) mRound = 5000;
-    for (var mi = 0; mi <= mTicks; mi++) {
-      var mv = mi * mStep;
-      if (mv === 0) { xTickvals.push(0); xTicktext.push("$0"); continue; }
-      var mr = Math.round(mv / mRound) * mRound;
-      if (xTickvals.length > 0 && mr === xTickvals[xTickvals.length - 1]) continue;
-      xTickvals.push(mr);
+    var rawStep = maxPrice / mTicks;
+    var mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    var norm = rawStep / mag;
+    var niceStep;
+    if (norm <= 1) niceStep = mag;
+    else if (norm <= 2) niceStep = 2 * mag;
+    else if (norm <= 2.5) niceStep = 2.5 * mag;
+    else if (norm <= 5) niceStep = 5 * mag;
+    else niceStep = 10 * mag;
+    for (var mv = 0; mv <= maxPrice; mv += niceStep) {
+      xTickvals.push(mv);
+      if (mv === 0) { xTicktext.push("$0"); continue; }
       var mt;
-      if (mr >= 1e6) { mt = "$" + Math.round(mr/1e6) + "M"; }
-      else if (mr >= 1e3) { mt = "$" + Math.round(mr/1e3) + "K"; }
-      else { mt = "$" + Math.round(mr); }
+      if (mv >= 1e6) mt = "$" + (mv/1e6) + "M";
+      else if (mv >= 1e3) mt = "$" + (mv/1e3) + "K";
+      else mt = "$" + mv;
       xTicktext.push(mt);
     }
   }
