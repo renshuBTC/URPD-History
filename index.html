@@ -137,7 +137,7 @@
   body.landscape-phone #status { display: none; }
   body.landscape-phone #chart { order: 1; flex: 1; margin: 0 44px; width: calc(100% - 88px) !important; min-height: 0; }
   /* Landscape control bar — 2-row wrap, uniform 20px height */
-  body.landscape-phone #controls { order: 2; margin: 0 44px; padding: 2px 4px; border-top: 1px solid #555; background: #1a1a1a; display: flex !important; flex-wrap: wrap; align-items: center; justify-content: center; flex-shrink: 0; gap: 2px 5px; }
+  body.landscape-phone #controls { order: 2; margin: 0 44px; padding: 2px 4px; padding-bottom: max(2px, env(safe-area-inset-bottom)); border-top: 1px solid #555; background: #1a1a1a; display: flex !important; flex-wrap: wrap; align-items: center; justify-content: flex-start; flex-shrink: 0; gap: 2px 5px; }
   body.landscape-phone #controls > * { flex-shrink: 0; }
   body.landscape-phone #controls .ctrl-sep { display: none !important; }
   body.landscape-phone #dateDisplay { display: none !important; }
