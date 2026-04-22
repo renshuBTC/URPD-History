@@ -9,13 +9,17 @@
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
   body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; height: 100%; }
-  #controls { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; background: #1a1a1a; border-bottom: 1px solid #333; }
-  #controls button { background: #252525; color: #d4d4d4; border: 1px solid #555; padding: 4px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
+  #controls { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; background: #1a1a1a; border-bottom: 1px solid #555; }
+  /* Uniform height for all interactive elements: 28px outer */
+  #controls button, #controls input, #controls select, #langBtn { height: 28px; font-family: inherit; font-size: 12px; border: 1px solid #555; border-radius: 2px; box-sizing: border-box; vertical-align: middle; }
+  #controls button { background: #252525; color: #d4d4d4; padding: 0 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; line-height: 26px; }
   #controls button:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
-  .mode-toggle { display: flex; gap: 2px; }
-  .mode-toggle button { padding: 4px 10px; font-size: 12px; letter-spacing: 0.5px; }
-  .mode-toggle button.active { background: #ff8c00; color: #000000; border-color: #ff8c00; font-weight: bold; }
-  .mode-toggle button.active:hover { background: #ffaa33; }
+  /* Grouped containers: interval bar & mode toggles — 28px to match */
+  .mode-toggle { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 28px; align-items: center; }
+  #controls .mode-toggle button { height: 22px; line-height: 20px; padding: 0 8px; font-size: 12px; letter-spacing: 0.5px; background: #1a1a1a; border: 1px solid transparent; border-radius: 2px; color: #d4d4d4; }
+  #controls .mode-toggle button:hover { background: #3a3a3a; color: #fff; border-color: transparent; }
+  #controls .mode-toggle button.active { background: #ff8c00; color: #000000; border-color: #ff8c00; font-weight: bold; }
+  #controls .mode-toggle button.active:hover { background: #ffaa33; }
   #dateDisplay { font-size: 14px; font-weight: bold; color: #ff8c00; min-width: 280px; text-align: center; padding: 0 6px; }
   #status { text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
   #chart { width: 100%; height: calc(100vh - 70px); }
@@ -24,15 +28,15 @@
     0%, 100% { text-shadow: 0 0 10px #FFE600, 0 0 20px #FFE600, 0 0 40px #FFE600; }
     50% { text-shadow: 0 0 20px #FFE600, 0 0 40px #FFE600, 0 0 80px #FFE600; }
   }
-  #thresholdWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
-  #thresholdWrap label { color: #999; }
-  #thresholdInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
+  #thresholdWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; height: 28px; }
+  #thresholdWrap label { color: #999; line-height: 28px; }
+  #thresholdInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 0 5px; width: 42px; height: 28px; line-height: 26px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   #thresholdInput:focus { border-color: #ff8c00; outline: none; }
-  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; }
-  #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
+  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; height: 28px; align-items: center; }
+  #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 0 8px; height: 22px; line-height: 22px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
   #intervalBar .iv.active { background: #ff8c00; color: #000; font-weight: bold; }
-  #landmarks { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 12px; border-radius: 2px; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23999'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 22px; }
+  #landmarks { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 0 22px 0 8px; height: 28px; line-height: 26px; font-family: inherit; font-size: 12px; border-radius: 2px; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23999'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
   #landmarks:hover { border-color: #888; color: #ffffff; }
   #landmarks:focus { border-color: #ff8c00; outline: none; }
   #dateInput { transition: border-color 0.15s; }
@@ -49,7 +53,7 @@
   #dateDropdown .dd-item:hover { background: #252525; color: #ff8c00; }
   #dateDropdown .dd-item.dd-current { color: #ff8c00; font-weight: bold; }
   #dateDropdown .dd-year { padding: 3px 10px; font-size: 10px; color: #555; font-weight: bold; border-bottom: 1px solid #2a2a2a; background: #111; position: sticky; top: 0; z-index: 1; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; }
-  #explainBtn { background: #0d1117; color: #8b949e; border: 1px solid #1c2733; padding: 3px 7px; font-family: inherit; font-size: 11px; font-weight:700; cursor: pointer; border-radius: 1px; letter-spacing: 0.5px; transition: all 0.15s; }
+  #explainBtn { background: #0d1117; color: #8b949e; border: 1px solid #1c2733; padding: 0 7px; height: 28px; line-height: 26px; font-family: inherit; font-size: 11px; font-weight:700; cursor: pointer; border-radius: 2px; letter-spacing: 0.5px; transition: all 0.15s; }
   #explainBtn:hover { background: #161b22; color: #ff8c00; border-color: #ff8c00; }
   #explainWrap { position:relative; display:inline-block; flex-shrink: 0; }
   #explainPanel { display:none; position:absolute; top:100%; right:0; width:460px; max-height:75vh; overflow-y:auto; background:#0d1117; border:1px solid #1c2733; border-radius:2px; z-index:9999; padding:24px 28px; margin-top:6px; box-shadow:0 4px 24px rgba(0,0,0,0.8); }
@@ -60,16 +64,27 @@
   #explainPanel h3 { color:#e8e8e8; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin:22px 0 8px 0; border-bottom:none; padding:0; }
   #explainPanel .formula { background:#0a0e14; border-left:3px solid #ff8c00; border-top:none; border-right:none; border-bottom:none; border-radius:0; padding:10px 14px; margin:8px 0 12px 0; font-size:12px; color:#ff8c00; white-space:pre-wrap; line-height:1.6; font-family:'Source Code Pro',Consolas,monospace; letter-spacing:0.5px; }
   #explainPanel .desc { color:#8b949e; margin:4px 0 8px 0; font-size:12px; line-height:1.65; font-weight:400; letter-spacing:0.2px; }
-  #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; flex-shrink: 0; }
+  #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 0 8px; height: 28px; line-height: 26px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; flex-shrink: 0; }
   #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
-  .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 4px; }
+  .ctrl-sep { width: 1px; height: 28px; background: #555; margin: 0 4px; }
   /* ---- Mobile: general (portrait & landscape) ---- */
   @media (max-width: 900px) {
     body { overflow: hidden; height: 100dvh; height: 100vh; display: flex; flex-direction: column; }
     @supports (height: 100dvh) { body { height: 100dvh; } }
-    #controls { order: 2; flex-wrap: wrap; gap: 4px 6px; padding: 6px 6px; padding-bottom: max(6px, env(safe-area-inset-bottom)); justify-content: center; border-bottom: none; border-top: 1px solid #333; }
-    #controls button { padding: 8px 10px; font-size: 11px; -webkit-tap-highlight-color: transparent; }
-    #controls button:active { background: #ff8c00; color: #000; }
+    #controls { order: 2; flex-wrap: wrap; gap: 4px 6px; padding: 6px 6px; padding-bottom: max(6px, env(safe-area-inset-bottom)); justify-content: center; border-bottom: none; border-top: 1px solid #555; }
+    #controls button { height: 32px; line-height: 30px; padding: 0 10px; font-size: 11px; -webkit-tap-highlight-color: transparent; }
+    #controls input, #controls select { height: 32px; line-height: 30px; }
+    #intervalBar { height: 32px; }
+    #intervalBar .iv { height: 26px; line-height: 24px; padding: 0 8px; }
+    .mode-toggle { height: 32px; }
+    #controls .mode-toggle button { height: 26px; line-height: 24px; }
+    #thresholdWrap { height: 32px; }
+    #explainWrap { height: 32px; display: flex; align-items: center; }
+    #controls button:active { background: #3a3a3a; color: #fff; }
+    /* Mode toggles: tap flash uses orange */
+    #controls .mode-toggle button:active { background: #cc7000; color: #000; }
+    /* Interval bar: tap flash uses orange */
+    #controls #intervalBar .iv:active { background: #cc7000; color: #000; }
     .ctrl-sep { display: none; }
     #dateDisplay { min-width: unset; font-size: 11px; width: 100%; order: -1; padding: 2px 0; }
     #dateInput { width: 100px; font-size: 11px; }
@@ -100,7 +115,7 @@
     /* Bottom nav row: << >> < > */
     #btnFirst, #btnPrev, #btnNext, #btnLast {
       order: 30 !important; padding: 12px 0;
-      flex-basis: 0; border-top: 1px solid #333; border-right: 1px solid #333;
+      flex-basis: 0; border-top: 1px solid #555; border-right: 1px solid #555;
     }
     #btnFirst { flex-grow: 0.7; order: 30 !important; }
     #btnLast  { flex-grow: 0.7; order: 31 !important; }
@@ -121,42 +136,46 @@
   body.landscape-phone #btnNext:active, body.landscape-phone #btnLast:active { background: #333 !important; color: #fff !important; }
   body.landscape-phone #status { display: none; }
   body.landscape-phone #chart { order: 1; flex: 1; margin: 0 44px; width: calc(100% - 88px) !important; min-height: 0; }
-  /* Landscape control bar */
-  body.landscape-phone #controls { order: 2; margin: 0 44px; padding: 0; border-top: 1px solid #555; background: #1a1a1a; display: flex !important; flex-wrap: nowrap; align-items: center; justify-content: center; flex-shrink: 0; height: 24px; gap: 0; }
+  /* Landscape control bar — uniform 22px height system */
+  body.landscape-phone #controls { order: 2; margin: 0 44px; padding: 2px 6px; border-top: 1px solid #555; background: #1a1a1a; display: flex !important; flex-wrap: nowrap; align-items: center; justify-content: center; flex-shrink: 0; gap: 5px; }
   body.landscape-phone #controls > * { flex-shrink: 0; }
-  body.landscape-phone #controls .ctrl-sep { width: 1px; height: 14px; background: #444; margin: 0 5px; display: block !important; }
+  body.landscape-phone #controls .ctrl-sep { width: 1px; height: 16px; background: #555; margin: 0 2px; display: block !important; }
   body.landscape-phone #dateDisplay { display: none !important; }
-  /* Shared sizing: all buttons/inputs/selects same height */
+  /* All interactive elements: 22px outer height */
   body.landscape-phone #controls button,
   body.landscape-phone #controls input,
-  body.landscape-phone #controls select,
-  body.landscape-phone #intervalBar .iv { height: 16px; line-height: 14px; font-size: 8px; font-family: inherit; padding: 0 5px; border: 1px solid #555; background: #252525; color: #d4d4d4; border-radius: 2px; box-sizing: border-box; vertical-align: middle; }
-  body.landscape-phone #controls button.active,
-  body.landscape-phone #intervalBar .iv.active { background: #ff8c00; color: #000; border-color: #ff8c00; font-weight: bold; }
-  /* Interval bar */
-  body.landscape-phone #intervalBar { margin: 0; padding: 0; gap: 2px; display: flex; align-items: center; }
-  /* Mode toggles */
-  body.landscape-phone .mode-toggle { gap: 2px; display: flex; align-items: center; }
+  body.landscape-phone #controls select { height: 22px !important; line-height: 20px !important; font-size: 9px; font-family: inherit; border: 1px solid #555; border-radius: 2px; box-sizing: border-box; }
+  body.landscape-phone #controls button { background: #252525; color: #d4d4d4; padding: 0 6px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  body.landscape-phone #controls button.active { background: #ff8c00 !important; color: #000 !important; border-color: #ff8c00 !important; font-weight: bold; }
+  /* Interval bar: 22px container, 16px inner buttons */
+  body.landscape-phone #intervalBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 22px; }
+  body.landscape-phone #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 0 5px; height: 16px !important; line-height: 14px !important; font-size: 9px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; }
+  body.landscape-phone #intervalBar .iv.active { background: #ff8c00; color: #000; font-weight: bold; }
+  /* Mode toggles: 22px container, 16px inner buttons */
+  body.landscape-phone .mode-toggle { gap: 1px; display: flex; align-items: center; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 22px; }
+  body.landscape-phone .mode-toggle button { background: #1a1a1a !important; border-color: transparent !important; padding: 0 5px; height: 16px !important; line-height: 14px !important; }
   /* Date input */
-  body.landscape-phone #dateDropdownWrap { display: inline-flex !important; align-items: center; }
-  body.landscape-phone #dateInput { width: 62px; padding: 0 3px !important; }
+  body.landscape-phone #dateDropdownWrap { display: inline-flex !important; align-items: center; height: 22px; }
+  body.landscape-phone #dateInput { width: 68px; padding: 0 4px !important; background: #1e1e1e; color: #d4d4d4; }
   body.landscape-phone #dateDropdown { display: none !important; }
   /* Landmarks select */
-  body.landscape-phone #landmarks { width: 66px; padding: 0 2px; -webkit-appearance: none; appearance: none; }
-  /* Threshold — short label */
-  body.landscape-phone #thresholdWrap { display: flex !important; align-items: center; gap: 3px; }
+  body.landscape-phone #landmarks { width: 72px; padding: 0 4px; background: #1e1e1e; color: #d4d4d4; -webkit-appearance: none; appearance: none; }
+  /* Threshold */
+  body.landscape-phone #thresholdWrap { display: flex !important; align-items: center; gap: 3px; height: 22px; }
   body.landscape-phone #thresholdWrap label { display: none; }
-  body.landscape-phone #thresholdWrap::before { content: "Sig"; font-size: 7px; color: #888; }
-  body.landscape-phone #thresholdWrap::after { content: "%"; font-size: 7px; color: #888; }
-  body.landscape-phone #thresholdWrap input { width: 26px; text-align: center; color: #ff8c00; padding: 0 2px; }
-  /* Bins — short label */
-  body.landscape-phone #binWrap { display: flex !important; align-items: center; gap: 3px; }
+  body.landscape-phone #thresholdWrap::before { content: "Sig"; font-size: 8px; color: #888; font-family: inherit; line-height: 22px; }
+  body.landscape-phone #thresholdWrap::after { content: "%"; font-size: 8px; color: #888; font-family: inherit; line-height: 22px; }
+  body.landscape-phone #thresholdWrap input { width: 28px; text-align: center; padding: 0 3px; background: #1e1e1e; color: #ff8c00; }
+  /* Bins */
+  body.landscape-phone #binWrap { display: flex !important; align-items: center; gap: 3px; height: 22px; }
   body.landscape-phone #binWrap label { display: none; }
-  body.landscape-phone #binWrap::before { content: "Bins"; font-size: 7px; color: #888; }
-  body.landscape-phone #binWrap input { width: 30px; text-align: center; color: #ff8c00; padding: 0 2px; }
-  /* Explain + Lang */
-  body.landscape-phone #explainWrap { margin-left: 0 !important; display: flex !important; align-items: center; }
-  body.landscape-phone #langBtn { display: flex !important; align-items: center; }
+  body.landscape-phone #binWrap::before { content: "Bins"; font-size: 8px; color: #888; font-family: inherit; line-height: 22px; }
+  body.landscape-phone #binWrap input { width: 32px; text-align: center; padding: 0 3px; background: #1e1e1e; color: #ff8c00; }
+  /* Explain button */
+  body.landscape-phone #explainWrap { margin-left: 0 !important; display: flex !important; align-items: center; height: 22px; }
+  body.landscape-phone #explainBtn { background: #0d1117 !important; color: #8b949e !important; border: 1px solid #1c2733 !important; padding: 0 5px; font-weight: 700; }
+  /* Lang button */
+  body.landscape-phone #langBtn { display: flex !important; align-items: center; background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 0 5px; border-radius: 2px; }
 </style>
 </head>
 <body>
@@ -176,7 +195,7 @@
   <div class="ctrl-sep"></div>
   <div id="dateDropdownWrap" style="position:relative;display:inline-block;">
     <input type="text" id="dateInput" placeholder="YYYY-MM-DD" autocomplete="off"
-      style="background:#1e1e1e;color:#d4d4d4;border:1px solid #555;padding:4px 8px;font-family:inherit;font-size:12px;width:140px;cursor:pointer;border-radius:2px;">
+      style="background:#1e1e1e;color:#d4d4d4;border:1px solid #555;padding:0 8px;height:28px;line-height:26px;font-family:inherit;font-size:12px;width:140px;cursor:pointer;border-radius:2px;">
     <div id="dateDropdown" style="display:none;position:absolute;top:100%;left:0;width:200px;max-height:320px;overflow-y:auto;background:#141414;border:1px solid #555;z-index:500;scrollbar-width:thin;scrollbar-color:#555 #141414;border-radius:2px;"></div>
   </div>
   <select id="landmarks">
@@ -199,13 +218,13 @@
   <div class="ctrl-sep"></div>
   <div id="thresholdWrap">
     <label>Adjustable bottom signal</label>
-    <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:0 5px;height:28px;line-height:26px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label>% USD invested in loss</label>
   </div>
   <div class="ctrl-sep"></div>
   <div id="binWrap" style="display:flex;align-items:center;gap:5px;font-size:11px;">
     <label style="color:#999;">Bins</label>
-    <input type="text" id="binInput" value="625" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:42px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <input type="text" id="binInput" value="625" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:0 5px;height:28px;line-height:26px;width:42px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label style="color:#555;font-size:10px;">/625</label>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
