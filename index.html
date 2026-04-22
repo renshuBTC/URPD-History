@@ -742,11 +742,11 @@ function renderChart(data) {
     xTickvals = []; xTicktext = [];
     var mTicks = isLand ? 15 : 10;
     var mStep = maxPrice / mTicks;
+    var mRound = Math.pow(10, Math.floor(Math.log10(mStep)));
     for (var mi = 0; mi <= mTicks; mi++) {
       var mv = mi * mStep;
       if (mv === 0) { xTickvals.push(0); xTicktext.push("$0"); continue; }
-      var md = Math.pow(10, Math.floor(Math.log10(mv)) - 1);
-      var mr = Math.ceil(mv / md) * md;
+      var mr = Math.round(mv / mRound) * mRound;
       xTickvals.push(mr);
       var mt;
       if (mr >= 1e6) { mt = "$" + Math.round(mr/1e6) + "M"; }
