@@ -666,6 +666,25 @@ function renderChart(data) {
     xTicktext.push("$" + xt);
   }
 
+  // Mobile: 15 ticks with 2 significant figures
+  if (isMob) {
+    xTickvals = []; xTicktext = [];
+    var mStep = maxP / 15;
+    for (var mi = 0; mi <= 15; mi++) {
+      var mv = mi * mStep;
+      if (mv === 0) { xTickvals.push(0); xTicktext.push("$0"); continue; }
+      var mdig = Math.pow(10, Math.floor(Math.log10(mv)) - 1);
+      var mr = Math.ceil(mv / mdig) * mdig;
+      if (xTickvals.length > 0 && mr === xTickvals[xTickvals.length - 1]) continue;
+      xTickvals.push(mr);
+      var mt;
+      if (mr >= 1e6) { mt = (mr/1e6); mt = mt >= 10 ? Math.round(mt)+"M" : mt.toFixed(1)+"M"; }
+      else if (mr >= 1e3) { mt = (mr/1e3); mt = mt >= 10 ? Math.round(mt)+"K" : mt.toFixed(1)+"K"; }
+      else { mt = mr >= 10 ? String(Math.round(mr)) : mr.toFixed(1); }
+      xTicktext.push("$" + mt);
+    }
+  }
+
   var annText;
   if (isCoin) {
     annText = "<span style='color:#e67e22'><b>" + t("totalSupply") + fmtBTC(totalSupply) + "</b></span>";
