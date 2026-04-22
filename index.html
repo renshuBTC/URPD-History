@@ -109,7 +109,7 @@
   }
 
   /* ---- Landscape phone: gameboy layout ---- */
-  @media (max-height: 500px) and (orientation: landscape) {
+  @media (max-height: 600px) and (orientation: landscape) {
     body { flex-direction: row !important; }
     /* Left D-pad: << on top, < below */
     #btnFirst, #btnPrev { position: fixed !important; left: 0 !important; z-index: 1001; width: 48px !important; background: rgba(26,26,26,0.92) !important; border: none !important; border-right: 1px solid #333 !important; color: #ff8c00; font-size: 20px !important; font-weight: bold; -webkit-tap-highlight-color: transparent; flex-basis: auto !important; flex-grow: 0 !important; order: unset !important; padding: 0 !important; }
@@ -695,8 +695,8 @@ function renderChart(data) {
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
   var yAxisPrefix = isCoin ? "" : "$";
 
-  var isMob = window.innerWidth <= 900 || window.innerHeight <= 500;
-  var isLand = window.innerHeight <= 500 && window.innerWidth > window.innerHeight;
+  var isMob = window.innerWidth <= 900 || window.innerHeight <= 600;
+  var isLand = window.innerHeight <= 600 && window.innerWidth > window.innerHeight;
   var isPort = isMob && !isLand;
 
   // Mobile: reduce x-axis ticks, shorter labels, upright
