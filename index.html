@@ -669,8 +669,8 @@ function renderChart(data) {
   // Mobile: 15 ticks with 2 significant figures
   if (isMob) {
     xTickvals = []; xTicktext = [];
-    var mStep = maxP / 15;
-    for (var mi = 0; mi <= 15; mi++) {
+    var mStep = maxP / 10;
+    for (var mi = 0; mi <= 10; mi++) {
       var mv = mi * mStep;
       if (mv === 0) { xTickvals.push(0); xTicktext.push("$0"); continue; }
       var mdig = Math.pow(10, Math.floor(Math.log10(mv)) - 1);
