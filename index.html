@@ -645,6 +645,11 @@ function renderChart(data) {
       }
     }
   }
+  var isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  var isLand = window.innerWidth > window.innerHeight && (window.innerHeight <= 500 || (isTouch && window.innerHeight <= 700));
+  var isMob = window.innerWidth <= 900 || isLand;
+  var isPort = isMob && !isLand;
+
   var rawStep = maxVal * 1.15 / 6;
   var magn = Math.pow(10, Math.floor(Math.log10(rawStep)));
   var yStep = Math.round(rawStep / magn) * magn;
@@ -750,11 +755,6 @@ function renderChart(data) {
 
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
   var yAxisPrefix = isCoin ? "" : "$";
-
-  var isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  var isLand = window.innerWidth > window.innerHeight && (window.innerHeight <= 500 || (isTouch && window.innerHeight <= 700));
-  var isMob = window.innerWidth <= 900 || isLand;
-  var isPort = isMob && !isLand;
 
 
   // Mobile: hide verbose annotations, scale down
