@@ -218,6 +218,8 @@
   <div class="mode-toggle">
     <button id="btnUSD" class="active">USD</button>
     <button id="btnBTC">BTC</button>
+    <button id="btnCD">CD</button>
+    <button id="btnVD">VD</button>
   </div>
   <div class="ctrl-sep"></div>
   <div id="thresholdWrap">
@@ -244,6 +246,14 @@
 <h3>URPD (BTC-weighted) — Supply Distribution</h3>
 <div class="desc">Shows raw BTC supply at each cost-basis price, unweighted by dollar value.</div>
 <div class="formula" id="f2">S(P) = Σ utxo.value  where utxo.price ∈ [P, P + ΔP)</div>
+
+<h3>URPD (CD-weighted) — Coindays Stored</h3>
+<div class="desc">Weights each UTXO by BTC × days held (Coinblocks Stored). Emphasizes old, large positions. Based on the Cointime Economics framework (Puell & Check, 2023).</div>
+<div class="formula" id="f8">CD(P) = Σ (supply_in_age_band × midpoint_days)  per price bin P</div>
+
+<h3>URPD (VD-weighted) — Valuedays Stored</h3>
+<div class="desc">Weights each UTXO by realized_cap × days held. Combines dollar conviction with time held — the dollar-denominated version of Coindays.</div>
+<div class="formula" id="f9">VD(P) = Σ (realized_cap_in_age_band × midpoint_days)  per price bin P</div>
 
 <h3>Realized Cap</h3>
 <div class="desc">The total value of all UTXOs priced at their last-moved price. Reflects the aggregate cost basis of the entire supply.</div>
@@ -291,10 +301,37 @@ var priceArray = null;
 var showPriceOverlay = true;
 var splitMode = false;
 var coinMode = false;
+var weightMode = "usd"; // "usd", "btc", "cd", "vd"
 var bottomThreshold = 80;
 var cache = {};
 var spotCache = {};
 var lang = "en";
+
+// Age band definitions for CD/VD computation
+// Each band maps to a cohort name and midpoint in days
+var AGE_BANDS = [
+  {cohort:"utxos_under_1h_old", mid:0.02},
+  {cohort:"utxos_1h_to_1d_old", mid:0.5},
+  {cohort:"utxos_1d_to_1w_old", mid:4},
+  {cohort:"utxos_1w_to_1m_old", mid:19},
+  {cohort:"utxos_1m_to_2m_old", mid:45},
+  {cohort:"utxos_2m_to_3m_old", mid:75},
+  {cohort:"utxos_3m_to_4m_old", mid:105},
+  {cohort:"utxos_4m_to_5m_old", mid:135},
+  {cohort:"utxos_5m_to_6m_old", mid:165},
+  {cohort:"utxos_6m_to_1y_old", mid:274},
+  {cohort:"utxos_1y_to_2y_old", mid:548},
+  {cohort:"utxos_2y_to_3y_old", mid:913},
+  {cohort:"utxos_3y_to_4y_old", mid:1278},
+  {cohort:"utxos_4y_to_5y_old", mid:1643},
+  {cohort:"utxos_5y_to_6y_old", mid:2008},
+  {cohort:"utxos_6y_to_7y_old", mid:2373},
+  {cohort:"utxos_7y_to_8y_old", mid:2738},
+  {cohort:"utxos_8y_to_10y_old", mid:3287},
+  {cohort:"utxos_10y_to_12y_old", mid:4018},
+  {cohort:"utxos_12y_to_15y_old", mid:4931},
+  {cohort:"utxos_over_15y_old", mid:6388}
+];
 
 var T = {
   en: {
@@ -311,6 +348,12 @@ var T = {
     inProfit: "In Profit ", inLoss: "In Loss ", source: "Source: local BRK node",
     poweredBy: "Powered by <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> & <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a>",
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", usdProfit: "USD Invested in Profit: ", usdLoss: "USD Invested in Loss: ", btcProfit: "BTC Supply in Profit: ", btcLoss: "BTC Supply in Loss: ",
+    titleCD: "URPD (Coindays-weighted) as of ", titleCDCohort: "URPD (Coindays-weighted) by Cohort as of ",
+    titleVD: "URPD (Valuedays-weighted) as of ", titleVDCohort: "URPD (Valuedays-weighted) by Cohort as of ",
+    coindays: "Coindays (BTC·days)", valuedays: "Valuedays (USD·days)",
+    totalCoindays: "Total Coindays ", totalValuedays: "Total Valuedays ",
+    cdProfit: "Coindays in Profit: ", cdLoss: "Coindays in Loss: ",
+    vdProfit: "Valuedays in Profit: ", vdLoss: "Valuedays in Loss: ",
     langBtn: "\u4e2d\u6587", bottomSigHover: "BOTTOM SIGNAL (",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Make sure BRK is running on localhost:3110",
     sth: "Short-Term Holders", lth: "Long-Term Holders", profitLoss: "Profit/Loss", spot: "Spot"
@@ -329,6 +372,13 @@ var T = {
     inProfit: "\u76c8\u5229 ", inLoss: "\u4e8f\u635f ", source: "\u6570\u636e\u6765\u6e90: \u672c\u5730 BRK \u8282\u70b9",
     poweredBy: "\u7531 <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> \u548c <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a> \u63d0\u4f9b\u652f\u6301",
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", usdProfit: "\u7f8e\u5143\u6295\u8d44\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u6295\u8d44\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u4e8f\u635f: ",
+    titleCD: "URPD (\u5e01\u5929\u52a0\u6743) \u622a\u81f3 ", titleCDCohort: "URPD (\u5e01\u5929\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
+    titleVD: "URPD (\u4ef7\u503c\u5929\u52a0\u6743) \u622a\u81f3 ", titleVDCohort: "URPD (\u4ef7\u503c\u5929\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
+    coindays: "\u5e01\u5929 (BTC\u00b7\u5929)", valuedays: "\u4ef7\u503c\u5929 (USD\u00b7\u5929)",
+    totalCoindays: "\u603b\u5e01\u5929 ", totalValuedays: "\u603b\u4ef7\u503c\u5929 ",
+    cdProfit: "\u5e01\u5929\u76c8\u5229: ", cdLoss: "\u5e01\u5929\u4e8f\u635f: ",
+    vdProfit: "\u4ef7\u503c\u5929\u76c8\u5229: ", vdLoss: "\u4ef7\u503c\u5929\u4e8f\u635f: ",
+
     langBtn: "\u65e5\u672c\u8a9e", bottomSigHover: "\u5e95\u90e8\u4fe1\u53f7 (",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
     sth: "\u77ed\u671f\u6301\u6709\u8005", lth: "\u957f\u671f\u6301\u6709\u8005", profitLoss: "\u76c8/\u4e8f", spot: "\u73b0\u4ef7"
@@ -347,6 +397,12 @@ var T = {
     inProfit: "\u542b\u307f\u76ca ", inLoss: "\u640d\u5931 ", source: "\u30c7\u30fc\u30bf\u30bd\u30fc\u30b9: \u30ed\u30fc\u30ab\u30eb BRK \u30ce\u30fc\u30c9",
     poweredBy: "<a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> & <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a> \u63d0\u4f9b",
     hoverPrice: "\u4fa1\u683c: $", hoverPctTotal: "\u5168\u4f53\u306b\u5bfe\u3059\u308b\u5272\u5408: ", usdProfit: "\u7c73\u30c9\u30eb\u6295\u8cc7\u542b\u307f\u76ca: ", usdLoss: "\u7c73\u30c9\u30eb\u6295\u8cc7\u640d\u5931: ", btcProfit: "BTC \u4f9b\u7d66\u542b\u307f\u76ca: ", btcLoss: "BTC \u4f9b\u7d66\u640d\u5931: ",
+    titleCD: "URPD (\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba\u52a0\u91cd) ", titleCDCohort: "URPD (\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
+    titleVD: "URPD (\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba\u52a0\u91cd) ", titleVDCohort: "URPD (\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
+    coindays: "\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba (BTC\u00b7\u65e5)", valuedays: "\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba (USD\u00b7\u65e5)",
+    totalCoindays: "\u7dcf\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba ", totalValuedays: "\u7dcf\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba ",
+    cdProfit: "CD \u542b\u307f\u76ca: ", cdLoss: "CD \u640d\u5931: ",
+    vdProfit: "VD \u542b\u307f\u76ca: ", vdLoss: "VD \u640d\u5931: ",
     langBtn: "EN", bottomSigHover: "\u5e95\u30b7\u30b0\u30ca\u30eb (",
     notFound: "\u6b63\u78ba\u306a\u65e5\u4ed8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3002\u6700\u5bc4\u308a: ", errBRK: "BRK \u304c localhost:3110 \u3067\u5b9f\u884c\u4e2d\u304b\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044",
     sth: "\u77ed\u671f\u4fdd\u6709\u8005", lth: "\u9577\u671f\u4fdd\u6709\u8005", profitLoss: "\u640d\u76ca", spot: "\u73fe\u5728\u4fa1\u683c"
@@ -395,7 +451,13 @@ var stepSize = 1;
 var STEPS = [1, 7, 30, 365];
 var STEP_LABELS = ["1D", "1W", "1M", "1Y"];
 
-var VIEW_MODES = [{split:false,coin:false},{split:true,coin:false},{split:false,coin:true},{split:true,coin:true}];
+var WEIGHT_MODES = ["usd","btc","cd","vd"];
+var VIEW_MODES = [];
+// Build: 8 combinations (4 weights × 2 cohorts)
+WEIGHT_MODES.forEach(function(w){
+  VIEW_MODES.push({split:false,weight:w});
+  VIEW_MODES.push({split:true,weight:w});
+});
 var viewIdx = 0;
 
 function fetchJSON(url) {
@@ -421,18 +483,17 @@ function getSpotFromCache(dateStr) {
   return null;
 }
 
-function aggregate(raw, binWidth) {
+function aggregate(buckets, binWidth) {
   var bins = {};
-  var keys = Object.keys(raw);
-  for (var k = 0; k < keys.length; k++) {
-    var price = parseFloat(keys[k]);
-    var supply = raw[keys[k]];
-    if (isNaN(price)) continue;
+  for (var k = 0; k < buckets.length; k++) {
+    var b = buckets[k];
+    var price = b.price_floor;
+    if (isNaN(price) || price === undefined) continue;
     var binIdx = Math.floor(price / binWidth);
     var binPrice = (binIdx + 0.5) * binWidth;
     if (!bins[binPrice]) bins[binPrice] = { price: binPrice, supply: 0, invested: 0 };
-    bins[binPrice].supply += supply;
-    bins[binPrice].invested += price * supply;
+    bins[binPrice].supply += b.supply;
+    bins[binPrice].invested += b.realized_cap;
   }
   var arr = [];
   for (var bp in bins) arr.push(bins[bp]);
@@ -466,14 +527,14 @@ function fmtBTC(v) {
   return v.toFixed(2) + " BTC";
 }
 
-function computeRedPct(rawAll, spot) {
+function computeRedPct(buckets, spot) {
   if (!spot || spot <= 0) return 0;
   var greenInv = 0, redInv = 0;
-  var keys = Object.keys(rawAll);
-  for (var k = 0; k < keys.length; k++) {
-    var p = parseFloat(keys[k]);
-    if (isNaN(p)) continue;
-    var inv = p * rawAll[keys[k]];
+  for (var k = 0; k < buckets.length; k++) {
+    var b = buckets[k];
+    var p = b.price_floor;
+    if (isNaN(p) || p === undefined) continue;
+    var inv = b.realized_cap;
     if (p <= spot) greenInv += inv;
     else redInv += inv;
   }
@@ -485,12 +546,26 @@ function setViewMode(idx) {
   viewIdx = idx;
   var m = VIEW_MODES[idx];
   splitMode = m.split;
-  coinMode = m.coin;
+  weightMode = m.weight;
+  coinMode = (weightMode === "btc");
   document.getElementById("btnPL").classList.toggle("active", !splitMode);
   document.getElementById("btnSplit").classList.toggle("active", splitMode);
-  document.getElementById("btnUSD").classList.toggle("active", !coinMode);
-  document.getElementById("btnBTC").classList.toggle("active", coinMode);
+  updateWeightButtons();
   loadAndRender();
+}
+
+function updateWeightButtons() {
+  document.getElementById("btnUSD").classList.toggle("active", weightMode === "usd");
+  document.getElementById("btnBTC").classList.toggle("active", weightMode === "btc");
+  document.getElementById("btnCD").classList.toggle("active", weightMode === "cd");
+  document.getElementById("btnVD").classList.toggle("active", weightMode === "vd");
+}
+
+function findViewIdx() {
+  for (var i = 0; i < VIEW_MODES.length; i++) {
+    if (VIEW_MODES[i].split === splitMode && VIEW_MODES[i].weight === weightMode) return i;
+  }
+  return 0;
 }
 
 function setInterval1(idx) {
@@ -500,49 +575,115 @@ function setInterval1(idx) {
   btns[idx].classList.add("active");
 }
 
+// Aggregate age-cohort buckets into CD or VD bins
+function aggregateAgeBands(ageCohortData, binWidth, mode) {
+  // ageCohortData: array of {mid, buckets} from each age cohort
+  var bins = {};
+  for (var a = 0; a < ageCohortData.length; a++) {
+    var mid = ageCohortData[a].mid;
+    var buckets = ageCohortData[a].buckets;
+    for (var k = 0; k < buckets.length; k++) {
+      var b = buckets[k];
+      var price = b.price_floor;
+      if (isNaN(price) || price === undefined) continue;
+      var binIdx = Math.floor(price / binWidth);
+      var binPrice = (binIdx + 0.5) * binWidth;
+      if (!bins[binPrice]) bins[binPrice] = { price: binPrice, supply: 0, invested: 0 };
+      if (mode === "cd") {
+        bins[binPrice].supply += b.supply * mid;    // coindays = supply × days
+        bins[binPrice].invested += b.supply * mid;   // same for Y-axis
+      } else {
+        bins[binPrice].supply += b.realized_cap * mid;  // valuedays = realized_cap × days
+        bins[binPrice].invested += b.realized_cap * mid;
+      }
+    }
+  }
+  var arr = [];
+  for (var bp in bins) arr.push(bins[bp]);
+  arr.sort(function(a, b) { return a.price - b.price; });
+  return arr;
+}
+
 function loadAndRender() {
   var dateStr = allDates[currentIdx];
   document.getElementById("loading").style.display = "block";
-  var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
+  var isCD = (weightMode === "cd" || weightMode === "vd");
+  var cacheKey = dateStr + "_" + weightMode + (splitMode ? "_split" : "_pl");
   if (cache[cacheKey]) {
     renderChart(cache[cacheKey]);
     document.getElementById("loading").style.display = "none";
     return;
   }
-  fetchJSON(BASE + "/api/series/cost-basis/all/" + dateStr).then(function(rawAll) {
-    var spot = getSpotFromCache(dateStr);
-    var prices = Object.keys(rawAll).map(Number).filter(function(n){return !isNaN(n);});
-    var maxPrice = prices.reduce(function(a,b){return a>b?a:b},0);
+  fetchJSON(BASE + "/api/urpd/all/" + dateStr).then(function(resp) {
+    var buckets = resp.buckets;
+    var spot = resp.close || getSpotFromCache(dateStr);
+    if (resp.close) spotCache[dateStr] = resp.close;
+    var maxPrice = buckets.reduce(function(a,b){return b.price_floor>a?b.price_floor:a;},0);
     var binWidth = maxPrice / NUM_BINS;
-    var aggAll = aggregate(rawAll, binWidth);
     var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A");
     document.getElementById("dateDisplay").textContent = dispText;
-    var data = { dateStr: dateStr, spot: spot, aggAll: aggAll, binWidth: binWidth, maxPrice: maxPrice, rawAll: rawAll };
-    data.realizedCap = aggAll.reduce(function(s,b){return s+b.invested;}, 0);
-    data.totalSupply = aggAll.reduce(function(s,b){return s+b.supply;}, 0);
-    data.redPct = computeRedPct(rawAll, spot);
-    if (splitMode) {
-      return Promise.all([
-        fetchJSON(BASE + "/api/series/cost-basis/lth/" + dateStr),
-        fetchJSON(BASE + "/api/series/cost-basis/sth/" + dateStr)
-      ]).then(function(res) {
-        var rawLTH = res[0], rawSTH = res[1];
-        data.aggLTH = aggregate(rawLTH, binWidth);
-        data.aggSTH = aggregate(rawSTH, binWidth);
-        data.lthRC = Object.keys(rawLTH).reduce(function(s,k){return s + parseFloat(k)*rawLTH[k];}, 0);
-        data.sthRC = Object.keys(rawSTH).reduce(function(s,k){return s + parseFloat(k)*rawSTH[k];}, 0);
-        data.lthSup = Object.keys(rawLTH).reduce(function(s,k){return s + rawLTH[k];}, 0);
-        data.sthSup = Object.keys(rawSTH).reduce(function(s,k){return s + rawSTH[k];}, 0);
-        return data;
-      }).catch(function(e) {
-        console.warn("Cohort fetch failed", e);
-        data.aggLTH = null; data.aggSTH = null;
-        return data;
+
+    var data = { dateStr: dateStr, spot: spot, binWidth: binWidth, maxPrice: maxPrice, buckets: buckets, weightMode: weightMode };
+    data.realizedCap = buckets.reduce(function(s,b){return s+b.realized_cap;}, 0);
+    data.totalSupply = resp.total_supply || buckets.reduce(function(s,b){return s+b.supply;}, 0);
+    data.redPct = computeRedPct(buckets, spot);
+
+    // Build chain of additional fetches
+    var fetches = [];
+
+    if (isCD) {
+      // Fetch all 21 age cohort URPDs
+      var ageFetches = AGE_BANDS.map(function(band) {
+        return fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + dateStr).then(function(r) {
+          return { mid: band.mid, buckets: r.buckets };
+        }).catch(function() { return null; });
       });
+      fetches.push(Promise.all(ageFetches).then(function(results) {
+        var valid = results.filter(function(r) { return r !== null; });
+        data.aggAll = aggregateAgeBands(valid, binWidth, weightMode);
+        data.totalCD = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
+        // Split age bands into LTH (≥155 days) and STH (<155 days) for cohort view
+        if (splitMode) {
+          var sthBands = valid.filter(function(r){ return r.mid < 155; });
+          var lthBands = valid.filter(function(r){ return r.mid >= 155; });
+          data.aggSTH = aggregateAgeBands(sthBands, binWidth, weightMode);
+          data.aggLTH = aggregateAgeBands(lthBands, binWidth, weightMode);
+          data.sthCD = data.aggSTH.reduce(function(s,b){return s+b.invested;}, 0);
+          data.lthCD = data.aggLTH.reduce(function(s,b){return s+b.invested;}, 0);
+        }
+      }));
+    } else {
+      data.aggAll = aggregate(buckets, binWidth);
+    }
+
+    if (splitMode) {
+      if (isCD) {
+        // LTH/STH split already computed from age bands above
+      } else {
+        fetches.push(Promise.all([
+          fetchJSON(BASE + "/api/urpd/lth/" + dateStr),
+          fetchJSON(BASE + "/api/urpd/sth/" + dateStr)
+        ]).then(function(res) {
+          var lthBuckets = res[0].buckets, sthBuckets = res[1].buckets;
+          data.aggLTH = aggregate(lthBuckets, binWidth);
+          data.aggSTH = aggregate(sthBuckets, binWidth);
+          data.lthRC = lthBuckets.reduce(function(s,b){return s+b.realized_cap;}, 0);
+          data.sthRC = sthBuckets.reduce(function(s,b){return s+b.realized_cap;}, 0);
+          data.lthSup = res[0].total_supply || lthBuckets.reduce(function(s,b){return s+b.supply;}, 0);
+          data.sthSup = res[1].total_supply || sthBuckets.reduce(function(s,b){return s+b.supply;}, 0);
+        }).catch(function(e) {
+          console.warn("Cohort fetch failed", e);
+          data.aggLTH = null; data.aggSTH = null;
+        }));
+      }
+    }
+
+    if (fetches.length > 0) {
+      return Promise.all(fetches).then(function() { return data; });
     }
     return data;
   }).then(function(data) {
-    cache[data.dateStr + (splitMode ? "_split" : "_pl")] = data;
+    cache[cacheKey] = data;
     renderChart(data);
     document.getElementById("loading").style.display = "none";
   }).catch(function(e) {
@@ -551,12 +692,31 @@ function loadAndRender() {
   });
 }
 
+function fmtCD(v) {
+  if (Math.abs(v) >= 1e12) return (v/1e12).toFixed(2) + "T CD";
+  if (Math.abs(v) >= 1e9) return (v/1e9).toFixed(2) + "B CD";
+  if (Math.abs(v) >= 1e6) return (v/1e6).toFixed(1) + "M CD";
+  if (Math.abs(v) >= 1e3) return (v/1e3).toFixed(1) + "K CD";
+  return v.toFixed(0) + " CD";
+}
+
+function fmtVD(v) {
+  if (Math.abs(v) >= 1e15) return "$" + (v/1e15).toFixed(2) + "Q VD";
+  if (Math.abs(v) >= 1e12) return "$" + (v/1e12).toFixed(2) + "T VD";
+  if (Math.abs(v) >= 1e9) return "$" + (v/1e9).toFixed(2) + "B VD";
+  if (Math.abs(v) >= 1e6) return "$" + (v/1e6).toFixed(1) + "M VD";
+  return "$" + v.toLocaleString("en-US", {maximumFractionDigits: 0}) + " VD";
+}
+
 function renderChart(data) {
   var dateStr = data.dateStr, spot = data.spot, aggAll = data.aggAll, binWidth = data.binWidth;
   var aggLTH = data.aggLTH, aggSTH = data.aggSTH, realizedCap = data.realizedCap, totalSupply = data.totalSupply;
   var lthRC = data.lthRC, sthRC = data.sthRC, maxPrice = data.maxPrice, redPct = data.redPct;
+  var wm = data.weightMode || weightMode;
   var isSplit = splitMode && aggLTH && aggSTH;
-  var isCoin = coinMode;
+  var isCoin = (wm === "btc");
+  var isCD = (wm === "cd");
+  var isVD = (wm === "vd");
   var isBottom = redPct >= bottomThreshold;
 
   var statusEl = document.getElementById("status");
@@ -589,7 +749,18 @@ function renderChart(data) {
     var lthMap = {}, sthMap = {};
     aggLTH.forEach(function(b){lthMap[b.price]=b;});
     aggSTH.forEach(function(b){sthMap[b.price]=b;});
-    if (isCoin) {
+    if (isCD || isVD) {
+      // CD/VD split: .invested holds coindays or valuedays from aggregateAgeBands
+      var lthCDV = smooth(chartPrices.map(function(p){return lthMap[p] ? lthMap[p].invested : 0;}));
+      var sthCDV = smooth(chartPrices.map(function(p){return sthMap[p] ? sthMap[p].invested : 0;}));
+      var sthColors=chartPrices.map(function(p){return spot&&p>spot?STH_COLOR+"66":STH_COLOR;});
+      var lthColors=chartPrices.map(function(p){return spot&&p>spot?LTH_COLOR+"66":LTH_COLOR;});
+      var splitUnit = isCD ? "Coindays" : "Valuedays";
+      var splitFmt = isVD ? "%{y:$,.0f}" : "%{y:,.0f}";
+      traces.push({x:chartPrices,y:sthCDV,type:"bar",name:t("sth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:sthColors,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>STH " + splitUnit + ": " + splitFmt + "<extra></extra>"});
+      traces.push({x:chartPrices,y:lthCDV,type:"bar",name:t("lth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:lthColors,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>LTH " + splitUnit + ": " + splitFmt + "<extra></extra>"});
+      valuesForAxis = chartPrices.map(function(_,i){return lthCDV[i]+sthCDV[i];});
+    } else if (isCoin) {
       var lthSupV = smooth(chartPrices.map(function(p){return lthMap[p] ? lthMap[p].supply : 0;}));
       var sthSupV = smooth(chartPrices.map(function(p){return sthMap[p] ? sthMap[p].supply : 0;}));
       var sthColors=chartPrices.map(function(p){return spot&&p>spot?STH_COLOR+"66":STH_COLOR;});
@@ -612,7 +783,19 @@ function renderChart(data) {
     traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
-    if (isCoin) {
+    if (isCD || isVD) {
+      // CD: coindays per bin, VD: valuedays per bin — both stored in .invested by aggregateAgeBands
+      var cdVals = smooth(aggAll.map(function(b){return b.invested;}));
+      var totalCV = cdVals.reduce(function(s,v){return s+v;},0) || 1;
+      var runCV = 0;
+      var cumulCV = cdVals.map(function(v){runCV+=v;return 100*runCV/totalCV;});
+      var colorsCV = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
+      var hoverUnit = isCD ? "CD" : "VD";
+      var hoverFmt = isVD ? "%{y:$,.0f}" : "%{y:,.0f}";
+      traces.push({x:chartPrices,y:cdVals,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colorsCV,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      valuesForAxis = cdVals;
+    } else if (isCoin) {
       var supplyVals = smooth(aggAll.map(function(b){return b.supply;}));
       var total2 = supplyVals.reduce(function(s,v){return s+v;},0) || 1;
       var run2 = 0;
@@ -635,7 +818,7 @@ function renderChart(data) {
 
   var maxVal = valuesForAxis.reduce(function(a,b){return a>b?a:b},0);
   var yClipped = false;
-  if (isCoin) {
+  if (isCoin || isCD || isVD) {
     var sorted = valuesForAxis.filter(function(v){return v>0;}).slice().sort(function(a,b){return a-b;});
     if (sorted.length > 0) {
       var p95 = sorted[Math.floor(sorted.length * 0.99)];
@@ -691,7 +874,21 @@ function renderChart(data) {
   }
 
   var annText;
-  if (isCoin) {
+  if (isCD) {
+    var totalCDVal = data.totalCD || valuesForAxis.reduce(function(s,v){return s+v;},0);
+    annText = "<span style='color:#e67e22'><b>" + t("totalCoindays") + fmtCD(totalCDVal) + "</b></span>";
+    if (isSplit && data.lthCD !== undefined) {
+      annText += "<br><span style='color:" + LTH_COLOR + "'><b>LTH " + fmtCD(data.lthCD) + "</b></span>";
+      annText += "<br><span style='color:" + STH_COLOR + "'><b>STH " + fmtCD(data.sthCD) + "</b></span>";
+    }
+  } else if (isVD) {
+    var totalVDVal = data.totalCD || valuesForAxis.reduce(function(s,v){return s+v;},0);
+    annText = "<span style='color:#e67e22'><b>" + t("totalValuedays") + fmtVD(totalVDVal) + "</b></span>";
+    if (isSplit && data.lthCD !== undefined) {
+      annText += "<br><span style='color:" + LTH_COLOR + "'><b>LTH " + fmtVD(data.lthCD) + "</b></span>";
+      annText += "<br><span style='color:" + STH_COLOR + "'><b>STH " + fmtVD(data.sthCD) + "</b></span>";
+    }
+  } else if (isCoin) {
     annText = "<span style='color:#e67e22'><b>" + t("totalSupply") + fmtBTC(totalSupply) + "</b></span>";
     if (isSplit && data.lthSup && data.sthSup) {
       annText += "<br><span style='color:" + LTH_COLOR + "'><b>" + t("lthSupply") + fmtBTC(data.lthSup) + "</b></span>";
@@ -716,7 +913,11 @@ function renderChart(data) {
   var d = new Date(dateStr + "T00:00:00");
   var titleDate = d.toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"});
   var titleText;
-  if (isCoin) {
+  if (isCD) {
+    titleText = isSplit ? "<b>" + t("titleCDCohort") + titleDate + "</b>" : "<b>" + t("titleCD") + titleDate + "</b>";
+  } else if (isVD) {
+    titleText = isSplit ? "<b>" + t("titleVDCohort") + titleDate + "</b>" : "<b>" + t("titleVD") + titleDate + "</b>";
+  } else if (isCoin) {
     titleText = isSplit ? "<b>" + t("titleBTCCohort") + titleDate + "</b>" : "<b>" + t("titleBTC") + titleDate + "</b>";
   } else {
     titleText = isSplit ? "<b>" + t("titleUSDCohort") + titleDate + "</b>" : "<b>" + t("titleUSD") + titleDate + "</b>";
@@ -748,13 +949,22 @@ function renderChart(data) {
       shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.25)",width:6},layer:"above"});
     }
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:2},layer:"above"});
-    var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + (isCoin ? "<br>" + t("btcProfit") + profitPct + "%<br>" + t("btcLoss") + lossPct + "%" : "<br>" + t("usdProfit") + profitPct + "%<br>" + t("usdLoss") + lossPct + "%");
+    var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1);
+    var plPrefix, plSuffix;
+    if (isCD) { plPrefix = t("cdProfit"); plSuffix = t("cdLoss"); }
+    else if (isVD) { plPrefix = t("vdProfit"); plSuffix = t("vdLoss"); }
+    else if (isCoin) { plPrefix = t("btcProfit"); plSuffix = t("btcLoss"); }
+    else { plPrefix = t("usdProfit"); plSuffix = t("usdLoss"); }
+    var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br>" + plPrefix + profitPct + "%<br>" + plSuffix + lossPct + "%";
     if (isBottom) labelText += "<br><b>" + t("bottomSigHover") + redPct.toFixed(0) + "% Red)</b>";
     annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",align:"left",font:{color:spotLineColor,size:12,family:FONT},bgcolor:"rgba(17,17,17,0.8)",borderpad:4});
   }
 
-  var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
-  var yAxisPrefix = isCoin ? "" : "$";
+  var yAxisTitle, yAxisPrefix;
+  if (isCD) { yAxisTitle = t("coindays"); yAxisPrefix = ""; }
+  else if (isVD) { yAxisTitle = t("valuedays"); yAxisPrefix = "$"; }
+  else if (isCoin) { yAxisTitle = t("btcSupply"); yAxisPrefix = ""; }
+  else { yAxisTitle = t("usdInvested"); yAxisPrefix = "$"; }
 
 
   // Mobile: hide verbose annotations, scale down
@@ -861,29 +1071,30 @@ document.getElementById("btnFirst").onclick = function(){goTo(0);};
 document.getElementById("btnLast").onclick = function(){goTo(allDates.length - 1);};
 
 document.getElementById("btnPL").onclick = function(){
-  splitMode = false; viewIdx = coinMode ? 2 : 0;
+  splitMode = false;
   document.getElementById("btnPL").classList.add("active");
   document.getElementById("btnSplit").classList.remove("active");
+  viewIdx = findViewIdx();
   loadAndRender();
 };
 document.getElementById("btnSplit").onclick = function(){
-  splitMode = true; viewIdx = coinMode ? 3 : 1;
+  splitMode = true;
   document.getElementById("btnSplit").classList.add("active");
   document.getElementById("btnPL").classList.remove("active");
+  viewIdx = findViewIdx();
   loadAndRender();
 };
-document.getElementById("btnUSD").onclick = function(){
-  coinMode = false; viewIdx = splitMode ? 1 : 0;
-  document.getElementById("btnUSD").classList.add("active");
-  document.getElementById("btnBTC").classList.remove("active");
+function setWeight(mode) {
+  weightMode = mode;
+  coinMode = (mode === "btc");
+  updateWeightButtons();
+  viewIdx = findViewIdx();
   loadAndRender();
-};
-document.getElementById("btnBTC").onclick = function(){
-  coinMode = true; viewIdx = splitMode ? 3 : 2;
-  document.getElementById("btnBTC").classList.add("active");
-  document.getElementById("btnUSD").classList.remove("active");
-  loadAndRender();
-};
+}
+document.getElementById("btnUSD").onclick = function(){ setWeight("usd"); };
+document.getElementById("btnBTC").onclick = function(){ setWeight("btc"); };
+document.getElementById("btnCD").onclick = function(){ setWeight("cd"); };
+document.getElementById("btnVD").onclick = function(){ setWeight("vd"); };
 
 // Language toggle
 
@@ -905,7 +1116,7 @@ document.getElementById("thresholdInput").addEventListener("input", function(e){
   if (!isNaN(v) && v >= 0 && v <= 100) {
     bottomThreshold = v;
     var dateStr = allDates[currentIdx];
-    var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
+    var cacheKey = dateStr + "_" + weightMode + (splitMode ? "_split" : "_pl");
     if (cache[cacheKey]) renderChart(cache[cacheKey]);
   }
 });
@@ -1046,7 +1257,7 @@ function closeDateDD() {
 async function init() {
   try {
     document.getElementById("dateDisplay").textContent = t("loadingDates");
-    allDates = await fetchJSON(BASE + "/api/series/cost-basis/all/dates");
+    allDates = await fetchJSON(BASE + "/api/urpd/all/dates");
     document.getElementById("status").textContent = allDates.length + t("statusLoaded");
     currentIdx = allDates.length - 1;
     try {
@@ -1117,89 +1328,102 @@ document.addEventListener("click", function(e){
 });
 function updateExplainerLang() {
   var box = document.getElementById("explainPanel");
+  var h3s = box.querySelectorAll("h3");
+  var descs = box.querySelectorAll(".desc");
+  // Indices: 0=URPD, 1=USD, 2=BTC, 3=CD, 4=VD, 5=RC, 6=LTH, 7=STH, 8=P/L, 9=Bottom
   if (lang === "ja") {
     box.querySelector("#explainTitle").textContent = "URPD \u3092\u7406\u89e3\u3059\u308b";
-    var h3s = box.querySelectorAll("h3");
-    var descs = box.querySelectorAll(".desc");
     h3s[0].textContent = "UTXO \u5b9f\u73fe\u4fa1\u683c\u5206\u5e03 (URPD)";
     descs[0].textContent = "\u5404UTXO\u304c\u6700\u5f8c\u306b\u79fb\u52d5\u3057\u305f\u4fa1\u683c\u5e2f\u3054\u3068\u306e\u30d3\u30c3\u30c8\u30b3\u30a4\u30f3\u4f9b\u7d66\u5206\u5e03\u3002\u5404\u30d0\u30fc\u306f\u305d\u306e\u4fa1\u683c\u5e2f\u306e\u53d6\u5f97\u539f\u4fa1\u3092\u6301\u3064BTC\u91cf\u3092\u8868\u3057\u307e\u3059\u3002";
     h3s[1].textContent = "URPD (\u7c73\u30c9\u30eb\u52a0\u91cd) \u2014 \u6295\u8cc7\u8cc7\u7523";
     descs[1].textContent = "\u5404UTXO\u3092\u53d6\u5f97\u6642\u306e\u30c9\u30eb\u4fa1\u5024\u3067\u52a0\u91cd\u3002\u8cc7\u672c\u304c\u3069\u3053\u306b\u96c6\u4e2d\u3057\u3066\u3044\u308b\u304b\u3092\u8868\u793a\u3057\u307e\u3059\u3002";
     h3s[2].textContent = "URPD (BTC\u52a0\u91cd) \u2014 \u4f9b\u7d66\u5206\u5e03";
     descs[2].textContent = "\u5404\u53d6\u5f97\u539f\u4fa1\u306b\u304a\u3051\u308bBTC\u4f9b\u7d66\u91cf\u3092\u305d\u306e\u307e\u307e\u8868\u793a\u3002\u30c9\u30eb\u4fa1\u5024\u3067\u306e\u52a0\u91cd\u306a\u3057\u3002";
-    h3s[3].textContent = "\u5b9f\u73fe\u6642\u4fa1\u7dcf\u984d (Realized Cap)";
-    descs[3].textContent = "\u5168UTXO\u3092\u6700\u5f8c\u306e\u79fb\u52d5\u4fa1\u683c\u3067\u8a55\u4fa1\u3057\u305f\u7dcf\u4fa1\u5024\u3002\u6642\u4fa1\u7dcf\u984d\u3068\u306f\u7570\u306a\u308a\u3001\u4f9b\u7d66\u5168\u4f53\u306e\u7dcf\u53d6\u5f97\u539f\u4fa1\u3092\u53cd\u6620\u3057\u307e\u3059\u3002";
-    h3s[4].textContent = "\u9577\u671f\u4fdd\u6709\u8005 (LTH)";
-    descs[4].textContent = "155\u65e5\u4ee5\u4e0a\u79fb\u52d5\u3057\u3066\u3044\u306a\u3044UTXO\u3002\u78ba\u4fe1\u3092\u6301\u3063\u305f\u4fdd\u6709\u8005\u3084\u9577\u671f\u7a4d\u7acb\u8005\u3092\u8868\u3057\u307e\u3059\u3002";
-    h3s[5].textContent = "\u77ed\u671f\u4fdd\u6709\u8005 (STH)";
-    descs[5].textContent = "\u904e\u53bb155\u65e5\u4ee5\u5185\u306b\u79fb\u52d5\u3057\u305fUTXO\u3002\u6700\u8fd1\u306e\u8cfc\u5165\u8005\u3001\u30c8\u30ec\u30fc\u30c0\u30fc\u3001\u6295\u6a5f\u5bb6\u3092\u8868\u3057\u307e\u3059\u3002";
-    h3s[6].textContent = "\u4f9b\u7d66\u306e\u542b\u307f\u76ca / \u640d\u5931";
-    descs[6].textContent = "\u73fe\u5728\u4fa1\u683c\u30e9\u30a4\u30f3\u306b\u304a\u3044\u3066\u3001\u53d6\u5f97\u539f\u4fa1\u304c\u73fe\u5728\u4fa1\u683c\u4ee5\u4e0b\u306e\u6295\u8cc7\u8cc7\u7523(\u7c73\u30c9\u30eb)\u307e\u305f\u306f\u4f9b\u7d66\u91cf(BTC)\u306e\u5272\u5408\u304c\u300c\u542b\u307f\u76ca\u300d\u3001\u4ee5\u4e0a\u304c\u300c\u640d\u5931\u300d\u3002";
-    h3s[7].textContent = "\u5e95\u30b7\u30b0\u30ca\u30eb";
+    h3s[3].textContent = "URPD (CD\u52a0\u91cd) \u2014 \u30b3\u30a4\u30f3\u30c7\u30a4\u30ba\u4fdd\u7ba1";
+    descs[3].textContent = "\u5404UTXO\u3092BTC\u00d7\u4fdd\u6709\u65e5\u6570\u3067\u52a0\u91cd\u3002\u53e4\u304f\u5927\u304d\u306a\u30dd\u30b8\u30b7\u30e7\u30f3\u3092\u5f37\u8abf\u3057\u307e\u3059\u3002Cointime Economics\u30d5\u30ec\u30fc\u30e0\u30ef\u30fc\u30af (Puell & Check, 2023)\u3002";
+    h3s[4].textContent = "URPD (VD\u52a0\u91cd) \u2014 \u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba\u4fdd\u7ba1";
+    descs[4].textContent = "\u5404UTXO\u3092\u5b9f\u73fe\u6642\u4fa1\u00d7\u4fdd\u6709\u65e5\u6570\u3067\u52a0\u91cd\u3002\u30c9\u30eb\u306e\u78ba\u4fe1\u3068\u6642\u9593\u3092\u7d44\u307f\u5408\u308f\u305b\u305f\u6307\u6a19\u3002";
+    h3s[5].textContent = "\u5b9f\u73fe\u6642\u4fa1\u7dcf\u984d (Realized Cap)";
+    descs[5].textContent = "\u5168UTXO\u3092\u6700\u5f8c\u306e\u79fb\u52d5\u4fa1\u683c\u3067\u8a55\u4fa1\u3057\u305f\u7dcf\u4fa1\u5024\u3002\u6642\u4fa1\u7dcf\u984d\u3068\u306f\u7570\u306a\u308a\u3001\u4f9b\u7d66\u5168\u4f53\u306e\u7dcf\u53d6\u5f97\u539f\u4fa1\u3092\u53cd\u6620\u3057\u307e\u3059\u3002";
+    h3s[6].textContent = "\u9577\u671f\u4fdd\u6709\u8005 (LTH)";
+    descs[6].textContent = "155\u65e5\u4ee5\u4e0a\u79fb\u52d5\u3057\u3066\u3044\u306a\u3044UTXO\u3002\u78ba\u4fe1\u3092\u6301\u3063\u305f\u4fdd\u6709\u8005\u3084\u9577\u671f\u7a4d\u7acb\u8005\u3092\u8868\u3057\u307e\u3059\u3002";
+    h3s[7].textContent = "\u77ed\u671f\u4fdd\u6709\u8005 (STH)";
+    descs[7].textContent = "\u904e\u53bb155\u65e5\u4ee5\u5185\u306b\u79fb\u52d5\u3057\u305fUTXO\u3002\u6700\u8fd1\u306e\u8cfc\u5165\u8005\u3001\u30c8\u30ec\u30fc\u30c0\u30fc\u3001\u6295\u6a5f\u5bb6\u3092\u8868\u3057\u307e\u3059\u3002";
+    h3s[8].textContent = "\u4f9b\u7d66\u306e\u542b\u307f\u76ca / \u640d\u5931";
+    descs[8].textContent = "\u73fe\u5728\u4fa1\u683c\u30e9\u30a4\u30f3\u306b\u304a\u3044\u3066\u3001\u53d6\u5f97\u539f\u4fa1\u304c\u73fe\u5728\u4fa1\u683c\u4ee5\u4e0b\u306e\u6295\u8cc7\u8cc7\u7523(\u7c73\u30c9\u30eb)\u307e\u305f\u306f\u4f9b\u7d66\u91cf(BTC)\u306e\u5272\u5408\u304c\u300c\u542b\u307f\u76ca\u300d\u3001\u4ee5\u4e0a\u304c\u300c\u640d\u5931\u300d\u3002";
+    h3s[9].textContent = "\u5e95\u30b7\u30b0\u30ca\u30eb";
+    descs[9].textContent = "\u7c73\u30c9\u30eb\u6295\u8cc7\u8cc7\u7523\u306e\u640d\u5931\u5272\u5408\u304c\u30e6\u30fc\u30b6\u30fc\u5b9a\u7fa9\u306e\u95be\u5024(\u30c7\u30d5\u30a9\u30eb\u30c8 80%)\u3092\u8d85\u3048\u305f\u3068\u304d\u306b\u767a\u52d5\u3002\u6b74\u53f2\u7684\u306b\u3001\u6975\u7aef\u306a\u640d\u5931\u6c34\u6e96\u306f\u30b5\u30a4\u30af\u30eb\u5e95\u3068\u4e00\u81f4\u3057\u307e\u3059\u3002";
     if(document.getElementById("f1")) document.getElementById("f1").textContent = "\u6295\u8cc7\u8cc7\u7523(P) = \u4fa1\u683c P \u00b7 \u4f9b\u7d66\u91cf S(P)";
     if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 UTXO\u984d\u3001UTXO\u4fa1\u683c \u2208 [P, P + \u0394P)";
+    if(document.getElementById("f8")) document.getElementById("f8").textContent = "CD(P) = \u03a3 (\u5e74\u9f62\u5e2f\u4f9b\u7d66 \u00d7 \u4e2d\u9593\u65e5\u6570) \u4fa1\u683c\u5e2f P";
+    if(document.getElementById("f9")) document.getElementById("f9").textContent = "VD(P) = \u03a3 (\u5e74\u9f62\u5e2f\u5b9f\u73fe\u6642\u4fa1 \u00d7 \u4e2d\u9593\u65e5\u6570) \u4fa1\u683c\u5e2f P";
     if(document.getElementById("f3")) document.getElementById("f3").textContent = "\u5b9f\u73fe\u6642\u4fa1\u7dcf\u984d = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62 \u5168\u4fa1\u683c\u5e2f i";
     if(document.getElementById("f4")) document.getElementById("f4").textContent = "LTH = { UTXO | UTXO\u7d4c\u904e\u65e5\u6570 \u2265 155\u65e5 }";
     if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { UTXO | UTXO\u7d4c\u904e\u65e5\u6570 < 155\u65e5 }";
     if(document.getElementById("f6")) document.getElementById("f6").textContent = "\u542b\u307f\u76ca% = \u03a3 W(P) P \u2264 \u73fe\u5728\u4fa1\u683c / \u03a3 W(P) \u00d7 100";
     if(document.getElementById("f7")) document.getElementById("f7").textContent = "\u30b7\u30b0\u30ca\u30eb\u6761\u4ef6: \u640d\u5931% \u2265 \u95be\u5024 (\u30c7\u30d5\u30a9\u30eb\u30c8 80%)";
-    descs[7].textContent = "\u7c73\u30c9\u30eb\u6295\u8cc7\u8cc7\u7523\u306e\u640d\u5931\u5272\u5408\u304c\u30e6\u30fc\u30b6\u30fc\u5b9a\u7fa9\u306e\u95be\u5024(\u30c7\u30d5\u30a9\u30eb\u30c8 80%)\u3092\u8d85\u3048\u305f\u3068\u304d\u306b\u767a\u52d5\u3002\u6b74\u53f2\u7684\u306b\u3001\u6975\u7aef\u306a\u640d\u5931\u6c34\u6e96\u306f\u30b5\u30a4\u30af\u30eb\u5e95\u3068\u4e00\u81f4\u3057\u307e\u3059\u3002";
-    var cb = box.querySelector(".close-btn"); if (cb) cb.textContent = "\u9589\u3058\u308b";
   } else if (lang === "zh") {
     box.querySelector("#explainTitle").textContent = "\u7406\u89e3 URPD";
-    var h3s = box.querySelectorAll("h3");
-    var descs = box.querySelectorAll(".desc");
     h3s[0].textContent = "UTXO \u5df2\u5b9e\u73b0\u4ef7\u683c\u5206\u5e03 (URPD)";
     descs[0].textContent = "\u663e\u793a\u6bd4\u7279\u5e01\u4f9b\u5e94\u6309\u6bcf\u4e2aUTXO\u6700\u540e\u79fb\u52a8\u65f6\u7684\u4ef7\u683c\u5206\u5e03\u3002\u6bcf\u4e2a\u67f1\u72b6\u56fe\u4ee3\u8868\u8be5\u4ef7\u683c\u8303\u56f4\u5185\u7684BTC\u6210\u672c\u57fa\u7840\u3002";
     h3s[1].textContent = "URPD (\u7f8e\u5143\u52a0\u6743) \u2014 \u6295\u8d44\u8d22\u5bcc";
     descs[1].textContent = "\u6309\u83b7\u53d6\u65f6\u7684\u7f8e\u5143\u4ef7\u503c\u5bf9\u6bcf\u4e2aUTXO\u52a0\u6743\u3002\u663e\u793a\u8d44\u672c\u96c6\u4e2d\u5728\u54ea\u91cc\u3002";
     h3s[2].textContent = "URPD (BTC\u52a0\u6743) \u2014 \u4f9b\u5e94\u5206\u5e03";
     descs[2].textContent = "\u663e\u793a\u6bcf\u4e2a\u6210\u672c\u57fa\u7840\u4ef7\u683c\u7684\u539f\u59cbBTC\u4f9b\u5e94\uff0c\u4e0d\u6309\u7f8e\u5143\u4ef7\u503c\u52a0\u6743\u3002";
-    h3s[3].textContent = "\u5df2\u5b9e\u73b0\u5e02\u503c (Realized Cap)";
-    descs[3].textContent = "\u6240\u6709UTXO\u6309\u5176\u6700\u540e\u79fb\u52a8\u4ef7\u683c\u8ba1\u4ef7\u7684\u603b\u4ef7\u503c\u3002\u4e0e\u5e02\u503c\u4e0d\u540c\uff0c\u5b83\u53cd\u6620\u6574\u4e2a\u4f9b\u5e94\u7684\u603b\u6210\u672c\u57fa\u7840\u3002";
-    h3s[4].textContent = "\u957f\u671f\u6301\u6709\u8005 (LTH)";
-    descs[4].textContent = "\u8d85\u8fc7155\u5929\u672a\u79fb\u52a8\u7684UTXO\u3002\u4ee3\u8868\u575a\u5b9a\u6301\u6709\u8005\u548c\u957f\u671f\u79ef\u7d2f\u8005\u3002";
-    h3s[5].textContent = "\u77ed\u671f\u6301\u6709\u8005 (STH)";
-    descs[5].textContent = "\u5728\u8fc7\u53bb155\u5929\u5185\u79fb\u52a8\u7684UTXO\u3002\u4ee3\u8868\u8fd1\u671f\u4e70\u5bb6\u3001\u4ea4\u6613\u8005\u548c\u6295\u673a\u8005\u3002";
-    h3s[6].textContent = "\u4f9b\u5e94\u76c8\u5229 / \u4e8f\u635f";
-    descs[6].textContent = "\u5728\u73b0\u4ef7\u7ebf\u5904\uff0c\u6210\u672c\u57fa\u7840\u4f4e\u4e8e\u73b0\u4ef7\u7684\u6295\u8d44\u8d22\u5bcc(\u7f8e\u5143)\u6216\u4f9b\u5e94(BTC)\u767e\u5206\u6bd4\u4e3a\u201c\u76c8\u5229\u201d\uff1b\u9ad8\u4e8e\u73b0\u4ef7\u7684\u4e3a\u201c\u4e8f\u635f\u201d\u3002";
-    h3s[7].textContent = "\u5e95\u90e8\u4fe1\u53f7";
+    h3s[3].textContent = "URPD (CD\u52a0\u6743) \u2014 \u5e01\u5929\u50a8\u5b58";
+    descs[3].textContent = "\u6309BTC\u00d7\u6301\u6709\u5929\u6570\u52a0\u6743\u3002\u5f3a\u8c03\u53e4\u8001\u548c\u5927\u578b\u4ed3\u4f4d\u3002\u57fa\u4e8eCointime Economics\u6846\u67b6 (Puell & Check, 2023)\u3002";
+    h3s[4].textContent = "URPD (VD\u52a0\u6743) \u2014 \u4ef7\u503c\u5929\u50a8\u5b58";
+    descs[4].textContent = "\u6309\u5df2\u5b9e\u73b0\u5e02\u503c\u00d7\u6301\u6709\u5929\u6570\u52a0\u6743\u3002\u7ed3\u5408\u7f8e\u5143\u4fe1\u5ff5\u4e0e\u65f6\u95f4\u3002";
+    h3s[5].textContent = "\u5df2\u5b9e\u73b0\u5e02\u503c (Realized Cap)";
+    descs[5].textContent = "\u6240\u6709UTXO\u6309\u5176\u6700\u540e\u79fb\u52a8\u4ef7\u683c\u8ba1\u4ef7\u7684\u603b\u4ef7\u503c\u3002\u4e0e\u5e02\u503c\u4e0d\u540c\uff0c\u5b83\u53cd\u6620\u6574\u4e2a\u4f9b\u5e94\u7684\u603b\u6210\u672c\u57fa\u7840\u3002";
+    h3s[6].textContent = "\u957f\u671f\u6301\u6709\u8005 (LTH)";
+    descs[6].textContent = "\u8d85\u8fc7155\u5929\u672a\u79fb\u52a8\u7684UTXO\u3002\u4ee3\u8868\u575a\u5b9a\u6301\u6709\u8005\u548c\u957f\u671f\u79ef\u7d2f\u8005\u3002";
+    h3s[7].textContent = "\u77ed\u671f\u6301\u6709\u8005 (STH)";
+    descs[7].textContent = "\u5728\u8fc7\u53bb155\u5929\u5185\u79fb\u52a8\u7684UTXO\u3002\u4ee3\u8868\u8fd1\u671f\u4e70\u5bb6\u3001\u4ea4\u6613\u8005\u548c\u6295\u673a\u8005\u3002";
+    h3s[8].textContent = "\u4f9b\u5e94\u76c8\u5229 / \u4e8f\u635f";
+    descs[8].textContent = "\u5728\u73b0\u4ef7\u7ebf\u5904\uff0c\u6210\u672c\u57fa\u7840\u4f4e\u4e8e\u73b0\u4ef7\u7684\u6295\u8d44\u8d22\u5bcc(\u7f8e\u5143)\u6216\u4f9b\u5e94(BTC)\u767e\u5206\u6bd4\u4e3a\u201c\u76c8\u5229\u201d\uff1b\u9ad8\u4e8e\u73b0\u4ef7\u7684\u4e3a\u201c\u4e8f\u635f\u201d\u3002";
+    h3s[9].textContent = "\u5e95\u90e8\u4fe1\u53f7";
+    descs[9].textContent = "\u5f53\u7f8e\u5143\u6295\u8d44\u8d22\u5bcc\u4e8f\u635f\u767e\u5206\u6bd4\u8d85\u8fc7\u7528\u6237\u5b9a\u4e49\u7684\u9608\u503c(\u9ed8\u8ba480%)\u65f6\u89e6\u53d1\u3002\u5386\u53f2\u4e0a\uff0c\u6781\u7aef\u4e8f\u635f\u6c34\u5e73\u4e0e\u5468\u671f\u5e95\u90e8\u5438\u5408\u3002";
     if(document.getElementById("f1")) document.getElementById("f1").textContent = "\u6295\u8d44\u8d22\u5bcc(P) = \u4ef7\u683c P \u00b7 \u4f9b\u5e94\u91cf S(P)";
     if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 UTXO\u91d1\u989d\uff0c\u5176\u4e2d UTXO\u4ef7\u683c \u2208 [P, P + \u0394P)";
+    if(document.getElementById("f8")) document.getElementById("f8").textContent = "CD(P) = \u03a3 (\u5e74\u9f84\u5e26\u4f9b\u5e94 \u00d7 \u4e2d\u70b9\u5929\u6570) \u6bcf\u4ef7\u683c\u5e26 P";
+    if(document.getElementById("f9")) document.getElementById("f9").textContent = "VD(P) = \u03a3 (\u5e74\u9f84\u5e26\u5df2\u5b9e\u73b0\u5e02\u503c \u00d7 \u4e2d\u70b9\u5929\u6570) \u6bcf\u4ef7\u683c\u5e26 P";
     if(document.getElementById("f3")) document.getElementById("f3").textContent = "\u5df2\u5b9e\u73b0\u5e02\u503c = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62\uff0c\u904d\u5386\u6240\u6709\u4ef7\u683c\u533a\u95f4 i";
     if(document.getElementById("f4")) document.getElementById("f4").textContent = "LTH = { UTXO | UTXO\u5e74\u9f84 \u2265 155 \u5929 }";
     if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { UTXO | UTXO\u5e74\u9f84 < 155 \u5929 }";
     if(document.getElementById("f6")) document.getElementById("f6").textContent = "\u76c8\u5229% = \u03a3 W(P)\uff0c\u5176\u4e2d P \u2264 \u73b0\u4ef7 / \u03a3 W(P) \u00d7 100";
     if(document.getElementById("f7")) document.getElementById("f7").textContent = "\u4fe1\u53f7\u89e6\u53d1\u6761\u4ef6: \u4e8f\u635f% \u2265 \u9608\u503c (\u9ed8\u8ba4 80%)";
-    descs[7].textContent = "\u5f53\u7f8e\u5143\u6295\u8d44\u8d22\u5bcc\u4e8f\u635f\u767e\u5206\u6bd4\u8d85\u8fc7\u7528\u6237\u5b9a\u4e49\u7684\u9608\u503c(\u9ed8\u8ba480%)\u65f6\u89e6\u53d1\u3002\u5386\u53f2\u4e0a\uff0c\u6781\u7aef\u4e8f\u635f\u6c34\u5e73\u4e0e\u5468\u671f\u5e95\u90e8\u5438\u5408\u3002";
-    var cb = box.querySelector(".close-btn"); if (cb) cb.textContent = "\u5173\u95ed";
   } else {
     box.querySelector("#explainTitle").textContent = "Understanding URPD";
-    var h3s = box.querySelectorAll("h3");
-    var descs = box.querySelectorAll(".desc");
     h3s[0].textContent = "UTXO Realized Price Distribution (URPD)";
     descs[0].textContent = "Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved. Each bar represents how much BTC has its cost basis in that price range.";
     h3s[1].textContent = "URPD (USD-weighted) \u2014 Invested Wealth";
     descs[1].textContent = "Weights each UTXO by its dollar value at acquisition. Shows where capital is concentrated.";
     h3s[2].textContent = "URPD (BTC-weighted) \u2014 Supply Distribution";
     descs[2].textContent = "Shows raw BTC supply at each cost-basis price, unweighted by dollar value.";
-    h3s[3].textContent = "Realized Cap";
-    descs[3].textContent = "The total value of all UTXOs priced at their last-moved price. Unlike market cap, it reflects the aggregate cost basis of the entire supply.";
-    h3s[4].textContent = "Long-Term Holders (LTH)";
-    descs[4].textContent = "UTXOs that have not moved for \u2265 155 days. Represents conviction holders and long-term accumulators.";
-    h3s[5].textContent = "Short-Term Holders (STH)";
-    descs[5].textContent = "UTXOs that have moved within the last 155 days. Represents recent buyers, traders, and speculators.";
-    h3s[6].textContent = "Supply in Profit / Loss";
-    descs[6].textContent = "At the spot price line, the percentage of invested wealth (USD) or supply (BTC) with a cost basis below spot is \"in profit\"; above spot is \"in loss\".";
-    h3s[7].textContent = "Bottom Signal";
+    h3s[3].textContent = "URPD (CD-weighted) \u2014 Coindays Stored";
+    descs[3].textContent = "Weights each UTXO by BTC \u00d7 days held (Coinblocks Stored). Emphasizes old, large positions. Based on the Cointime Economics framework (Puell & Check, 2023).";
+    h3s[4].textContent = "URPD (VD-weighted) \u2014 Valuedays Stored";
+    descs[4].textContent = "Weights each UTXO by realized_cap \u00d7 days held. Combines dollar conviction with time held \u2014 the dollar-denominated version of Coindays.";
+    h3s[5].textContent = "Realized Cap";
+    descs[5].textContent = "The total value of all UTXOs priced at their last-moved price. Unlike market cap, it reflects the aggregate cost basis of the entire supply.";
+    h3s[6].textContent = "Long-Term Holders (LTH)";
+    descs[6].textContent = "UTXOs that have not moved for \u2265 155 days. Represents conviction holders and long-term accumulators.";
+    h3s[7].textContent = "Short-Term Holders (STH)";
+    descs[7].textContent = "UTXOs that have moved within the last 155 days. Represents recent buyers, traders, and speculators.";
+    h3s[8].textContent = "Supply in Profit / Loss";
+    descs[8].textContent = "At the spot price line, the percentage of invested wealth (USD) or supply (BTC) with a cost basis below spot is \"in profit\"; above spot is \"in loss\".";
+    h3s[9].textContent = "Bottom Signal";
+    descs[9].textContent = "Triggers when the percentage of USD invested wealth in loss exceeds a user-defined threshold (default 80%). Historically, extreme loss levels have coincided with cycle bottoms.";
     if(document.getElementById("f1")) document.getElementById("f1").textContent = "Invested Wealth(P) = P \u00b7 S(P)";
     if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 utxo.value  where utxo.price \u2208 [P, P + \u0394P)";
+    if(document.getElementById("f8")) document.getElementById("f8").textContent = "CD(P) = \u03a3 (supply_in_age_band \u00d7 midpoint_days)  per price bin P";
+    if(document.getElementById("f9")) document.getElementById("f9").textContent = "VD(P) = \u03a3 (realized_cap_in_age_band \u00d7 midpoint_days)  per price bin P";
     if(document.getElementById("f3")) document.getElementById("f3").textContent = "RC = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62  for all price bins i";
     if(document.getElementById("f4")) document.getElementById("f4").textContent = "LTH = { utxo | age(utxo) \u2265 155 days }";
     if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { utxo | age(utxo) < 155 days }";
     if(document.getElementById("f6")) document.getElementById("f6").textContent = "Profit % = \u03a3 W(P) for P \u2264 Spot  /  \u03a3 W(P) \u00d7 100";
     if(document.getElementById("f7")) document.getElementById("f7").textContent = "Signal when: Loss% \u2265 Threshold (default 80%)";
-    descs[7].textContent = "Triggers when the percentage of USD invested wealth in loss exceeds a user-defined threshold (default 80%). Historically, extreme loss levels have coincided with cycle bottoms.";
   }
 }
 </script>
