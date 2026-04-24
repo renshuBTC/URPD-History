@@ -1311,7 +1311,8 @@ function renderChart(data) {
     var rpNow = (realizedCap && totalSupply > 0) ? realizedCap / totalSupply : 0;
     traces.push({x:rcDates,y:rcVals,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showRCOverlay?SCALAR_COLOR:"rgba(0,0,0,0)",width:showRCOverlay?2:0},hoverinfo:"skip",showlegend:true,name:"Realized Price",visible:true});
     if(showRCOverlay&&rpNow>0){
-      traces.push({x:[dateStr],y:[rpNow],type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:SCALAR_COLOR,size:9,line:{color:"rgba(38,198,218,0.5)",width:1.5}},text:["Realized Price = Σp·URPD(p) / ΣURPD(p)"],textposition:"bottom right",textfont:{color:SCALAR_COLOR,size:10,family:FONT},hoverinfo:"skip",showlegend:false});
+      traces.push({x:[dateStr],y:[rpNow],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:SCALAR_COLOR,size:9,line:{color:"rgba(38,198,218,0.5)",width:1.5}},hoverinfo:"skip",showlegend:false});
+      annotations.push({x:rpNow,y:0.5,xref:"x",yref:"paper",text:"Realized Price = Σp·URPD(p) / ΣURPD(p)",showarrow:false,font:{color:"#ffffff",size:11,family:FONT},bgcolor:"rgba(17,17,17,0.85)",borderpad:4,xanchor:"left",yanchor:"middle"});
     }
     if(showRCOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(38,198,218,0.3)",width:1,dash:"dot"}});}
   }
