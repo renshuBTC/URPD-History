@@ -28,10 +28,6 @@
     0%, 100% { text-shadow: 0 0 10px #FFE600, 0 0 20px #FFE600, 0 0 40px #FFE600; }
     50% { text-shadow: 0 0 20px #FFE600, 0 0 40px #FFE600, 0 0 80px #FFE600; }
   }
-  #thresholdWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; height: 28px; }
-  #thresholdWrap label { color: #999; line-height: 28px; }
-  #thresholdInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 0 5px; width: 42px; height: 28px; line-height: 26px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
-  #thresholdInput:focus { border-color: #ff8c00; outline: none; }
   #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; height: 28px; align-items: center; }
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 0 8px; height: 22px; line-height: 22px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
@@ -76,7 +72,6 @@
     #intervalBar .iv { height: 26px; line-height: 24px; padding: 0 8px; }
     .mode-toggle { height: 32px; }
     #controls .mode-toggle button { height: 26px; line-height: 24px; }
-    #thresholdWrap { height: 32px; }
     #explainWrap { height: 32px; display: flex; align-items: center; }
     #controls button:active { background: #3a3a3a; color: #fff; }
     /* Mode toggles: tap flash uses orange */
@@ -89,9 +84,6 @@
     #landmarks { width: 110px; font-size: 11px; padding: 4px 6px; }
     /* Dropdowns open upward on mobile so they don't go off-screen */
     #dateDropdown { top: auto !important; bottom: 100% !important; max-height: 50vh !important; }
-    #thresholdWrap { font-size: 10px; gap: 3px; }
-    #thresholdWrap label { display: none; }
-    #thresholdInput { width: 32px; }
     #binWrap { font-size: 10px; gap: 3px; }
     #binWrap label { display: none; }
     #explainWrap { order: 10; }
@@ -152,9 +144,7 @@
   body.landscape-phone #controls button { cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
   body.landscape-phone #controls button.active { background: #ff8c00 !important; color: #000 !important; border-color: #ff8c00 !important; font-weight: bold; }
   /* Orange-value inputs override */
-  body.landscape-phone #thresholdWrap input,
   body.landscape-phone #binWrap input { color: #ff8c00 !important; text-align: center; width: 32px !important; }
-  body.landscape-phone #thresholdWrap input { width: 28px !important; }
   /* Interval bar: 24px container */
   body.landscape-phone #intervalBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
   body.landscape-phone #controls #intervalBar .iv { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
@@ -169,9 +159,6 @@
   body.landscape-phone #dateDropdown { max-width: 200px !important; font-size: 10px !important; }
   /* Landmarks select */
   body.landscape-phone #landmarks { width: 72px !important; background-image: none !important; }
-  /* Threshold — verbose labels */
-  body.landscape-phone #thresholdWrap { display: flex !important; align-items: center; gap: 3px; height: 24px; }
-  body.landscape-phone #thresholdWrap label { display: inline !important; font-size: 9px; color: #888; font-family: inherit; line-height: 24px; white-space: nowrap; }
   /* Bins — verbose labels */
   body.landscape-phone #binWrap { display: flex !important; align-items: center; gap: 3px; height: 24px; }
   body.landscape-phone #binWrap label { display: inline !important; font-size: 9px; white-space: nowrap; line-height: 24px; }
@@ -222,12 +209,6 @@
     <button id="btnCD">CD</button>
   </div>
   <div class="ctrl-sep"></div>
-  <div id="thresholdWrap">
-    <label>Adjustable bottom signal</label>
-    <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:0 5px;height:28px;line-height:26px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
-    <label>% USD invested in loss</label>
-  </div>
-  <div class="ctrl-sep"></div>
   <div id="binWrap" style="display:flex;align-items:center;gap:5px;font-size:11px;">
     <label style="color:#999;">Bins</label>
     <input type="text" id="binInput" value="625" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:0 5px;height:28px;line-height:26px;width:42px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
@@ -270,10 +251,6 @@
 <h3>Supply in Profit / Loss</h3>
 <div class="desc">Percentage of invested wealth (USD) or supply (BTC) with cost basis below/above spot price.</div>
 <div class="formula" id="f6">Profit % = Σ W(P) for P ≤ Spot  /  Σ W(P) × 100</div>
-
-<h3>Bottom Signal</h3>
-<div class="desc">Triggers when USD invested wealth in loss exceeds the threshold. Historically coincides with cycle bottoms.</div>
-<div class="formula" id="f7">Signal when: Loss% ≥ Threshold (default 80%)</div>
 </div></div>
   <button id="langBtn">中文</button>
 </div>
@@ -292,7 +269,7 @@ var LTH_COLOR = "#5599ff";
 var STH_COLOR = "#e6a817";
 var CUMUL_COLOR = "rgba(38,198,218,0.45)";
 var SPOT_COLOR = "#ff8c00";
-var GLOW_COLOR = "#FFE600";
+
 var FONT = "'Source Code Pro', Consolas, monospace";
 
 var allDates = [];
@@ -302,7 +279,6 @@ var showPriceOverlay = true;
 var splitMode = false;
 var coinMode = false;
 var weightMode = "usd"; // "usd", "btc", "cd", "vd"
-var bottomThreshold = 80;
 var cache = {};
 var spotCache = {};
 var lang = "en";
@@ -338,8 +314,7 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
-    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss", binsLabel: "Bins",
-    bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
+    binsLabel: "Bins",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
     priceUSD: "Price [USD]", usdInvested: "USD Invested", btcSupply: "BTC Supply", pctTotal: "Percent of Total",
@@ -354,7 +329,7 @@ var T = {
     totalCoindays: "Total Coindays ", totalValuedays: "Total Valuedays ",
     cdProfit: "Coindays in Profit: ", cdLoss: "Coindays in Loss: ",
     vdProfit: "Valuedays in Profit: ", vdLoss: "Valuedays in Loss: ",
-    langBtn: "\u4e2d\u6587", bottomSigHover: "BOTTOM SIGNAL (",
+    langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Make sure BRK is running on localhost:3110",
     sth: "Short-Term Holders", lth: "Long-Term Holders", profitLoss: "Profit/Loss", spot: "Spot"
   },
@@ -362,8 +337,7 @@ var T = {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
-    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f", binsLabel: "\u533a\u95f4",
-    bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
+    binsLabel: "\u533a\u95f4",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u7f8e\u5143\u6295\u8d44", btcSupply: "BTC \u4f9b\u5e94", pctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4",
@@ -378,8 +352,7 @@ var T = {
     totalCoindays: "\u603b\u5e01\u5929 ", totalValuedays: "\u603b\u4ef7\u503c\u5929 ",
     cdProfit: "\u5e01\u5929\u76c8\u5229: ", cdLoss: "\u5e01\u5929\u4e8f\u635f: ",
     vdProfit: "\u4ef7\u503c\u5929\u76c8\u5229: ", vdLoss: "\u4ef7\u503c\u5929\u4e8f\u635f: ",
-
-    langBtn: "\u65e5\u672c\u8a9e", bottomSigHover: "\u5e95\u90e8\u4fe1\u53f7 (",
+    langBtn: "\u65e5\u672c\u8a9e",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
     sth: "\u77ed\u671f\u6301\u6709\u8005", lth: "\u957f\u671f\u6301\u6709\u8005", profitLoss: "\u76c8/\u4e8f", spot: "\u73b0\u4ef7"
   },
@@ -387,8 +360,7 @@ var T = {
     loading: "\u8aad\u307f\u8fbc\u307f\u4e2d...", loadingDates: "\u65e5\u4ed8\u3092\u8aad\u307f\u8fbc\u307f\u4e2d...",
     statusLoaded: " \u65e5\u5206\u8aad\u307f\u8fbc\u307f\u6e08\u307f\u3002\u5de6/\u53f3/A/D \u30ca\u30d3\u30b2\u30fc\u30b7\u30e7\u30f3 | 1-4 \u9593\u9694 (1\u65e5/1\u9031/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u8868\u793a\u5207\u66ff | Home/End \u6700\u521d/\u6700\u5f8c",
     landmarks: "\u30e9\u30f3\u30c9\u30de\u30fc\u30af", cycleLandmarks: "\u30b5\u30a4\u30af\u30eb\u30e9\u30f3\u30c9\u30de\u30fc\u30af", top: "\u5929\u4e95", bottom: "\u5e95", pl: "\u640d\u76ca", lthsth: "\u9577/\u77ed\u671f",
-    signalLabel: "\u5e95\u30b7\u30b0\u30ca\u30eb\u95be\u5024", signalUnit: "% \u7c73\u30c9\u30eb\u6295\u8cc7\u304c\u640d\u5931", binsLabel: "\u30d3\u30f3",
-    bottomSignal: "\u5e95\u30b7\u30b0\u30ca\u30eb \u2014 ", bottomSignalSuffix: "% \u306e\u7c73\u30c9\u30eb\u6295\u8cc7\u304c\u640d\u5931",
+    binsLabel: "\u30d3\u30f3",
     titleUSD: "URPD (\u7c73\u30c9\u30eb\u52a0\u91cd) ", titleUSDCohort: "URPD (\u7c73\u30c9\u30eb\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
     titleBTC: "URPD (BTC\u52a0\u91cd) ", titleBTCCohort: "URPD (BTC\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
     priceUSD: "\u4fa1\u683c [\u7c73\u30c9\u30eb]", usdInvested: "\u7c73\u30c9\u30eb\u6295\u8cc7\u984d", btcSupply: "BTC \u4f9b\u7d66\u91cf", pctTotal: "\u5168\u4f53\u306b\u5bfe\u3059\u308b\u5272\u5408",
@@ -403,7 +375,7 @@ var T = {
     totalCoindays: "\u7dcf\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba ", totalValuedays: "\u7dcf\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba ",
     cdProfit: "CD \u542b\u307f\u76ca: ", cdLoss: "CD \u640d\u5931: ",
     vdProfit: "VD \u542b\u307f\u76ca: ", vdLoss: "VD \u640d\u5931: ",
-    langBtn: "EN", bottomSigHover: "\u5e95\u30b7\u30b0\u30ca\u30eb (",
+    langBtn: "EN",
     notFound: "\u6b63\u78ba\u306a\u65e5\u4ed8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3002\u6700\u5bc4\u308a: ", errBRK: "BRK \u304c localhost:3110 \u3067\u5b9f\u884c\u4e2d\u304b\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044",
     sth: "\u77ed\u671f\u4fdd\u6709\u8005", lth: "\u9577\u671f\u4fdd\u6709\u8005", profitLoss: "\u640d\u76ca", spot: "\u73fe\u5728\u4fa1\u683c"
   }
@@ -440,9 +412,6 @@ function applyLang() {
   document.getElementById("loading").textContent = t("loading");
   var binLabels = document.querySelectorAll("#binWrap label");
   if (binLabels[0]) binLabels[0].textContent = t("binsLabel");
-  var labels = document.querySelectorAll("#thresholdWrap label");
-  if (labels[0]) labels[0].textContent = t("signalLabel");
-  if (labels[1]) labels[1].textContent = t("signalUnit");
   loadAndRender();
 }
 
@@ -527,20 +496,6 @@ function fmtBTC(v) {
   return v.toFixed(2) + " BTC";
 }
 
-function computeRedPct(buckets, spot) {
-  if (!spot || spot <= 0) return 0;
-  var greenInv = 0, redInv = 0;
-  for (var k = 0; k < buckets.length; k++) {
-    var b = buckets[k];
-    var p = b.price_floor;
-    if (isNaN(p) || p === undefined) continue;
-    var inv = b.realized_cap;
-    if (p <= spot) greenInv += inv;
-    else redInv += inv;
-  }
-  var total = greenInv + redInv;
-  return total > 0 ? 100 * redInv / total : 0;
-}
 
 function setViewMode(idx) {
   viewIdx = idx;
@@ -626,7 +581,7 @@ function loadAndRender() {
     var data = { dateStr: dateStr, spot: spot, binWidth: binWidth, maxPrice: maxPrice, buckets: buckets, weightMode: weightMode };
     data.realizedCap = buckets.reduce(function(s,b){return s+b.realized_cap;}, 0);
     data.totalSupply = resp.total_supply || buckets.reduce(function(s,b){return s+b.supply;}, 0);
-    data.redPct = computeRedPct(buckets, spot);
+
 
     // Build chain of additional fetches
     var fetches = [];
@@ -711,28 +666,19 @@ function fmtVD(v) {
 function renderChart(data) {
   var dateStr = data.dateStr, spot = data.spot, aggAll = data.aggAll, binWidth = data.binWidth;
   var aggLTH = data.aggLTH, aggSTH = data.aggSTH, realizedCap = data.realizedCap, totalSupply = data.totalSupply;
-  var lthRC = data.lthRC, sthRC = data.sthRC, maxPrice = data.maxPrice, redPct = data.redPct;
+  var lthRC = data.lthRC, sthRC = data.sthRC, maxPrice = data.maxPrice;
   var wm = data.weightMode || weightMode;
   var isSplit = splitMode && aggLTH && aggSTH;
   var isCoin = (wm === "btc");
   var isCD = (wm === "cd");
   var isVD = (wm === "vd");
-  var isBottom = redPct >= bottomThreshold;
 
   var statusEl = document.getElementById("status");
-  if (isBottom) {
-    statusEl.textContent = t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix");
-    statusEl.style.color = "#FFE600";
-    statusEl.style.background = "#1a1800";
-    statusEl.style.borderBottom = "2px solid #FFE600";
-    statusEl.style.animation = "glowPulse 2s ease-in-out infinite";
-  } else {
-    statusEl.textContent = allDates.length + t("statusLoaded");
-    statusEl.style.color = "#666";
-    statusEl.style.background = "#111";
-    statusEl.style.borderBottom = "1px solid #222";
-    statusEl.style.animation = "none";
-  }
+  statusEl.textContent = allDates.length + t("statusLoaded");
+  statusEl.style.color = "#666";
+  statusEl.style.background = "#111";
+  statusEl.style.borderBottom = "1px solid #222";
+  statusEl.style.animation = "none";
 
   var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A");
   document.getElementById("dateDisplay").textContent = dispText;
@@ -780,7 +726,7 @@ function renderChart(data) {
     var total1 = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
     var run1 = 0;
     var cumul1 = valuesForAxis.map(function(v){run1+=v;return 100*run1/total1;});
-    traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+    traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
     if (isCD || isVD) {
@@ -793,7 +739,7 @@ function renderChart(data) {
       var hoverUnit = isCD ? "CD" : "VD";
       var hoverFmt = isVD ? "%{y:$,.0f}" : "%{y:,.0f}";
       traces.push({x:chartPrices,y:cdVals,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colorsCV,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = cdVals;
     } else if (isCoin) {
       var supplyVals = smooth(aggAll.map(function(b){return b.supply;}));
@@ -802,7 +748,7 @@ function renderChart(data) {
       var cumul2 = supplyVals.map(function(v){run2+=v;return 100*run2/total2;});
       var colors2 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
       traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colors2,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
       var invested = smooth(aggAll.map(function(b){return b.invested;}));
@@ -811,7 +757,7 @@ function renderChart(data) {
       var cumul3 = invested.map(function(v){run3+=v;return 100*run3/total3;});
       var colors3 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
       traces.push({x:chartPrices,y:invested,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colors3,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
   }
@@ -933,7 +879,6 @@ function renderChart(data) {
     annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at 99th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
   }
 
-  var spotLineColor = isBottom ? GLOW_COLOR : SPOT_COLOR;
   if (spot && spot > 0) {
     var spotCumul = 0;
     var totalSC = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
@@ -943,12 +888,7 @@ function renderChart(data) {
       if (chartPrices[i] <= spot) spotCumul = 100 * runSC / totalSC;
       else break;
     }
-    if (isBottom) {
-      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.06)",width:20},layer:"above"});
-      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.12)",width:12},layer:"above"});
-      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.25)",width:6},layer:"above"});
-    }
-    shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:2},layer:"above"});
+    shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:SPOT_COLOR,width:2},layer:"above"});
     var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1);
     var plPrefix, plSuffix;
     if (isCD) { plPrefix = t("cdProfit"); plSuffix = t("cdLoss"); }
@@ -956,8 +896,7 @@ function renderChart(data) {
     else if (isCoin) { plPrefix = t("btcProfit"); plSuffix = t("btcLoss"); }
     else { plPrefix = t("usdProfit"); plSuffix = t("usdLoss"); }
     var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br>" + plPrefix + profitPct + "%<br>" + plSuffix + lossPct + "%";
-    if (isBottom) labelText += "<br><b>" + t("bottomSigHover") + redPct.toFixed(0) + "% Red)</b>";
-    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",align:"left",font:{color:spotLineColor,size:12,family:FONT},bgcolor:"rgba(17,17,17,0.8)",borderpad:4});
+    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",align:"left",font:{color:SPOT_COLOR,size:12,family:FONT},bgcolor:"rgba(17,17,17,0.8)",borderpad:4});
   }
 
   var yAxisTitle, yAxisPrefix;
@@ -1109,16 +1048,6 @@ document.querySelectorAll("#intervalBar .iv").forEach(function(btn) {
   btn.addEventListener("click", function() {
     setInterval1(parseInt(this.getAttribute("data-idx")));
   });
-});
-
-document.getElementById("thresholdInput").addEventListener("input", function(e){
-  var v = parseFloat(e.target.value);
-  if (!isNaN(v) && v >= 0 && v <= 100) {
-    bottomThreshold = v;
-    var dateStr = allDates[currentIdx];
-    var cacheKey = dateStr + "_" + weightMode + (splitMode ? "_split" : "_pl");
-    if (cache[cacheKey]) renderChart(cache[cacheKey]);
-  }
 });
 
 document.getElementById("binInput").addEventListener("change", function(e){
@@ -1351,8 +1280,6 @@ function updateExplainerLang() {
     descs[7].textContent = "\u904e\u53bb155\u65e5\u4ee5\u5185\u306b\u79fb\u52d5\u3057\u305fUTXO\u3002\u6700\u8fd1\u306e\u8cfc\u5165\u8005\u3001\u30c8\u30ec\u30fc\u30c0\u30fc\u3001\u6295\u6a5f\u5bb6\u3092\u8868\u3057\u307e\u3059\u3002";
     h3s[8].textContent = "\u4f9b\u7d66\u306e\u542b\u307f\u76ca / \u640d\u5931";
     descs[8].textContent = "\u73fe\u5728\u4fa1\u683c\u30e9\u30a4\u30f3\u306b\u304a\u3044\u3066\u3001\u53d6\u5f97\u539f\u4fa1\u304c\u73fe\u5728\u4fa1\u683c\u4ee5\u4e0b\u306e\u6295\u8cc7\u8cc7\u7523(\u7c73\u30c9\u30eb)\u307e\u305f\u306f\u4f9b\u7d66\u91cf(BTC)\u306e\u5272\u5408\u304c\u300c\u542b\u307f\u76ca\u300d\u3001\u4ee5\u4e0a\u304c\u300c\u640d\u5931\u300d\u3002";
-    h3s[9].textContent = "\u5e95\u30b7\u30b0\u30ca\u30eb";
-    descs[9].textContent = "\u7c73\u30c9\u30eb\u6295\u8cc7\u8cc7\u7523\u306e\u640d\u5931\u5272\u5408\u304c\u30e6\u30fc\u30b6\u30fc\u5b9a\u7fa9\u306e\u95be\u5024(\u30c7\u30d5\u30a9\u30eb\u30c8 80%)\u3092\u8d85\u3048\u305f\u3068\u304d\u306b\u767a\u52d5\u3002\u6b74\u53f2\u7684\u306b\u3001\u6975\u7aef\u306a\u640d\u5931\u6c34\u6e96\u306f\u30b5\u30a4\u30af\u30eb\u5e95\u3068\u4e00\u81f4\u3057\u307e\u3059\u3002";
     if(document.getElementById("f1")) document.getElementById("f1").textContent = "\u6295\u8cc7\u8cc7\u7523(P) = \u4fa1\u683c P \u00b7 \u4f9b\u7d66\u91cf S(P)";
     if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 UTXO\u984d\u3001UTXO\u4fa1\u683c \u2208 [P, P + \u0394P)";
     if(document.getElementById("f8")) document.getElementById("f8").textContent = "CD(P) = \u03a3 (\u5e74\u9f62\u5e2f\u4f9b\u7d66 \u00d7 \u4e2d\u9593\u65e5\u6570) \u4fa1\u683c\u5e2f P";
@@ -1382,8 +1309,6 @@ function updateExplainerLang() {
     descs[7].textContent = "\u5728\u8fc7\u53bb155\u5929\u5185\u79fb\u52a8\u7684UTXO\u3002\u4ee3\u8868\u8fd1\u671f\u4e70\u5bb6\u3001\u4ea4\u6613\u8005\u548c\u6295\u673a\u8005\u3002";
     h3s[8].textContent = "\u4f9b\u5e94\u76c8\u5229 / \u4e8f\u635f";
     descs[8].textContent = "\u5728\u73b0\u4ef7\u7ebf\u5904\uff0c\u6210\u672c\u57fa\u7840\u4f4e\u4e8e\u73b0\u4ef7\u7684\u6295\u8d44\u8d22\u5bcc(\u7f8e\u5143)\u6216\u4f9b\u5e94(BTC)\u767e\u5206\u6bd4\u4e3a\u201c\u76c8\u5229\u201d\uff1b\u9ad8\u4e8e\u73b0\u4ef7\u7684\u4e3a\u201c\u4e8f\u635f\u201d\u3002";
-    h3s[9].textContent = "\u5e95\u90e8\u4fe1\u53f7";
-    descs[9].textContent = "\u5f53\u7f8e\u5143\u6295\u8d44\u8d22\u5bcc\u4e8f\u635f\u767e\u5206\u6bd4\u8d85\u8fc7\u7528\u6237\u5b9a\u4e49\u7684\u9608\u503c(\u9ed8\u8ba480%)\u65f6\u89e6\u53d1\u3002\u5386\u53f2\u4e0a\uff0c\u6781\u7aef\u4e8f\u635f\u6c34\u5e73\u4e0e\u5468\u671f\u5e95\u90e8\u5438\u5408\u3002";
     if(document.getElementById("f1")) document.getElementById("f1").textContent = "\u6295\u8d44\u8d22\u5bcc(P) = \u4ef7\u683c P \u00b7 \u4f9b\u5e94\u91cf S(P)";
     if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 UTXO\u91d1\u989d\uff0c\u5176\u4e2d UTXO\u4ef7\u683c \u2208 [P, P + \u0394P)";
     if(document.getElementById("f8")) document.getElementById("f8").textContent = "CD(P) = \u03a3 (\u5e74\u9f84\u5e26\u4f9b\u5e94 \u00d7 \u4e2d\u70b9\u5929\u6570) \u6bcf\u4ef7\u683c\u5e26 P";
@@ -1413,8 +1338,6 @@ function updateExplainerLang() {
     descs[7].textContent = "UTXOs that have moved within the last 155 days. Represents recent buyers, traders, and speculators.";
     h3s[8].textContent = "Supply in Profit / Loss";
     descs[8].textContent = "At the spot price line, the percentage of invested wealth (USD) or supply (BTC) with a cost basis below spot is \"in profit\"; above spot is \"in loss\".";
-    h3s[9].textContent = "Bottom Signal";
-    descs[9].textContent = "Triggers when the percentage of USD invested wealth in loss exceeds a user-defined threshold (default 80%). Historically, extreme loss levels have coincided with cycle bottoms.";
     if(document.getElementById("f1")) document.getElementById("f1").textContent = "Invested Wealth(P) = P \u00b7 S(P)";
     if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 utxo.value  where utxo.price \u2208 [P, P + \u0394P)";
     if(document.getElementById("f8")) document.getElementById("f8").textContent = "CD(P) = \u03a3 (supply_in_age_band \u00d7 midpoint_days)  per price bin P";
