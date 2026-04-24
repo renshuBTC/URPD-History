@@ -32,6 +32,11 @@
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 0 8px; height: 22px; line-height: 22px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
   #intervalBar .iv.active { background: #ff8c00; color: #000; font-weight: bold; }
+  #windowBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 28px; align-items: center; }
+  #windowBar .wv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 0 8px; height: 22px; line-height: 22px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
+  #windowBar .wv:hover { color: #ffffff; background: #3a3a3a; }
+  #windowBar .wv.active { background: #ff8c00; color: #000; font-weight: bold; }
+  .wv-label { color: #888; font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 0 4px 0 2px; line-height: 22px; user-select: none; }
   #landmarks { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 0 22px 0 8px; height: 28px; line-height: 26px; font-family: inherit; font-size: 12px; border-radius: 2px; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23999'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
   #landmarks:hover { border-color: #888; color: #ffffff; }
   #landmarks:focus { border-color: #ff8c00; outline: none; }
@@ -70,6 +75,8 @@
     #controls input, #controls select { height: 32px; line-height: 30px; }
     #intervalBar { height: 32px; }
     #intervalBar .iv { height: 26px; line-height: 24px; padding: 0 8px; }
+    #windowBar { height: 32px; }
+    #windowBar .wv { height: 26px; line-height: 24px; padding: 0 8px; }
     .mode-toggle { height: 32px; }
     #controls .mode-toggle button { height: 26px; line-height: 24px; }
     #explainWrap { height: 32px; display: flex; align-items: center; }
@@ -78,6 +85,7 @@
     #controls .mode-toggle button:active { background: #cc7000; color: #000; }
     /* Interval bar: tap flash uses orange */
     #controls #intervalBar .iv:active { background: #cc7000; color: #000; }
+    #controls #windowBar .wv:active { background: #cc7000; color: #000; }
     .ctrl-sep { display: none; }
     #dateDisplay { min-width: unset; font-size: 11px; width: 100%; order: -1; padding: 2px 0; }
     #dateInput { width: 100px; font-size: 11px; }
@@ -149,6 +157,9 @@
   body.landscape-phone #intervalBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
   body.landscape-phone #controls #intervalBar .iv { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
   body.landscape-phone #controls #intervalBar .iv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; border-radius: 2px !important; }
+  body.landscape-phone #windowBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
+  body.landscape-phone #controls #windowBar .wv { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
+  body.landscape-phone #controls #windowBar .wv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; border-radius: 2px !important; }
   /* Mode toggles: 24px container */
   body.landscape-phone .mode-toggle { gap: 1px; display: flex; align-items: center; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 24px; }
   body.landscape-phone #controls .mode-toggle button { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; color: #d4d4d4 !important; }
@@ -176,6 +187,13 @@
     <button class="iv" data-idx="1">1W</button>
     <button class="iv" data-idx="2">1M</button>
     <button class="iv" data-idx="3">1Y</button>
+  </div>
+  <div id="windowBar">
+    <span class="wv-label">RW</span>
+    <button class="wv active" data-w="1">1D</button>
+    <button class="wv" data-w="7">7D</button>
+    <button class="wv" data-w="30">30D</button>
+    <button class="wv" data-w="90">90D</button>
   </div>
   <div class="ctrl-sep"></div>
   <button id="btnFirst">&lt;&lt;</button>
@@ -251,10 +269,15 @@
 <h3>Supply in Profit / Loss</h3>
 <div class="desc">Percentage of invested wealth (USD) or supply (BTC) with cost basis below/above spot price.</div>
 <div class="formula" id="f6">Profit % = Σ W(P) for P ≤ Spot  /  Σ W(P) × 100</div>
+
+<h3>Rolling Window (Delta Mode)</h3>
+<div class="desc">When set to 1D (default), shows the standard URPD snapshot. When set to 7D/30D/90D, switches to delta mode: shows the net redistribution of supply over that period. Green bars = supply accumulated at that price bin. Red bars = supply left that bin. Computed as URPD(day) − URPD(day−N) per bin. Useful for tracking where capital is flowing in/out over institutional reporting periods.</div>
+<div class="formula" id="f11">ΔURPD(day, P) = URPD(day, P) − URPD(day−N, P)
+Positive = accumulation  |  Negative = distribution</div>
 </div></div>
   <button id="langBtn">中文</button>
 </div>
-<div id="status">Left/Right navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down toggle view | Home/End first/last</div>
+<div id="status">Left/Right navigate | 1-4 interval | Z/X/C/V rolling window | Up/Down toggle view | Home/End first/last</div>
 <div id="chart"></div>
 <div id="loading">Loading...</div>
 <script>
@@ -312,7 +335,7 @@ var AGE_BANDS = [
 var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
-    statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
+    statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval | Z/X/C/V rolling window | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
     binsLabel: "Bins",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
@@ -420,6 +443,9 @@ var stepSize = 1;
 var STEPS = [1, 7, 30, 365];
 var STEP_LABELS = ["1D", "1W", "1M", "1Y"];
 
+// Rolling window: 1D = normal snapshot, >1D = delta view showing net redistribution
+var rollingWindow = 1; // days
+
 var WEIGHT_MODES = ["usd","btc","cd","vd"];
 var VIEW_MODES = [];
 // Build: 8 combinations (4 weights × 2 cohorts)
@@ -468,6 +494,29 @@ function aggregate(buckets, binWidth) {
   for (var bp in bins) arr.push(bins[bp]);
   arr.sort(function(a, b) { return a.price - b.price; });
   return arr;
+}
+
+// Compute per-bin delta: URPD(curr) - URPD(prev)
+// Positive = supply accumulated at this price, Negative = supply left this price
+function deltaAgg(aggPrev, aggCurr) {
+  var prevMap = {}, currMap = {};
+  aggPrev.forEach(function(b){ prevMap[b.price] = b; });
+  aggCurr.forEach(function(b){ currMap[b.price] = b; });
+  var allPrices = new Set();
+  aggPrev.forEach(function(b){ allPrices.add(b.price); });
+  aggCurr.forEach(function(b){ allPrices.add(b.price); });
+  var result = [];
+  allPrices.forEach(function(p) {
+    var prev = prevMap[p] || {supply:0, invested:0};
+    var curr = currMap[p] || {supply:0, invested:0};
+    var dSup = curr.supply - prev.supply;
+    var dInv = curr.invested - prev.invested;
+    if (Math.abs(dSup) > 1e-10 || Math.abs(dInv) > 1e-10) {
+      result.push({price: p, supply: dSup, invested: dInv});
+    }
+  });
+  result.sort(function(a,b){ return a.price - b.price; });
+  return result;
 }
 
 function smooth(values) {
@@ -530,6 +579,28 @@ function setInterval1(idx) {
   btns[idx].classList.add("active");
 }
 
+function setWindow(days) {
+  rollingWindow = days;
+  var btns = document.querySelectorAll("#windowBar .wv");
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove("active");
+  btns.forEach(function(b){ if (parseInt(b.getAttribute("data-w")) === days) b.classList.add("active"); });
+  cache = {};
+  loadAndRender();
+}
+
+function findLookbackIdx(currentIdx, daysBack) {
+  var currentDate = new Date(allDates[currentIdx]);
+  var targetDate = new Date(currentDate);
+  targetDate.setDate(targetDate.getDate() - daysBack);
+  var targetStr = targetDate.toISOString().slice(0,10);
+  var bestIdx = 0;
+  for (var i = 0; i < allDates.length; i++) {
+    if (allDates[i] <= targetStr) bestIdx = i;
+    else break;
+  }
+  return bestIdx;
+}
+
 // Aggregate age-cohort buckets into CD or VD bins
 function aggregateAgeBands(ageCohortData, binWidth, mode) {
   // ageCohortData: array of {mid, buckets} from each age cohort
@@ -563,58 +634,169 @@ function loadAndRender() {
   var dateStr = allDates[currentIdx];
   document.getElementById("loading").style.display = "block";
   var isCD = (weightMode === "cd" || weightMode === "vd");
-  var cacheKey = dateStr + "_" + weightMode + (splitMode ? "_split" : "_pl");
+  var isDelta = rollingWindow > 1;
+  var cacheKey = dateStr + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
   if (cache[cacheKey]) {
     renderChart(cache[cacheKey]);
     document.getElementById("loading").style.display = "none";
     return;
   }
-  fetchJSON(BASE + "/api/urpd/all/" + dateStr).then(function(resp) {
+
+  // Build initial fetch list
+  var initFetches = [fetchJSON(BASE + "/api/urpd/all/" + dateStr)];
+
+  // For delta mode (rolling window > 1D), also fetch the lookback snapshot
+  var lookbackIdx = isDelta ? findLookbackIdx(currentIdx, rollingWindow) : -1;
+  var prevDateStr = isDelta ? allDates[lookbackIdx] : null;
+  if (isDelta) {
+    if (lookbackIdx < 0 || lookbackIdx >= currentIdx) {
+      document.getElementById("status").textContent = "Not enough history for " + rollingWindow + "D window";
+      document.getElementById("loading").style.display = "none";
+      return;
+    }
+    initFetches.push(fetchJSON(BASE + "/api/urpd/all/" + prevDateStr));
+  }
+
+  Promise.all(initFetches).then(function(initResults) {
+    var resp = initResults[0];
+    var respPrev = isDelta ? initResults[1] : null;
     var buckets = resp.buckets;
     var spot = resp.close || getSpotFromCache(dateStr);
     if (resp.close) spotCache[dateStr] = resp.close;
     var maxPrice = buckets.reduce(function(a,b){return b.price_floor>a?b.price_floor:a;},0);
     var binWidth = maxPrice / NUM_BINS;
-    var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A");
+    var windowLabel = isDelta ? "  [" + rollingWindow + "D window from " + prevDateStr + "]" : "";
+    var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A") + windowLabel;
     document.getElementById("dateDisplay").textContent = dispText;
 
-    var data = { dateStr: dateStr, spot: spot, binWidth: binWidth, maxPrice: maxPrice, buckets: buckets, weightMode: weightMode };
+    var data = { dateStr: dateStr, spot: spot, binWidth: binWidth, maxPrice: maxPrice, buckets: buckets, weightMode: weightMode, deltaMode: isDelta, rollingWindow: rollingWindow };
     data.realizedCap = buckets.reduce(function(s,b){return s+b.realized_cap;}, 0);
     data.totalSupply = resp.total_supply || buckets.reduce(function(s,b){return s+b.supply;}, 0);
-
 
     // Build chain of additional fetches
     var fetches = [];
 
-    if (isCD) {
-      // Fetch all 21 age cohort URPDs
-      var ageFetches = AGE_BANDS.map(function(band) {
-        return fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + dateStr).then(function(r) {
-          return { mid: band.mid, buckets: r.buckets };
-        }).catch(function() { return null; });
-      });
-      fetches.push(Promise.all(ageFetches).then(function(results) {
-        var valid = results.filter(function(r) { return r !== null; });
-        data.aggAll = aggregateAgeBands(valid, binWidth, weightMode);
-        data.totalCD = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
-        // Split age bands into LTH (≥155 days) and STH (<155 days) for cohort view
-        if (splitMode) {
-          var sthBands = valid.filter(function(r){ return r.mid < 155; });
-          var lthBands = valid.filter(function(r){ return r.mid >= 155; });
-          data.aggSTH = aggregateAgeBands(sthBands, binWidth, weightMode);
-          data.aggLTH = aggregateAgeBands(lthBands, binWidth, weightMode);
-          data.sthCD = data.aggSTH.reduce(function(s,b){return s+b.invested;}, 0);
-          data.lthCD = data.aggLTH.reduce(function(s,b){return s+b.invested;}, 0);
-        }
-      }));
-    } else {
-      data.aggAll = aggregate(buckets, binWidth);
-    }
-
-    if (splitMode) {
+    if (isDelta) {
+      // Delta mode: compute per-bin change between lookback and current
+      var aggCurr = aggregate(buckets, binWidth);
+      var aggPrev = aggregate(respPrev.buckets, binWidth);
+      data.aggAll = deltaAgg(aggPrev, aggCurr);
+      // For CD/VD delta, fetch age cohorts for both days
       if (isCD) {
-        // LTH/STH split already computed from age bands above
+        var ageFetches = [];
+        AGE_BANDS.forEach(function(band) {
+          ageFetches.push(fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + dateStr).catch(function(){ return null; }));
+          ageFetches.push(fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + prevDateStr).catch(function(){ return null; }));
+        });
+        fetches.push(Promise.all(ageFetches).then(function(ageResults) {
+          var ageDiffData = [];
+          for (var ai = 0; ai < AGE_BANDS.length; ai++) {
+            var currResp = ageResults[ai * 2];
+            var prevResp2 = ageResults[ai * 2 + 1];
+            if (!currResp || !prevResp2) continue;
+            var aggC = aggregate(currResp.buckets, binWidth);
+            var aggP = aggregate(prevResp2.buckets, binWidth);
+            var diffed = deltaAgg(aggP, aggC);
+            ageDiffData.push({ mid: AGE_BANDS[ai].mid, buckets: diffed });
+          }
+          // For delta CD/VD, weight each age band's delta by midpoint
+          var bins = {};
+          for (var a = 0; a < ageDiffData.length; a++) {
+            var mid = ageDiffData[a].mid;
+            var dbuckets = ageDiffData[a].buckets;
+            for (var k = 0; k < dbuckets.length; k++) {
+              var db = dbuckets[k];
+              var p = db.price;
+              if (!bins[p]) bins[p] = {price: p, supply: 0, invested: 0};
+              if (weightMode === "cd") {
+                bins[p].invested += db.supply * mid;
+              } else {
+                bins[p].invested += db.invested * mid;
+              }
+              bins[p].supply += db.supply;
+            }
+          }
+          var arr = [];
+          for (var bp in bins) arr.push(bins[bp]);
+          arr.sort(function(a,b){ return a.price - b.price; });
+          data.aggAll = arr;
+          data.totalCD = arr.reduce(function(s,b){return s+b.invested;}, 0);
+          if (splitMode) {
+            var sthBands = ageDiffData.filter(function(r){ return r.mid < 155; });
+            var lthBands = ageDiffData.filter(function(r){ return r.mid >= 155; });
+            // Aggregate STH bands
+            var sthBins = {};
+            sthBands.forEach(function(bd) {
+              bd.buckets.forEach(function(db) {
+                if (!sthBins[db.price]) sthBins[db.price] = {price:db.price, supply:0, invested:0};
+                sthBins[db.price].invested += (weightMode==="cd" ? db.supply*bd.mid : db.invested*bd.mid);
+                sthBins[db.price].supply += db.supply;
+              });
+            });
+            data.aggSTH = Object.values(sthBins).sort(function(a,b){return a.price-b.price;});
+            // Aggregate LTH bands
+            var lthBins = {};
+            lthBands.forEach(function(bd) {
+              bd.buckets.forEach(function(db) {
+                if (!lthBins[db.price]) lthBins[db.price] = {price:db.price, supply:0, invested:0};
+                lthBins[db.price].invested += (weightMode==="cd" ? db.supply*bd.mid : db.invested*bd.mid);
+                lthBins[db.price].supply += db.supply;
+              });
+            });
+            data.aggLTH = Object.values(lthBins).sort(function(a,b){return a.price-b.price;});
+            data.sthCD = data.aggSTH.reduce(function(s,b){return s+b.invested;},0);
+            data.lthCD = data.aggLTH.reduce(function(s,b){return s+b.invested;},0);
+          }
+        }));
+      }
+      if (splitMode && !isCD) {
+        fetches.push(Promise.all([
+          fetchJSON(BASE + "/api/urpd/lth/" + dateStr),
+          fetchJSON(BASE + "/api/urpd/lth/" + prevDateStr),
+          fetchJSON(BASE + "/api/urpd/sth/" + dateStr),
+          fetchJSON(BASE + "/api/urpd/sth/" + prevDateStr)
+        ]).then(function(res) {
+          var lthCurr = aggregate(res[0].buckets, binWidth);
+          var lthPrev = aggregate(res[1].buckets, binWidth);
+          var sthCurr = aggregate(res[2].buckets, binWidth);
+          var sthPrev = aggregate(res[3].buckets, binWidth);
+          data.aggLTH = deltaAgg(lthPrev, lthCurr);
+          data.aggSTH = deltaAgg(sthPrev, sthCurr);
+          data.lthRC = data.aggLTH.reduce(function(s,b){return s+b.invested;},0);
+          data.sthRC = data.aggSTH.reduce(function(s,b){return s+b.invested;},0);
+          data.lthSup = data.aggLTH.reduce(function(s,b){return s+b.supply;},0);
+          data.sthSup = data.aggSTH.reduce(function(s,b){return s+b.supply;},0);
+        }).catch(function(e) {
+          console.warn("Delta cohort fetch failed", e);
+          data.aggLTH = null; data.aggSTH = null;
+        }));
+      }
+    } else {
+      // Normal snapshot mode (1D window)
+      if (isCD) {
+        var ageFetches2 = AGE_BANDS.map(function(band) {
+          return fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + dateStr).then(function(r) {
+            return { mid: band.mid, buckets: r.buckets };
+          }).catch(function() { return null; });
+        });
+        fetches.push(Promise.all(ageFetches2).then(function(results) {
+          var valid = results.filter(function(r) { return r !== null; });
+          data.aggAll = aggregateAgeBands(valid, binWidth, weightMode);
+          data.totalCD = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
+          if (splitMode) {
+            var sthBands = valid.filter(function(r){ return r.mid < 155; });
+            var lthBands = valid.filter(function(r){ return r.mid >= 155; });
+            data.aggSTH = aggregateAgeBands(sthBands, binWidth, weightMode);
+            data.aggLTH = aggregateAgeBands(lthBands, binWidth, weightMode);
+            data.sthCD = data.aggSTH.reduce(function(s,b){return s+b.invested;}, 0);
+            data.lthCD = data.aggLTH.reduce(function(s,b){return s+b.invested;}, 0);
+          }
+        }));
       } else {
+        data.aggAll = aggregate(buckets, binWidth);
+      }
+
+      if (splitMode && !isCD) {
         fetches.push(Promise.all([
           fetchJSON(BASE + "/api/urpd/lth/" + dateStr),
           fetchJSON(BASE + "/api/urpd/sth/" + dateStr)
@@ -672,6 +854,7 @@ function renderChart(data) {
   var isCoin = (wm === "btc");
   var isCD = (wm === "cd");
   var isVD = (wm === "vd");
+  var isDelta = data.deltaMode || false;
 
   var statusEl = document.getElementById("status");
   statusEl.textContent = allDates.length + t("statusLoaded");
@@ -680,7 +863,9 @@ function renderChart(data) {
   statusEl.style.borderBottom = "1px solid #222";
   statusEl.style.animation = "none";
 
-  var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A");
+  var rw = data.rollingWindow || rollingWindow;
+  var windowLabel2 = rw > 1 ? "  [" + rw + "D]" : "";
+  var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A") + windowLabel2;
   document.getElementById("dateDisplay").textContent = dispText;
 
   var traces = [];
@@ -730,42 +915,50 @@ function renderChart(data) {
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
     if (isCD || isVD) {
-      // CD: coindays per bin, VD: valuedays per bin — both stored in .invested by aggregateAgeBands
       var cdVals = smooth(aggAll.map(function(b){return b.invested;}));
-      var totalCV = cdVals.reduce(function(s,v){return s+v;},0) || 1;
+      var totalCV = cdVals.reduce(function(s,v){return s+Math.abs(v);},0) || 1;
       var runCV = 0;
-      var cumulCV = cdVals.map(function(v){runCV+=v;return 100*runCV/totalCV;});
-      var colorsCV = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
+      var cumulCV = cdVals.map(function(v){runCV+=Math.abs(v);return 100*runCV/totalCV;});
+      var colorsCV = isDelta
+        ? cdVals.map(function(v){return v >= 0 ? PROFIT_COLOR : LOSS_COLOR;})
+        : (spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";}));
       var hoverUnit = isCD ? "CD" : "VD";
       var hoverFmt = isVD ? "%{y:$,.0f}" : "%{y:,.0f}";
-      traces.push({x:chartPrices,y:cdVals,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colorsCV,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      var deltaLabel = isDelta ? "Δ " : "";
+      traces.push({x:chartPrices,y:cdVals,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colorsCV,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + deltaLabel + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = cdVals;
     } else if (isCoin) {
       var supplyVals = smooth(aggAll.map(function(b){return b.supply;}));
-      var total2 = supplyVals.reduce(function(s,v){return s+v;},0) || 1;
+      var total2 = supplyVals.reduce(function(s,v){return s+Math.abs(v);},0) || 1;
       var run2 = 0;
-      var cumul2 = supplyVals.map(function(v){run2+=v;return 100*run2/total2;});
-      var colors2 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
-      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colors2,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      var cumul2 = supplyVals.map(function(v){run2+=Math.abs(v);return 100*run2/total2;});
+      var colors2 = isDelta
+        ? supplyVals.map(function(v){return v >= 0 ? PROFIT_COLOR : LOSS_COLOR;})
+        : (spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";}));
+      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colors2,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+(isDelta?"Δ ":"")+"BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
       var invested = smooth(aggAll.map(function(b){return b.invested;}));
-      var total3 = invested.reduce(function(s,v){return s+v;},0) || 1;
+      var total3 = invested.reduce(function(s,v){return s+Math.abs(v);},0) || 1;
       var run3 = 0;
-      var cumul3 = invested.map(function(v){run3+=v;return 100*run3/total3;});
-      var colors3 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
-      traces.push({x:chartPrices,y:invested,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colors3,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      var cumul3 = invested.map(function(v){run3+=Math.abs(v);return 100*run3/total3;});
+      var colors3 = isDelta
+        ? invested.map(function(v){return v >= 0 ? PROFIT_COLOR : LOSS_COLOR;})
+        : (spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";}));
+      traces.push({x:chartPrices,y:invested,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colors3,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+(isDelta?"Δ ":"")+"USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
   }
 
-  var maxVal = valuesForAxis.reduce(function(a,b){return a>b?a:b},0);
+  var maxVal = valuesForAxis.reduce(function(a,b){return Math.abs(a)>Math.abs(b)?a:b},0);
+  maxVal = Math.abs(maxVal);
+  var minVal = isDelta ? valuesForAxis.reduce(function(a,b){return a<b?a:b},0) : 0;
   var yClipped = false;
   if (isCoin || isCD || isVD) {
-    var sorted = valuesForAxis.filter(function(v){return v>0;}).slice().sort(function(a,b){return a-b;});
+    var sorted = valuesForAxis.map(function(v){return Math.abs(v);}).filter(function(v){return v>0;}).slice().sort(function(a,b){return a-b;});
     if (sorted.length > 0) {
       var p95 = sorted[Math.floor(sorted.length * 0.99)];
       if (p95 < maxVal * 0.7) {
@@ -780,9 +973,22 @@ function renderChart(data) {
   var isPort = isMob && !isLand;
 
   var rawStep = maxVal * 1.15 / 6;
-  var magn = Math.pow(10, Math.floor(Math.log10(rawStep)));
-  var yStep = Math.round(rawStep / magn) * magn;
-  var yTickvals = Array.from({length:7}, function(_,i){return i*yStep;});
+  var magn = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
+  var yStep = Math.round(rawStep / magn) * magn || 1;
+  var yTickvals, yRange;
+  if (isDelta && minVal < 0) {
+    // Symmetric y-axis for delta mode
+    var absMax = Math.max(maxVal, Math.abs(minVal)) * 1.15;
+    var dRawStep = absMax / 4;
+    var dMagn = Math.pow(10, Math.floor(Math.log10(dRawStep || 1)));
+    var dStep = Math.round(dRawStep / dMagn) * dMagn || 1;
+    yTickvals = [];
+    for (var yi = -4; yi <= 4; yi++) yTickvals.push(yi * dStep);
+    yRange = [-4 * dStep, 4 * dStep];
+  } else {
+    yTickvals = Array.from({length:7}, function(_,i){return i*yStep;});
+    yRange = [0, yTickvals[yTickvals.length-1]];
+  }
   var maxP = maxPrice || chartPrices.reduce(function(a,b){return a>b?a:b},0);
   var xStep = maxP / 25;
   var xTickvals = [];
@@ -848,16 +1054,28 @@ function renderChart(data) {
     }
   }
   if (spot && spot > 0 && !isSplit) {
-    var totalPL = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
-    var profitVal = 0;
-    chartPrices.forEach(function(p,i){if(p<=spot) profitVal += valuesForAxis[i];});
-    var profitPct = 100 * profitVal / totalPL;
-    annText += "<br><span style='color:" + PROFIT_COLOR + "'><b>" + t("inProfit") + profitPct.toFixed(1) + "%</b></span>";
-    annText += "<br><span style='color:" + LOSS_COLOR + "'><b>" + t("inLoss") + (100-profitPct).toFixed(1) + "%</b></span>";
+    if (isDelta) {
+      // In delta mode, show net accumulated vs distributed
+      var netAccum = 0, netDistrib = 0;
+      valuesForAxis.forEach(function(v){
+        if (v > 0) netAccum += v; else netDistrib += Math.abs(v);
+      });
+      var totalAD = (netAccum + netDistrib) || 1;
+      annText += "<br><span style='color:" + PROFIT_COLOR + "'><b>Accumulated: " + (100*netAccum/totalAD).toFixed(1) + "%</b></span>";
+      annText += "<br><span style='color:" + LOSS_COLOR + "'><b>Distributed: " + (100*netDistrib/totalAD).toFixed(1) + "%</b></span>";
+    } else {
+      var totalPL = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
+      var profitVal = 0;
+      chartPrices.forEach(function(p,i){if(p<=spot) profitVal += valuesForAxis[i];});
+      var profitPct = 100 * profitVal / totalPL;
+      annText += "<br><span style='color:" + PROFIT_COLOR + "'><b>" + t("inProfit") + profitPct.toFixed(1) + "%</b></span>";
+      annText += "<br><span style='color:" + LOSS_COLOR + "'><b>" + t("inLoss") + (100-profitPct).toFixed(1) + "%</b></span>";
+    }
   }
 
   var d = new Date(dateStr + "T00:00:00");
   var titleDate = d.toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"});
+  if (isDelta) titleDate += " (" + (data.rollingWindow || rollingWindow) + "D Δ)";
   var titleText;
   if (isCD) {
     titleText = isSplit ? "<b>" + t("titleCDCohort") + titleDate + "</b>" : "<b>" + t("titleCD") + titleDate + "</b>";
@@ -925,7 +1143,7 @@ function renderChart(data) {
     barmode:isSplit?"stack":"overlay",bargap:0,
     legend:isMob?{visible:false}:{orientation:"h",yanchor:"bottom",y:1.02,xanchor:"center",x:0.5,font:{family:FONT,size:12}},
     xaxis:{title:isMob?{text:""}:{text:t("priceUSD"),font:{family:FONT,size:13}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:isMob?(isLand?8:6):11},tickangle:isMob?0:undefined},
-    yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:13}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:isMob?7:11}},
+    yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:13}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:yRange,showgrid:isDelta,gridcolor:isDelta?"rgba(255,255,255,0.08)":"rgba(0,0,0,0)",tickfont:{family:FONT,size:isMob?7:11}},
     yaxis2:{title:isMob?{text:""}:{text:t("pctTotal"),font:{family:FONT,size:13}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:isMob?7:11}},
     annotations:annotations,shapes:shapes,
     margin:margins,hovermode:"closest"
@@ -1050,6 +1268,12 @@ document.querySelectorAll("#intervalBar .iv").forEach(function(btn) {
   });
 });
 
+document.querySelectorAll("#windowBar .wv").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    setWindow(parseInt(this.getAttribute("data-w")));
+  });
+});
+
 document.getElementById("binInput").addEventListener("change", function(e){
   var v = parseInt(e.target.value);
   if (isNaN(v) || v < 10) v = 10;
@@ -1077,6 +1301,10 @@ document.addEventListener("keydown", function(e){
   else if (e.key === "2") { e.preventDefault(); setInterval1(1); }
   else if (e.key === "3") { e.preventDefault(); setInterval1(2); }
   else if (e.key === "4") { e.preventDefault(); setInterval1(3); }
+  else if (e.key === "z" || e.key === "Z") { e.preventDefault(); setWindow(1); }
+  else if (e.key === "x" || e.key === "X") { e.preventDefault(); setWindow(7); }
+  else if (e.key === "c" || e.key === "C") { e.preventDefault(); setWindow(30); }
+  else if (e.key === "v" || e.key === "V") { e.preventDefault(); setWindow(90); }
 });
 
 function jumpToDate() {
