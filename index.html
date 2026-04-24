@@ -658,28 +658,37 @@ function aggregateAgeBands(ageCohortData, binWidth, mode) {
   return arr;
 }
 
+var navDirection = 0; // -1 = going backward, +1 = going forward, 0 = unknown
+var PREFETCH_AHEAD = 20; // how many dates to prefetch in direction of travel
+
 function prefetchAdjacent() {
-  var nextIdx = Math.min(currentIdx + stepSize, allDates.length - 1);
-  var prevIdx = Math.max(currentIdx - stepSize, 0);
   var isCD = (weightMode === "cd" || weightMode === "vd");
-  [nextIdx, prevIdx].forEach(function(idx) {
-    if (idx === currentIdx) return;
+  // Prefetch deep in direction of travel, shallow in opposite
+  var forwardCount = navDirection >= 0 ? PREFETCH_AHEAD : 2;
+  var backwardCount = navDirection <= 0 ? PREFETCH_AHEAD : 2;
+
+  function prefetchDate(idx) {
+    if (idx < 0 || idx >= allDates.length || idx === currentIdx) return;
     var ds = allDates[idx];
-    var ck = ds + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
-    if (cache[ck]) return;
-    // Prefetch base data
+    // Always prefetch base data (cheap check via fetchMemo)
     fetchJSON(BASE + "/api/urpd/all/" + ds).catch(function(){});
-    // Prefetch cohort data if in split or CD/VD mode
-    if (splitMode && !isCD) {
-      fetchJSON(BASE + "/api/urpd/lth/" + ds).catch(function(){});
-      fetchJSON(BASE + "/api/urpd/sth/" + ds).catch(function(){});
+    // Only prefetch cohort data for the nearest few dates (expensive)
+    var dist = Math.abs(idx - currentIdx);
+    if (dist <= 3) {
+      if (splitMode && !isCD) {
+        fetchJSON(BASE + "/api/urpd/lth/" + ds).catch(function(){});
+        fetchJSON(BASE + "/api/urpd/sth/" + ds).catch(function(){});
+      }
+      if (isCD) {
+        AGE_BANDS.forEach(function(band) {
+          fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + ds).catch(function(){});
+        });
+      }
     }
-    if (isCD) {
-      AGE_BANDS.forEach(function(band) {
-        fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + ds).catch(function(){});
-      });
-    }
-  });
+  }
+
+  for (var i = 1; i <= forwardCount; i++) prefetchDate(currentIdx + i * stepSize);
+  for (var j = 1; j <= backwardCount; j++) prefetchDate(currentIdx - j * stepSize);
 }
 
 var loadingTimer = null; // delayed spinner
@@ -1327,7 +1336,11 @@ function renderChart(data) {
 
 function goTo(idx) {
   idx = Math.max(0, Math.min(allDates.length - 1, idx));
-  if (idx !== currentIdx) { currentIdx = idx; loadAndRender(); }
+  if (idx !== currentIdx) {
+    navDirection = idx < currentIdx ? -1 : 1;
+    currentIdx = idx;
+    loadAndRender();
+  }
 }
 
 document.getElementById("btnPrev").onclick = function(){goTo(currentIdx - stepSize);};
@@ -1410,10 +1423,21 @@ document.getElementById("chart").addEventListener("wheel", function(e){
   wheelTimer = setTimeout(function(){ wheelTimer = null; }, 120);
 }, {passive: false});
 
+var keyTimer = null;
 document.addEventListener("keydown", function(e){
   if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
-  if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); goTo(currentIdx - stepSize); }
-  else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); goTo(currentIdx + stepSize); }
+  if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+    e.preventDefault();
+    if (keyTimer) return;
+    goTo(currentIdx - stepSize);
+    keyTimer = setTimeout(function(){ keyTimer = null; }, 120);
+  }
+  else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+    e.preventDefault();
+    if (keyTimer) return;
+    goTo(currentIdx + stepSize);
+    keyTimer = setTimeout(function(){ keyTimer = null; }, 120);
+  }
   else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") { e.preventDefault(); setViewMode((viewIdx - 1 + VIEW_MODES.length) % VIEW_MODES.length); }
   else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); setViewMode((viewIdx + 1) % VIEW_MODES.length); }
   else if (e.key === "Home") { e.preventDefault(); goTo(0); }
@@ -1568,22 +1592,26 @@ async function init() {
       console.warn("Realized price series not available, will use per-date accumulation:", e.message);
     }
     loadAndRender();
-    // Aggressive initial prefetch: warm the cache for first-time viewers
-    // Stagger fetches so the first render isn't starved of bandwidth
+    // Aggressive initial prefetch: bias heavily toward previous dates
+    // First-time viewers typically navigate backward (left arrow)
     setTimeout(function() {
-      var PREFETCH_DEPTH = 10;
-      for (var d = 1; d <= PREFETCH_DEPTH; d++) {
+      var BACK_DEPTH = 30; // prefetch 30 dates backward
+      var FWD_DEPTH = 5;   // only 5 forward
+      for (var d = 1; d <= Math.max(BACK_DEPTH, FWD_DEPTH); d++) {
         (function(offset) {
-          // Small stagger: 50ms between each wave
           setTimeout(function() {
-            var prevI = currentIdx - offset * stepSize;
-            var nextI = currentIdx + offset * stepSize;
-            if (prevI >= 0) fetchJSON(BASE + "/api/urpd/all/" + allDates[prevI]).catch(function(){});
-            if (nextI < allDates.length) fetchJSON(BASE + "/api/urpd/all/" + allDates[nextI]).catch(function(){});
-          }, offset * 50);
+            if (offset <= BACK_DEPTH) {
+              var prevI = currentIdx - offset * stepSize;
+              if (prevI >= 0) fetchJSON(BASE + "/api/urpd/all/" + allDates[prevI]).catch(function(){});
+            }
+            if (offset <= FWD_DEPTH) {
+              var nextI = currentIdx + offset * stepSize;
+              if (nextI < allDates.length) fetchJSON(BASE + "/api/urpd/all/" + allDates[nextI]).catch(function(){});
+            }
+          }, offset * 40);
         })(d);
       }
-    }, 300); // wait 300ms after first render before starting prefetch burst
+    }, 200); // start 200ms after first render
   } catch (e) {
     document.getElementById("dateDisplay").textContent = "Error: " + e.message;
     document.getElementById("status").textContent = t("errBRK");
