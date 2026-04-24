@@ -232,7 +232,11 @@
     <input type="text" id="binInput" value="625" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:0 5px;height:28px;line-height:26px;width:42px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label style="color:#555;font-size:10px;">/625</label>
   </div>
-  <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
+  <div id="navToggle" class="mode-toggle" style="margin-left:auto;">
+    <button id="btnStock" class="active">Stock</button>
+    <button id="btnFlow">Flow</button>
+  </div>
+  <div id="explainWrap"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
 
 <h3>UTXO Realized Price Distribution (URPD)</h3>
@@ -275,10 +279,6 @@
 <div class="formula" id="f11">ΔURPD(day, P) = URPD(day, P) − URPD(day−N, P)
 Positive = accumulation  |  Negative = distribution</div>
 </div></div>
-  <div class="mode-toggle" id="navToggle">
-    <button id="btnStock" class="active">Stock</button>
-    <button id="btnFlow">Flow</button>
-  </div>
   <button id="langBtn">中文</button>
 </div>
 <div id="status">Left/Right navigate | 1-4 interval | Z/X/C/V rolling window | Up/Down toggle view | Home/End first/last</div>
