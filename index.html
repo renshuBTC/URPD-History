@@ -303,7 +303,9 @@ var FONT = "'Source Code Pro', Consolas, monospace";
 var allDates = [];
 var currentIdx = 0;
 var priceArray = null;
+var priceDateStrs = null; // precomputed date strings for priceArray
 var rcArray = null;
+var rcDateStrs = null; // precomputed date strings for rcArray
 var rcHistory = {};
 var showPriceOverlay = true;
 var showRCOverlay = true;
@@ -464,11 +466,15 @@ WEIGHT_MODES.forEach(function(w){
 });
 var viewIdx = 0;
 
+var fetchMemo = {}; // URL → Promise cache — same URL never fetched twice
 function fetchJSON(url) {
-  return fetch(url).then(function(r) {
-    if (!r.ok) throw new Error("HTTP " + r.status);
+  if (fetchMemo[url]) return fetchMemo[url];
+  var p = fetch(url).then(function(r) {
+    if (!r.ok) { delete fetchMemo[url]; throw new Error("HTTP " + r.status); }
     return r.json();
-  });
+  }).catch(function(e) { delete fetchMemo[url]; throw e; });
+  fetchMemo[url] = p;
+  return p;
 }
 
 function dayIndex(dateStr) {
@@ -642,13 +648,24 @@ function aggregateAgeBands(ageCohortData, binWidth, mode) {
 function prefetchAdjacent() {
   var nextIdx = Math.min(currentIdx + stepSize, allDates.length - 1);
   var prevIdx = Math.max(currentIdx - stepSize, 0);
+  var isCD = (weightMode === "cd" || weightMode === "vd");
   [nextIdx, prevIdx].forEach(function(idx) {
     if (idx === currentIdx) return;
     var ds = allDates[idx];
     var ck = ds + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
     if (cache[ck]) return;
-    // Silently prefetch the base data for adjacent dates
+    // Prefetch base data
     fetchJSON(BASE + "/api/urpd/all/" + ds).catch(function(){});
+    // Prefetch cohort data if in split or CD/VD mode
+    if (splitMode && !isCD) {
+      fetchJSON(BASE + "/api/urpd/lth/" + ds).catch(function(){});
+      fetchJSON(BASE + "/api/urpd/sth/" + ds).catch(function(){});
+    }
+    if (isCD) {
+      AGE_BANDS.forEach(function(band) {
+        fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + ds).catch(function(){});
+      });
+    }
   });
 }
 
@@ -1192,8 +1209,7 @@ function renderChart(data) {
     var cStr=cutoff.toISOString().split("T")[0];
     for(var pi=0;pi<priceArray.length;pi++){
       if(typeof priceArray[pi]==="number"&&priceArray[pi]>0){
-        var pd=new Date(2009,0,3+pi);
-        var pds=pd.toISOString().split("T")[0];
+        var pds=priceDateStrs[pi];
         if(pds<cStr)continue;
         pD.push(pds);pP.push(priceArray[pi]);
       }
@@ -1233,15 +1249,14 @@ function renderChart(data) {
   }
   // Realized Cap time series overlay (1yr trailing)
   var rcDates=[], rcVals=[];
-  if (rcArray && rcArray.length > 0) {
-    // Use bulk series data (indexed from 2009-01-03 like priceArray)
+  if (rcArray && rcArray.length > 0 && rcDateStrs) {
+    // Use bulk series data with precomputed date strings
     var rcCutoff=new Date(dateStr+"T00:00:00");
     rcCutoff.setFullYear(rcCutoff.getFullYear()-1);
     var rcCStr=rcCutoff.toISOString().split("T")[0];
     for(var ri=0;ri<rcArray.length;ri++){
       if(typeof rcArray[ri]==="number"&&rcArray[ri]>0){
-        var rd=new Date(2009,0,3+ri);
-        var rds=rd.toISOString().split("T")[0];
+        var rds=rcDateStrs[ri];
         if(rds<rcCStr||rds>dateStr)continue;
         rcDates.push(rds);rcVals.push(rcArray[ri]);
       }
@@ -1273,12 +1288,14 @@ function renderChart(data) {
     var clickedName = evtData.data[evtData.curveNumber].name;
     if (clickedName === "BTC/USD") {
       showPriceOverlay = !showPriceOverlay;
-      loadAndRender();
+      var ck = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
+      if (cache[ck]) renderChart(cache[ck]); else loadAndRender();
       return false;
     }
     if (clickedName === "Realized Price") {
       showRCOverlay = !showRCOverlay;
-      loadAndRender();
+      var ck2 = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
+      if (cache[ck2]) renderChart(cache[ck2]); else loadAndRender();
       return false;
     }
   });
@@ -1500,6 +1517,12 @@ async function init() {
     try {
       var priceResp = await fetchJSON(BASE + "/api/series/price_close/day1");
       priceArray = priceResp.data || priceResp;
+      // Precompute date strings so renderChart doesn't create Date objects every frame
+      priceDateStrs = new Array(priceArray.length);
+      for (var pi = 0; pi < priceArray.length; pi++) {
+        var pd = new Date(2009, 0, 3 + pi);
+        priceDateStrs[pi] = pd.toISOString().split("T")[0];
+      }
       console.log("Price array loaded:", priceArray.length, "entries");
     } catch (e) {
       console.warn("Price array preload failed:", e);
@@ -1507,6 +1530,11 @@ async function init() {
     try {
       var rcResp = await fetchJSON(BASE + "/api/series/realized_price/day1");
       rcArray = rcResp.data || rcResp;
+      rcDateStrs = new Array(rcArray.length);
+      for (var ri = 0; ri < rcArray.length; ri++) {
+        var rd = new Date(2009, 0, 3 + ri);
+        rcDateStrs[ri] = rd.toISOString().split("T")[0];
+      }
       console.log("Realized price array loaded:", rcArray.length, "entries");
     } catch (e) {
       console.warn("Realized price series not available, will use per-date accumulation:", e.message);
