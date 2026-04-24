@@ -357,7 +357,13 @@ var T = {
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Make sure BRK is running on localhost:3110",
     sth: "Short-Term Holders", lth: "Long-Term Holders", profitLoss: "Profit/Loss", spot: "Spot",
-    minedLabel: "Newly Mined Coins", minedAnn: "Mined ", minedCheckLabel: "Newly Mined Coins"
+    minedLabel: "Newly Mined Coins", minedAnn: "Mined ", minedCheckLabel: "Newly Mined Coins",
+    tipPL: "Profit / Loss", tipLTHSTH: "Long-Term Holders / Short-Term Holders",
+    tipUSD: "United States Dollar", tipBTC: "Bitcoin", tipVD: "Valuedays", tipCD: "Coindays",
+    tipRW: "Rolling Window", tipSOPD: "Spent Output Price Distribution",
+    btcusd: "BTC/USD", spentPrice: "Spent Price",
+    tracerBTC: "p = BTC Price", tracerSP: "Spent Price = Σp·SOPD(p) / ΣSOPD(p)",
+    yAxisCapped: "* Y-axis capped at 99th pct", stock: "Stock", flow: "Flow"
   },
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
@@ -383,7 +389,13 @@ var T = {
     langBtn: "\u65e5\u672c\u8a9e",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
     sth: "\u77ed\u671f\u6301\u6709\u8005", lth: "\u957f\u671f\u6301\u6709\u8005", profitLoss: "\u76c8/\u4e8f", spot: "\u73b0\u4ef7",
-    minedLabel: "\u65b0\u6316\u5e01", minedAnn: "\u65b0\u6316 ", minedCheckLabel: "\u65b0\u6316\u5e01"
+    minedLabel: "\u65b0\u6316\u5e01", minedAnn: "\u65b0\u6316 ", minedCheckLabel: "\u65b0\u6316\u5e01",
+    tipPL: "\u76c8\u5229 / \u4e8f\u635f", tipLTHSTH: "\u957f\u671f\u6301\u6709\u8005 / \u77ed\u671f\u6301\u6709\u8005",
+    tipUSD: "\u7f8e\u5143", tipBTC: "\u6bd4\u7279\u5e01", tipVD: "\u4ef7\u503c\u5929", tipCD: "\u5e01\u5929",
+    tipRW: "\u6ed1\u52a8\u7a97\u53e3", tipSOPD: "\u82b1\u8d39\u8f93\u51fa\u4ef7\u683c\u5206\u5e03",
+    btcusd: "BTC/USD", spentPrice: "\u82b1\u8d39\u4ef7\u683c",
+    tracerBTC: "p = BTC \u4ef7\u683c", tracerSP: "\u82b1\u8d39\u4ef7\u683c = \u03a3p\u00b7SOPD(p) / \u03a3SOPD(p)",
+    yAxisCapped: "* Y\u8f74\u622a\u53d6\u81f3\u7b2c99\u767e\u5206\u4f4d", stock: "\u5b58\u91cf", flow: "\u6d41\u91cf"
   },
   ja: {
     loading: "\u8aad\u307f\u8fbc\u307f\u4e2d...", loadingDates: "\u65e5\u4ed8\u3092\u8aad\u307f\u8fbc\u307f\u4e2d...",
@@ -409,7 +421,13 @@ var T = {
     langBtn: "FR",
     notFound: "\u6b63\u78ba\u306a\u65e5\u4ed8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3002\u6700\u5bc4\u308a: ", errBRK: "BRK \u304c localhost:3110 \u3067\u5b9f\u884c\u4e2d\u304b\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044",
     sth: "\u77ed\u671f\u4fdd\u6709\u8005", lth: "\u9577\u671f\u4fdd\u6709\u8005", profitLoss: "\u640d\u76ca", spot: "\u73fe\u5728\u4fa1\u683c",
-    minedLabel: "\u65b0\u898f\u63a1\u6398\u30b3\u30a4\u30f3", minedAnn: "\u63a1\u6398 ", minedCheckLabel: "\u65b0\u898f\u63a1\u6398\u30b3\u30a4\u30f3"
+    minedLabel: "\u65b0\u898f\u63a1\u6398\u30b3\u30a4\u30f3", minedAnn: "\u63a1\u6398 ", minedCheckLabel: "\u65b0\u898f\u63a1\u6398\u30b3\u30a4\u30f3",
+    tipPL: "\u640d\u76ca", tipLTHSTH: "\u9577\u671f\u4fdd\u6709\u8005 / \u77ed\u671f\u4fdd\u6709\u8005",
+    tipUSD: "\u7c73\u30c9\u30eb", tipBTC: "\u30d3\u30c3\u30c8\u30b3\u30a4\u30f3", tipVD: "\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba", tipCD: "\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba",
+    tipRW: "\u30ed\u30fc\u30ea\u30f3\u30b0\u30a6\u30a3\u30f3\u30c9\u30a6", tipSOPD: "\u6d88\u8cbb\u51fa\u529b\u4fa1\u683c\u5206\u5e03",
+    btcusd: "BTC/USD", spentPrice: "\u6d88\u8cbb\u4fa1\u683c",
+    tracerBTC: "p = BTC \u4fa1\u683c", tracerSP: "\u6d88\u8cbb\u4fa1\u683c = \u03a3p\u00b7SOPD(p) / \u03a3SOPD(p)",
+    yAxisCapped: "* Y\u8ef8\u306f99\u30d1\u30fc\u30bb\u30f3\u30bf\u30a4\u30eb\u3067\u5236\u9650", stock: "\u30b9\u30c8\u30c3\u30af", flow: "\u30d5\u30ed\u30fc"
   },
   fr: {
     loading: "Chargement...", loadingDates: "Chargement des dates...",
@@ -435,7 +453,13 @@ var T = {
     langBtn: "\u0641\u0627\u0631\u0633\u06cc",
     notFound: "Date exacte introuvable, affichage du plus proche : ", errBRK: "Assurez-vous que BRK tourne sur localhost:3110",
     sth: "Détenteurs à Court Terme", lth: "Détenteurs à Long Terme", profitLoss: "Profit/Perte", spot: "Spot",
-    minedLabel: "Pièces Récemment Minées", minedAnn: "Miné ", minedCheckLabel: "Pièces Récemment Minées"
+    minedLabel: "Pièces Récemment Minées", minedAnn: "Miné ", minedCheckLabel: "Pièces Récemment Minées",
+    tipPL: "Profit / Perte", tipLTHSTH: "Détenteurs à Long Terme / Court Terme",
+    tipUSD: "Dollar Américain", tipBTC: "Bitcoin", tipVD: "Valuedays", tipCD: "Coindays",
+    tipRW: "Fenêtre Glissante", tipSOPD: "Distribution des Prix Dépensés des Sorties",
+    btcusd: "BTC/USD", spentPrice: "Prix Dépensé",
+    tracerBTC: "p = Prix BTC", tracerSP: "Prix Dépensé = Σp·SOPD(p) / ΣSOPD(p)",
+    yAxisCapped: "* Axe Y plafonné au 99e centile", stock: "Stock", flow: "Flux"
   },
   fa: {
     loading: "در حال بارگذاری...", loadingDates: "در حال بارگذاری تاریخ‌ها...",
@@ -461,7 +485,13 @@ var T = {
     langBtn: "EN",
     notFound: "تاریخ دقیق یافت نشد، نزدیک‌ترین نمایش داده می‌شود: ", errBRK: "مطمئن شوید BRK روی localhost:3110 اجرا می‌شود",
     sth: "نگه‌دارندگان کوتاه‌مدت", lth: "نگه‌دارندگان بلندمدت", profitLoss: "سود/زیان", spot: "قیمت فعلی",
-    minedLabel: "سکه‌های تازه‌استخراج‌شده", minedAnn: "استخراج‌شده ", minedCheckLabel: "سکه‌های تازه‌استخراج‌شده"
+    minedLabel: "سکه‌های تازه‌استخراج‌شده", minedAnn: "استخراج‌شده ", minedCheckLabel: "سکه‌های تازه‌استخراج‌شده",
+    tipPL: "سود / زیان", tipLTHSTH: "نگه‌دارندگان بلندمدت / کوتاه‌مدت",
+    tipUSD: "دلار آمریکا", tipBTC: "بیت‌کوین", tipVD: "Valuedays", tipCD: "Coindays",
+    tipRW: "پنجره متحرک", tipSOPD: "توزیع قیمت خروجی‌های خرج‌شده",
+    btcusd: "BTC/USD", spentPrice: "قیمت خرج‌شده",
+    tracerBTC: "p = قیمت BTC", tracerSP: "قیمت خرج‌شده = Σp·SOPD(p) / ΣSOPD(p)",
+    yAxisCapped: "* محور Y در صدک 99ام محدود شده", stock: "موجودی", flow: "جریان"
   }
 };
 
@@ -487,7 +517,7 @@ function applyLang() {
       var yr = d.getFullYear();
       var price = opts[oi].textContent.match(/\(.*\)/);
       price = price ? " " + price[0] : "";
-      var isTop = opts[oi].textContent.indexOf("Top") >= 0 || opts[oi].textContent.indexOf("\u9876\u90e8") >= 0 || opts[oi].textContent.indexOf("\u5929\u4e95") >= 0 || opts[oi].textContent.indexOf("Sommet") >= 0;
+      var isTop = opts[oi].textContent.indexOf("Top") >= 0 || opts[oi].textContent.indexOf("\u9876\u90e8") >= 0 || opts[oi].textContent.indexOf("\u5929\u4e95") >= 0 || opts[oi].textContent.indexOf("Sommet") >= 0 || opts[oi].textContent.indexOf("\u0633\u0642\u0641") >= 0;
       opts[oi].textContent = (isTop ? tp : bt) + ": " + mon + " " + yr + price;
     }
   }
@@ -497,6 +527,17 @@ function applyLang() {
   var binLabels = document.querySelectorAll("#binWrap label");
   if (binLabels[0]) binLabels[0].textContent = t("binsLabel");
   document.getElementById("minedLabel").textContent = t("minedCheckLabel");
+  document.getElementById("btnPL").title = t("tipPL");
+  document.getElementById("btnSplit").title = t("tipLTHSTH");
+  document.getElementById("btnUSD").title = t("tipUSD");
+  document.getElementById("btnBTC").title = t("tipBTC");
+  document.getElementById("btnVD").title = t("tipVD");
+  document.getElementById("btnCD").title = t("tipCD");
+  document.querySelector(".wv-label").title = t("tipRW");
+  var sopdSpan = document.querySelector("#explainTitle span");
+  if (sopdSpan) sopdSpan.title = t("tipSOPD");
+  document.getElementById("btnStock").textContent = t("stock");
+  document.getElementById("btnFlow").textContent = t("flow");
   loadAndRender();
 }
 
@@ -943,7 +984,7 @@ function renderChart(data) {
       var sthCDV = smooth(chartPrices.map(function(p){return sthMap[p] ? sthMap[p].invested : 0;}));
       var sthColors=chartPrices.map(function(p){return spot&&p>spot?STH_COLOR+"66":STH_COLOR;});
       var lthColors=chartPrices.map(function(p){return spot&&p>spot?LTH_COLOR+"66":LTH_COLOR;});
-      var splitUnit = isCD ? "Coindays" : "Valuedays";
+      var splitUnit = isCD ? t("tipCD") : t("tipVD");
       var splitFmt = isVD ? "%{y:$,.0f}" : "%{y:,.0f}";
       traces.push({x:chartPrices,y:sthCDV,type:"bar",name:t("sth"),width:barWidths,marker:{color:sthColors,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>STH " + splitUnit + ": " + splitFmt + "<extra></extra>"});
       traces.push({x:chartPrices,y:lthCDV,type:"bar",name:t("lth"),width:barWidths,marker:{color:lthColors,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>LTH " + splitUnit + ": " + splitFmt + "<extra></extra>"});
@@ -1151,7 +1192,7 @@ function renderChart(data) {
     {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : lang==="fr" ? "Propuls\u00e9 par Bitcoin Research Kit & Bitcoin Core. Inspir\u00e9 par @_Checkonchain" : lang==="fa" ? "\u0642\u062f\u0631\u062a\u200c\u06af\u0631\u0641\u062a\u0647 \u0627\u0632 Bitcoin Research Kit \u0648 Bitcoin Core. \u0627\u0644\u0647\u0627\u0645 \u06af\u0631\u0641\u062a\u0647 \u0627\u0632 @_Checkonchain" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
   if (yClipped) {
-    annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at 99th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
+    annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:t("yAxisCapped"),showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
   }
 
   if (spot && spot > 0) {
@@ -1221,7 +1262,7 @@ function renderChart(data) {
         pD.push(priceDateStrs[pi]);pP.push(priceArray[pi]);
       }
     }
-    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(155,155,155,0.45)":"rgba(0,0,0,0)",width:showPriceOverlay?1.5:0},hoverinfo:"skip",showlegend:true,name:"BTC/USD",visible:true});
+    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(155,155,155,0.45)":"rgba(0,0,0,0)",width:showPriceOverlay?1.5:0},hoverinfo:"skip",showlegend:true,name:t("btcusd"),visible:true});
     if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},text:["p = BTC Price"],textposition:"bottom center",textfont:{color:"rgba(155,155,155,0.45)",size:11,family:FONT},hoverinfo:"skip",showlegend:false});}
     if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(155,155,155,0.3)",width:1,dash:"dot"}});}
     // Cycle landmark markers on price chart
@@ -1269,8 +1310,8 @@ function renderChart(data) {
     if(srcDates.length>0){
       if(!layout.xaxis2){layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};}
       var spNow = (realizedCap && totalSupply > 0) ? realizedCap / totalSupply : 0;
-      traces.push({x:srcDates,y:srcVals,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showSRCOverlay?SCALAR_COLOR:"rgba(0,0,0,0)",width:showSRCOverlay?2:0},hoverinfo:"skip",showlegend:true,name:"Spent Price",visible:true});
-      if(showSRCOverlay&&spNow>0){traces.push({x:[dateStr],y:[spNow],type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:SCALAR_COLOR,size:9,line:{color:"rgba(38,198,218,0.5)",width:1.5}},text:["Spent Price = Σp·SOPD(p) / ΣSOPD(p)"],textposition:"bottom center",textfont:{color:SCALAR_COLOR,size:11,family:FONT},hoverinfo:"skip",showlegend:false});}
+      traces.push({x:srcDates,y:srcVals,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showSRCOverlay?SCALAR_COLOR:"rgba(0,0,0,0)",width:showSRCOverlay?2:0},hoverinfo:"skip",showlegend:true,name:t("spentPrice"),visible:true});
+      if(showSRCOverlay&&spNow>0){traces.push({x:[dateStr],y:[spNow],type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:SCALAR_COLOR,size:9,line:{color:"rgba(38,198,218,0.5)",width:1.5}},text:[t("tracerSP")],textposition:"bottom center",textfont:{color:SCALAR_COLOR,size:11,family:FONT},hoverinfo:"skip",showlegend:false});}
       if(showSRCOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(38,198,218,0.3)",width:1,dash:"dot"}});}
     }
   }
@@ -1280,13 +1321,13 @@ function renderChart(data) {
   $chart.removeAllListeners("plotly_legendclick");
   $chart.on("plotly_legendclick", function(evtData) {
     var clickedName = evtData.data[evtData.curveNumber].name;
-    if (clickedName === "BTC/USD") {
+    if (clickedName === t("btcusd")) {
       showPriceOverlay = !showPriceOverlay;
       var ck = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + (includeMined ? "_mined" : "") + "_w" + rollingWindow;
       if (cache[ck]) renderChart(cache[ck]); else loadAndRender();
       return false;
     }
-    if (clickedName === "Spent Price") {
+    if (clickedName === t("spentPrice")) {
       showSRCOverlay = !showSRCOverlay;
       var ck2 = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + (includeMined ? "_mined" : "") + "_w" + rollingWindow;
       if (cache[ck2]) renderChart(cache[ck2]); else loadAndRender();
