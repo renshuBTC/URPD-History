@@ -290,7 +290,8 @@ var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
 var LTH_COLOR = "#5599ff";
 var STH_COLOR = "#e6a817";
-var CUMUL_COLOR = "rgba(38,198,218,0.45)";
+var CUMUL_COLOR = "rgba(171,71,188,0.45)";
+var SCALAR_COLOR = "rgba(38,198,218,0.55)";
 var SPOT_COLOR = "#ff8c00";
 
 var FONT = "'Source Code Pro', Consolas, monospace";
@@ -298,7 +299,10 @@ var FONT = "'Source Code Pro', Consolas, monospace";
 var allDates = [];
 var currentIdx = 0;
 var priceArray = null;
+var rcArray = null;
+var rcHistory = {};
 var showPriceOverlay = true;
+var showRCOverlay = true;
 var splitMode = false;
 var coinMode = false;
 var weightMode = "usd"; // "usd", "btc", "cd", "vd"
@@ -672,6 +676,7 @@ function loadAndRender() {
     var data = { dateStr: dateStr, spot: spot, binWidth: binWidth, maxPrice: maxPrice, buckets: buckets, weightMode: weightMode, deltaMode: isDelta, rollingWindow: rollingWindow };
     data.realizedCap = buckets.reduce(function(s,b){return s+b.realized_cap;}, 0);
     data.totalSupply = resp.total_supply || buckets.reduce(function(s,b){return s+b.supply;}, 0);
+    if (data.totalSupply > 0) rcHistory[dateStr] = data.realizedCap / data.totalSupply;
 
     // Build chain of additional fetches
     var fetches = [];
@@ -1171,9 +1176,9 @@ function renderChart(data) {
         pD.push(pds);pP.push(priceArray[pi]);
       }
     }
-    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(255,255,255,0.6)":"rgba(0,0,0,0)",width:showPriceOverlay?2:0},hoverinfo:"skip",showlegend:true,name:"BTC/USD",visible:true});
+    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(155,155,155,0.45)":"rgba(0,0,0,0)",width:showPriceOverlay?1.5:0},hoverinfo:"skip",showlegend:true,name:"BTC/USD",visible:true});
     if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
-    if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(255,255,255,0.4)",width:1,dash:"dot"}});}
+    if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(155,155,155,0.3)",width:1,dash:"dot"}});}
     // Cycle landmark markers on price chart
     var cyc2=lang==="zh"?"周期":lang==="ja"?"サイクル":"Cycle";
     var tp2=lang==="zh"?"顶部":lang==="ja"?"天井":"Top";
@@ -1204,13 +1209,53 @@ function renderChart(data) {
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
   }
+  // Realized Cap time series overlay (1yr trailing)
+  var rcDates=[], rcVals=[];
+  if (rcArray && rcArray.length > 0) {
+    // Use bulk series data (indexed from 2009-01-03 like priceArray)
+    var rcCutoff=new Date(dateStr+"T00:00:00");
+    rcCutoff.setFullYear(rcCutoff.getFullYear()-1);
+    var rcCStr=rcCutoff.toISOString().split("T")[0];
+    for(var ri=0;ri<rcArray.length;ri++){
+      if(typeof rcArray[ri]==="number"&&rcArray[ri]>0){
+        var rd=new Date(2009,0,3+ri);
+        var rds=rd.toISOString().split("T")[0];
+        if(rds<rcCStr||rds>dateStr)continue;
+        rcDates.push(rds);rcVals.push(rcArray[ri]);
+      }
+    }
+  } else if (Object.keys(rcHistory).length > 0) {
+    // Fallback: use accumulated per-date history
+    var rcCutoff2=new Date(dateStr+"T00:00:00");
+    rcCutoff2.setFullYear(rcCutoff2.getFullYear()-1);
+    var rcCStr2=rcCutoff2.toISOString().split("T")[0];
+    var sortedDates=Object.keys(rcHistory).sort();
+    for(var rj=0;rj<sortedDates.length;rj++){
+      if(sortedDates[rj]>=rcCStr2&&sortedDates[rj]<=dateStr){
+        rcDates.push(sortedDates[rj]);rcVals.push(rcHistory[sortedDates[rj]]);
+      }
+    }
+  }
+  if(rcDates.length>0){
+    if(!layout.xaxis2){layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};}
+    var rpNow = (realizedCap && totalSupply > 0) ? realizedCap / totalSupply : 0;
+    traces.push({x:rcDates,y:rcVals,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showRCOverlay?SCALAR_COLOR:"rgba(0,0,0,0)",width:showRCOverlay?2:0},hoverinfo:"skip",showlegend:true,name:"Realized Price",visible:true});
+    if(showRCOverlay&&rpNow>0){traces.push({x:[dateStr],y:[rpNow],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:SCALAR_COLOR,size:9,line:{color:"rgba(38,198,218,0.5)",width:1.5}},hoverinfo:"skip",showlegend:false});}
+    if(showRCOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(38,198,218,0.3)",width:1,dash:"dot"}});}
+  }
   var plotConfig = {responsive:true, displayModeBar: !isPort};
   if (isMob) { plotConfig.scrollZoom = false; plotConfig.staticPlot = true; }
   Plotly.react("chart", traces, layout, plotConfig);
   document.getElementById("chart").removeAllListeners("plotly_legendclick");
   document.getElementById("chart").on("plotly_legendclick", function(evtData) {
-    if (evtData.data[evtData.curveNumber].name === "BTC/USD") {
+    var clickedName = evtData.data[evtData.curveNumber].name;
+    if (clickedName === "BTC/USD") {
       showPriceOverlay = !showPriceOverlay;
+      loadAndRender();
+      return false;
+    }
+    if (clickedName === "Realized Price") {
+      showRCOverlay = !showRCOverlay;
       loadAndRender();
       return false;
     }
@@ -1423,6 +1468,13 @@ async function init() {
       console.log("Price array loaded:", priceArray.length, "entries");
     } catch (e) {
       console.warn("Price array preload failed:", e);
+    }
+    try {
+      var rcResp = await fetchJSON(BASE + "/api/series/realized_price/day1");
+      rcArray = rcResp.data || rcResp;
+      console.log("Realized price array loaded:", rcArray.length, "entries");
+    } catch (e) {
+      console.warn("Realized price series not available, will use per-date accumulation:", e.message);
     }
     loadAndRender();
   } catch (e) {
