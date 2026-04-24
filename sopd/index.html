@@ -1218,7 +1218,10 @@ function renderChart(data) {
       if(!layout.xaxis2){layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};}
       var spNow = (realizedCap && totalSupply > 0) ? realizedCap / totalSupply : 0;
       traces.push({x:srcDates,y:srcVals,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showSRCOverlay?SCALAR_COLOR:"rgba(0,0,0,0)",width:showSRCOverlay?2:0},hoverinfo:"skip",showlegend:true,name:"Spent Price",visible:true});
-      if(showSRCOverlay&&spNow>0){traces.push({x:[dateStr],y:[spNow],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:SCALAR_COLOR,size:9,line:{color:"rgba(38,198,218,0.5)",width:1.5}},hoverinfo:"skip",showlegend:false});}
+      if(showSRCOverlay&&spNow>0){
+        traces.push({x:[dateStr],y:[spNow],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:SCALAR_COLOR,size:9,line:{color:"rgba(38,198,218,0.5)",width:1.5}},hoverinfo:"skip",showlegend:false});
+        annotations.push({x:spNow,y:0.5,xref:"x",yref:"paper",text:"               Σ<sub>p</sub> p · SOPD(p)<br>Spent Price = ――――――――――――<br>               Σ<sub>p</sub> SOPD(p)",showarrow:false,font:{color:"#ffffff",size:12,family:FONT},bgcolor:"rgba(17,17,17,0.92)",borderpad:6,xanchor:"left",yanchor:"middle",xshift:14});
+      }
       if(showSRCOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(38,198,218,0.3)",width:1,dash:"dot"}});}
     }
   }
