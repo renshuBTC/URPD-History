@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bitcoin URPD History - @renshuBTC</title>
+<title>Bitcoin URPD (UTXO Realized Price Distribution) History - @renshuBTC</title>
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
@@ -217,14 +217,14 @@
   </select>
   <div class="ctrl-sep"></div>
   <div class="mode-toggle">
-    <button id="btnPL" class="active">P/L</button>
-    <button id="btnSplit">LTH/STH</button>
+    <button id="btnPL" class="active" title="Profit / Loss">P/L</button>
+    <button id="btnSplit" title="Long-Term Holders / Short-Term Holders">LTH/STH</button>
   </div>
   <div class="mode-toggle">
-    <button id="btnUSD" class="active">USD</button>
-    <button id="btnBTC">BTC</button>
-    <button id="btnVD">VD</button>
-    <button id="btnCD">CD</button>
+    <button id="btnUSD" class="active" title="United States Dollar">USD</button>
+    <button id="btnBTC" title="Bitcoin">BTC</button>
+    <button id="btnVD" title="Valuedays">VD</button>
+    <button id="btnCD" title="Coindays">CD</button>
   </div>
   <div class="ctrl-sep"></div>
   <div id="binWrap" style="display:flex;align-items:center;gap:5px;font-size:11px;">
@@ -237,7 +237,7 @@
     <button id="btnFlow">Flow</button>
   </div>
   <div id="explainWrap"><button id="explainBtn">?</button><div id="explainPanel">
-<h2 id="explainTitle">Understanding URPD</h2>
+<h2 id="explainTitle">Understanding <span title="UTXO Realized Price Distribution">URPD</span></h2>
 
 <h3>UTXO Realized Price Distribution (URPD)</h3>
 <div class="desc">Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved. Each bar represents how much BTC has its cost basis in that price range.</div>
