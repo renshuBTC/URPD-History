@@ -406,10 +406,36 @@ var T = {
     totalCoindays: "\u7dcf\u6d88\u8cbb\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba ", totalValuedays: "\u7dcf\u6d88\u8cbb\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba ",
     cdProfit: "CD \u58f2\u5374\u542b\u307f\u76ca: ", cdLoss: "CD \u58f2\u5374\u640d\u5931: ",
     vdProfit: "VD \u58f2\u5374\u542b\u307f\u76ca: ", vdLoss: "VD \u58f2\u5374\u640d\u5931: ",
-    langBtn: "EN",
+    langBtn: "FR",
     notFound: "\u6b63\u78ba\u306a\u65e5\u4ed8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3002\u6700\u5bc4\u308a: ", errBRK: "BRK \u304c localhost:3110 \u3067\u5b9f\u884c\u4e2d\u304b\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044",
     sth: "\u77ed\u671f\u4fdd\u6709\u8005", lth: "\u9577\u671f\u4fdd\u6709\u8005", profitLoss: "\u640d\u76ca", spot: "\u73fe\u5728\u4fa1\u683c",
     minedLabel: "\u65b0\u898f\u63a1\u6398\u30b3\u30a4\u30f3", minedAnn: "\u63a1\u6398 ", minedCheckLabel: "\u65b0\u898f\u63a1\u6398\u30b3\u30a4\u30f3"
+  },
+  fr: {
+    loading: "Chargement...", loadingDates: "Chargement des dates...",
+    statusLoaded: " jours chargés. Gauche/Droite ou A/D naviguer | 1-4 intervalle | Z/X/C/V fenêtre glissante | Haut/Bas ou W/S basculer vue | Début/Fin premier/dernier",
+    landmarks: "Repères", cycleLandmarks: "Repères de cycle", top: "Sommet", bottom: "Creux", pl: "P/P", lthsth: "LTH/STH",
+    binsLabel: "Classes",
+    titleUSD: "SOPD (USD-pondéré) au ", titleUSDCohort: "SOPD (USD-pondéré) par Cohorte au ",
+    titleBTC: "SOPD (BTC-pondéré) au ", titleBTCCohort: "SOPD (BTC-pondéré) par Cohorte au ",
+    priceUSD: "Prix [USD]", usdInvested: "USD Dépensé Richesse", btcSupply: "BTC Dépensé", pctTotal: "Pourcentage du Total",
+    realisedCap: "Cap. Dépensée ", lthRC: "Cap. Dépensée LTH ", sthRC: "Cap. Dépensée STH ",
+    totalSupply: "Total Dépensé ", lthSupply: "LTH Dépensé ", sthSupply: "STH Dépensé ",
+    inProfit: "En Profit ", inLoss: "En Perte ", source: "Source : nœud BRK local",
+    poweredBy: "Propulsé par <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> & <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a>",
+    hoverPrice: "Prix : $", hoverPctTotal: "Pourcentage du Total : ",
+    usdProfit: "USD Dépensé en Profit : ", usdLoss: "USD Dépensé en Perte : ",
+    btcProfit: "BTC Dépensé en Profit : ", btcLoss: "BTC Dépensé en Perte : ",
+    titleCD: "SOPD (Coindays-pondéré) au ", titleCDCohort: "SOPD (Coindays-pondéré) par Cohorte au ",
+    titleVD: "SOPD (Valuedays-pondéré) au ", titleVDCohort: "SOPD (Valuedays-pondéré) par Cohorte au ",
+    coindays: "Coindays (BTC\u00b7jours)", valuedays: "Valuedays (USD\u00b7jours)",
+    totalCoindays: "Total Coindays Dépensé ", totalValuedays: "Total Valuedays Dépensé ",
+    cdProfit: "Coindays Dépensé en Profit : ", cdLoss: "Coindays Dépensé en Perte : ",
+    vdProfit: "Valuedays Dépensé en Profit : ", vdLoss: "Valuedays Dépensé en Perte : ",
+    langBtn: "EN",
+    notFound: "Date exacte introuvable, affichage du plus proche : ", errBRK: "Assurez-vous que BRK tourne sur localhost:3110",
+    sth: "Détenteurs à Court Terme", lth: "Détenteurs à Long Terme", profitLoss: "Profit/Perte", spot: "Spot",
+    minedLabel: "Pièces Récemment Minées", minedAnn: "Miné ", minedCheckLabel: "Pièces Récemment Minées"
   }
 };
 
@@ -420,9 +446,9 @@ function applyLang() {
   if(document.getElementById("footer")) document.getElementById("footer").innerHTML = t("poweredBy");
   document.getElementById("landmarks").options[0].textContent = t("landmarks");
   var lm = document.getElementById("landmarks");
-  var cyc = lang==="zh" ? "\u5468\u671f" : lang==="ja" ? "\u30b5\u30a4\u30af\u30eb" : "Cycle";
-  var tp = lang==="zh" ? "\u9876\u90e8" : lang==="ja" ? "\u5929\u4e95" : "Top";
-  var bt = lang==="zh" ? "\u5e95\u90e8" : lang==="ja" ? "\u5e95" : "Bottom";
+  var cyc = lang==="zh" ? "\u5468\u671f" : lang==="ja" ? "\u30b5\u30a4\u30af\u30eb" : lang==="fr" ? "Cycle" : "Cycle";
+  var tp = lang==="zh" ? "\u9876\u90e8" : lang==="ja" ? "\u5929\u4e95" : lang==="fr" ? "Sommet" : "Top";
+  var bt = lang==="zh" ? "\u5e95\u90e8" : lang==="ja" ? "\u5e95" : lang==="fr" ? "Creux" : "Bottom";
   var groups = lm.querySelectorAll("optgroup");
   for (var gi = 0; gi < groups.length; gi++) {
     groups[gi].label = cyc + " " + (5-gi);
@@ -431,11 +457,11 @@ function applyLang() {
       var v = opts[oi].value;
       var parts = v.split("-");
       var d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-      var mon = lang==="zh" ? (d.getMonth()+1)+"\u6708" : lang==="ja" ? (d.getMonth()+1)+"\u6708" : d.toLocaleString("en",{month:"short"});
+      var mon = lang==="zh" ? (d.getMonth()+1)+"\u6708" : lang==="ja" ? (d.getMonth()+1)+"\u6708" : lang==="fr" ? d.toLocaleString("fr",{month:"short"}) : d.toLocaleString("en",{month:"short"});
       var yr = d.getFullYear();
       var price = opts[oi].textContent.match(/\(.*\)/);
       price = price ? " " + price[0] : "";
-      var isTop = opts[oi].textContent.indexOf("Top") >= 0 || opts[oi].textContent.indexOf("\u9876\u90e8") >= 0 || opts[oi].textContent.indexOf("\u5929\u4e95") >= 0;
+      var isTop = opts[oi].textContent.indexOf("Top") >= 0 || opts[oi].textContent.indexOf("\u9876\u90e8") >= 0 || opts[oi].textContent.indexOf("\u5929\u4e95") >= 0 || opts[oi].textContent.indexOf("Sommet") >= 0;
       opts[oi].textContent = (isTop ? tp : bt) + ": " + mon + " " + yr + price;
     }
   }
@@ -1096,7 +1122,7 @@ function renderChart(data) {
   var annotations = [
     {xref:"paper",yref:"paper",x:0.02,y:0.98,text:annText,showarrow:false,align:"left",font:{size:13,family:FONT}},
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@renshuBTC</span>",showarrow:false,font:{family:FONT}},
-    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
+    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : lang==="fr" ? "Propuls\u00e9 par Bitcoin Research Kit & Bitcoin Core. Inspir\u00e9 par @_Checkonchain" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
   if (yClipped) {
     annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at 99th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
@@ -1291,6 +1317,7 @@ document.getElementById("btnFlow").onclick = function(){ /* already on Flow (SOP
 document.getElementById("langBtn").onclick = function(){
   if (lang === "en") lang = "zh";
   else if (lang === "zh") lang = "ja";
+  else if (lang === "ja") lang = "fr";
   else lang = "en";
   applyLang();
 };
@@ -1697,6 +1724,37 @@ function updateExplainerLang() {
     h3s[9].textContent = "\u65b0\u6316\u5e01";
     descs[9].textContent = "\u542f\u7528\u540e\uff0c\u5f53\u5929\u65b0\u6316\u7684BTC\uff08\u533a\u5757\u5956\u52b1\uff09\u4f1a\u663e\u793a\u5728\u73b0\u4ef7\u5bf9\u5e94\u7684\u4ef7\u683c\u533a\u95f4\u3002\u7c7b\u4f3c\u4e8e\u5546\u54c1\u7684\u751f\u4ea7\u6d41\u3002";
     if(document.getElementById("f10")) document.getElementById("f10").textContent = "\u65b0\u6316(\u65e5) = \u603b\u4f9b\u5e94(\u5f53\u65e5) \u2212 \u603b\u4f9b\u5e94(\u524d\u65e5)";
+  } else if (lang === "fr") {
+    box.querySelector("#explainTitle").textContent = "Comprendre la SOPD";
+    h3s[0].textContent = "Distribution des Prix D\u00e9pens\u00e9s des Sorties (SOPD)";
+    descs[0].textContent = "Affiche la distribution des BTC d\u00e9pens\u00e9s par le prix auquel chaque sortie a \u00e9t\u00e9 d\u00e9pens\u00e9e. Chaque barre repr\u00e9sente le volume de BTC d\u00e9pens\u00e9 dans cette tranche de prix.";
+    h3s[1].textContent = "SOPD (pond\u00e9r\u00e9 en USD) \u2014 Richesse D\u00e9pens\u00e9e";
+    descs[1].textContent = "Pond\u00e8re chaque sortie d\u00e9pens\u00e9e par sa valeur en dollars. Montre o\u00f9 le capital est d\u00e9pens\u00e9.";
+    h3s[2].textContent = "SOPD (pond\u00e9r\u00e9 en BTC) \u2014 Distribution D\u00e9pens\u00e9e";
+    descs[2].textContent = "Affiche le BTC brut d\u00e9pens\u00e9 \u00e0 chaque prix, sans pond\u00e9ration en dollars.";
+    h3s[3].textContent = "SOPD (pond\u00e9r\u00e9 en CD) \u2014 Coindays D\u00e9pens\u00e9s";
+    descs[3].textContent = "Pond\u00e8re chaque sortie par BTC \u00d7 jours d\u00e9tenus. Met en valeur les d\u00e9penses anciennes et volumineuses.";
+    h3s[4].textContent = "SOPD (pond\u00e9r\u00e9 en VD) \u2014 Valuedays D\u00e9pens\u00e9s";
+    descs[4].textContent = "Pond\u00e8re chaque sortie par capitalisation r\u00e9alis\u00e9e \u00d7 jours d\u00e9tenus. Combine conviction en dollars et temps.";
+    h3s[5].textContent = "Capitalisation D\u00e9pens\u00e9e (Spent Cap)";
+    descs[5].textContent = "La valeur totale de toutes les sorties d\u00e9pens\u00e9es \u00e9valu\u00e9es au prix de leur dernier mouvement.";
+    h3s[6].textContent = "D\u00e9tenteurs \u00e0 Long Terme (LTH)";
+    descs[6].textContent = "UTXO n'ayant pas boug\u00e9 depuis \u2265 155 jours. Repr\u00e9sente les d\u00e9tenteurs convaincus et les accumulateurs \u00e0 long terme.";
+    h3s[7].textContent = "D\u00e9tenteurs \u00e0 Court Terme (STH)";
+    descs[7].textContent = "UTXO ayant boug\u00e9 au cours des 155 derniers jours. Repr\u00e9sente les acheteurs r\u00e9cents, les traders et les sp\u00e9culateurs.";
+    h3s[8].textContent = "Offre en Profit / Perte";
+    descs[8].textContent = "Au niveau du prix spot, le pourcentage de richesse d\u00e9pens\u00e9e (USD) ou d'offre (BTC) dont le co\u00fbt de base est inf\u00e9rieur au spot est \u00ab en profit \u00bb ; au-dessus du spot est \u00ab en perte \u00bb.";
+    if(document.getElementById("f1")) document.getElementById("f1").textContent = "Richesse D\u00e9pens\u00e9e(P) = P \u00b7 S_spent(P)";
+    if(document.getElementById("f2")) document.getElementById("f2").textContent = "S_spent(P) = \u03a3 montant_sortie_d\u00e9pens\u00e9e  o\u00f9 prix_sortie \u2208 [P, P + \u0394P)";
+    if(document.getElementById("f8")) document.getElementById("f8").textContent = "CD_spent(P) = \u03a3 (offre_groupe_\u00e2ge \u00d7 jours_midpoint)  pour bande de prix P";
+    if(document.getElementById("f9")) document.getElementById("f9").textContent = "VD_spent(P) = \u03a3 (cap_r\u00e9alis\u00e9e_groupe_\u00e2ge \u00d7 jours_midpoint)  pour bande de prix P";
+    if(document.getElementById("f3")) document.getElementById("f3").textContent = "RC_spent = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62  pour toutes les bandes de prix i";
+    if(document.getElementById("f4")) document.getElementById("f4").textContent = "LTH = { sortie_d\u00e9pens\u00e9e | \u00e2ge(sortie) \u2265 155 jours }";
+    if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { sortie_d\u00e9pens\u00e9e | \u00e2ge(sortie) < 155 jours }";
+    if(document.getElementById("f6")) document.getElementById("f6").textContent = "Profit % = \u03a3 W_spent(P) pour P \u2264 Spot  /  \u03a3 W_spent(P) \u00d7 100";
+    h3s[9].textContent = "Pi\u00e8ces R\u00e9cemment Min\u00e9es";
+    descs[9].textContent = "Lorsqu'activ\u00e9, superpose le Bitcoin nouvellement min\u00e9 du jour (r\u00e9compenses de bloc) sur l'histogramme au bin de prix spot. Repr\u00e9sente la nouvelle production entrant sur le march\u00e9 \u2014 analogue au flux d'offre de mati\u00e8res premi\u00e8res.";
+    if(document.getElementById("f10")) document.getElementById("f10").textContent = "Min\u00e9(jour) = Offre_Totale(jour) \u2212 Offre_Totale(jour\u22121)";
   } else {
     box.querySelector("#explainTitle").textContent = "Understanding SOPD";
     h3s[0].textContent = "Spent Output Price Distribution (SOPD)";
