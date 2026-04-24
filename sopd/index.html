@@ -207,8 +207,8 @@
   <div class="mode-toggle">
     <button id="btnUSD" class="active" title="United States Dollar">USD</button>
     <button id="btnBTC" title="Bitcoin">BTC</button>
-    <button id="btnVD" title="Valuedays">VD</button>
     <button id="btnCD" title="Coindays">CD</button>
+    <button id="btnVD" title="Valuedays">VD</button>
   </div>
   <div class="ctrl-sep"></div>
   <div id="minedWrap" style="display:flex;align-items:center;gap:5px;font-size:11px;height:28px;">
@@ -457,7 +457,7 @@ var STEP_LABELS = ["1D", "1W", "1M", "1Y"];
 var rollingWindow = 1; // days
 
 // View modes: 8 combinations (4 weights × 2 cohorts)
-var WEIGHT_MODES = ["usd","btc","cd","vd"];
+var WEIGHT_MODES = ["usd","btc","vd","cd"];
 var VIEW_MODES = [];
 WEIGHT_MODES.forEach(function(w){
   VIEW_MODES.push({split:false,weight:w});
