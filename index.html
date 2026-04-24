@@ -313,6 +313,7 @@ var weightMode = "usd"; // "usd", "btc", "cd", "vd"
 var cache = {};
 var spotCache = {};
 var lang = "en";
+var renderGeneration = 0; // stale-fetch guard
 
 // Age band definitions for CD/VD computation
 // Each band maps to a cohort name and midpoint in days
@@ -638,8 +639,22 @@ function aggregateAgeBands(ageCohortData, binWidth, mode) {
   return arr;
 }
 
+function prefetchAdjacent() {
+  var nextIdx = Math.min(currentIdx + stepSize, allDates.length - 1);
+  var prevIdx = Math.max(currentIdx - stepSize, 0);
+  [nextIdx, prevIdx].forEach(function(idx) {
+    if (idx === currentIdx) return;
+    var ds = allDates[idx];
+    var ck = ds + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
+    if (cache[ck]) return;
+    // Silently prefetch the base data for adjacent dates
+    fetchJSON(BASE + "/api/urpd/all/" + ds).catch(function(){});
+  });
+}
+
 function loadAndRender() {
   var dateStr = allDates[currentIdx];
+  var thisGen = ++renderGeneration;
   document.getElementById("loading").style.display = "block";
   var isCD = (weightMode === "cd" || weightMode === "vd");
   var isDelta = rollingWindow > 1;
@@ -829,10 +844,13 @@ function loadAndRender() {
     }
     return data;
   }).then(function(data) {
+    if (thisGen !== renderGeneration) return; // stale — user already navigated away
     cache[cacheKey] = data;
     renderChart(data);
     document.getElementById("loading").style.display = "none";
+    prefetchAdjacent();
   }).catch(function(e) {
+    if (thisGen !== renderGeneration) return;
     document.getElementById("status").textContent = "Error: " + e.message;
     document.getElementById("loading").style.display = "none";
   });
@@ -1342,10 +1360,13 @@ document.getElementById("binInput").addEventListener("keydown", function(e){
   if (e.key === "Enter") { e.preventDefault(); this.blur(); }
 });
 
+var wheelTimer = null;
 document.getElementById("chart").addEventListener("wheel", function(e){
   e.preventDefault();
-  if (e.deltaY < 0) goTo(currentIdx - stepSize);
-  else if (e.deltaY > 0) goTo(currentIdx + stepSize);
+  if (wheelTimer) return; // throttle: ignore until previous tick settles
+  var dir = e.deltaY < 0 ? -stepSize : stepSize;
+  goTo(currentIdx + dir);
+  wheelTimer = setTimeout(function(){ wheelTimer = null; }, 120);
 }, {passive: false});
 
 document.addEventListener("keydown", function(e){
