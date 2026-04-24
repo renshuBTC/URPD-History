@@ -432,10 +432,36 @@ var T = {
     totalCoindays: "Total Coindays Dépensé ", totalValuedays: "Total Valuedays Dépensé ",
     cdProfit: "Coindays Dépensé en Profit : ", cdLoss: "Coindays Dépensé en Perte : ",
     vdProfit: "Valuedays Dépensé en Profit : ", vdLoss: "Valuedays Dépensé en Perte : ",
-    langBtn: "EN",
+    langBtn: "\u0641\u0627\u0631\u0633\u06cc",
     notFound: "Date exacte introuvable, affichage du plus proche : ", errBRK: "Assurez-vous que BRK tourne sur localhost:3110",
     sth: "Détenteurs à Court Terme", lth: "Détenteurs à Long Terme", profitLoss: "Profit/Perte", spot: "Spot",
     minedLabel: "Pièces Récemment Minées", minedAnn: "Miné ", minedCheckLabel: "Pièces Récemment Minées"
+  },
+  fa: {
+    loading: "در حال بارگذاری...", loadingDates: "در حال بارگذاری تاریخ‌ها...",
+    statusLoaded: " روز بارگذاری شد. چپ/راست یا A/D حرکت کنید | 1-4 فاصله | Z/X/C/V پنجره غلتان | بالا/پایین یا W/S تغییر نمای | Home/End اول/آخر",
+    landmarks: "نقاط عطف", cycleLandmarks: "نقاط عطف چرخه", top: "سقف", bottom: "کف", pl: "سود/زیان", lthsth: "بلندمدت/کوتاه‌مدت",
+    binsLabel: "سطل‌ها",
+    titleUSD: "SOPD (وزن‌دهی دلار) تا ", titleUSDCohort: "SOPD (وزن‌دهی دلار) بر اساس گروه تا ",
+    titleBTC: "SOPD (وزن‌دهی بیت‌کوین) تا ", titleBTCCohort: "SOPD (وزن‌دهی بیت‌کوین) بر اساس گروه تا ",
+    priceUSD: "قیمت [دلار]", usdInvested: "دلار خرج‌شده، ثروت سرمایه‌گذاری", btcSupply: "بیت‌کوین خرج‌شده", pctTotal: "درصد از کل",
+    realisedCap: "سرمایه خرج‌شده ", lthRC: "سرمایه خرج‌شده بلندمدت ", sthRC: "سرمایه خرج‌شده کوتاه‌مدت ",
+    totalSupply: "کل خرج‌شده ", lthSupply: "بلندمدت خرج‌شده ", sthSupply: "کوتاه‌مدت خرج‌شده ",
+    inProfit: "در سود ", inLoss: "در زیان ", source: "منبع: گره BRK محلی",
+    poweredBy: "توسط <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> & <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a> قدرت‌گرفته",
+    hoverPrice: "قیمت: $", hoverPctTotal: "درصد از کل: ",
+    usdProfit: "دلار خرج‌شده برای سود: ", usdLoss: "دلار خرج‌شده برای زیان: ",
+    btcProfit: "بیت‌کوین خرج‌شده برای سود: ", btcLoss: "بیت‌کوین خرج‌شده برای زیان: ",
+    titleCD: "SOPD (وزن‌دهی روزهای سکه) تا ", titleCDCohort: "SOPD (وزن‌دهی روزهای سکه) بر اساس گروه تا ",
+    titleVD: "SOPD (وزن‌دهی روزهای ارزش) تا ", titleVDCohort: "SOPD (وزن‌دهی روزهای ارزش) بر اساس گروه تا ",
+    coindays: "روزهای سکه (بیت‌کوین\u00b7روز)", valuedays: "روزهای ارزش (دلار\u00b7روز)",
+    totalCoindays: "کل روزهای سکه خرج‌شده ", totalValuedays: "کل روزهای ارزش خرج‌شده ",
+    cdProfit: "روزهای سکه خرج‌شده برای سود: ", cdLoss: "روزهای سکه خرج‌شده برای زیان: ",
+    vdProfit: "روزهای ارزش خرج‌شده برای سود: ", vdLoss: "روزهای ارزش خرج‌شده برای زیان: ",
+    langBtn: "EN",
+    notFound: "تاریخ دقیق یافت نشد، نزدیک‌ترین نمایش داده می‌شود: ", errBRK: "مطمئن شوید BRK روی localhost:3110 اجرا می‌شود",
+    sth: "نگه‌دارندگان کوتاه‌مدت", lth: "نگه‌دارندگان بلندمدت", profitLoss: "سود/زیان", spot: "قیمت فعلی",
+    minedLabel: "سکه‌های تازه‌استخراج‌شده", minedAnn: "استخراج‌شده ", minedCheckLabel: "سکه‌های تازه‌استخراج‌شده"
   }
 };
 
@@ -446,9 +472,9 @@ function applyLang() {
   if(document.getElementById("footer")) document.getElementById("footer").innerHTML = t("poweredBy");
   document.getElementById("landmarks").options[0].textContent = t("landmarks");
   var lm = document.getElementById("landmarks");
-  var cyc = lang==="zh" ? "\u5468\u671f" : lang==="ja" ? "\u30b5\u30a4\u30af\u30eb" : lang==="fr" ? "Cycle" : "Cycle";
-  var tp = lang==="zh" ? "\u9876\u90e8" : lang==="ja" ? "\u5929\u4e95" : lang==="fr" ? "Sommet" : "Top";
-  var bt = lang==="zh" ? "\u5e95\u90e8" : lang==="ja" ? "\u5e95" : lang==="fr" ? "Creux" : "Bottom";
+  var cyc = lang==="zh" ? "\u5468\u671f" : lang==="ja" ? "\u30b5\u30a4\u30af\u30eb" : lang==="fr" ? "Cycle" : lang==="fa" ? "\u0686\u0631\u062e\u0647" : "Cycle";
+  var tp = lang==="zh" ? "\u9876\u90e8" : lang==="ja" ? "\u5929\u4e95" : lang==="fr" ? "Sommet" : lang==="fa" ? "\u0633\u0642\u0641" : "Top";
+  var bt = lang==="zh" ? "\u5e95\u90e8" : lang==="ja" ? "\u5e95" : lang==="fr" ? "Creux" : lang==="fa" ? "\u06a9\u0641" : "Bottom";
   var groups = lm.querySelectorAll("optgroup");
   for (var gi = 0; gi < groups.length; gi++) {
     groups[gi].label = cyc + " " + (5-gi);
@@ -457,7 +483,7 @@ function applyLang() {
       var v = opts[oi].value;
       var parts = v.split("-");
       var d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-      var mon = lang==="zh" ? (d.getMonth()+1)+"\u6708" : lang==="ja" ? (d.getMonth()+1)+"\u6708" : lang==="fr" ? d.toLocaleString("fr",{month:"short"}) : d.toLocaleString("en",{month:"short"});
+      var mon = lang==="zh" ? (d.getMonth()+1)+"\u6708" : lang==="ja" ? (d.getMonth()+1)+"\u6708" : lang==="fr" ? d.toLocaleString("fr",{month:"short"}) : lang==="fa" ? d.toLocaleString("fa",{month:"short"}) : d.toLocaleString("en",{month:"short"});
       var yr = d.getFullYear();
       var price = opts[oi].textContent.match(/\(.*\)/);
       price = price ? " " + price[0] : "";
@@ -1122,7 +1148,7 @@ function renderChart(data) {
   var annotations = [
     {xref:"paper",yref:"paper",x:0.02,y:0.98,text:annText,showarrow:false,align:"left",font:{size:13,family:FONT}},
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@renshuBTC</span>",showarrow:false,font:{family:FONT}},
-    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : lang==="fr" ? "Propuls\u00e9 par Bitcoin Research Kit & Bitcoin Core. Inspir\u00e9 par @_Checkonchain" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
+    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : lang==="fr" ? "Propuls\u00e9 par Bitcoin Research Kit & Bitcoin Core. Inspir\u00e9 par @_Checkonchain" : lang==="fa" ? "\u0642\u062f\u0631\u062a\u200c\u06af\u0631\u0641\u062a\u0647 \u0627\u0632 Bitcoin Research Kit \u0648 Bitcoin Core. \u0627\u0644\u0647\u0627\u0645 \u06af\u0631\u0641\u062a\u0647 \u0627\u0632 @_Checkonchain" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
   if (yClipped) {
     annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at 99th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
@@ -1199,9 +1225,9 @@ function renderChart(data) {
     if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},text:["p = BTC Price"],textposition:"bottom center",textfont:{color:"rgba(155,155,155,0.45)",size:11,family:FONT},hoverinfo:"skip",showlegend:false});}
     if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(155,155,155,0.3)",width:1,dash:"dot"}});}
     // Cycle landmark markers on price chart
-    var cyc2=lang==="zh"?"\u5468\u671f":lang==="ja"?"\u30b5\u30a4\u30af\u30eb":"Cycle";
-    var tp2=lang==="zh"?"\u9876\u90e8":lang==="ja"?"\u5929\u4e95":"Top";
-    var bt2=lang==="zh"?"\u5e95\u90e8":lang==="ja"?"\u5e95":"Bottom";
+    var cyc2=lang==="zh"?"\u5468\u671f":lang==="ja"?"\u30b5\u30a4\u30af\u30eb":lang==="fa"?"\u0686\u0631\u062e\u0647":"Cycle";
+    var tp2=lang==="zh"?"\u9876\u90e8":lang==="ja"?"\u5929\u4e95":lang==="fa"?"\u0633\u0642\u0641":"Top";
+    var bt2=lang==="zh"?"\u5e95\u90e8":lang==="ja"?"\u5e95":lang==="fa"?"\u06a9\u0641":"Bottom";
     var LANDMARKS=[
       {d:"2011-06-08",p:32,l:cyc2+" 1 "+tp2,top:true},
       {d:"2011-11-18",p:2,l:cyc2+" 1 "+bt2,top:false},
@@ -1318,6 +1344,7 @@ document.getElementById("langBtn").onclick = function(){
   if (lang === "en") lang = "zh";
   else if (lang === "zh") lang = "ja";
   else if (lang === "ja") lang = "fr";
+  else if (lang === "fr") lang = "fa";
   else lang = "en";
   applyLang();
 };
@@ -1755,6 +1782,37 @@ function updateExplainerLang() {
     h3s[9].textContent = "Pi\u00e8ces R\u00e9cemment Min\u00e9es";
     descs[9].textContent = "Lorsqu'activ\u00e9, superpose le Bitcoin nouvellement min\u00e9 du jour (r\u00e9compenses de bloc) sur l'histogramme au bin de prix spot. Repr\u00e9sente la nouvelle production entrant sur le march\u00e9 \u2014 analogue au flux d'offre de mati\u00e8res premi\u00e8res.";
     if(document.getElementById("f10")) document.getElementById("f10").textContent = "Min\u00e9(jour) = Offre_Totale(jour) \u2212 Offre_Totale(jour\u22121)";
+  } else if (lang === "fa") {
+    box.querySelector("#explainTitle").textContent = "\u062f\u0631\u06a9 SOPD";
+    h3s[0].textContent = "\u062a\u0648\u0632\u06cc\u0639 \u0642\u06cc\u0645\u062a \u062e\u0631\u062c\u06cc (SOPD)";
+    descs[0].textContent = "\u0628\u0627 \u0646\u0634\u0627\u0646 \u062f\u0627\u062f\u0646 \u062a\u0648\u0632\u06cc\u0639 \u0628\u06cc\u062a\u200c\u06a9\u0648\u06cc\u0646\u200c\u0647\u0627\u06cc \u062e\u0631\u062c\u06cc\u200c\u0634\u062f\u0647 \u0628\u0631 \u0627\u0633\u0627\u0633 \u0642\u06cc\u0645\u062a\u06cc \u06a9\u0647 \u0647\u0631 \u062e\u0631\u062c\u06cc \u062f\u0631 \u0622\u0646 \u0642\u06cc\u0645\u062a \u062e\u0631\u06cc\u062f\u0627\u0631\u06cc \u0634\u062f\u0647. \u0647\u0631 \u0633\u062a\u0648\u0646 \u0645\u06cc\u0632\u0627\u0646 BTC \u062e\u0631\u062c\u06cc\u200c\u0634\u062f\u0647 \u062f\u0631 \u0622\u0646 \u0631\u0627\u0646\u062c \u0642\u06cc\u0645\u062a \u0631\u0627 \u0646\u0634\u0627\u0646 \u0645\u06cc\u200c\u062f\u0647\u062f.";
+    h3s[1].textContent = "SOPD (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u062f\u0644\u0627\u0631) \u2014 \u062b\u0631\u0648\u062a \u062e\u0631\u062c\u06cc\u200c\u0634\u062f\u0647";
+    descs[1].textContent = "\u0647\u0631 \u062e\u0631\u062c\u06cc \u0631\u0627 \u0628\u0631 \u0627\u0633\u0627\u0633 \u0645\u0642\u062f\u0627\u0631 \u062f\u0644\u0627\u0631 \u0632\u0645\u0627\u0646 \u062e\u0631\u06cc\u062f \u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u0645\u06cc\u200c\u06a9\u0646\u062f. \u0645\u06cc\u200c\u062a\u0648\u0627\u0646\u062f \u062c\u0627\u06cc\u06cc \u0633\u0631\u0645\u0627\u06cc\u0647\u200c\u06af\u0630\u0627\u0631\u06cc\u200c\u0634\u062f\u0647 \u0645\u062a\u0645\u0631\u06a9\u0632 \u0628\u0648\u062f\u0647\u061b \u0631\u0627 \u0646\u0634\u0627\u0646 \u062f\u0647\u062f.";
+    h3s[2].textContent = "SOPD (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc BTC) \u2014 \u062a\u0648\u0632\u06cc\u0639 \u062e\u0631\u062c\u06cc\u200c\u0634\u062f\u0647";
+    descs[2].textContent = "\u062d\u062c\u0645 \u062e\u0627\u0644\u0635 BTC \u062e\u0631\u062c\u06cc\u200c\u0634\u062f\u0647 \u062f\u0631 \u0647\u0631 \u0642\u06cc\u0645\u062a\u060c \u0628\u062f\u0648\u0646 \u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u062f\u0644\u0627\u0631.";
+    h3s[3].textContent = "SOPD (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc CD) \u2014 \u0631\u0648\u0632\u200c\u0647\u0627\u06cc \u0633\u06a9\u0647 \u062e\u0631\u062c\u06cc\u200c\u0634\u062f\u0647";
+    descs[3].textContent = "\u0647\u0631 \u062e\u0631\u062c\u06cc \u0631\u0627 \u0628\u0631 \u0627\u0633\u0627\u0633 BTC \u0622 \u0631\u0648\u0632\u200c\u0647\u0627\u06cc \u0646\u06af\u0647\u062f\u0627\u0631\u06cc \u0642\u0628\u0644 \u0627\u0632 \u062e\u0631\u062c \u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u0645\u06cc\u200c\u06a9\u0646\u062f. \u062a\u0648\u062c\u0647 \u0628\u0647 \u062c\u0645\u0639\u0647\u0627 \u0648 \u0645\u0648\u0636\u0639\u06cc\u062a\u200c\u0647\u0627\u06cc \u0628\u0632\u0631\u06af\u06cc \u06a9\u0647 \u062e\u0631\u062c\u06cc \u0634\u062f\u0647\u061b \u0628\u0631 \u0627\u0633\u0627\u0633 \u0686\u0627\u0631\u0686\u0648\u0628 Cointime Economics (Puell & Check, 2023).";
+    h3s[4].textContent = "SOPD (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc VD) \u2014 \u0631\u0648\u0632\u200c\u0647\u0627\u06cc \u0627\u0631\u0632\u0634 \u062e\u0631\u062c\u06cc\u200c\u0634\u062f\u0647";
+    descs[4].textContent = "\u0647\u0631 \u062e\u0631\u062c\u06cc \u0631\u0627 \u0628\u0631 \u0627\u0633\u0627\u0633 \u0633\u0631\u0645\u0627\u06cc\u0647\u200c\u06af\u0630\u0627\u0631\u06cc\u200c\u0634\u062f\u0647 \u0622 \u0631\u0648\u0632\u200c\u0647\u0627\u06cc \u0646\u06af\u0647\u062f\u0627\u0631\u06cc \u0642\u0628\u0644 \u0627\u0632 \u062e\u0631\u062c \u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u0645\u06cc\u200c\u06a9\u0646\u062f.";
+    h3s[5].textContent = "\u0633\u0631\u0645\u0627\u06cc\u0647\u200c\u06af\u0630\u0627\u0631\u06cc\u200c\u0634\u062f\u0647 \u062e\u0631\u062c\u06cc";
+    descs[5].textContent = "\u0645\u062c\u0645\u0648\u0639 \u0627\u0631\u0632\u0634 \u062a\u0645\u0627\u0645 \u062e\u0631\u062c\u06cc\u200c\u0647\u0627 \u0628\u0631 \u0627\u0633\u0627\u0633 \u0642\u06cc\u0645\u062a \u0627\u0628\u062a\u062f\u0627\u06cc\u06cc \u062f\u0631 \u0632\u0645\u0627\u0646 \u062e\u0631\u064a\u062f. \u0641\u0627\u0646\u062f\u0627\u0633\u06cc\u0648\u0646 \u06a9\u0644 \u062e\u0631\u062c\u06cc\u200c\u0647\u0627 \u062f\u0631 \u0622\u0646 \u0631\u0648\u0632.";
+    h3s[6].textContent = "\u0646\u06af\u0647\u200c\u062f\u0627\u0631\u0646\u062f\u06af\u0627\u0646 \u0628\u0644\u0646\u062f\u0645\u062f\u062a (LTH)";
+    descs[6].textContent = "\u062e\u0631\u062c\u06cc\u200c\u0647\u0627\u06cc\u06cc \u06a9\u0647 \u062d\u062f\u0627\u0642\u0644 155 \u0631\u0648\u0632 \u06af\u0647 \u0646\u06af\u06cc\u0631 \u0634\u062f\u0647\u061b \u0627\u0631\u0632\u0634 \u0644\u0636\u0627\u062e\u0627\u0646\u06cc \u0648 \u062c\u0645\u0639\u200c\u06a9\u0646\u0646\u062f\u06af\u0627\u0646 \u0628\u0644\u0646\u062f\u0645\u062f\u062a.";
+    h3s[7].textContent = "\u0646\u06af\u0647\u200c\u062f\u0627\u0631\u0646\u062f\u06af\u0627\u0646 \u06a9\u0648\u062a\u0627\u0647\u200c\u0645\u062f\u062a (STH)";
+    descs[7].textContent = "\u062e\u0631\u062c\u06cc\u200c\u0647\u0627\u06cc\u06cc \u06a9\u0647 \u0645\u0627 \u06a9\u0645 \u0627\u0632 155 \u0631\u0648\u0632 \u0646\u06af\u0647 \u062f\u0627\u0634\u062a\u0647\u061b \u062e\u0631\u064a\u062f\u0627\u0631\u0627\u0646 \u0645\u0648\u0628\u0627\u0647\u0627\u062a\u0647\u060c \u062a\u0627\u062c\u0631\u0627\u0646 \u0648 \u0628\u0627\u0632\u0627\u0631\u0628\u0627\u0632\u0627\u0646.";
+    h3s[8].textContent = "\u062e\u0631\u062c\u06cc\u200c\u0634\u062f\u0647 \u062f\u0631 \u0633\u0648\u062f / \u0632\u06cc\u0627\u0646";
+    descs[8].textContent = "\u062f\u0631 \u0639\u0644\u0627\u0645 \u0642\u06cc\u0645\u062a \u0641\u0639\u0644\u06cc\u060c \u062f\u0631\u0635\u062f \u062b\u0631\u0648\u062a \u062e\u0631\u062c\u06cc\u200c\u0634\u062f\u0647 \u0627\u06cc \u06a9\u0647 \u0628\u0627 \u0642\u06cc\u0645\u062a \u0637\u0644\u0628 \u067e\u0627\u0626\u06cc\u0646\u200c\u062a\u0631 \u0627\u0632 \u0639\u0644\u0627\u0645 \u0641\u0639\u0644\u06cc \u0641\u0631\u0648\u062e\u062a\u0647 \u0634\u062f\u0647 \"\u062f\u0631 \u0633\u0648\u062f\"\u061b \u0628\u0627\u0644\u0627\u062a\u0631 \"\u062f\u0631 \u0632\u06cc\u0627\u0646\".";
+    if(document.getElementById("f1")) document.getElementById("f1").textContent = "\u062b\u0631\u0648\u062a \u062e\u0631\u062c\u06cc(P) = P \u00b7 S_spent(P)";
+    if(document.getElementById("f2")) document.getElementById("f2").textContent = "S_spent(P) = \u03a3 \u0645\u0642\u062f\u0627\u0631_\u062e\u0631\u062c\u06cc  \u06a9\u0647 \u0642\u06cc\u0645\u062a \u2208 [P, P + \u0394P)";
+    if(document.getElementById("f8")) document.getElementById("f8").textContent = "CD_spent(P) = \u03a3 (\u0639\u0631\u0636\u0647_\u06af\u0631\u0648\u0647_\u0633\u0646\u06cc \u00d7 \u0631\u0648\u0632\u200c\u0647\u0627\u06cc_\u0645\u06cc\u0627\u0646\u06af\u06cc\u0646)  \u0628\u0631\u0627\u06cc \u0631\u0627\u0646\u062c \u0642\u06cc\u0645\u062a P";
+    if(document.getElementById("f9")) document.getElementById("f9").textContent = "VD_spent(P) = \u03a3 (\u0633\u0631\u0645\u0627\u06cc\u0647_\u062f\u0631\u0642\u0628\u0627\u0644_\u06af\u0631\u0648\u0647_\u0633\u0646\u06cc \u00d7 \u0631\u0648\u0632\u200c\u0647\u0627\u06cc_\u0645\u06cc\u0627\u0646\u06af\u06cc\u0646)  \u0628\u0631\u0627\u06cc \u0631\u0627\u0646\u062c \u0642\u06cc\u0645\u062a P";
+    if(document.getElementById("f3")) document.getElementById("f3").textContent = "RC_spent = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62  \u0628\u0631\u0627\u06cc \u062a\u0645\u0627\u0645 \u0631\u0627\u0646\u062c\u200c\u0647\u0627\u06cc \u0642\u06cc\u0645\u062a i";
+    if(document.getElementById("f4")) document.getElementById("f4").textContent = "LTH = { \u062e\u0631\u062c\u06cc | \u0633\u0646 \u2265 155 \u0631\u0648\u0632 }";
+    if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { \u062e\u0631\u062c\u06cc | \u0633\u0646 < 155 \u0631\u0648\u0632 }";
+    if(document.getElementById("f6")) document.getElementById("f6").textContent = "\u0633\u0648\u062f % = \u03a3 W_spent(P) \u0628\u0631\u0627\u06cc P \u2264 Spot  /  \u03a3 W_spent(P) \u00d7 100";
+    h3s[9].textContent = "\u0633\u06a9\u0647\u200c\u0647\u0627\u06cc \u062a\u0627\u0632\u0647\u200c\u0627\u0633\u062a\u062e\u0631\u0627\u062c\u200c\u0634\u062f\u0647";
+    descs[9].textContent = "\u0632\u0645\u0627\u0646 \u0641\u0639\u0627\u0644\u060c \u0628\u06cc\u062a\u200c\u06a9\u0648\u06cc\u0646 \u0648\u0627\u0644\u062e \u0627\u0633\u062a\u062e\u0631\u0627\u062c\u200c\u0634\u062f\u0647 \u0631\u0648\u0632 (\u067e\u0627\u062f\u0627\u0634 \u0628\u0644\u0627\u0643) \u0631\u0648\u06cc \u0628\u0646\u0627\u0628\u0631 \u0639\u0644\u0627\u0645 \u0641\u0639\u0644\u06cc \u0631\u0648\u06cc \u0646\u0645\u0648\u062f\u0627\u0631 \u0646\u0645\u0627\u06cc\u0634 \u062f\u0627\u062f\u0647 \u0645\u06cc\u200c\u0634\u0648\u062f. \u0646\u0645\u0627\u06cc\u0646\u062f\u0647 \u062a\u0648\u0644\u06cc\u062f \u0646\u0648 \u0648\u0627\u0631\u062f \u0628\u0627\u0632\u0627\u0631 \u2014 \u0645\u0627\u0646\u0646\u062f \u062c\u0631\u064a\u0627\u0646 \u0639\u0631\u0636\u0647 \u0643\u0627\u0644\u0627.";
+    if(document.getElementById("f10")) document.getElementById("f10").textContent = "\u0627\u0633\u062a\u062e\u0631\u0627\u062c(\u0631\u0648\u0632) = \u0639\u0631\u0636\u0647_\u06a9\u0644(\u0631\u0648\u0632) \u2212 \u0639\u0631\u0636\u0647_\u06a9\u0644(\u0631\u0648\u0632-1)";
   } else {
     box.querySelector("#explainTitle").textContent = "Understanding SOPD";
     h3s[0].textContent = "Spent Output Price Distribution (SOPD)";
