@@ -409,9 +409,32 @@ var T = {
     totalCoindays: "\u7dcf\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba ", totalValuedays: "\u7dcf\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba ",
     cdProfit: "CD \u542b\u307f\u76ca: ", cdLoss: "CD \u640d\u5931: ",
     vdProfit: "VD \u542b\u307f\u76ca: ", vdLoss: "VD \u640d\u5931: ",
-    langBtn: "EN",
+    langBtn: "FR",
     notFound: "\u6b63\u78ba\u306a\u65e5\u4ed8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3002\u6700\u5bc4\u308a: ", errBRK: "BRK \u304c localhost:3110 \u3067\u5b9f\u884c\u4e2d\u304b\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044",
     sth: "\u77ed\u671f\u4fdd\u6709\u8005", lth: "\u9577\u671f\u4fdd\u6709\u8005", profitLoss: "\u640d\u76ca", spot: "\u73fe\u5728\u4fa1\u683c"
+  },
+  fr: {
+    loading: "Chargement...", loadingDates: "Chargement des dates...",
+    statusLoaded: " jours charg\u00e9s. Gauche/Droite ou A/D naviguer | 1-4 intervalle | Z/X/C/V fen\u00eatre glissante | Haut/Bas ou W/S basculer vue | D\u00e9but/Fin premier/dernier",
+    landmarks: "Rep\u00e8res", cycleLandmarks: "Rep\u00e8res de cycle", top: "Sommet", bottom: "Creux", pl: "P/P", lthsth: "LTH/STH",
+    binsLabel: "Classes",
+    titleUSD: "URPD (pond\u00e9r\u00e9 en USD) au ", titleUSDCohort: "URPD (pond\u00e9r\u00e9 en USD) par Cohorte au ",
+    titleBTC: "URPD (pond\u00e9r\u00e9 en BTC) au ", titleBTCCohort: "URPD (pond\u00e9r\u00e9 en BTC) par Cohorte au ",
+    priceUSD: "Prix [USD]", usdInvested: "USD Investi", btcSupply: "Offre BTC", pctTotal: "Pourcentage du Total",
+    realisedCap: "Cap. R\u00e9alis\u00e9e ", lthRC: "Cap. R\u00e9alis\u00e9e LTH ", sthRC: "Cap. R\u00e9alis\u00e9e STH ",
+    totalSupply: "Offre Totale ", lthSupply: "Offre LTH ", sthSupply: "Offre STH ",
+    inProfit: "En Profit ", inLoss: "En Perte ", source: "Source : n\u0153ud BRK local",
+    poweredBy: "Propuls\u00e9 par <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> & <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a>",
+    hoverPrice: "Prix : $", hoverPctTotal: "Pourcentage du Total : ", usdProfit: "USD Investi en Profit : ", usdLoss: "USD Investi en Perte : ", btcProfit: "Offre BTC en Profit : ", btcLoss: "Offre BTC en Perte : ",
+    titleCD: "URPD (pond\u00e9r\u00e9 en Coindays) au ", titleCDCohort: "URPD (pond\u00e9r\u00e9 en Coindays) par Cohorte au ",
+    titleVD: "URPD (pond\u00e9r\u00e9 en Valuedays) au ", titleVDCohort: "URPD (pond\u00e9r\u00e9 en Valuedays) par Cohorte au ",
+    coindays: "Coindays (BTC\u00b7jours)", valuedays: "Valuedays (USD\u00b7jours)",
+    totalCoindays: "Total Coindays ", totalValuedays: "Total Valuedays ",
+    cdProfit: "Coindays en Profit : ", cdLoss: "Coindays en Perte : ",
+    vdProfit: "Valuedays en Profit : ", vdLoss: "Valuedays en Perte : ",
+    langBtn: "EN",
+    notFound: "Date exacte introuvable, affichage du plus proche : ", errBRK: "Assurez-vous que BRK tourne sur localhost:3110",
+    sth: "D\u00e9tenteurs \u00e0 Court Terme", lth: "D\u00e9tenteurs \u00e0 Long Terme", profitLoss: "Profit/Perte", spot: "Spot"
   }
 };
 
@@ -422,9 +445,9 @@ function applyLang() {
   if(document.getElementById("footer")) document.getElementById("footer").innerHTML = t("poweredBy");
   document.getElementById("landmarks").options[0].textContent = t("landmarks");
   var lm = document.getElementById("landmarks");
-  var cyc = lang==="zh" ? "周期" : lang==="ja" ? "サイクル" : "Cycle";
-  var tp = lang==="zh" ? "顶部" : lang==="ja" ? "天井" : "Top";
-  var bt = lang==="zh" ? "底部" : lang==="ja" ? "底" : "Bottom";
+  var cyc = lang==="zh" ? "周期" : lang==="ja" ? "サイクル" : lang==="fr" ? "Cycle" : "Cycle";
+  var tp = lang==="zh" ? "顶部" : lang==="ja" ? "天井" : lang==="fr" ? "Sommet" : "Top";
+  var bt = lang==="zh" ? "底部" : lang==="ja" ? "底" : lang==="fr" ? "Creux" : "Bottom";
   var groups = lm.querySelectorAll("optgroup");
   for (var gi = 0; gi < groups.length; gi++) {
     groups[gi].label = cyc + " " + (5-gi);
@@ -433,7 +456,7 @@ function applyLang() {
       var v = opts[oi].value;
       var parts = v.split("-");
       var d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-      var mon = lang==="zh" ? (d.getMonth()+1)+"月" : lang==="ja" ? (d.getMonth()+1)+"月" : d.toLocaleString("en",{month:"short"});
+      var mon = lang==="zh" ? (d.getMonth()+1)+"月" : lang==="ja" ? (d.getMonth()+1)+"月" : lang==="fr" ? d.toLocaleString("fr",{month:"short"}) : d.toLocaleString("en",{month:"short"});
       var yr = d.getFullYear();
       var price = opts[oi].textContent.match(/\(.*\)/);
       price = price ? " " + price[0] : "";
@@ -1169,7 +1192,7 @@ function renderChart(data) {
   var annotations = [
     {xref:"paper",yref:"paper",x:0.02,y:0.98,text:annText,showarrow:false,align:"left",font:{size:13,family:FONT}},
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@renshuBTC</span>",showarrow:false,font:{family:FONT}},
-    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
+    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : lang==="fr" ? "Propuls\u00e9 par Bitcoin Research Kit & Bitcoin Core. Inspir\u00e9 par @_Checkonchain" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
   if (yClipped) {
     annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at 99th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
@@ -1251,9 +1274,9 @@ function renderChart(data) {
     if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},text:["p = BTC Price"],textposition:"bottom center",textfont:{color:"rgba(155,155,155,0.45)",size:11,family:FONT},hoverinfo:"skip",showlegend:false});}
     if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(155,155,155,0.3)",width:1,dash:"dot"}});}
     // Cycle landmark markers on price chart
-    var cyc2=lang==="zh"?"周期":lang==="ja"?"サイクル":"Cycle";
-    var tp2=lang==="zh"?"顶部":lang==="ja"?"天井":"Top";
-    var bt2=lang==="zh"?"底部":lang==="ja"?"底":"Bottom";
+    var cyc2=lang==="zh"?"周期":lang==="ja"?"サイクル":lang==="fr"?"Cycle":"Cycle";
+    var tp2=lang==="zh"?"顶部":lang==="ja"?"天井":lang==="fr"?"Sommet":"Top";
+    var bt2=lang==="zh"?"底部":lang==="ja"?"底":lang==="fr"?"Creux":"Bottom";
     var LANDMARKS=[
       {d:"2011-06-08",p:32,l:cyc2+" 1 "+tp2,top:true},
       {d:"2011-11-18",p:2,l:cyc2+" 1 "+bt2,top:false},
@@ -1383,6 +1406,7 @@ document.getElementById("btnFlow").onclick = function(){ window.location.href = 
 document.getElementById("langBtn").onclick = function(){
   if (lang === "en") lang = "zh";
   else if (lang === "zh") lang = "ja";
+  else if (lang === "ja") lang = "fr";
   else lang = "en";
   applyLang();
 };
@@ -1733,6 +1757,35 @@ function updateExplainerLang() {
     if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { UTXO | UTXO\u5e74\u9f84 < 155 \u5929 }";
     if(document.getElementById("f6")) document.getElementById("f6").textContent = "\u76c8\u5229% = \u03a3 W(P)\uff0c\u5176\u4e2d P \u2264 \u73b0\u4ef7 / \u03a3 W(P) \u00d7 100";
     if(document.getElementById("f7")) document.getElementById("f7").textContent = "\u4fe1\u53f7\u89e6\u53d1\u6761\u4ef6: \u4e8f\u635f% \u2265 \u9608\u503c (\u9ed8\u8ba4 80%)";
+  } else if (lang === "fr") {
+    box.querySelector("#explainTitle").textContent = "Comprendre l'URPD";
+    h3s[0].textContent = "Distribution des Prix R\u00e9alis\u00e9s des UTXO (URPD)";
+    descs[0].textContent = "Affiche la distribution de l'offre de Bitcoin par le prix auquel chaque UTXO a \u00e9t\u00e9 d\u00e9plac\u00e9 pour la derni\u00e8re fois. Chaque barre repr\u00e9sente le volume de BTC dont le co\u00fbt de base se situe dans cette tranche de prix.";
+    h3s[1].textContent = "URPD (pond\u00e9r\u00e9 en USD) \u2014 Richesse Investie";
+    descs[1].textContent = "Pond\u00e8re chaque UTXO par sa valeur en dollars au moment de l'acquisition. Montre o\u00f9 le capital est concentr\u00e9.";
+    h3s[2].textContent = "URPD (pond\u00e9r\u00e9 en BTC) \u2014 Distribution de l'Offre";
+    descs[2].textContent = "Affiche l'offre brute de BTC \u00e0 chaque prix de co\u00fbt de base, sans pond\u00e9ration en dollars.";
+    h3s[3].textContent = "URPD (pond\u00e9r\u00e9 en CD) \u2014 Coindays Stock\u00e9s";
+    descs[3].textContent = "Pond\u00e8re chaque UTXO par BTC \u00d7 jours d\u00e9tenus. Met en valeur les positions anciennes et volumineuses. Bas\u00e9 sur le cadre Cointime Economics (Puell & Check, 2023).";
+    h3s[4].textContent = "URPD (pond\u00e9r\u00e9 en VD) \u2014 Valuedays Stock\u00e9s";
+    descs[4].textContent = "Pond\u00e8re chaque UTXO par capitalisation r\u00e9alis\u00e9e \u00d7 jours d\u00e9tenus. Combine la conviction en dollars avec le temps de d\u00e9tention.";
+    h3s[5].textContent = "Capitalisation R\u00e9alis\u00e9e (Realized Cap)";
+    descs[5].textContent = "La valeur totale de tous les UTXO \u00e9valu\u00e9s au prix de leur dernier mouvement. Contrairement \u00e0 la capitalisation boursi\u00e8re, elle refl\u00e8te le co\u00fbt de base agr\u00e9g\u00e9 de l'ensemble de l'offre.";
+    h3s[6].textContent = "D\u00e9tenteurs \u00e0 Long Terme (LTH)";
+    descs[6].textContent = "UTXO n'ayant pas boug\u00e9 depuis \u2265 155 jours. Repr\u00e9sente les d\u00e9tenteurs convaincus et les accumulateurs \u00e0 long terme.";
+    h3s[7].textContent = "D\u00e9tenteurs \u00e0 Court Terme (STH)";
+    descs[7].textContent = "UTXO ayant boug\u00e9 au cours des 155 derniers jours. Repr\u00e9sente les acheteurs r\u00e9cents, les traders et les sp\u00e9culateurs.";
+    h3s[8].textContent = "Offre en Profit / Perte";
+    descs[8].textContent = "Au niveau du prix spot, le pourcentage de richesse investie (USD) ou d'offre (BTC) dont le co\u00fbt de base est inf\u00e9rieur au spot est \u00ab en profit \u00bb ; au-dessus du spot est \u00ab en perte \u00bb.";
+    if(document.getElementById("f1")) document.getElementById("f1").textContent = "Richesse Investie(P) = P \u00b7 S(P)";
+    if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 utxo.valeur  o\u00f9 utxo.prix \u2208 [P, P + \u0394P)";
+    if(document.getElementById("f8")) document.getElementById("f8").textContent = "CD(P) = \u03a3 (offre_par_tranche_d'\u00e2ge \u00d7 jours_m\u00e9dians)  par classe de prix P";
+    if(document.getElementById("f9")) document.getElementById("f9").textContent = "VD(P) = \u03a3 (cap_r\u00e9alis\u00e9e_par_tranche_d'\u00e2ge \u00d7 jours_m\u00e9dians)  par classe de prix P";
+    if(document.getElementById("f3")) document.getElementById("f3").textContent = "CR = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62  pour toutes les classes de prix i";
+    if(document.getElementById("f4")) document.getElementById("f4").textContent = "LTH = { utxo | \u00e2ge(utxo) \u2265 155 jours }";
+    if(document.getElementById("f5")) document.getElementById("f5").textContent = "STH = { utxo | \u00e2ge(utxo) < 155 jours }";
+    if(document.getElementById("f6")) document.getElementById("f6").textContent = "Profit % = \u03a3 W(P) pour P \u2264 Spot  /  \u03a3 W(P) \u00d7 100";
+    if(document.getElementById("f7")) document.getElementById("f7").textContent = "Signal quand : Perte% \u2265 Seuil (d\u00e9faut 80%)";
   } else {
     box.querySelector("#explainTitle").textContent = "Understanding URPD";
     h3s[0].textContent = "UTXO Realized Price Distribution (URPD)";
