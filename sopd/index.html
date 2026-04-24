@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bitcoin SOPD History - @renshuBTC</title>
+<title>Bitcoin SOPD (Spent Output Price Distribution) History - @renshuBTC</title>
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
@@ -201,14 +201,14 @@
   </select>
   <div class="ctrl-sep"></div>
   <div class="mode-toggle">
-    <button id="btnPL" class="active">P/L</button>
-    <button id="btnSplit">LTH/STH</button>
+    <button id="btnPL" class="active" title="Profit / Loss">P/L</button>
+    <button id="btnSplit" title="Long-Term Holders / Short-Term Holders">LTH/STH</button>
   </div>
   <div class="mode-toggle">
-    <button id="btnUSD" class="active">USD</button>
-    <button id="btnBTC">BTC</button>
-    <button id="btnVD">VD</button>
-    <button id="btnCD">CD</button>
+    <button id="btnUSD" class="active" title="United States Dollar">USD</button>
+    <button id="btnBTC" title="Bitcoin">BTC</button>
+    <button id="btnVD" title="Valuedays">VD</button>
+    <button id="btnCD" title="Coindays">CD</button>
   </div>
   <div class="ctrl-sep"></div>
   <div id="minedWrap" style="display:flex;align-items:center;gap:5px;font-size:11px;height:28px;">
@@ -225,7 +225,7 @@
     <button id="btnFlow" class="active">Flow</button>
   </div>
   <div id="explainWrap"><button id="explainBtn">?</button><div id="explainPanel">
-<h2 id="explainTitle">Understanding SOPD</h2>
+<h2 id="explainTitle">Understanding <span title="Spent Output Price Distribution">SOPD</span></h2>
 
 <h3>Spent Output Price Distribution (SOPD)</h3>
 <div class="desc">Shows the distribution of Bitcoin's spent outputs by the price at which each output was originally acquired. Each bar represents how much BTC (or USD value) was spent from that cost-basis price range on a given day. Derived by differencing consecutive URPD snapshots: supply that disappeared from a price bin = spent from that bin.</div>
