@@ -682,18 +682,28 @@ function prefetchAdjacent() {
   });
 }
 
+var loadingTimer = null; // delayed spinner
+function showLoading() {
+  if (loadingTimer) clearTimeout(loadingTimer);
+  loadingTimer = setTimeout(function(){ $loading.style.display = "block"; }, 150);
+}
+function hideLoading() {
+  if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
+  $loading.style.display = "none";
+}
+
 function loadAndRender() {
   var dateStr = allDates[currentIdx];
   var thisGen = ++renderGeneration;
-  $loading.style.display = "block";
   var isCD = (weightMode === "cd" || weightMode === "vd");
   var isDelta = rollingWindow > 1;
   var cacheKey = dateStr + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
   if (cache[cacheKey]) {
     renderChart(cache[cacheKey]);
-    $loading.style.display = "none";
+    hideLoading();
     return;
   }
+  showLoading();
 
   // Build initial fetch list
   var initFetches = [fetchJSON(BASE + "/api/urpd/all/" + dateStr)];
@@ -704,7 +714,7 @@ function loadAndRender() {
   if (isDelta) {
     if (lookbackIdx < 0 || lookbackIdx >= currentIdx) {
       document.getElementById("status").textContent = "Not enough history for " + rollingWindow + "D window";
-      $loading.style.display = "none";
+      hideLoading();
       return;
     }
     initFetches.push(fetchJSON(BASE + "/api/urpd/all/" + prevDateStr));
@@ -877,12 +887,12 @@ function loadAndRender() {
     if (thisGen !== renderGeneration) return; // stale — user already navigated away
     cache[cacheKey] = data;
     renderChart(data);
-    $loading.style.display = "none";
+    hideLoading();
     prefetchAdjacent();
   }).catch(function(e) {
     if (thisGen !== renderGeneration) return;
     document.getElementById("status").textContent = "Error: " + e.message;
-    $loading.style.display = "none";
+    hideLoading();
   });
 }
 
@@ -1558,6 +1568,22 @@ async function init() {
       console.warn("Realized price series not available, will use per-date accumulation:", e.message);
     }
     loadAndRender();
+    // Aggressive initial prefetch: warm the cache for first-time viewers
+    // Stagger fetches so the first render isn't starved of bandwidth
+    setTimeout(function() {
+      var PREFETCH_DEPTH = 10;
+      for (var d = 1; d <= PREFETCH_DEPTH; d++) {
+        (function(offset) {
+          // Small stagger: 50ms between each wave
+          setTimeout(function() {
+            var prevI = currentIdx - offset * stepSize;
+            var nextI = currentIdx + offset * stepSize;
+            if (prevI >= 0) fetchJSON(BASE + "/api/urpd/all/" + allDates[prevI]).catch(function(){});
+            if (nextI < allDates.length) fetchJSON(BASE + "/api/urpd/all/" + allDates[nextI]).catch(function(){});
+          }, offset * 50);
+        })(d);
+      }
+    }, 300); // wait 300ms after first render before starting prefetch burst
   } catch (e) {
     document.getElementById("dateDisplay").textContent = "Error: " + e.message;
     document.getElementById("status").textContent = t("errBRK");
