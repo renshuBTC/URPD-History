@@ -300,7 +300,7 @@
   document.body.classList.add("ready");
 })();
 </script>
-<div id="status">Keyboard Controls: Left/Right or A/D navigate | 1-4 interval | Z/X/C/V rolling window | Up/Down or W/S toggle view | Home/End first/last | Space Stock/Flow</div>
+<div id="status">Keyboard Controls: 1-4 interval | Z/X/C/V rolling window | Left/Right or A/D or Scroll navigate | Up/Down or W/S toggle view | Home/End first/last | Spacebar Stock/Flow</div>
 <div id="chart"></div>
 <div id="loading">Loading...</div>
 <script>
@@ -364,7 +364,7 @@ var AGE_BANDS = [
 var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
-    statusLoaded: "Keyboard Controls: Left/Right or A/D navigate | 1-4 interval | Z/X/C/V rolling window | Up/Down or W/S toggle view | Home/End first/last | Space Stock/Flow",
+    statusLoaded: "Keyboard Controls: 1-4 interval | Z/X/C/V rolling window | Left/Right or A/D or Scroll navigate | Up/Down or W/S toggle view | Home/End first/last | Spacebar Stock/Flow",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
     binsLabel: "Bins",
     titleUSD: "SOPD (USD-weighted) as of ", titleUSDCohort: "SOPD (USD-weighted) by Cohort as of ",
@@ -396,7 +396,7 @@ var T = {
   },
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
-    statusLoaded: "键盘控制: 左/右/A/D 导航 | 1-4 间隔 | Z/X/C/V 滚动窗口 | 上/下/W/S 切换视图 | Home/End 首/末 | 空格 Stock/Flow",
+    statusLoaded: "键盘控制: 1-4 间隔 | Z/X/C/V 滚动窗口 | 左/右/A/D/滚轮 导航 | 上/下/W/S 切换视图 | Home/End 首/末 | 空格键 Stock/Flow",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
     binsLabel: "\u533a\u95f4",
     titleUSD: "SOPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "SOPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
@@ -428,7 +428,7 @@ var T = {
   },
   ja: {
     loading: "\u8aad\u307f\u8fbc\u307f\u4e2d...", loadingDates: "\u65e5\u4ed8\u3092\u8aad\u307f\u8fbc\u307f\u4e2d...",
-    statusLoaded: "キーボード操作: 左/右/A/D ナビゲーション | 1-4 間隔 | Z/X/C/V ローリングウィンドウ | 上/下/W/S 表示切替 | Home/End 最初/最後 | Space Stock/Flow",
+    statusLoaded: "キーボード操作: 1-4 間隔 | Z/X/C/V ローリングウィンドウ | 左/右/A/D/スクロール ナビゲーション | 上/下/W/S 表示切替 | Home/End 最初/最後 | スペース Stock/Flow",
     landmarks: "\u30e9\u30f3\u30c9\u30de\u30fc\u30af", cycleLandmarks: "\u30b5\u30a4\u30af\u30eb\u30e9\u30f3\u30c9\u30de\u30fc\u30af", top: "\u5929\u4e95", bottom: "\u5e95", pl: "\u640d\u76ca", lthsth: "\u9577/\u77ed\u671f",
     binsLabel: "\u30d3\u30f3",
     titleUSD: "SOPD (\u7c73\u30c9\u30eb\u52a0\u91cd) ", titleUSDCohort: "SOPD (\u7c73\u30c9\u30eb\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
@@ -460,7 +460,7 @@ var T = {
   },
   fr: {
     loading: "Chargement...", loadingDates: "Chargement des dates...",
-    statusLoaded: "Raccourcis clavier: Gauche/Droite ou A/D naviguer | 1-4 intervalle | Z/X/C/V fenêtre glissante | Haut/Bas ou W/S basculer vue | Début/Fin premier/dernier | Espace Stock/Flow",
+    statusLoaded: "Raccourcis clavier: 1-4 intervalle | Z/X/C/V fenêtre glissante | Gauche/Droite ou A/D ou Molette naviguer | Haut/Bas ou W/S basculer vue | Début/Fin premier/dernier | Espace Stock/Flow",
     landmarks: "Repères", cycleLandmarks: "Repères de cycle", top: "Sommet", bottom: "Creux", pl: "P/P", lthsth: "LTH/STH",
     binsLabel: "Classes",
     titleUSD: "SOPD (USD-pondéré) au ", titleUSDCohort: "SOPD (USD-pondéré) par Cohorte au ",
@@ -492,7 +492,7 @@ var T = {
   },
   fa: {
     loading: "در حال بارگذاری...", loadingDates: "در حال بارگذاری تاریخ‌ها...",
-    statusLoaded: "کلیدهای میانبر: چپ/راست یا A/D ناوبری | 1-4 فاصله | Z/X/C/V پنجره متحرک | بالا/پایین یا W/S تغییر نما | Home/End اول/آخر | Space Stock/Flow",
+    statusLoaded: "کلیدهای میانبر: 1-4 فاصله | Z/X/C/V پنجره متحرک | چپ/راست/A/D/اسکرول ناوبری | بالا/پایین/W/S تغییر نما | Home/End اول/آخر | فاصله Stock/Flow",
     landmarks: "نقاط عطف", cycleLandmarks: "نقاط عطف چرخه", top: "سقف", bottom: "کف", pl: "سود/زیان", lthsth: "بلندمدت/کوتاه‌مدت",
     binsLabel: "سطل‌ها",
     titleUSD: "SOPD (وزن‌دهی دلار) تا ", titleUSDCohort: "SOPD (وزن‌دهی دلار) بر اساس گروه تا ",
