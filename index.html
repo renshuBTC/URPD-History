@@ -213,7 +213,7 @@
     <div id="dateDropdown" style="display:none;position:absolute;top:100%;left:0;width:200px;max-height:320px;overflow-y:auto;background:#111111;border:1px solid #555;z-index:500;scrollbar-width:thin;scrollbar-color:#555 #111111;border-radius:2px;"></div>
   </div>
   <select id="landmarks">
-    <option value="">Landmarks</option>
+    <option value="">CYCLE TOP/BTM</option>
     <optgroup label="Cycle 5"><option value="2025-10-06">Top: Oct 2025 ($126,198)</option></optgroup>
     <optgroup label="Cycle 4"><option value="2021-11-10">Top: Nov 2021 ($69,000)</option><option value="2022-11-21">Bottom: Nov 2022 ($15,476)</option></optgroup>
     <optgroup label="Cycle 3"><option value="2017-12-17">Top: Dec 2017 ($19,783)</option><option value="2018-12-15">Bottom: Dec 2018 ($3,122)</option></optgroup>
@@ -437,7 +437,7 @@ var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: "Keyboard Controls: 1-4 interval | Z/X/C/V rolling window | Left/Right or A/D or Scroll navigate | Up/Down or W/S toggle view | Home/End first/last | Spacebar Stock/Flow",
-    landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
     binsLabel: "Bins",
     titleUSD: "UTXO Realized Price Distribution (USD-weighted) as of ", titleUSDCohort: "UTXO Realized Price Distribution (USD-weighted) by Cohort as of ",
     titleBTC: "UTXO Realized Price Distribution (BTC-weighted) as of ", titleBTCCohort: "UTXO Realized Price Distribution (BTC-weighted) by Cohort as of ",
@@ -466,7 +466,7 @@ var T = {
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: "键盘控制: 1-4 间隔 | Z/X/C/V 滚动窗口 | 左/右/A/D/滚轮 导航 | 上/下/W/S 切换视图 | Home/End 首/末 | 空格键 Stock/Flow",
-    landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
     binsLabel: "\u533a\u95f4",
     titleUSD: "UTXO Realized Price Distribution (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "UTXO Realized Price Distribution (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "UTXO Realized Price Distribution (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "UTXO Realized Price Distribution (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
@@ -495,7 +495,7 @@ var T = {
   ja: {
     loading: "\u8aad\u307f\u8fbc\u307f\u4e2d...", loadingDates: "\u65e5\u4ed8\u3092\u8aad\u307f\u8fbc\u307f\u4e2d...",
     statusLoaded: "キーボード操作: 1-4 間隔 | Z/X/C/V ローリングウィンドウ | 左/右/A/D/スクロール ナビゲーション | 上/下/W/S 表示切替 | Home/End 最初/最後 | スペース Stock/Flow",
-    landmarks: "\u30e9\u30f3\u30c9\u30de\u30fc\u30af", cycleLandmarks: "\u30b5\u30a4\u30af\u30eb\u30e9\u30f3\u30c9\u30de\u30fc\u30af", top: "\u5929\u4e95", bottom: "\u5e95", pl: "\u640d\u76ca", lthsth: "\u9577/\u77ed\u671f",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "\u30b5\u30a4\u30af\u30eb\u30e9\u30f3\u30c9\u30de\u30fc\u30af", top: "\u5929\u4e95", bottom: "\u5e95", pl: "\u640d\u76ca", lthsth: "\u9577/\u77ed\u671f",
     binsLabel: "\u30d3\u30f3",
     titleUSD: "UTXO Realized Price Distribution (\u7c73\u30c9\u30eb\u52a0\u91cd) ", titleUSDCohort: "UTXO Realized Price Distribution (\u7c73\u30c9\u30eb\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
     titleBTC: "UTXO Realized Price Distribution (BTC\u52a0\u91cd) ", titleBTCCohort: "UTXO Realized Price Distribution (BTC\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
@@ -524,7 +524,7 @@ var T = {
   fr: {
     loading: "Chargement...", loadingDates: "Chargement des dates...",
     statusLoaded: "Raccourcis clavier: 1-4 intervalle | Z/X/C/V fenêtre glissante | Gauche/Droite ou A/D ou Molette naviguer | Haut/Bas ou W/S basculer vue | Début/Fin premier/dernier | Espace Stock/Flow",
-    landmarks: "Rep\u00e8res", cycleLandmarks: "Rep\u00e8res de cycle", top: "Sommet", bottom: "Creux", pl: "P/P", lthsth: "LTH/STH",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "Rep\u00e8res de cycle", top: "Sommet", bottom: "Creux", pl: "P/P", lthsth: "LTH/STH",
     binsLabel: "Classes",
     titleUSD: "UTXO Realized Price Distribution (pond\u00e9r\u00e9 en USD) au ", titleUSDCohort: "UTXO Realized Price Distribution (pond\u00e9r\u00e9 en USD) par Cohorte au ",
     titleBTC: "UTXO Realized Price Distribution (pond\u00e9r\u00e9 en BTC) au ", titleBTCCohort: "UTXO Realized Price Distribution (pond\u00e9r\u00e9 en BTC) par Cohorte au ",
@@ -553,7 +553,7 @@ var T = {
   fa: {
     loading: "\u062f\u0631 \u062d\u0627\u0644 \u0628\u0627\u0631\u06af\u0630\u0627\u0631\u06cc...", loadingDates: "\u0628\u0627\u0631\u06af\u0630\u0627\u0631\u06cc \u062a\u0627\u0631\u06cc\u062e\u200c\u0647\u0627...",
     statusLoaded: "کلیدهای میانبر: 1-4 فاصله | Z/X/C/V پنجره متحرک | چپ/راست/A/D/اسکرول ناوبری | بالا/پایین/W/S تغییر نما | Home/End اول/آخر | فاصله Stock/Flow",
-    landmarks: "\u0646\u0634\u0627\u0646\u0647\u200c\u0647\u0627", cycleLandmarks: "\u0646\u0634\u0627\u0646\u0647\u200c\u0647\u0627\u06cc \u0686\u0631\u062e\u0647", top: "\u0633\u0642\u0641", bottom: "\u06a9\u0641", pl: "\u0633\u0648\u062f/\u0632\u06cc\u0627\u0646", lthsth: "LTH/STH",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "\u0646\u0634\u0627\u0646\u0647\u200c\u0647\u0627\u06cc \u0686\u0631\u062e\u0647", top: "\u0633\u0642\u0641", bottom: "\u06a9\u0641", pl: "\u0633\u0648\u062f/\u0632\u06cc\u0627\u0646", lthsth: "LTH/STH",
     binsLabel: "\u06a9\u0644\u0627\u0633\u200c\u0647\u0627",
     titleUSD: "UTXO Realized Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u062f\u0644\u0627\u0631\u06cc) \u062a\u0627 ", titleUSDCohort: "UTXO Realized Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u062f\u0644\u0627\u0631\u06cc) \u0628\u0631 \u0627\u0633\u0627\u0633 \u06a9\u0648\u0647\u0648\u0631\u062a \u062a\u0627 ",
     titleBTC: "UTXO Realized Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc BTC) \u062a\u0627 ", titleBTCCohort: "UTXO Realized Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc BTC) \u0628\u0631 \u0627\u0633\u0627\u0633 \u06a9\u0648\u0647\u0648\u0631\u062a \u062a\u0627 ",
