@@ -1400,7 +1400,11 @@ function renderChart(data) {
       traces.push({x:lmD,y:lmP,type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:lmC,size:10,symbol:lmS,line:{color:"rgba(0,0,0,0.5)",width:1}},text:lmT,textposition:lmD.map(function(_,i){return lmS[i]==="triangle-down"?"top center":"bottom center";}),textfont:{color:lmC,size:9,family:"Source Code Pro, Consolas, monospace"},hoverinfo:"skip",showlegend:false});
     }
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
-    layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
+    var pMin=pP.reduce(function(a,b){return a<b?a:b},pP[0]);
+    var pMax=pP.reduce(function(a,b){return a>b?a:b},pP[0]);
+    var logMin=Math.log10(pMin),logMax=Math.log10(pMax);
+    var logSpan=logMax-logMin;
+    layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false,range:[logMin-logSpan*1.2,logMax+logSpan*0.1]};
   }
   var plotConfig = {responsive:true, displayModeBar: !isPort};
   if (isMob) { plotConfig.scrollZoom = false; plotConfig.staticPlot = true; }
