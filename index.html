@@ -244,6 +244,7 @@
   <div id="explainWrap"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding <span title="UTXO Realized Price Distribution">URPD</span></h2>
 
+<div id="explainStock">
 <h3>UTXO Realized Price Distribution (URPD)</h3>
 <div class="desc">Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved. Each bar represents how much BTC has its cost basis in that price range.</div>
 
@@ -283,6 +284,51 @@
 <div class="desc">When set to 1D (default), shows the standard URPD snapshot. When set to 7D/30D/90D, switches to delta mode: shows the net redistribution of supply over that period. Green bars = supply accumulated at that price bin. Red bars = supply left that bin. Computed as URPD(day) − URPD(day−N) per bin. Useful for tracking where capital is flowing in/out over institutional reporting periods.</div>
 <div class="formula" id="f11">ΔURPD(day, P) = URPD(day, P) − URPD(day−N, P)
 Positive = accumulation  |  Negative = distribution</div>
+</div>
+<div id="explainFlow" style="display:none">
+<h3>Spent Output Price Distribution (SOPD)</h3>
+<div class="desc">Shows the distribution of Bitcoin's spent outputs by the price at which each output was originally acquired. Each bar represents how much BTC (or USD value) was spent from that cost-basis price range on a given day. Derived by differencing consecutive URPD snapshots: supply that disappeared from a price bin = spent from that bin.</div>
+
+<h3>SOPD (USD-weighted) &mdash; Spent Invested Wealth</h3>
+<div class="desc">Weights each spent output by its dollar value at original acquisition. Shows where realized capital was concentrated.</div>
+<div class="formula">Spent Wealth(P) = P &middot; S_spent(P)</div>
+
+<h3>SOPD (BTC-weighted) &mdash; Spent Supply Distribution</h3>
+<div class="desc">Shows raw BTC volume of spent outputs at each cost-basis price, unweighted by dollar value.</div>
+<div class="formula">S_spent(P) = &Sigma; spent_output.value where output.price &isin; [P, P + &Delta;P)</div>
+
+<h3>SOPD (CD-weighted) &mdash; Spent Coindays</h3>
+<div class="desc">Weights each spent output by BTC &times; days held before spending. Emphasizes old, large positions that were liquidated. Based on the Cointime Economics framework (Puell & Check, 2023).</div>
+<div class="formula">CD_spent(P) = &Sigma; (spent_supply_in_age_band &times; midpoint_days) per price bin P</div>
+
+<h3>SOPD (VD-weighted) &mdash; Spent Valuedays</h3>
+<div class="desc">Weights each spent output by realized_cap &times; days held before spending. Combines dollar conviction with holding time for spent outputs.</div>
+<div class="formula">VD_spent(P) = &Sigma; (spent_realized_cap_in_age_band &times; midpoint_days) per price bin P</div>
+
+<h3>Realized Cap of Spent</h3>
+<div class="desc">The total value of all spent outputs priced at their original acquisition price. Represents the aggregate cost basis of all outputs that moved on that day.</div>
+<div class="formula">RC_spent = &Sigma;<sub>i</sub> P<sub>i</sub> &middot; S<sub>i</sub> for all price bins i</div>
+
+<h3>Long-Term Holders (LTH)</h3>
+<div class="desc">Spent outputs that had been held for &ge; 155 days before being spent. Represents conviction holders and long-term accumulators selling.</div>
+<div class="formula">LTH = { spent_output | age(output) &ge; 155 days }</div>
+
+<h3>Short-Term Holders (STH)</h3>
+<div class="desc">Spent outputs that had been held for &lt; 155 days before being spent. Represents recent buyers, traders, and speculators selling.</div>
+<div class="formula">STH = { spent_output | age(output) &lt; 155 days }</div>
+
+<h3>Spent in Profit / Loss</h3>
+<div class="desc">Percentage of spent invested wealth (USD) or spent supply (BTC) with cost basis below/above spot price at time of spending.</div>
+<div class="formula">Profit % = &Sigma; W_spent(P) for P &le; Spot / &Sigma; W_spent(P) &times; 100</div>
+
+<h3>Newly Mined Coins</h3>
+<div class="desc">When enabled, overlays the day's newly mined Bitcoin (block rewards) on the histogram at the spot price bin. Derived from total supply change: mined = total_supply(day) - total_supply(day-1). Represents new production entering the market.</div>
+<div class="formula">Mined(day) = Total_Supply(day) - Total_Supply(day-1)</div>
+
+<h3>Rolling Window</h3>
+<div class="desc">Aggregates spent output flow over N days instead of a single day. A 7D window shows all supply that moved from each cost-basis bin over the past week. Larger windows smooth daily noise and reveal structural capital flows.</div>
+<div class="formula">SOPD_N(day, P) = URPD(day-N, P) - URPD(day, P)</div>
+</div>
 </div></div>
   <button id="langBtn">中文</button>
 </div>
@@ -304,6 +350,10 @@ Positive = accumulation  |  Negative = distribution</div>
   if (rw) {
     var rwN = parseInt(rw);
     document.querySelectorAll("#windowBar .wv").forEach(function(b){ b.classList.toggle("active", parseInt(b.getAttribute("data-w"))===rwN); });
+  }
+  if (p.get("view") === "flow") {
+    document.getElementById("btnStock").classList.remove("active");
+    document.getElementById("btnFlow").classList.add("active");
   }
   if (p.get("lang")) {
     var btnMap = {zh:"\u4e2d\u6587",ja:"\u65e5\u672c\u8a9e",fr:"\u0641\u0627\u0631\u0633\u06cc",fa:"EN",en:"\u4e2d\u6587"};
@@ -337,6 +387,7 @@ var LTH_COLOR = "#5599ff";
 var STH_COLOR = "#e6a817";
 var CUMUL_COLOR = "rgba(38,198,218,0.7)";
 var SPOT_COLOR = "#ff8c00";
+var MINED_COLOR = "#ffff00"; // Bloomberg yellow — pops against green/red
 
 var FONT = "'Source Code Pro', Consolas, monospace";
 
@@ -349,6 +400,8 @@ var showCumulative = true;
 var splitMode = false;
 var coinMode = false;
 var weightMode = "usd"; // "usd", "btc", "cd", "vd"
+var viewMode = "stock"; // "stock" or "flow"
+var includeMined = true;
 var cache = {};
 var spotCache = {};
 var lang = "en";
@@ -528,7 +581,86 @@ var T = {
   }
 };
 
-function t(key) { return T[lang][key] || T.en[key] || key; }
+function t(key) {
+  if (viewMode === "flow" && T_FLOW[lang] && T_FLOW[lang][key]) return T_FLOW[lang][key];
+  if (viewMode === "flow" && T_FLOW.en[key]) return T_FLOW.en[key];
+  return T[lang][key] || T.en[key] || key;
+}
+
+// SOPD (Flow) translation overrides — keys that differ from Stock (URPD)
+var T_FLOW = {
+  en: {
+    titleUSD: "Spent Output Price Distribution (USD-weighted) as of ", titleUSDCohort: "Spent Output Price Distribution (USD-weighted) by Cohort as of ",
+    titleBTC: "Spent Output Price Distribution (BTC-weighted) as of ", titleBTCCohort: "Spent Output Price Distribution (BTC-weighted) by Cohort as of ",
+    titleCD: "Spent Output Price Distribution (Coindays-weighted) as of ", titleCDCohort: "Spent Output Price Distribution (Coindays-weighted) by Cohort as of ",
+    titleVD: "Spent Output Price Distribution (Valuedays-weighted) as of ", titleVDCohort: "Spent Output Price Distribution (Valuedays-weighted) by Cohort as of ",
+    usdInvested: "Spent Wealth (USD)", btcSupply: "Spent (BTC)",
+    realisedCap: "Spent Realised Cap ", lthRC: "LTH Spent RC ", sthRC: "STH Spent RC ",
+    totalSupply: "Total Spent ", lthSupply: "LTH Spent ", sthSupply: "STH Spent ",
+    totalCoindays: "Total Spent Coindays ", totalValuedays: "Total Spent Valuedays ",
+    minedLabel: "Newly Mined Coins", minedAnn: "Mined ", minedCheckLabel: "Newly Mined Coins",
+    tipURPD: "Spent Output Price Distribution",
+    realizedPrice: "Spent Price",
+    tracerRP: "Spent Price = \u03a3p\u00b7SOPD(p) / \u03a3SOPD(p)"
+  },
+  zh: {
+    titleUSD: "Spent Output Price Distribution (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "Spent Output Price Distribution (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
+    titleBTC: "Spent Output Price Distribution (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "Spent Output Price Distribution (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
+    titleCD: "Spent Output Price Distribution (\u5e01\u5929\u52a0\u6743) \u622a\u81f3 ", titleCDCohort: "Spent Output Price Distribution (\u5e01\u5929\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
+    titleVD: "Spent Output Price Distribution (\u4ef7\u503c\u5929\u52a0\u6743) \u622a\u81f3 ", titleVDCohort: "Spent Output Price Distribution (\u4ef7\u503c\u5929\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
+    usdInvested: "\u82b1\u8d39\u8d22\u5bcc (USD)", btcSupply: "\u82b1\u8d39\u91cf (BTC)",
+    realisedCap: "\u82b1\u8d39\u5df2\u5b9e\u73b0\u5e02\u503c ", lthRC: "\u957f\u671f\u6301\u6709\u8005\u82b1\u8d39RC ", sthRC: "\u77ed\u671f\u6301\u6709\u8005\u82b1\u8d39RC ",
+    totalSupply: "\u603b\u82b1\u8d39\u91cf ", lthSupply: "\u957f\u671f\u6301\u6709\u8005\u82b1\u8d39 ", sthSupply: "\u77ed\u671f\u6301\u6709\u8005\u82b1\u8d39 ",
+    totalCoindays: "\u603b\u82b1\u8d39\u5e01\u5929 ", totalValuedays: "\u603b\u82b1\u8d39\u4ef7\u503c\u5929 ",
+    minedLabel: "\u65b0\u6316\u5e01", minedAnn: "\u65b0\u6316 ", minedCheckLabel: "\u65b0\u6316\u5e01",
+    tipURPD: "\u82b1\u8d39\u8f93\u51fa\u4ef7\u683c\u5206\u5e03",
+    realizedPrice: "\u82b1\u8d39\u4ef7\u683c",
+    tracerRP: "\u82b1\u8d39\u4ef7\u683c = \u03a3p\u00b7SOPD(p) / \u03a3SOPD(p)"
+  },
+  ja: {
+    titleUSD: "Spent Output Price Distribution (\u7c73\u30c9\u30eb\u52a0\u91cd) ", titleUSDCohort: "Spent Output Price Distribution (\u7c73\u30c9\u30eb\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
+    titleBTC: "Spent Output Price Distribution (BTC\u52a0\u91cd) ", titleBTCCohort: "Spent Output Price Distribution (BTC\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
+    titleCD: "Spent Output Price Distribution (\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba\u52a0\u91cd) ", titleCDCohort: "Spent Output Price Distribution (\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
+    titleVD: "Spent Output Price Distribution (\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba\u52a0\u91cd) ", titleVDCohort: "Spent Output Price Distribution (\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
+    usdInvested: "\u6d88\u8cbb\u8cc7\u7523 (USD)", btcSupply: "\u6d88\u8cbb\u91cf (BTC)",
+    realisedCap: "\u6d88\u8cbb\u5b9f\u73fe\u6642\u4fa1 ", lthRC: "LTH \u6d88\u8cbb RC ", sthRC: "STH \u6d88\u8cbb RC ",
+    totalSupply: "\u7dcf\u6d88\u8cbb\u91cf ", lthSupply: "LTH \u6d88\u8cbb ", sthSupply: "STH \u6d88\u8cbb ",
+    totalCoindays: "\u7dcf\u6d88\u8cbb\u30b3\u30a4\u30f3\u30c7\u30a4\u30ba ", totalValuedays: "\u7dcf\u6d88\u8cbb\u30d0\u30ea\u30e5\u30fc\u30c7\u30a4\u30ba ",
+    minedLabel: "\u65b0\u898f\u63a1\u6398\u30b3\u30a4\u30f3", minedAnn: "\u63a1\u6398 ", minedCheckLabel: "\u65b0\u898f\u63a1\u6398\u30b3\u30a4\u30f3",
+    tipURPD: "\u6d88\u8cbb\u51fa\u529b\u4fa1\u683c\u5206\u5e03",
+    realizedPrice: "\u6d88\u8cbb\u4fa1\u683c",
+    tracerRP: "\u6d88\u8cbb\u4fa1\u683c = \u03a3p\u00b7SOPD(p) / \u03a3SOPD(p)"
+  },
+  fr: {
+    titleUSD: "Spent Output Price Distribution (USD-pond\u00e9r\u00e9) au ", titleUSDCohort: "Spent Output Price Distribution (USD-pond\u00e9r\u00e9) par Cohorte au ",
+    titleBTC: "Spent Output Price Distribution (BTC-pond\u00e9r\u00e9) au ", titleBTCCohort: "Spent Output Price Distribution (BTC-pond\u00e9r\u00e9) par Cohorte au ",
+    titleCD: "Spent Output Price Distribution (Coindays-pond\u00e9r\u00e9) au ", titleCDCohort: "Spent Output Price Distribution (Coindays-pond\u00e9r\u00e9) par Cohorte au ",
+    titleVD: "Spent Output Price Distribution (Valuedays-pond\u00e9r\u00e9) au ", titleVDCohort: "Spent Output Price Distribution (Valuedays-pond\u00e9r\u00e9) par Cohorte au ",
+    usdInvested: "Richesse D\u00e9pens\u00e9e (USD)", btcSupply: "D\u00e9pens\u00e9 (BTC)",
+    realisedCap: "Cap. D\u00e9pens\u00e9e ", lthRC: "Cap. D\u00e9pens\u00e9e LTH ", sthRC: "Cap. D\u00e9pens\u00e9e STH ",
+    totalSupply: "Total D\u00e9pens\u00e9 ", lthSupply: "LTH D\u00e9pens\u00e9 ", sthSupply: "STH D\u00e9pens\u00e9 ",
+    totalCoindays: "Total Coindays D\u00e9pens\u00e9 ", totalValuedays: "Total Valuedays D\u00e9pens\u00e9 ",
+    minedLabel: "Pi\u00e8ces R\u00e9cemment Min\u00e9es", minedAnn: "Min\u00e9 ", minedCheckLabel: "Pi\u00e8ces R\u00e9cemment Min\u00e9es",
+    tipURPD: "Distribution des Prix D\u00e9pens\u00e9s des Sorties",
+    realizedPrice: "Prix D\u00e9pens\u00e9",
+    tracerRP: "Prix D\u00e9pens\u00e9 = \u03a3p\u00b7SOPD(p) / \u03a3SOPD(p)"
+  },
+  fa: {
+    titleUSD: "Spent Output Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u062f\u0644\u0627\u0631) \u062a\u0627 ", titleUSDCohort: "Spent Output Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u062f\u0644\u0627\u0631) \u0628\u0631 \u0627\u0633\u0627\u0633 \u06af\u0631\u0648\u0647 \u062a\u0627 ",
+    titleBTC: "Spent Output Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u0628\u06cc\u062a\u200c\u06a9\u0648\u06cc\u0646) \u062a\u0627 ", titleBTCCohort: "Spent Output Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u0628\u06cc\u062a\u200c\u06a9\u0648\u06cc\u0646) \u0628\u0631 \u0627\u0633\u0627\u0633 \u06af\u0631\u0648\u0647 \u062a\u0627 ",
+    titleCD: "Spent Output Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u0631\u0648\u0632\u0647\u0627\u06cc \u0633\u06a9\u0647) \u062a\u0627 ", titleCDCohort: "Spent Output Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u0631\u0648\u0632\u0647\u0627\u06cc \u0633\u06a9\u0647) \u0628\u0631 \u0627\u0633\u0627\u0633 \u06af\u0631\u0648\u0647 \u062a\u0627 ",
+    titleVD: "Spent Output Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u0631\u0648\u0632\u0647\u0627\u06cc \u0627\u0631\u0632\u0634) \u062a\u0627 ", titleVDCohort: "Spent Output Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u0631\u0648\u0632\u0647\u0627\u06cc \u0627\u0631\u0632\u0634) \u0628\u0631 \u0627\u0633\u0627\u0633 \u06af\u0631\u0648\u0647 \u062a\u0627 ",
+    usdInvested: "\u062b\u0631\u0648\u062a \u062e\u0631\u062c\u200c\u0634\u062f\u0647 (USD)", btcSupply: "\u062e\u0631\u062c\u200c\u0634\u062f\u0647 (BTC)",
+    realisedCap: "\u0633\u0631\u0645\u0627\u06cc\u0647 \u062e\u0631\u062c\u200c\u0634\u062f\u0647 ", lthRC: "\u0633\u0631\u0645\u0627\u06cc\u0647 \u062e\u0631\u062c\u200c\u0634\u062f\u0647 \u0628\u0644\u0646\u062f\u0645\u062f\u062a ", sthRC: "\u0633\u0631\u0645\u0627\u06cc\u0647 \u062e\u0631\u062c\u200c\u0634\u062f\u0647 \u06a9\u0648\u062a\u0627\u0647\u200c\u0645\u062f\u062a ",
+    totalSupply: "\u06a9\u0644 \u062e\u0631\u062c\u200c\u0634\u062f\u0647 ", lthSupply: "\u0628\u0644\u0646\u062f\u0645\u062f\u062a \u062e\u0631\u062c\u200c\u0634\u062f\u0647 ", sthSupply: "\u06a9\u0648\u062a\u0627\u0647\u200c\u0645\u062f\u062a \u062e\u0631\u062c\u200c\u0634\u062f\u0647 ",
+    totalCoindays: "\u06a9\u0644 \u0631\u0648\u0632\u0647\u0627\u06cc \u0633\u06a9\u0647 \u062e\u0631\u062c\u200c\u0634\u062f\u0647 ", totalValuedays: "\u06a9\u0644 \u0631\u0648\u0632\u0647\u0627\u06cc \u0627\u0631\u0632\u0634 \u062e\u0631\u062c\u200c\u0634\u062f\u0647 ",
+    minedLabel: "\u0633\u06a9\u0647\u200c\u0647\u0627\u06cc \u062a\u0627\u0632\u0647\u200c\u0627\u0633\u062a\u062e\u0631\u0627\u062c\u200c\u0634\u062f\u0647", minedAnn: "\u0627\u0633\u062a\u062e\u0631\u0627\u062c\u200c\u0634\u062f\u0647 ", minedCheckLabel: "\u0633\u06a9\u0647\u200c\u0647\u0627\u06cc \u062a\u0627\u0632\u0647\u200c\u0627\u0633\u062a\u062e\u0631\u0627\u062c\u200c\u0634\u062f\u0647",
+    tipURPD: "\u062a\u0648\u0632\u06cc\u0639 \u0642\u06cc\u0645\u062a \u062e\u0631\u0648\u062c\u06cc\u200c\u0647\u0627\u06cc \u062e\u0631\u062c\u200c\u0634\u062f\u0647",
+    realizedPrice: "\u0642\u06cc\u0645\u062a \u062e\u0631\u062c\u200c\u0634\u062f\u0647",
+    tracerRP: "\u0642\u06cc\u0645\u062a \u062e\u0631\u062c\u200c\u0634\u062f\u0647 = \u03a3p\u00b7SOPD(p) / \u03a3SOPD(p)"
+  }
+};
+
 
 function applyLang() {
   document.getElementById("langBtn").textContent = t("langBtn");
@@ -570,6 +702,19 @@ function applyLang() {
   if (urpdSpan) urpdSpan.title = t("tipURPD");
   document.getElementById("btnStock").textContent = t("stock");
   document.getElementById("btnFlow").textContent = t("flow");
+  // Update explain panel visibility based on viewMode
+  var stockPanel = document.getElementById("explainStock");
+  var flowPanel = document.getElementById("explainFlow");
+  if (stockPanel && flowPanel) {
+    stockPanel.style.display = viewMode === "stock" ? "block" : "none";
+    flowPanel.style.display = viewMode === "flow" ? "block" : "none";
+  }
+  // Update explain title
+  var explainSpan = document.querySelector("#explainTitle span");
+  if (explainSpan) {
+    explainSpan.textContent = viewMode === "flow" ? "SOPD" : "URPD";
+    explainSpan.title = viewMode === "flow" ? "Spent Output Price Distribution" : "UTXO Realized Price Distribution";
+  }
   loadAndRender();
 }
 
@@ -655,6 +800,31 @@ function deltaAgg(aggPrev, aggCurr) {
     }
   });
   result.sort(function(a,b){ return a.price - b.price; });
+  return result;
+}
+
+// Derive SOPD by diffing two URPD snapshots (prev - curr).
+// Supply that disappeared from a price bin = spent from that bin.
+// Only keep positive diffs (negative = new supply arriving, not spent).
+function diffAgg(aggPrev, aggCurr) {
+  var prevMap = {};
+  aggPrev.forEach(function(b) { prevMap[b.price] = b; });
+  var currMap = {};
+  aggCurr.forEach(function(b) { currMap[b.price] = b; });
+  var allPrices = new Set();
+  aggPrev.forEach(function(b) { allPrices.add(b.price); });
+  aggCurr.forEach(function(b) { allPrices.add(b.price); });
+  var result = [];
+  allPrices.forEach(function(p) {
+    var prev = prevMap[p] || { supply: 0, invested: 0 };
+    var curr = currMap[p] || { supply: 0, invested: 0 };
+    var dSup = prev.supply - curr.supply;
+    var dInv = prev.invested - curr.invested;
+    if (dSup > 0) {
+      result.push({ price: p, supply: dSup, invested: dInv > 0 ? dInv : dSup * p });
+    }
+  });
+  result.sort(function(a, b) { return a.price - b.price; });
   return result;
 }
 
@@ -829,8 +999,9 @@ function loadAndRender() {
   var dateStr = allDates[currentIdx];
   var thisGen = ++renderGeneration;
   var isCD = (weightMode === "cd" || weightMode === "vd");
-  var isDelta = rollingWindow > 1;
-  var cacheKey = dateStr + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
+  var isFlow = (viewMode === "flow");
+  var isDelta = !isFlow && rollingWindow > 1;
+  var cacheKey = dateStr + "_" + viewMode + "_" + weightMode + (splitMode ? "_split" : "_pl") + (isFlow && includeMined ? "_mined" : "") + "_w" + rollingWindow;
   if (cache[cacheKey]) {
     renderChart(cache[cacheKey]);
     hideLoading();
@@ -838,41 +1009,121 @@ function loadAndRender() {
   }
   showLoading();
 
-  // Build initial fetch list
-  var initFetches = [fetchJSON(BASE + "/api/urpd/all/" + dateStr)];
-
-  // For delta mode (rolling window > 1D), also fetch the lookback snapshot
-  var lookbackIdx = isDelta ? findLookbackIdx(currentIdx, rollingWindow) : -1;
-  var prevDateStr = isDelta ? allDates[lookbackIdx] : null;
-  if (isDelta) {
+  // Flow mode always diffs two snapshots; Stock mode only diffs when rollingWindow > 1
+  var needsDiff = isFlow || isDelta;
+  var lookbackIdx = needsDiff ? findLookbackIdx(currentIdx, rollingWindow) : -1;
+  var prevDateStr = needsDiff ? allDates[lookbackIdx] : null;
+  if (needsDiff) {
     if (lookbackIdx < 0 || lookbackIdx >= currentIdx) {
-      document.getElementById("status").textContent = "Not enough history for " + rollingWindow + "D window";
+      document.getElementById("status").textContent = isFlow
+        ? "Cannot compute SOPD: not enough history for " + rollingWindow + "D window"
+        : "Not enough history for " + rollingWindow + "D window";
       hideLoading();
       return;
     }
+  }
+
+  // Build initial fetch list
+  var initFetches = [fetchJSON(BASE + "/api/urpd/all/" + dateStr)];
+  if (needsDiff) {
     initFetches.push(fetchJSON(BASE + "/api/urpd/all/" + prevDateStr));
   }
 
   Promise.all(initFetches).then(function(initResults) {
     var resp = initResults[0];
-    var respPrev = isDelta ? initResults[1] : null;
+    var respPrev = needsDiff ? initResults[1] : null;
     var buckets = resp.buckets;
     var spot = resp.close || getSpotFromCache(dateStr);
     if (resp.close) spotCache[dateStr] = resp.close;
     var maxPrice = buckets.reduce(function(a,b){return b.price_floor>a?b.price_floor:a;},0);
     var binWidth = maxPrice / NUM_BINS;
-    var windowLabel = isDelta ? "  [" + rollingWindow + "D]" : "";
+    var windowLabel = (isDelta || (isFlow && rollingWindow > 1)) ? "  [" + rollingWindow + "D]" : "";
     var dispText = dateStr + "  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A") + windowLabel;
     $dateDisplay.textContent = dispText;
 
-    var data = { dateStr: dateStr, spot: spot, binWidth: binWidth, maxPrice: maxPrice, buckets: buckets, weightMode: weightMode, deltaMode: isDelta, rollingWindow: rollingWindow };
+    var data = { dateStr: dateStr, spot: spot, binWidth: binWidth, maxPrice: maxPrice, buckets: buckets, weightMode: weightMode, deltaMode: isDelta, isFlow: isFlow, rollingWindow: rollingWindow };
     data.realizedCap = buckets.reduce(function(s,b){return s+b.realized_cap;}, 0);
     data.totalSupply = resp.total_supply || buckets.reduce(function(s,b){return s+b.supply;}, 0);
 
     // Build chain of additional fetches
     var fetches = [];
 
-    if (isDelta) {
+    if (isFlow) {
+      // Flow mode: SOPD = supply that left each price bin (prev - curr, positive only)
+      var diffFn = diffAgg;
+      if (isCD) {
+        // For CD/VD: fetch age cohorts for both days, diff each, then weight by age
+        var ageFetches = [];
+        AGE_BANDS.forEach(function(band) {
+          ageFetches.push(fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + dateStr).catch(function(){ return null; }));
+          ageFetches.push(fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + prevDateStr).catch(function(){ return null; }));
+        });
+        fetches.push(Promise.all(ageFetches).then(function(ageResults) {
+          var ageDiffData = [];
+          for (var ai = 0; ai < AGE_BANDS.length; ai++) {
+            var currResp = ageResults[ai * 2];
+            var prevResp2 = ageResults[ai * 2 + 1];
+            if (!currResp || !prevResp2) continue;
+            var aggC = aggregate(currResp.buckets, binWidth);
+            var aggP = aggregate(prevResp2.buckets, binWidth);
+            var diffed = diffAgg(aggP, aggC);
+            ageDiffData.push({ mid: AGE_BANDS[ai].mid, buckets: diffed });
+          }
+          data.aggAll = aggregateAgeBands(ageDiffData, binWidth, weightMode);
+          data.totalCD = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
+          data.realizedCap = data.totalCD;
+          data.totalSupply = data.aggAll.reduce(function(s,b){return s+b.supply;}, 0);
+          if (splitMode) {
+            var sthBands = ageDiffData.filter(function(r){ return r.mid < 155; });
+            var lthBands = ageDiffData.filter(function(r){ return r.mid >= 155; });
+            data.aggSTH = aggregateAgeBands(sthBands, binWidth, weightMode);
+            data.aggLTH = aggregateAgeBands(lthBands, binWidth, weightMode);
+            data.sthCD = data.aggSTH.reduce(function(s,b){return s+b.invested;}, 0);
+            data.lthCD = data.aggLTH.reduce(function(s,b){return s+b.invested;}, 0);
+          }
+        }));
+      } else {
+        // Standard USD/BTC flow: diff the all-cohort URPD
+        var aggCurrF = aggregate(buckets, binWidth);
+        var aggPrevF = aggregate(respPrev.buckets, binWidth);
+        data.aggAll = diffAgg(aggPrevF, aggCurrF);
+        data.realizedCap = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
+        data.totalSupply = data.aggAll.reduce(function(s,b){return s+b.supply;}, 0);
+        if (splitMode) {
+          fetches.push(Promise.all([
+            fetchJSON(BASE + "/api/urpd/lth/" + dateStr),
+            fetchJSON(BASE + "/api/urpd/lth/" + prevDateStr),
+            fetchJSON(BASE + "/api/urpd/sth/" + dateStr),
+            fetchJSON(BASE + "/api/urpd/sth/" + prevDateStr)
+          ]).then(function(res) {
+            var lthCurr = aggregate(res[0].buckets, binWidth);
+            var lthPrev = aggregate(res[1].buckets, binWidth);
+            var sthCurr = aggregate(res[2].buckets, binWidth);
+            var sthPrev = aggregate(res[3].buckets, binWidth);
+            data.aggLTH = diffAgg(lthPrev, lthCurr);
+            data.aggSTH = diffAgg(sthPrev, sthCurr);
+            data.lthRC = data.aggLTH.reduce(function(s,b){return s+b.invested;},0);
+            data.sthRC = data.aggSTH.reduce(function(s,b){return s+b.invested;},0);
+            data.lthSup = data.aggLTH.reduce(function(s,b){return s+b.supply;},0);
+            data.sthSup = data.aggSTH.reduce(function(s,b){return s+b.supply;},0);
+          }).catch(function(e) {
+            console.warn("Flow cohort fetch failed", e);
+            data.aggLTH = null; data.aggSTH = null;
+          }));
+        }
+      }
+      // Newly mined coins: total_supply diff between days
+      if (includeMined && spot && spot > 0) {
+        var minedBTC = (resp.total_supply || 0) - (respPrev.total_supply || 0);
+        if (minedBTC > 0) {
+          var minedBinIdx = Math.floor(spot / binWidth);
+          var minedBinPrice = (minedBinIdx + 0.5) * binWidth;
+          data.minedBTC = minedBTC;
+          data.minedBinPrice = minedBinPrice;
+          data.minedInvested = minedBTC * spot;
+        }
+      }
+    } else if (isDelta) {
       // Delta mode: compute per-bin change between lookback and current
       var aggCurr = aggregate(buckets, binWidth);
       var aggPrev = aggregate(respPrev.buckets, binWidth);
@@ -1054,6 +1305,7 @@ function renderChart(data) {
   var isCD = (wm === "cd");
   var isVD = (wm === "vd");
   var isDelta = data.deltaMode || false;
+  var isFlow = data.isFlow || false;
 
   var statusEl = $status;
   statusEl.textContent = t("statusLoaded");
@@ -1120,13 +1372,13 @@ function renderChart(data) {
       var totalCV = cdVals.reduce(function(s,v){return s+Math.abs(v);},0) || 1;
       var runCV = 0;
       var cumulCV = cdVals.map(function(v){runCV+=Math.abs(v);return 100*runCV/totalCV;});
-      var colorsCV = isDelta
+      var colorsCV = (isDelta && !isFlow)
         ? cdVals.map(function(v){return v >= 0 ? PROFIT_COLOR : LOSS_COLOR;})
         : (spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";}));
       var hoverUnit = isCD ? "CD" : "VD";
       var hoverFmt = isVD ? "%{y:$,.0f}" : "%{y:,.0f}";
-      var deltaLabel = isDelta ? "Δ " : "";
-      traces.push({x:chartPrices,y:cdVals,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colorsCV,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + deltaLabel + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      var deltaLabel = (isDelta && !isFlow) ? "Δ " : "";
+      traces.push({x:chartPrices,y:cdVals,type:"bar",name:(isDelta&&!isFlow)?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colorsCV,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + deltaLabel + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:showCumulative?true:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = cdVals;
     } else if (isCoin) {
@@ -1134,10 +1386,10 @@ function renderChart(data) {
       var total2 = supplyVals.reduce(function(s,v){return s+Math.abs(v);},0) || 1;
       var run2 = 0;
       var cumul2 = supplyVals.map(function(v){run2+=Math.abs(v);return 100*run2/total2;});
-      var colors2 = isDelta
+      var colors2 = (isDelta && !isFlow)
         ? supplyVals.map(function(v){return v >= 0 ? PROFIT_COLOR : LOSS_COLOR;})
         : (spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";}));
-      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colors2,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+(isDelta?"Δ ":"")+"BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:(isDelta&&!isFlow)?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colors2,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+((isDelta&&!isFlow)?"Δ ":"")+"BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:showCumulative?true:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
@@ -1145,18 +1397,46 @@ function renderChart(data) {
       var total3 = invested.reduce(function(s,v){return s+Math.abs(v);},0) || 1;
       var run3 = 0;
       var cumul3 = invested.map(function(v){run3+=Math.abs(v);return 100*run3/total3;});
-      var colors3 = isDelta
+      var colors3 = (isDelta && !isFlow)
         ? invested.map(function(v){return v >= 0 ? PROFIT_COLOR : LOSS_COLOR;})
         : (spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";}));
-      traces.push({x:chartPrices,y:invested,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colors3,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+(isDelta?"Δ ":"")+"USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:invested,type:"bar",name:(isDelta&&!isFlow)?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colors3,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+((isDelta&&!isFlow)?"Δ ":"")+"USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:showCumulative?true:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
   }
 
+  // Add mined-coins bar if enabled (Flow mode only)
+  if (isFlow && data.minedBTC && data.minedBinPrice) {
+    var minedVal;
+    if (isCD || isVD) {
+      minedVal = 0; // Newly mined coins have age ~0 days, so CD/VD contribution = 0
+    } else if (isCoin) {
+      minedVal = data.minedBTC;
+    } else {
+      minedVal = data.minedInvested;
+    }
+    if (minedVal > 0) {
+      var minedHover = isCoin
+        ? (hp + "%{x:,.0f}<br>" + t("minedLabel") + ": %{y:,.2f} BTC<extra></extra>")
+        : (hp + "%{x:,.0f}<br>" + t("minedLabel") + ": %{y:$,.0f}<extra></extra>");
+      traces.push({
+        x: [data.minedBinPrice], y: [minedVal], type: "bar", name: t("minedLabel"),
+        width: [binWidth * 3],
+        marker: { color: MINED_COLOR, line: { width: 2, color: "#ffffff" } },
+        opacity: 0.92,
+        hovertemplate: minedHover
+      });
+      var minedIdx = chartPrices.indexOf(data.minedBinPrice);
+      if (minedIdx >= 0) {
+        valuesForAxis[minedIdx] += minedVal;
+      }
+    }
+  }
+
   var maxVal = valuesForAxis.reduce(function(a,b){return Math.abs(a)>Math.abs(b)?a:b},0);
   maxVal = Math.abs(maxVal);
-  var minVal = isDelta ? valuesForAxis.reduce(function(a,b){return a<b?a:b},0) : 0;
+  var minVal = (isDelta && !isFlow) ? valuesForAxis.reduce(function(a,b){return a<b?a:b},0) : 0;
   var yClipped = false;
   if (isCoin || isCD || isVD) {
     var sorted = valuesForAxis.map(function(v){return Math.abs(v);}).filter(function(v){return v>0;}).slice().sort(function(a,b){return a-b;});
@@ -1255,7 +1535,7 @@ function renderChart(data) {
     }
   }
   if (spot && spot > 0 && !isSplit) {
-    if (isDelta) {
+    if (isDelta && !isFlow) {
       // In delta mode, show net accumulated vs distributed
       var netAccum = 0, netDistrib = 0;
       valuesForAxis.forEach(function(v){
@@ -1273,10 +1553,15 @@ function renderChart(data) {
       annText += "<br><span style='color:" + LOSS_COLOR + "'>" + t("inLoss") + (100-profitPct).toFixed(1) + "%</span>";
     }
   }
+  // Mined coins annotation (Flow mode)
+  if (isFlow && data.minedBTC) {
+    annText += "<br><span style='color:" + MINED_COLOR + "'>" + t("minedAnn") + fmtBTC(data.minedBTC) + "</span>";
+  }
 
   var d = new Date(dateStr + "T00:00:00");
   var titleDate = d.toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"});
-  if (isDelta) titleDate += " (" + (data.rollingWindow || rollingWindow) + "-Day Rolling Window Δ)";
+  if (isDelta && !isFlow) titleDate += " (" + (data.rollingWindow || rollingWindow) + "-Day Rolling Window \u0394)";
+  else if (isFlow && rollingWindow > 1) titleDate += " (" + rollingWindow + "-Day Rolling Window)";
   var titleText;
   if (isCD) {
     titleText = isSplit ? "<b>" + t("titleCDCohort") + titleDate + "</b>" : "<b>" + t("titleCD") + titleDate + "</b>";
@@ -1288,7 +1573,7 @@ function renderChart(data) {
     titleText = isSplit ? "<b>" + t("titleUSDCohort") + titleDate + "</b>" : "<b>" + t("titleUSD") + titleDate + "</b>";
   }
 
-  var legendItems = (isSplit ? 2 : 1) + 2; // bars + cumul + btcusd
+  var legendItems = (isSplit ? 2 : 1) + 2 + (isFlow && data.minedBTC && !(isCD||isVD) ? 1 : 0); // bars + cumul + btcusd + mined
   var annY = 0.98 - legendItems * 0.045 - 0.02;
   var shapes = [];
   var annotations = [
@@ -1346,7 +1631,7 @@ function renderChart(data) {
     barmode:isSplit?"stack":"overlay",bargap:0,
     legend:isMob?{visible:false}:{orientation:"v",yanchor:"top",y:0.98,xanchor:"left",x:0.01,font:{family:FONT,size:13,color:"#ccc"},bgcolor:"rgba(0,0,0,0.75)"},
     xaxis:{title:isMob?{text:""}:{text:t("priceUSD"),font:{family:FONT,size:12,color:"#ff8c00"}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.06)",tickfont:{family:FONT,size:isMob?(isLand?8:6):11,color:"#ff8c00"},tickangle:isMob?0:undefined},
-    yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:12,color:"#ff8c00"}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:yRange,showgrid:isDelta,gridcolor:isDelta?"rgba(255,255,255,0.06)":"rgba(0,0,0,0)",tickfont:{family:FONT,size:isMob?7:11,color:"#ff8c00"}},
+    yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:12,color:"#ff8c00"}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:yRange,showgrid:isDelta&&!isFlow,gridcolor:(isDelta&&!isFlow)?"rgba(255,255,255,0.06)":"rgba(0,0,0,0)",tickfont:{family:FONT,size:isMob?7:11,color:"#ff8c00"}},
     yaxis2:{title:isMob||!showCumulative?{text:""}:{text:t("pctTotal"),font:{family:FONT,size:12,color:"#ff8c00"}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:showCumulative,gridcolor:"rgba(255,255,255,0.06)",showticklabels:showCumulative,tickfont:{family:FONT,size:isMob?7:11,color:"#ff8c00"}},
     annotations:annotations,shapes:shapes,
     margin:margins,hovermode:"closest"
@@ -1417,13 +1702,13 @@ function renderChart(data) {
     var clickedName = evtData.data[evtData.curveNumber].name;
     if (clickedName === t("btcusd")) {
       showPriceOverlay = !showPriceOverlay;
-      var ck = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
+      var ck = allDates[currentIdx] + "_" + viewMode + "_" + weightMode + (splitMode ? "_split" : "_pl") + (viewMode==="flow"&&includeMined?"_mined":"") + "_w" + rollingWindow;
       if (cache[ck]) renderChart(cache[ck]); else loadAndRender();
       return false;
     }
     if (clickedName === t("pctTotal")) {
       showCumulative = !showCumulative;
-      var ck = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + "_w" + rollingWindow;
+      var ck = allDates[currentIdx] + "_" + viewMode + "_" + weightMode + (splitMode ? "_split" : "_pl") + (viewMode==="flow"&&includeMined?"_mined":"") + "_w" + rollingWindow;
       if (cache[ck]) renderChart(cache[ck]); else loadAndRender();
       return false;
     }
@@ -1431,7 +1716,8 @@ function renderChart(data) {
 }
 
 function goTo(idx) {
-  idx = Math.max(0, Math.min(allDates.length - 1, idx));
+  var minIdx = (viewMode === "flow") ? 1 : 0;
+  idx = Math.max(minIdx, Math.min(allDates.length - 1, idx));
   if (idx !== currentIdx) {
     navDirection = idx < currentIdx ? -1 : 1;
     currentIdx = idx;
@@ -1471,8 +1757,30 @@ document.getElementById("btnCD").onclick = function(){ setWeight("cd"); };
 document.getElementById("btnVD").onclick = function(){ setWeight("vd"); };
 
 // Stock/Flow navigation
-document.getElementById("btnStock").onclick = function(){ /* already on Stock (URPD) */ };
-document.getElementById("btnFlow").onclick = function(){ navigateTo("sopd/?mode=" + weightMode + "&split=" + (splitMode?1:0) + "&date=" + allDates[currentIdx] + "&iv=" + stepSize + "&rw=" + rollingWindow + "&lang=" + lang); };
+function switchViewMode(mode) {
+  if (viewMode === mode) return;
+  viewMode = mode;
+  cache = {}; // clear cache — different aggregation
+  document.getElementById("btnStock").classList.toggle("active", mode === "stock");
+  document.getElementById("btnFlow").classList.toggle("active", mode === "flow");
+  document.title = mode === "flow" ? "Bitcoin SOPD (Spent Output Price Distribution) History - @renshuBTC" : "Bitcoin URPD (UTXO Realized Price Distribution) History - @renshuBTC";
+  // Update explain panel
+  var stockPanel = document.getElementById("explainStock");
+  var flowPanel = document.getElementById("explainFlow");
+  if (stockPanel && flowPanel) {
+    stockPanel.style.display = mode === "stock" ? "block" : "none";
+    flowPanel.style.display = mode === "flow" ? "block" : "none";
+  }
+  // Enforce min index for flow
+  if (mode === "flow" && currentIdx < 1) currentIdx = 1;
+  // Update URL without reload
+  var url = new URL(window.location);
+  if (mode === "flow") url.searchParams.set("view", "flow"); else url.searchParams.delete("view");
+  window.history.replaceState({}, "", url);
+  loadAndRender();
+}
+document.getElementById("btnStock").onclick = function(){ switchViewMode("stock"); };
+document.getElementById("btnFlow").onclick = function(){ switchViewMode("flow"); };
 
 // Language toggle
 
@@ -1548,7 +1856,7 @@ document.addEventListener("keydown", function(e){
   else if (e.key === "x" || e.key === "X") { e.preventDefault(); setWindow(7); }
   else if (e.key === "c" || e.key === "C") { e.preventDefault(); setWindow(30); }
   else if (e.key === "v" || e.key === "V") { e.preventDefault(); setWindow(90); }
-  else if (e.key === " ") { e.preventDefault(); navigateTo("sopd/?mode=" + weightMode + "&split=" + (splitMode?1:0) + "&date=" + allDates[currentIdx] + "&iv=" + stepSize + "&rw=" + rollingWindow + "&lang=" + lang); }
+  else if (e.key === " ") { e.preventDefault(); switchViewMode(viewMode === "stock" ? "flow" : "stock"); }
 });
 
 function jumpToDate() {
@@ -1667,6 +1975,7 @@ async function init() {
   if (params.get("iv")) { var iv = parseInt(params.get("iv")); var si = STEPS.indexOf(iv); if (si >= 0) setInterval1(si); }
   if (params.get("rw")) { var rw = parseInt(params.get("rw")); if ([1,7,30,90].indexOf(rw) >= 0) { rollingWindow = rw; var wbtns = document.querySelectorAll("#windowBar .wv"); wbtns.forEach(function(b){ b.classList.toggle("active", parseInt(b.getAttribute("data-w")) === rw); }); } }
   if (params.get("lang") && T[params.get("lang")]) { lang = params.get("lang"); }
+  if (params.get("view") === "flow") { viewMode = "flow"; document.getElementById("btnStock").classList.remove("active"); document.getElementById("btnFlow").classList.add("active"); document.title = "Bitcoin SOPD (Spent Output Price Distribution) History - @renshuBTC"; }
   viewIdx = findViewIdx();
   try {
     $dateDisplay.textContent = t("loadingDates");
