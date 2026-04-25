@@ -86,9 +86,6 @@
     #dateInput { width: 100px; font-size: 11px; }
     #landmarks { width: 110px; font-size: 11px; padding: 4px 6px; }
     #dateDropdown { top: auto !important; bottom: 100% !important; max-height: 50vh !important; }
-    #minedWrap { height: 32px; font-size: 10px; }
-    #minedWrap label span { display: none; }
-    #minedWrap label::after { content: "Newly Mined"; color: #999; font-size: 10px; }
     #binWrap { font-size: 10px; gap: 3px; }
     #binWrap label { display: none; }
     #explainWrap { order: 10; }
@@ -212,10 +209,6 @@
     <button id="btnCD" title="Coindays">CD</button>
   </div>
   <div class="ctrl-sep"></div>
-  <div id="minedWrap" style="display:flex;align-items:center;gap:5px;font-size:11px;height:28px;">
-    <label style="cursor:pointer;display:flex;align-items:center;gap:4px;color:#999;white-space:nowrap;"><input type="checkbox" id="minedCheck" style="accent-color:#ff8c00;cursor:pointer;margin:0;"> <span id="minedLabel">Newly Mined Coins</span></label>
-  </div>
-  <div class="ctrl-sep"></div>
   <div id="binWrap" style="display:flex;align-items:center;gap:5px;font-size:11px;">
     <label style="color:#999;">Bins</label>
     <input type="text" id="binInput" value="625" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:0 5px;height:28px;line-height:26px;width:42px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
@@ -330,7 +323,7 @@ var showPriceOverlay = true;
 var splitMode = false;
 var coinMode = false;
 var weightMode = "usd"; // "usd", "btc", "cd", "vd"
-var includeMined = false;
+var includeMined = true;
 var cache = {};
 var spotCache = {};
 var lang = "en";
@@ -555,7 +548,6 @@ function applyLang() {
   $loading.textContent = t("loading");
   var binLabels = document.querySelectorAll("#binWrap label");
   if (binLabels[0]) binLabels[0].textContent = t("binsLabel");
-  document.getElementById("minedLabel").textContent = t("minedCheckLabel");
   document.getElementById("btnPL").title = t("tipPL");
   document.getElementById("btnSplit").title = t("tipLTHSTH");
   document.getElementById("btnUSD").title = t("tipUSD");
@@ -1371,12 +1363,6 @@ document.getElementById("btnUSD").onclick = function(){ setWeight("usd"); };
 document.getElementById("btnBTC").onclick = function(){ setWeight("btc"); };
 document.getElementById("btnCD").onclick = function(){ setWeight("cd"); };
 document.getElementById("btnVD").onclick = function(){ setWeight("vd"); };
-
-document.getElementById("minedCheck").onchange = function(){
-  includeMined = this.checked;
-  cache = {};
-  loadAndRender();
-};
 
 // Stock/Flow navigation
 document.getElementById("btnStock").onclick = function(){ navigateTo("../?mode=" + weightMode + "&split=" + (splitMode?1:0) + "&date=" + allDates[currentIdx] + "&iv=" + stepSize + "&rw=" + rollingWindow + "&lang=" + lang); };
