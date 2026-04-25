@@ -1541,7 +1541,7 @@ async function init() {
   if (params.get("split") === "1") { splitMode = true; document.getElementById("btnPL").classList.remove("active"); document.getElementById("btnSplit").classList.add("active"); }
   if (params.get("iv")) { var iv = parseInt(params.get("iv")); var si = STEPS.indexOf(iv); if (si >= 0) setInterval1(si); }
   if (params.get("rw")) { var rw = parseInt(params.get("rw")); if ([1,7,30,90].indexOf(rw) >= 0) { rollingWindow = rw; var wbtns = document.querySelectorAll("#windowBar .wv"); wbtns.forEach(function(b){ b.classList.toggle("active", parseInt(b.getAttribute("data-w")) === rw); }); } }
-  if (params.get("lang") && T[params.get("lang")]) { lang = params.get("lang"); applyLang(); }
+  if (params.get("lang") && T[params.get("lang")]) { lang = params.get("lang"); }
   viewIdx = findViewIdx();
   try {
     $dateDisplay.textContent = t("loadingDates");
@@ -1562,7 +1562,7 @@ async function init() {
     } catch (e) {
       console.warn("Price array preload failed:", e);
     }
-    loadAndRender();
+    if (lang !== "en") applyLang(); else loadAndRender();
     // Aggressive initial prefetch: bias heavily toward previous dates
     setTimeout(function() {
       var BACK_DEPTH = 30;
