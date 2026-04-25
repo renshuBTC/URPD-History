@@ -926,23 +926,29 @@ function findLookbackIdx(currentIdx, daysBack) {
 // Aggregate age-cohort buckets into CD or VD bins
 function aggregateAgeBands(ageCohortData, binWidth, mode) {
   // ageCohortData: array of {mid, buckets} from each age cohort
+  // buckets may be raw API format ({price_floor, supply, realized_cap})
+  // or pre-aggregated/diffed format ({price, supply, invested})
   var bins = {};
   for (var a = 0; a < ageCohortData.length; a++) {
     var mid = ageCohortData[a].mid;
     var buckets = ageCohortData[a].buckets;
     for (var k = 0; k < buckets.length; k++) {
       var b = buckets[k];
-      var price = b.price_floor;
-      if (isNaN(price) || price === undefined) continue;
-      var binIdx = Math.floor(price / binWidth);
-      var binPrice = (binIdx + 0.5) * binWidth;
+      // Support both raw API buckets (price_floor) and diffAgg/aggregate output (price)
+      var rawPrice = b.price !== undefined ? b.price : b.price_floor;
+      if (isNaN(rawPrice) || rawPrice === undefined) continue;
+      // If data is already binned (from aggregate/diffAgg), use price directly;
+      // otherwise bin the raw price_floor
+      var binPrice = b.price !== undefined ? rawPrice : ((Math.floor(rawPrice / binWidth) + 0.5) * binWidth);
       if (!bins[binPrice]) bins[binPrice] = { price: binPrice, supply: 0, invested: 0 };
+      // invested/realized_cap: support both field names
+      var inv = b.invested !== undefined ? b.invested : b.realized_cap;
       if (mode === "cd") {
         bins[binPrice].supply += b.supply * mid;    // coindays = supply × days
         bins[binPrice].invested += b.supply * mid;   // same for Y-axis
       } else {
-        bins[binPrice].supply += b.realized_cap * mid;  // valuedays = realized_cap × days
-        bins[binPrice].invested += b.realized_cap * mid;
+        bins[binPrice].supply += inv * mid;  // valuedays = invested × days
+        bins[binPrice].invested += inv * mid;
       }
     }
   }
