@@ -1687,7 +1687,7 @@ function renderChart(data) {
   var cohortTitle = isSplit || isAge;
   if (isMob) {
     var abbr = isFlow ? "SOPD" : "URPD";
-    var wt = isCD ? "CD" : isVD ? "VD" : isCoin ? "BTC" : "USD";
+    var wt = isCD ? "Coindays-weighted" : isVD ? "Valuedays-weighted" : isCoin ? "BTC-weighted" : "USD-weighted";
     var cohStr = cohortTitle ? " by Cohort" : "";
     titleText = "<b>" + abbr + " (" + wt + ")" + cohStr + "<br>" + titleDate + "</b>";
   } else if (isCD) {
