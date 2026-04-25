@@ -1418,7 +1418,7 @@ document.getElementById("btnVD").onclick = function(){ setWeight("vd"); };
 
 // Stock/Flow navigation
 document.getElementById("btnStock").onclick = function(){ /* already on Stock (URPD) */ };
-document.getElementById("btnFlow").onclick = function(){ window.location.href = "sopd/"; };
+document.getElementById("btnFlow").onclick = function(){ window.location.href = "sopd/?mode=" + weightMode + "&split=" + (splitMode?1:0) + "&date=" + allDates[currentIdx] + "&iv=" + stepSize + "&rw=" + rollingWindow + "&lang=" + lang; };
 
 // Language toggle
 
@@ -1494,6 +1494,7 @@ document.addEventListener("keydown", function(e){
   else if (e.key === "x" || e.key === "X") { e.preventDefault(); setWindow(7); }
   else if (e.key === "c" || e.key === "C") { e.preventDefault(); setWindow(30); }
   else if (e.key === "v" || e.key === "V") { e.preventDefault(); setWindow(90); }
+  else if (e.key === " ") { e.preventDefault(); window.location.href = "sopd/?mode=" + weightMode + "&split=" + (splitMode?1:0) + "&date=" + allDates[currentIdx] + "&iv=" + stepSize + "&rw=" + rollingWindow + "&lang=" + lang; }
 });
 
 function jumpToDate() {
@@ -1605,11 +1606,20 @@ async function init() {
   $status = document.getElementById("status");
   $dateDisplay = document.getElementById("dateDisplay");
   $loading = document.getElementById("loading");
+  // Restore state from URL params (passed by Stock/Flow navigation)
+  var params = new URLSearchParams(window.location.search);
+  if (params.get("mode") && WEIGHT_MODES.indexOf(params.get("mode")) >= 0) { weightMode = params.get("mode"); coinMode = (weightMode === "btc"); updateWeightButtons(); }
+  if (params.get("split") === "1") { splitMode = true; document.getElementById("btnPL").classList.remove("active"); document.getElementById("btnSplit").classList.add("active"); }
+  if (params.get("iv")) { var iv = parseInt(params.get("iv")); var si = STEPS.indexOf(iv); if (si >= 0) setInterval1(si); }
+  if (params.get("rw")) { var rw = parseInt(params.get("rw")); if ([1,7,30,90].indexOf(rw) >= 0) { rollingWindow = rw; var wbtns = document.querySelectorAll("#windowBar .wv"); wbtns.forEach(function(b){ b.classList.toggle("active", parseInt(b.getAttribute("data-w")) === rw); }); } }
+  if (params.get("lang") && T[params.get("lang")]) { lang = params.get("lang"); applyLang(); }
+  viewIdx = findViewIdx();
   try {
     $dateDisplay.textContent = t("loadingDates");
     allDates = await fetchJSON(BASE + "/api/urpd/all/dates");
     $status.textContent = allDates.length + t("statusLoaded");
     currentIdx = allDates.length - 1;
+    if (params.get("date")) { var di = allDates.indexOf(params.get("date")); if (di >= 0) currentIdx = di; }
     try {
       var priceResp = await fetchJSON(BASE + "/api/series/price_close/day1");
       priceArray = priceResp.data || priceResp;
