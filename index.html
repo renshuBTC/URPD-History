@@ -845,7 +845,7 @@ function loadAndRender() {
     if (resp.close) spotCache[dateStr] = resp.close;
     var maxPrice = buckets.reduce(function(a,b){return b.price_floor>a?b.price_floor:a;},0);
     var binWidth = maxPrice / NUM_BINS;
-    var windowLabel = isDelta ? "  [" + rollingWindow + "D window from " + prevDateStr + "]" : "";
+    var windowLabel = isDelta ? "  [" + rollingWindow + "D]" : "";
     var dispText = dateStr + "  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A") + windowLabel;
     $dateDisplay.textContent = dispText;
 
