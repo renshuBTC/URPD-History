@@ -1699,7 +1699,7 @@ function renderChart(data) {
   }
 
   var legendItems = (isAge ? 23 : isSplit ? 2 : 1) + 2 + (isFlow && data.minedBTC && !(isCD||isVD) ? 1 : 0); // bars + cumul + btcusd + mined
-  var annY = 0.98 - legendItems * 0.045 - 0.02;
+  var annY = isAge ? 0.02 : 0.98 - legendItems * 0.045 - 0.02;
   var shapes = [];
   var annotations = [
     {xref:"paper",yref:"paper",x:0.01,y:annY,text:annText,showarrow:false,align:"left",font:{size:13,family:FONT}},
