@@ -1264,7 +1264,7 @@ function renderChart(data) {
     font:{family:FONT,color:"#ff8c00"},
     paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
     barmode:isSplit?"stack":"overlay",bargap:0,
-    legend:isMob?{visible:false}:{orientation:"v",yanchor:"top",y:0.98,xanchor:"left",x:0.01,font:{family:FONT,size:11},bgcolor:"rgba(10,10,10,0.7)"},
+    legend:isMob?{visible:false}:{orientation:"v",yanchor:"bottom",y:0.02,xanchor:"left",x:0.01,font:{family:FONT,size:11},bgcolor:"rgba(10,10,10,0.7)"},
     xaxis:{title:isMob?{text:""}:{text:t("priceUSD"),font:{family:FONT,size:13}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:isMob?(isLand?8:6):11},tickangle:isMob?0:undefined},
     yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:13}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:isMob?7:11}},
     yaxis2:{title:isMob?{text:""}:{text:t("pctTotal"),font:{family:FONT,size:13}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:isMob?7:11}},
