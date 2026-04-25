@@ -1259,7 +1259,7 @@ function renderChart(data) {
       }
     }
     traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(155,155,155,0.45)":"rgba(0,0,0,0)",width:showPriceOverlay?1.5:0},hoverinfo:"skip",showlegend:true,name:t("btcusd"),visible:true});
-    if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},text:["p = BTC Price"],textposition:"bottom center",textfont:{color:"rgba(155,155,155,0.45)",size:11,family:FONT},hoverinfo:"skip",showlegend:false});}
+    if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
     if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(155,155,155,0.3)",width:1,dash:"dot"}});}
     // Cycle landmark markers on price chart
     var cyc2=lang==="zh"?"\u5468\u671f":lang==="ja"?"\u30b5\u30a4\u30af\u30eb":lang==="fa"?"\u0686\u0631\u062e\u0647":"Cycle";
