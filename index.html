@@ -8,21 +8,21 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
-  body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; height: 100%; opacity: 0; transition: opacity 0.15s ease; }
+  body { background: #000000; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; height: 100%; opacity: 0; transition: opacity 0.15s ease; }
   body.ready { opacity: 1; }
-  #controls { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; background: #1a1a1a; border-bottom: 1px solid #555; }
+  #controls { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; background: #0d0d0d; border-bottom: 1px solid #555; }
   /* Uniform height for all interactive elements: 28px outer */
   #controls button, #controls input, #controls select, #langBtn { height: 28px; font-family: inherit; font-size: 12px; border: 1px solid #555; border-radius: 2px; box-sizing: border-box; vertical-align: middle; }
-  #controls button { background: #252525; color: #d4d4d4; padding: 0 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; line-height: 26px; }
-  #controls button:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
+  #controls button { background: #1a1a1a; color: #d4d4d4; padding: 0 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; line-height: 26px; }
+  #controls button:hover { background: #2a2a2a; color: #ffffff; border-color: #888; }
   /* Grouped containers: interval bar & mode toggles — 28px to match */
-  .mode-toggle { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 28px; align-items: center; }
-  #controls .mode-toggle button { height: 22px; line-height: 20px; padding: 0 8px; font-size: 12px; letter-spacing: 0.5px; background: #1a1a1a; border: 1px solid transparent; border-radius: 2px; color: #d4d4d4; }
-  #controls .mode-toggle button:hover { background: #3a3a3a; color: #fff; border-color: transparent; }
+  .mode-toggle { display: flex; gap: 1px; background: #0d0d0d; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 28px; align-items: center; }
+  #controls .mode-toggle button { height: 22px; line-height: 20px; padding: 0 8px; font-size: 12px; letter-spacing: 0.5px; background: #0d0d0d; border: 1px solid transparent; border-radius: 2px; color: #d4d4d4; }
+  #controls .mode-toggle button:hover { background: #2a2a2a; color: #fff; border-color: transparent; }
   #controls .mode-toggle button.active { background: #ff8c00; color: #000000; border-color: #ff8c00; font-weight: bold; }
   #controls .mode-toggle button.active:hover { background: #ffaa33; }
   #dateDisplay { font-size: 14px; font-weight: bold; color: #ff8c00; white-space: nowrap; text-align: center; padding: 0 2px; min-width: 320px; }
-  #status { display: none; text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
+  #status { display: none; text-align: center; padding: 3px; font-size: 11px; color: #666; background: #080808; border-bottom: 1px solid #222; }
   #status.visible { display: block; }
   #kbBtn { background: #0d1117; color: #8b949e; border: 1px solid #1c2733; padding: 0 7px; height: 28px; line-height: 26px; font-family: inherit; font-size: 11px; font-weight:700; cursor: pointer; border-radius: 2px; letter-spacing: 0.5px; transition: all 0.15s; }
   #kbBtn:hover { background: #161b22; color: #ff8c00; border-color: #ff8c00; }
@@ -33,13 +33,13 @@
     0%, 100% { text-shadow: 0 0 10px #FFE600, 0 0 20px #FFE600, 0 0 40px #FFE600; }
     50% { text-shadow: 0 0 20px #FFE600, 0 0 40px #FFE600, 0 0 80px #FFE600; }
   }
-  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; height: 28px; align-items: center; }
-  #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 0 8px; height: 22px; line-height: 22px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
-  #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
+  #intervalBar { display: flex; gap: 1px; background: #0d0d0d; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; height: 28px; align-items: center; }
+  #intervalBar .iv { background: #0d0d0d; color: #d4d4d4; border: 1px solid transparent; padding: 0 8px; height: 22px; line-height: 22px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
+  #intervalBar .iv:hover { color: #ffffff; background: #2a2a2a; }
   #intervalBar .iv.active { background: #ff8c00; color: #000; font-weight: bold; }
-  #windowBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 28px; align-items: center; }
-  #windowBar .wv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 0 8px; height: 22px; line-height: 22px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
-  #windowBar .wv:hover { color: #ffffff; background: #3a3a3a; }
+  #windowBar { display: flex; gap: 1px; background: #0d0d0d; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 28px; align-items: center; }
+  #windowBar .wv { background: #0d0d0d; color: #d4d4d4; border: 1px solid transparent; padding: 0 8px; height: 22px; line-height: 22px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
+  #windowBar .wv:hover { color: #ffffff; background: #2a2a2a; }
   #windowBar .wv.active { background: #ff8c00; color: #000; font-weight: bold; }
   .wv-label { color: #888; font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 0 4px 0 2px; line-height: 22px; user-select: none; }
   #landmarks { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 0 22px 0 8px; height: 28px; line-height: 26px; font-family: inherit; font-size: 12px; border-radius: 2px; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23999'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
@@ -54,9 +54,9 @@
   #dateDropdown::-webkit-scrollbar-track { background: #141414; }
   #dateDropdown::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
   #dateDropdown .dd-item { padding: 5px 10px; font-family: inherit; font-size: 12px; color: #d4d4d4; cursor: pointer; border-bottom: 1px solid #1a1a1a; }
-  #dateDropdown .dd-item:hover { background: #252525; color: #ff8c00; }
+  #dateDropdown .dd-item:hover { background: #1a1a1a; color: #ff8c00; }
   #dateDropdown .dd-item.dd-current { color: #ff8c00; font-weight: bold; }
-  #dateDropdown .dd-year { padding: 3px 10px; font-size: 10px; color: #555; font-weight: bold; border-bottom: 1px solid #2a2a2a; background: #111; position: sticky; top: 0; z-index: 1; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; }
+  #dateDropdown .dd-year { padding: 3px 10px; font-size: 10px; color: #555; font-weight: bold; border-bottom: 1px solid #2a2a2a; background: #080808; position: sticky; top: 0; z-index: 1; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; }
   #explainBtn { background: #0d1117; color: #8b949e; border: 1px solid #1c2733; padding: 0 7px; height: 28px; line-height: 26px; font-family: inherit; font-size: 11px; font-weight:700; cursor: pointer; border-radius: 2px; letter-spacing: 0.5px; transition: all 0.15s; }
   #explainBtn:hover { background: #161b22; color: #ff8c00; border-color: #ff8c00; }
   #explainWrap { position:relative; display:inline-block; flex-shrink: 0; }
@@ -69,7 +69,7 @@
   #explainPanel .formula { background:#0a0e14; border-left:3px solid #ff8c00; border-top:none; border-right:none; border-bottom:none; border-radius:0; padding:10px 14px; margin:8px 0 12px 0; font-size:12px; color:#ff8c00; white-space:pre-wrap; line-height:1.6; font-family:'Source Code Pro',Consolas,monospace; letter-spacing:0.5px; }
   #explainPanel .desc { color:#8b949e; margin:4px 0 8px 0; font-size:12px; line-height:1.65; font-weight:400; letter-spacing:0.2px; }
   #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 0 8px; height: 28px; line-height: 26px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; flex-shrink: 0; }
-  #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
+  #langBtn:hover { background: #2a2a2a; color: #ffffff; border-color: #888; }
   .ctrl-sep { width: 1px; height: 28px; background: #555; margin: 0 4px; }
   /* ---- Mobile: general (portrait & landscape) ---- */
   @media (max-width: 900px) {
@@ -85,7 +85,7 @@
     .mode-toggle { height: 32px; }
     #controls .mode-toggle button { height: 26px; line-height: 24px; }
     #explainWrap { height: 32px; display: flex; align-items: center; }
-    #controls button:active { background: #3a3a3a; color: #fff; }
+    #controls button:active { background: #2a2a2a; color: #fff; }
     /* Mode toggles: tap flash uses orange */
     #controls .mode-toggle button:active { background: #cc7000; color: #000; }
     /* Interval bar: tap flash uses orange */
@@ -140,7 +140,7 @@
   body.landscape-phone #status { display: none; }
   body.landscape-phone #chart { order: 1; flex: 1; margin: 0 44px; width: calc(100% - 88px) !important; min-height: 0; }
   /* Landscape control bar — 2-row wrap, uniform 24px row height */
-  body.landscape-phone #controls { order: 2; margin: 0 44px; padding: 2px 4px; padding-bottom: max(2px, env(safe-area-inset-bottom)); border-top: 1px solid #555; background: #1a1a1a; display: flex !important; flex-wrap: wrap; align-items: center; justify-content: center; flex-shrink: 0; gap: 2px 5px; }
+  body.landscape-phone #controls { order: 2; margin: 0 44px; padding: 2px 4px; padding-bottom: max(2px, env(safe-area-inset-bottom)); border-top: 1px solid #555; background: #0d0d0d; display: flex !important; flex-wrap: wrap; align-items: center; justify-content: center; flex-shrink: 0; gap: 2px 5px; }
   body.landscape-phone #controls > * { flex-shrink: 0; }
   body.landscape-phone #controls .ctrl-sep { display: none !important; }
   body.landscape-phone #dateDisplay { display: none !important; }
@@ -159,14 +159,14 @@
   /* Orange-value inputs override */
   body.landscape-phone #binWrap input { color: #ff8c00 !important; text-align: center; width: 32px !important; }
   /* Interval bar: 24px container */
-  body.landscape-phone #intervalBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
+  body.landscape-phone #intervalBar { display: flex; align-items: center; gap: 1px; background: #0d0d0d; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
   body.landscape-phone #controls #intervalBar .iv { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
   body.landscape-phone #controls #intervalBar .iv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; border-radius: 2px !important; }
-  body.landscape-phone #windowBar { display: flex; align-items: center; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
+  body.landscape-phone #windowBar { display: flex; align-items: center; gap: 1px; background: #0d0d0d; padding: 2px; border: 1px solid #555; border-radius: 2px; margin: 0; height: 24px; }
   body.landscape-phone #controls #windowBar .wv { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; }
   body.landscape-phone #controls #windowBar .wv.active { background: #ff8c00 !important; color: #000 !important; font-weight: bold; border-radius: 2px !important; }
   /* Mode toggles: 24px container */
-  body.landscape-phone .mode-toggle { gap: 1px; display: flex; align-items: center; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 24px; }
+  body.landscape-phone .mode-toggle { gap: 1px; display: flex; align-items: center; background: #0d0d0d; padding: 2px; border: 1px solid #555; border-radius: 2px; height: 24px; }
   body.landscape-phone #controls .mode-toggle button { background: #1a1a1a !important; border: 0 none !important; border-width: 0 !important; height: 18px !important; line-height: 18px !important; padding: 0 5px !important; color: #d4d4d4 !important; }
   body.landscape-phone #controls .mode-toggle button.active { background: #ff8c00 !important; color: #000 !important; border-radius: 2px !important; font-weight: bold; }
   /* Date input */
@@ -209,7 +209,7 @@
   <div class="ctrl-sep"></div>
   <div id="dateDropdownWrap" style="position:relative;display:inline-block;">
     <input type="text" id="dateInput" placeholder="YYYY-MM-DD" autocomplete="off"
-      style="background:#1e1e1e;color:#d4d4d4;border:1px solid #555;padding:0 8px;height:28px;line-height:26px;font-family:inherit;font-size:12px;width:140px;cursor:pointer;border-radius:2px;">
+      style="background:#111111;color:#d4d4d4;border:1px solid #555;padding:0 8px;height:28px;line-height:26px;font-family:inherit;font-size:12px;width:140px;cursor:pointer;border-radius:2px;">
     <div id="dateDropdown" style="display:none;position:absolute;top:100%;left:0;width:200px;max-height:320px;overflow-y:auto;background:#141414;border:1px solid #555;z-index:500;scrollbar-width:thin;scrollbar-color:#555 #141414;border-radius:2px;"></div>
   </div>
   <select id="landmarks">
@@ -234,7 +234,7 @@
   <div class="ctrl-sep"></div>
   <div id="binWrap" style="display:flex;align-items:center;gap:5px;font-size:11px;">
     <label style="color:#999;">Bins</label>
-    <input type="text" id="binInput" value="750" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:0 5px;height:28px;line-height:26px;width:42px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <input type="text" id="binInput" value="750" style="background:#111111;color:#ff8c00;border:1px solid #555;padding:0 5px;height:28px;line-height:26px;width:42px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
   </div>
   <div id="navToggle" class="mode-toggle" style="margin-left:auto;">
     <button id="btnStock" class="active">Stock</button>
@@ -335,7 +335,7 @@ var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
 var LTH_COLOR = "#5599ff";
 var STH_COLOR = "#e6a817";
-var CUMUL_COLOR = "rgba(38,198,218,0.55)";
+var CUMUL_COLOR = "rgba(38,198,218,0.7)";
 var SPOT_COLOR = "#ff8c00";
 
 var FONT = "'Source Code Pro', Consolas, monospace";
@@ -1125,7 +1125,7 @@ function renderChart(data) {
       var hoverUnit = isCD ? "CD" : "VD";
       var hoverFmt = isVD ? "%{y:$,.0f}" : "%{y:,.0f}";
       var deltaLabel = isDelta ? "Δ " : "";
-      traces.push({x:chartPrices,y:cdVals,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colorsCV,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + deltaLabel + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cdVals,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colorsCV,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + deltaLabel + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = cdVals;
     } else if (isCoin) {
@@ -1136,7 +1136,7 @@ function renderChart(data) {
       var colors2 = isDelta
         ? supplyVals.map(function(v){return v >= 0 ? PROFIT_COLOR : LOSS_COLOR;})
         : (spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";}));
-      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colors2,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+(isDelta?"Δ ":"")+"BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colors2,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+(isDelta?"Δ ":"")+"BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
@@ -1147,7 +1147,7 @@ function renderChart(data) {
       var colors3 = isDelta
         ? invested.map(function(v){return v >= 0 ? PROFIT_COLOR : LOSS_COLOR;})
         : (spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";}));
-      traces.push({x:chartPrices,y:invested,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colors3,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+(isDelta?"Δ ":"")+"USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:invested,type:"bar",name:isDelta?"Δ "+t("profitLoss"):t("profitLoss"),width:barWidths,marker:{color:colors3,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>"+(isDelta?"Δ ":"")+"USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
@@ -1291,9 +1291,9 @@ function renderChart(data) {
   var annY = 0.98 - legendItems * 0.038;
   var shapes = [];
   var annotations = [
-    {xref:"paper",yref:"paper",x:0.02,y:annY,text:annText,showarrow:false,align:"left",font:{size:13,family:FONT}},
-    {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@renshuBTC</span>",showarrow:false,font:{family:FONT}},
-    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : lang==="fr" ? "Propuls\u00e9 par Bitcoin Research Kit & Bitcoin Core. Inspir\u00e9 par @_Checkonchain" : lang==="fa" ? "\u0642\u062f\u0631\u062a\u200c\u06af\u0631\u0641\u062a\u0647 \u0627\u0632 Bitcoin Research Kit \u0648 Bitcoin Core. \u0627\u0644\u0647\u0627\u0645 \u0627\u0632 @_Checkonchain" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
+    {xref:"paper",yref:"paper",x:0.02,y:annY,text:annText,showarrow:false,align:"left",font:{size:14,family:FONT}},
+    {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.08);font-size:48px;font-weight:bold'>@renshuBTC</span>",showarrow:false,font:{family:FONT}},
+    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : lang==="fr" ? "Propuls\u00e9 par Bitcoin Research Kit & Bitcoin Core. Inspir\u00e9 par @_Checkonchain" : lang==="fa" ? "\u0642\u062f\u0631\u062a\u200c\u06af\u0631\u0641\u062a\u0647 \u0627\u0632 Bitcoin Research Kit \u0648 Bitcoin Core. \u0627\u0644\u0647\u0627\u0645 \u0627\u0632 @_Checkonchain" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:10,color:"rgba(255,255,255,0.35)",family:FONT},xanchor:"left"}
   ];
   if (yClipped) {
     annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:t("yAxisCapped"),showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
@@ -1316,7 +1316,7 @@ function renderChart(data) {
     else if (isCoin) { plPrefix = t("btcProfit"); plSuffix = t("btcLoss"); }
     else { plPrefix = t("usdProfit"); plSuffix = t("usdLoss"); }
     var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br>" + plPrefix + profitPct + "%<br>" + plSuffix + lossPct + "%";
-    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",align:"left",font:{color:SPOT_COLOR,size:12,family:FONT},bgcolor:"rgba(17,17,17,0.8)",borderpad:4});
+    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",align:"left",font:{color:SPOT_COLOR,size:12,family:FONT},bgcolor:"rgba(0,0,0,0.85)",borderpad:4});
   }
 
   var yAxisTitle, yAxisPrefix;
@@ -1339,14 +1339,14 @@ function renderChart(data) {
   var margins = isMob ? (isLand ? {l:35,r:30,t:40,b:25} : {l:35,r:30,t:40,b:15}) : {l:80,r:80,t:90,b:80};
 
   var layout = {
-    title:{text:titleText,x:0.5,xanchor:"center",font:{size:isMob?11:20,family:FONT,color:"#ff8c00"}},
-    font:{family:FONT,color:"#ff8c00"},
-    paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
+    title:{text:titleText,x:0.5,xanchor:"center",font:{size:isMob?11:18,family:FONT,color:"#ffffff"}},
+    font:{family:FONT,color:"#d4d4d4"},
+    paper_bgcolor:"#000000",plot_bgcolor:"#000000",
     barmode:isSplit?"stack":"overlay",bargap:0,
-    legend:isMob?{visible:false}:{orientation:"v",yanchor:"top",y:0.98,xanchor:"left",x:0.01,font:{family:FONT,size:11},bgcolor:"rgba(10,10,10,0.7)"},
-    xaxis:{title:isMob?{text:""}:{text:t("priceUSD"),font:{family:FONT,size:13}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:isMob?(isLand?8:6):11},tickangle:isMob?0:undefined},
-    yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:13}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:yRange,showgrid:isDelta,gridcolor:isDelta?"rgba(255,255,255,0.08)":"rgba(0,0,0,0)",tickfont:{family:FONT,size:isMob?7:11}},
-    yaxis2:{title:isMob?{text:""}:{text:t("pctTotal"),font:{family:FONT,size:13}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:isMob?7:11}},
+    legend:isMob?{visible:false}:{orientation:"v",yanchor:"top",y:0.98,xanchor:"left",x:0.01,font:{family:FONT,size:11,color:"#ccc"},bgcolor:"rgba(0,0,0,0.75)"},
+    xaxis:{title:isMob?{text:""}:{text:t("priceUSD"),font:{family:FONT,size:12,color:"#888"}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.06)",tickfont:{family:FONT,size:isMob?(isLand?8:6):11,color:"#777"},tickangle:isMob?0:undefined},
+    yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:12,color:"#888"}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:yRange,showgrid:isDelta,gridcolor:isDelta?"rgba(255,255,255,0.06)":"rgba(0,0,0,0)",tickfont:{family:FONT,size:isMob?7:11,color:"#777"}},
+    yaxis2:{title:isMob?{text:""}:{text:t("pctTotal"),font:{family:FONT,size:12,color:"#888"}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.06)",tickfont:{family:FONT,size:isMob?7:11,color:"#777"}},
     annotations:annotations,shapes:shapes,
     margin:margins,hovermode:"closest"
   };
@@ -1371,9 +1371,9 @@ function renderChart(data) {
         pD.push(priceDateStrs[pi]);pP.push(priceArray[pi]);
       }
     }
-    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(155,155,155,0.45)":"rgba(0,0,0,0)",width:showPriceOverlay?1.5:0},hoverinfo:"skip",showlegend:true,name:t("btcusd"),visible:true});
+    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(180,180,180,0.5)":"rgba(0,0,0,0)",width:showPriceOverlay?1.5:0},hoverinfo:"skip",showlegend:true,name:t("btcusd"),visible:true});
     if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
-    if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(155,155,155,0.3)",width:1,dash:"dot"}});}
+    if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(180,180,180,0.35)",width:1,dash:"dot"}});}
     // Cycle landmark markers on price chart
     var cyc2=lang==="zh"?"周期":lang==="ja"?"サイクル":lang==="fr"?"Cycle":lang==="fa"?"\u0686\u0631\u062e\u0647":"Cycle";
     var tp2=lang==="zh"?"顶部":lang==="ja"?"天井":lang==="fr"?"Sommet":lang==="fa"?"\u0633\u0642\u0641":"Top";
