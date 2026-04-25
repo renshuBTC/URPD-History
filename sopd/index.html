@@ -329,6 +329,7 @@ var currentIdx = 0;
 var priceArray = null;
 var priceDateStrs = null; // precomputed date strings for priceArray
 var showPriceOverlay = true;
+var showCumulative = true;
 var splitMode = false;
 var coinMode = false;
 var weightMode = "usd"; // "usd", "btc", "cd", "vd"
@@ -1038,7 +1039,7 @@ function renderChart(data) {
     var total1 = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
     var run1 = 0;
     var cumul1 = valuesForAxis.map(function(v){run1+=v;return 100*run1/total1;});
-    traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+    traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:showCumulative,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
     barWidths = chartPrices.map(function(p,i,arr){if(arr.length<=1)return 1;if(i===arr.length-1)return arr[i]-arr[i-1];return arr[i+1]-arr[i];});
@@ -1051,7 +1052,7 @@ function renderChart(data) {
       var hoverUnit = isCD ? "CD" : "VD";
       var hoverFmt = isVD ? "%{y:$,.0f}" : "%{y:,.0f}";
       traces.push({x:chartPrices,y:cdVals,type:"bar",name:t("profitLoss"),width:barWidths,marker:{color:colorsCV,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:showCumulative,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = cdVals;
     } else if (isCoin) {
       var supplyVals = smooth(aggAll.map(function(b){return b.supply;}));
@@ -1060,7 +1061,7 @@ function renderChart(data) {
       var cumul2 = supplyVals.map(function(v){run2+=v;return 100*run2/total2;});
       var colors2 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
       traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("profitLoss"),width:barWidths,marker:{color:colors2,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:showCumulative,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
       var invested = smooth(aggAll.map(function(b){return b.invested;}));
@@ -1069,7 +1070,7 @@ function renderChart(data) {
       var cumul3 = invested.map(function(v){run3+=v;return 100*run3/total3;});
       var colors3 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
       traces.push({x:chartPrices,y:invested,type:"bar",name:t("profitLoss"),width:barWidths,marker:{color:colors3,line:{width:0.3,color:"rgba(0,0,0,0.5)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:showCumulative,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
   }
@@ -1268,7 +1269,7 @@ function renderChart(data) {
     legend:isMob?{visible:false}:{orientation:"v",yanchor:"top",y:0.98,xanchor:"left",x:0.01,font:{family:FONT,size:11,color:"#ccc"},bgcolor:"rgba(0,0,0,0.75)"},
     xaxis:{title:isMob?{text:""}:{text:t("priceUSD"),font:{family:FONT,size:12,color:"#ff8c00"}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.06)",tickfont:{family:FONT,size:isMob?(isLand?8:6):11,color:"#ff8c00"},tickangle:isMob?0:undefined},
     yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:12,color:"#ff8c00"}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:isMob?7:11,color:"#ff8c00"}},
-    yaxis2:{title:isMob?{text:""}:{text:t("pctTotal"),font:{family:FONT,size:12,color:"#ff8c00"}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.06)",tickfont:{family:FONT,size:isMob?7:11,color:"#ff8c00"}},
+    yaxis2:{title:isMob||!showCumulative?{text:""}:{text:t("pctTotal"),font:{family:FONT,size:12,color:"#ff8c00"}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:showCumulative,gridcolor:"rgba(255,255,255,0.06)",showticklabels:showCumulative,tickfont:{family:FONT,size:isMob?7:11,color:"#ff8c00"}},
     annotations:annotations,shapes:shapes,
     margin:margins,hovermode:"closest"
   };
@@ -1338,6 +1339,12 @@ function renderChart(data) {
     var clickedName = evtData.data[evtData.curveNumber].name;
     if (clickedName === t("btcusd")) {
       showPriceOverlay = !showPriceOverlay;
+      var ck = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + (includeMined ? "_mined" : "") + "_w" + rollingWindow;
+      if (cache[ck]) renderChart(cache[ck]); else loadAndRender();
+      return false;
+    }
+    if (clickedName === t("pctTotal")) {
+      showCumulative = !showCumulative;
       var ck = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + (includeMined ? "_mined" : "") + "_w" + rollingWindow;
       if (cache[ck]) renderChart(cache[ck]); else loadAndRender();
       return false;
