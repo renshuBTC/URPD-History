@@ -8,7 +8,8 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
-  body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; height: 100%; }
+  body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; height: 100%; opacity: 0; transition: opacity 0.15s ease; }
+  body.ready { opacity: 1; }
   #controls { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; background: #1a1a1a; border-bottom: 1px solid #555; }
   /* Uniform height for all interactive elements: 28px outer */
   #controls button, #controls input, #controls select, #langBtn { height: 28px; font-family: inherit; font-size: 12px; border: 1px solid #555; border-radius: 2px; box-sizing: border-box; vertical-align: middle; }
@@ -305,12 +306,17 @@ Positive = accumulation  |  Negative = distribution</div>
     var nextLang = btnMap[p.get("lang")];
     if (nextLang) document.getElementById("langBtn").textContent = nextLang;
   }
+  document.body.classList.add("ready");
 })();
 </script>
 <div id="status">Left/Right navigate | 1-4 interval | Z/X/C/V rolling window | Up/Down toggle view | Home/End first/last</div>
 <div id="chart"></div>
 <div id="loading">Loading...</div>
 <script>
+function navigateTo(url) {
+  document.body.classList.remove("ready");
+  setTimeout(function(){ window.location.href = url; }, 150);
+}
 var BASE = "https://bitview.space";
 var GENESIS = new Date(2009, 0, 3);
 var NUM_BINS = 625;
@@ -1444,7 +1450,7 @@ document.getElementById("btnVD").onclick = function(){ setWeight("vd"); };
 
 // Stock/Flow navigation
 document.getElementById("btnStock").onclick = function(){ /* already on Stock (URPD) */ };
-document.getElementById("btnFlow").onclick = function(){ window.location.href = "sopd/?mode=" + weightMode + "&split=" + (splitMode?1:0) + "&date=" + allDates[currentIdx] + "&iv=" + stepSize + "&rw=" + rollingWindow + "&lang=" + lang; };
+document.getElementById("btnFlow").onclick = function(){ navigateTo("sopd/?mode=" + weightMode + "&split=" + (splitMode?1:0) + "&date=" + allDates[currentIdx] + "&iv=" + stepSize + "&rw=" + rollingWindow + "&lang=" + lang); };
 
 // Language toggle
 
@@ -1520,7 +1526,7 @@ document.addEventListener("keydown", function(e){
   else if (e.key === "x" || e.key === "X") { e.preventDefault(); setWindow(7); }
   else if (e.key === "c" || e.key === "C") { e.preventDefault(); setWindow(30); }
   else if (e.key === "v" || e.key === "V") { e.preventDefault(); setWindow(90); }
-  else if (e.key === " ") { e.preventDefault(); window.location.href = "sopd/?mode=" + weightMode + "&split=" + (splitMode?1:0) + "&date=" + allDates[currentIdx] + "&iv=" + stepSize + "&rw=" + rollingWindow + "&lang=" + lang; }
+  else if (e.key === " ") { e.preventDefault(); navigateTo("sopd/?mode=" + weightMode + "&split=" + (splitMode?1:0) + "&date=" + allDates[currentIdx] + "&iv=" + stepSize + "&rw=" + rollingWindow + "&lang=" + lang); }
 });
 
 function jumpToDate() {
