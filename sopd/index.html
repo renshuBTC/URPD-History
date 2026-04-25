@@ -272,6 +272,32 @@
 </div></div>
   <button id="langBtn">中文</button>
 </div>
+<script>
+// Apply URL params to buttons BEFORE first paint to prevent flash
+(function(){
+  var p = new URLSearchParams(window.location.search);
+  var mode = p.get("mode"), split = p.get("split"), iv = p.get("iv"), rw = p.get("rw");
+  if (mode) {
+    ["btnUSD","btnBTC","btnVD","btnCD"].forEach(function(id){ document.getElementById(id).classList.remove("active"); });
+    var map = {usd:"btnUSD",btc:"btnBTC",vd:"btnVD",cd:"btnCD"};
+    if (map[mode]) document.getElementById(map[mode]).classList.add("active");
+  }
+  if (split === "1") { document.getElementById("btnPL").classList.remove("active"); document.getElementById("btnSplit").classList.add("active"); }
+  if (iv) {
+    var si = {"1":0,"7":1,"30":2,"365":3}[iv];
+    if (si !== undefined) { document.querySelectorAll("#intervalBar .iv").forEach(function(b,i){ b.classList.toggle("active", i===si); }); }
+  }
+  if (rw) {
+    var rwN = parseInt(rw);
+    document.querySelectorAll("#windowBar .wv").forEach(function(b){ b.classList.toggle("active", parseInt(b.getAttribute("data-w"))===rwN); });
+  }
+  if (p.get("lang")) {
+    var btnMap = {zh:"\u4e2d\u6587",ja:"\u65e5\u672c\u8a9e",fr:"\u0641\u0627\u0631\u0633\u06cc",fa:"EN",en:"\u4e2d\u6587"};
+    var nextLang = btnMap[p.get("lang")];
+    if (nextLang) document.getElementById("langBtn").textContent = nextLang;
+  }
+})();
+</script>
 <div id="status">Left/Right navigate | 1-4 interval | Z/X/C/V rolling window | Up/Down toggle view | Home/End first/last</div>
 <div id="chart"></div>
 <div id="loading">Loading...</div>
