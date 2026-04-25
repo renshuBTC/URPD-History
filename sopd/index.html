@@ -1216,10 +1216,10 @@ function renderChart(data) {
   }
 
   var legendItems = (isSplit ? 2 : 1) + 2 + (data.minedBTC && !(isCD||isVD) ? 1 : 0); // bars + cumul + btcusd + mined
-  var annY = 0.98 - legendItems * 0.038 - 0.02;
+  var annY = 0.98 - legendItems * 0.045 - 0.02;
   var shapes = [];
   var annotations = [
-    {xref:"paper",yref:"paper",x:0.01,y:annY,text:annText,showarrow:false,align:"left",font:{size:11,family:FONT}},
+    {xref:"paper",yref:"paper",x:0.01,y:annY,text:annText,showarrow:false,align:"left",font:{size:13,family:FONT}},
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.08);font-size:48px;font-weight:bold'>@renshuBTC</span>",showarrow:false,font:{family:FONT}},
     {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : lang==="fr" ? "Propuls\u00e9 par Bitcoin Research Kit & Bitcoin Core. Inspir\u00e9 par @_Checkonchain" : lang==="fa" ? "\u0642\u062f\u0631\u062a\u200c\u06af\u0631\u0641\u062a\u0647 \u0627\u0632 Bitcoin Research Kit \u0648 Bitcoin Core. \u0627\u0644\u0647\u0627\u0645 \u06af\u0631\u0641\u062a\u0647 \u0627\u0632 @_Checkonchain" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:10,color:"rgba(255,255,255,0.35)",family:FONT},xanchor:"left"}
   ];
@@ -1266,7 +1266,7 @@ function renderChart(data) {
     font:{family:FONT,color:"#d4d4d4"},
     paper_bgcolor:"#000000",plot_bgcolor:"#000000",
     barmode:isSplit?"stack":"overlay",bargap:0,
-    legend:isMob?{visible:false}:{orientation:"v",yanchor:"top",y:0.98,xanchor:"left",x:0.01,font:{family:FONT,size:11,color:"#ccc"},bgcolor:"rgba(0,0,0,0.75)"},
+    legend:isMob?{visible:false}:{orientation:"v",yanchor:"top",y:0.98,xanchor:"left",x:0.01,font:{family:FONT,size:13,color:"#ccc"},bgcolor:"rgba(0,0,0,0.75)"},
     xaxis:{title:isMob?{text:""}:{text:t("priceUSD"),font:{family:FONT,size:12,color:"#ff8c00"}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.06)",tickfont:{family:FONT,size:isMob?(isLand?8:6):11,color:"#ff8c00"},tickangle:isMob?0:undefined},
     yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:12,color:"#ff8c00"}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:isMob?7:11,color:"#ff8c00"}},
     yaxis2:{title:isMob||!showCumulative?{text:""}:{text:t("pctTotal"),font:{family:FONT,size:12,color:"#ff8c00"}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:showCumulative,gridcolor:"rgba(255,255,255,0.06)",showticklabels:showCumulative,tickfont:{family:FONT,size:isMob?7:11,color:"#ff8c00"}},
