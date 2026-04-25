@@ -1428,7 +1428,7 @@ function renderChart(data) {
         : (hp + "%{x:,.0f}<br>" + t("minedLabel") + ": %{y:$,.0f}<extra></extra>");
       traces.push({
         x: [data.minedBinPrice], y: [minedVal], type: "bar", name: t("minedLabel"),
-        width: [binWidth * 3],
+        width: [binWidth * 3], base: [0],
         marker: { color: MINED_COLOR, line: { width: 2, color: "#ffffff" } },
         opacity: 0.92,
         hovertemplate: minedHover
