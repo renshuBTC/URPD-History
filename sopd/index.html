@@ -1164,29 +1164,29 @@ function renderChart(data) {
   var annText;
   if (isCD) {
     var totalCDVal = data.totalCD || valuesForAxis.reduce(function(s,v){return s+v;},0);
-    annText = "<span style='color:rgba(230,126,34,0.7)'><b>" + t("totalCoindays") + fmtCD(totalCDVal) + "</b></span>";
+    annText = "<span style='color:#e67e22'>" + t("totalCoindays") + fmtCD(totalCDVal) + "</span>";
     if (isSplit && data.lthCD !== undefined) {
-      annText += "<br><span style='color:" + LTH_COLOR + "'><b>LTH " + fmtCD(data.lthCD) + "</b></span>";
-      annText += "<br><span style='color:" + STH_COLOR + "'><b>STH " + fmtCD(data.sthCD) + "</b></span>";
+      annText += "<br><span style='color:" + LTH_COLOR + "'>LTH " + fmtCD(data.lthCD) + "</span>";
+      annText += "<br><span style='color:" + STH_COLOR + "'>STH " + fmtCD(data.sthCD) + "</span>";
     }
   } else if (isVD) {
     var totalVDVal = data.totalCD || valuesForAxis.reduce(function(s,v){return s+v;},0);
-    annText = "<span style='color:rgba(230,126,34,0.7)'><b>" + t("totalValuedays") + fmtVD(totalVDVal) + "</b></span>";
+    annText = "<span style='color:#e67e22'>" + t("totalValuedays") + fmtVD(totalVDVal) + "</span>";
     if (isSplit && data.lthCD !== undefined) {
-      annText += "<br><span style='color:" + LTH_COLOR + "'><b>LTH " + fmtVD(data.lthCD) + "</b></span>";
-      annText += "<br><span style='color:" + STH_COLOR + "'><b>STH " + fmtVD(data.sthCD) + "</b></span>";
+      annText += "<br><span style='color:" + LTH_COLOR + "'>LTH " + fmtVD(data.lthCD) + "</span>";
+      annText += "<br><span style='color:" + STH_COLOR + "'>STH " + fmtVD(data.sthCD) + "</span>";
     }
   } else if (isCoin) {
-    annText = "<span style='color:rgba(230,126,34,0.7)'><b>" + t("totalSupply") + fmtBTC(totalSupply) + "</b></span>";
+    annText = "<span style='color:#e67e22'>" + t("totalSupply") + fmtBTC(totalSupply) + "</span>";
     if (isSplit && data.lthSup && data.sthSup) {
-      annText += "<br><span style='color:" + LTH_COLOR + "'><b>" + t("lthSupply") + fmtBTC(data.lthSup) + "</b></span>";
-      annText += "<br><span style='color:" + STH_COLOR + "'><b>" + t("sthSupply") + fmtBTC(data.sthSup) + "</b></span>";
+      annText += "<br><span style='color:" + LTH_COLOR + "'>" + t("lthSupply") + fmtBTC(data.lthSup) + "</span>";
+      annText += "<br><span style='color:" + STH_COLOR + "'>" + t("sthSupply") + fmtBTC(data.sthSup) + "</span>";
     }
   } else {
-    annText = "<span style='color:rgba(230,126,34,0.7)'><b>" + t("realisedCap") + fmtUSD(realizedCap) + "</b></span>";
+    annText = "<span style='color:#e67e22'>" + t("realisedCap") + fmtUSD(realizedCap) + "</span>";
     if (isSplit && lthRC && sthRC) {
-      annText += "<br><span style='color:" + LTH_COLOR + "'><b>" + t("lthRC") + fmtUSD(lthRC) + "</b></span>";
-      annText += "<br><span style='color:" + STH_COLOR + "'><b>" + t("sthRC") + fmtUSD(sthRC) + "</b></span>";
+      annText += "<br><span style='color:" + LTH_COLOR + "'>" + t("lthRC") + fmtUSD(lthRC) + "</span>";
+      annText += "<br><span style='color:" + STH_COLOR + "'>" + t("sthRC") + fmtUSD(sthRC) + "</span>";
     }
   }
   if (spot && spot > 0 && !isSplit) {
@@ -1194,11 +1194,11 @@ function renderChart(data) {
     var profitVal = 0;
     chartPrices.forEach(function(p,i){if(p<=spot) profitVal += valuesForAxis[i];});
     var profitPct = 100 * profitVal / totalPL;
-    annText += "<br><span style='color:" + PROFIT_COLOR + "'><b>" + t("inProfit") + profitPct.toFixed(1) + "%</b></span>";
-    annText += "<br><span style='color:" + LOSS_COLOR + "'><b>" + t("inLoss") + (100-profitPct).toFixed(1) + "%</b></span>";
+    annText += "<br><span style='color:" + PROFIT_COLOR + "'>" + t("inProfit") + profitPct.toFixed(1) + "%</span>";
+    annText += "<br><span style='color:" + LOSS_COLOR + "'>" + t("inLoss") + (100-profitPct).toFixed(1) + "%</span>";
   }
   if (data.minedBTC) {
-    annText += "<br><span style='color:" + MINED_COLOR + "'><b>" + t("minedAnn") + fmtBTC(data.minedBTC) + "</b></span>";
+    annText += "<br><span style='color:" + MINED_COLOR + "'>" + t("minedAnn") + fmtBTC(data.minedBTC) + "</span>";
   }
 
   var d = new Date(dateStr + "T00:00:00");
@@ -1219,7 +1219,7 @@ function renderChart(data) {
   var annY = 0.98 - legendItems * 0.038 - 0.02;
   var shapes = [];
   var annotations = [
-    {xref:"paper",yref:"paper",x:0.01,y:annY,text:"<span style='opacity:0.7'>" + annText + "</span>",showarrow:false,align:"left",font:{size:11,family:FONT}},
+    {xref:"paper",yref:"paper",x:0.01,y:annY,text:annText,showarrow:false,align:"left",font:{size:11,family:FONT}},
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.08);font-size:48px;font-weight:bold'>@renshuBTC</span>",showarrow:false,font:{family:FONT}},
     {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301\u3002\u7075\u611f\u6765\u81ea @_Checkonchain" : lang==="ja" ? "Bitcoin Research Kit & Bitcoin Core \u63d0\u4f9b\u3002@_Checkonchain \u306b\u30a4\u30f3\u30b9\u30d1\u30a4\u30a2" : lang==="fr" ? "Propuls\u00e9 par Bitcoin Research Kit & Bitcoin Core. Inspir\u00e9 par @_Checkonchain" : lang==="fa" ? "\u0642\u062f\u0631\u062a\u200c\u06af\u0631\u0641\u062a\u0647 \u0627\u0632 Bitcoin Research Kit \u0648 Bitcoin Core. \u0627\u0644\u0647\u0627\u0645 \u06af\u0631\u0641\u062a\u0647 \u0627\u0632 @_Checkonchain" : "Powered by Bitcoin Research Kit & Bitcoin Core. Inspired by @_Checkonchain"),showarrow:false,font:{size:10,color:"rgba(255,255,255,0.35)",family:FONT},xanchor:"left"}
   ];
