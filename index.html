@@ -1075,7 +1075,7 @@ function renderChart(data) {
     aggLTH.forEach(function(b){allPricesSet.add(b.price);});
     aggSTH.forEach(function(b){allPricesSet.add(b.price);});
     chartPrices = Array.from(allPricesSet).sort(function(a,b){return a-b;});
-    barWidths = barWidths;
+    barWidths = chartPrices.map(function(p,i,arr){if(arr.length<=1)return 1;if(i===arr.length-1)return arr[i]-arr[i-1];return arr[i+1]-arr[i];});
     var lthMap = {}, sthMap = {};
     aggLTH.forEach(function(b){lthMap[b.price]=b;});
     aggSTH.forEach(function(b){sthMap[b.price]=b;});
@@ -1113,7 +1113,7 @@ function renderChart(data) {
     traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
-    barWidths = barWidths;
+    barWidths = chartPrices.map(function(p,i,arr){if(arr.length<=1)return 1;if(i===arr.length-1)return arr[i]-arr[i-1];return arr[i+1]-arr[i];});
     if (isCD || isVD) {
       var cdVals = smooth(aggAll.map(function(b){return b.invested;}));
       var totalCV = cdVals.reduce(function(s,v){return s+Math.abs(v);},0) || 1;
