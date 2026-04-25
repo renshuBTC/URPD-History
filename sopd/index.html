@@ -290,6 +290,11 @@
     var nextLang = btnMap[p.get("lang")];
     if (nextLang) document.getElementById("langBtn").textContent = nextLang;
   }
+  if (p.get("date")) {
+    var rwP = parseInt(rw) || 1;
+    var wl = rwP > 1 ? "  [" + rwP + "D]" : "";
+    document.getElementById("dateDisplay").textContent = p.get("date") + "  Spot: ---" + wl;
+  }
   document.body.classList.add("ready");
 })();
 </script>
