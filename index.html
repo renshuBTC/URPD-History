@@ -225,6 +225,7 @@
   <div class="mode-toggle">
     <button id="btnPL" class="active" title="Profit / Loss">P/L</button>
     <button id="btnSplit" title="Long-Term Holders / Short-Term Holders">LTH/STH</button>
+    <button id="btnAge" title="UTXO Age Bands">AGE</button>
   </div>
   <div class="mode-toggle">
     <button id="btnUSD" class="active" title="United States Dollar">USD</button>
@@ -343,7 +344,8 @@ Positive = accumulation  |  Negative = distribution</div>
     var map = {usd:"btnUSD",btc:"btnBTC",vd:"btnVD",cd:"btnCD"};
     if (map[mode]) document.getElementById(map[mode]).classList.add("active");
   }
-  if (split === "1") { document.getElementById("btnPL").classList.remove("active"); document.getElementById("btnSplit").classList.add("active"); }
+  if (split === "1" || split === "lthsth") { document.getElementById("btnPL").classList.remove("active"); document.getElementById("btnSplit").classList.add("active"); }
+  if (split === "age") { document.getElementById("btnPL").classList.remove("active"); document.getElementById("btnAge").classList.add("active"); }
   if (iv) {
     var si = {"1":0,"7":1,"30":2,"365":3}[iv];
     if (si !== undefined) { document.querySelectorAll("#intervalBar .iv").forEach(function(b,i){ b.classList.toggle("active", i===si); }); }
@@ -398,7 +400,7 @@ var priceArray = null;
 var priceDateStrs = null; // precomputed date strings for priceArray
 var showPriceOverlay = true;
 var showCumulative = true;
-var splitMode = false;
+var splitMode = "pl"; // "pl", "lthsth", or "age"
 var coinMode = false;
 var weightMode = "usd"; // "usd", "btc", "cd", "vd"
 var viewMode = "stock"; // "stock" or "flow"
@@ -411,34 +413,42 @@ var renderGeneration = 0; // stale-fetch guard
 // Age band definitions for CD/VD computation
 // Each band maps to a cohort name and midpoint in days
 var AGE_BANDS = [
-  {cohort:"utxos_under_1h_old", mid:0.02},
-  {cohort:"utxos_1h_to_1d_old", mid:0.5},
-  {cohort:"utxos_1d_to_1w_old", mid:4},
-  {cohort:"utxos_1w_to_1m_old", mid:19},
-  {cohort:"utxos_1m_to_2m_old", mid:45},
-  {cohort:"utxos_2m_to_3m_old", mid:75},
-  {cohort:"utxos_3m_to_4m_old", mid:105},
-  {cohort:"utxos_4m_to_5m_old", mid:135},
-  {cohort:"utxos_5m_to_6m_old", mid:165},
-  {cohort:"utxos_6m_to_1y_old", mid:274},
-  {cohort:"utxos_1y_to_2y_old", mid:548},
-  {cohort:"utxos_2y_to_3y_old", mid:913},
-  {cohort:"utxos_3y_to_4y_old", mid:1278},
-  {cohort:"utxos_4y_to_5y_old", mid:1643},
-  {cohort:"utxos_5y_to_6y_old", mid:2008},
-  {cohort:"utxos_6y_to_7y_old", mid:2373},
-  {cohort:"utxos_7y_to_8y_old", mid:2738},
-  {cohort:"utxos_8y_to_10y_old", mid:3287},
-  {cohort:"utxos_10y_to_12y_old", mid:4018},
-  {cohort:"utxos_12y_to_15y_old", mid:4931},
-  {cohort:"utxos_over_15y_old", mid:6388}
+  {cohort:"utxos_under_1h_old", label:"<1h", mid:0.02},
+  {cohort:"utxos_1h_to_1d_old", label:"1h-1d", mid:0.5},
+  {cohort:"utxos_1d_to_1w_old", label:"1d-1w", mid:4},
+  {cohort:"utxos_1w_to_1m_old", label:"1w-1m", mid:19},
+  {cohort:"utxos_1m_to_2m_old", label:"1m-2m", mid:45},
+  {cohort:"utxos_2m_to_3m_old", label:"2m-3m", mid:75},
+  {cohort:"utxos_3m_to_4m_old", label:"3m-4m", mid:105},
+  {cohort:"utxos_4m_to_5m_old", label:"4m-5m", mid:135},
+  {cohort:"utxos_5m_to_6m_old", label:"5m-6m", mid:165},
+  {cohort:"utxos_6m_to_1y_old", label:"6m-1y", mid:274},
+  {cohort:"utxos_1y_to_2y_old", label:"1y-2y", mid:548},
+  {cohort:"utxos_2y_to_3y_old", label:"2y-3y", mid:913},
+  {cohort:"utxos_3y_to_4y_old", label:"3y-4y", mid:1278},
+  {cohort:"utxos_4y_to_5y_old", label:"4y-5y", mid:1643},
+  {cohort:"utxos_5y_to_6y_old", label:"5y-6y", mid:2008},
+  {cohort:"utxos_6y_to_7y_old", label:"6y-7y", mid:2373},
+  {cohort:"utxos_7y_to_8y_old", label:"7y-8y", mid:2738},
+  {cohort:"utxos_8y_to_10y_old", label:"8y-10y", mid:3287},
+  {cohort:"utxos_10y_to_12y_old", label:"10y-12y", mid:4018},
+  {cohort:"utxos_12y_to_15y_old", label:"12y-15y", mid:4931},
+  {cohort:"utxos_over_15y_old", label:">15y", mid:6388}
+];
+var AGE_BAND_COLORS = [
+  "#DD5540", "#E87038", "#F08C30", "#F0A428", "#E8B620",
+  "#D9C418", "#C4C810", "#A8BF15", "#8AAF1C", "#6A9C28",
+  "#4A8838", "#2E6B50", "#134E4A", "#145B5C", "#156A70",
+  "#177B87", "#1A919F", "#20A8B8", "#2BBFD0", "#4DD8E8",
+  "#7DF0FF"
 ];
 
 var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: "Keyboard Controls: 1-4 interval | Z/X/C/V rolling window | Left/Right or A/D or Scroll navigate | Up/Down or W/S toggle view | Home/End first/last | Spacebar Stock/Flow",
-    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH", age: "AGE",
+    tipPL: "Profit / Loss", tipLTHSTH: "Long-Term Holders / Short-Term Holders", tipAge: "UTXO Age Bands (21 cohorts)",
     binsLabel: "Bins",
     titleUSD: "UTXO Realized Price Distribution (USD-weighted) as of ", titleUSDCohort: "UTXO Realized Price Distribution (USD-weighted) by Cohort as of ",
     titleBTC: "UTXO Realized Price Distribution (BTC-weighted) as of ", titleBTCCohort: "UTXO Realized Price Distribution (BTC-weighted) by Cohort as of ",
@@ -467,7 +477,8 @@ var T = {
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: "键盘控制: 1-4 间隔 | Z/X/C/V 滚动窗口 | 左/右/A/D/滚轮 导航 | 上/下/W/S 切换视图 | Home/End 首/末 | 空格键 Stock/Flow",
-    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f", age: "AGE",
+    tipPL: "\u76c8\u4e8f\u5206\u5e03", tipLTHSTH: "\u957f\u671f/\u77ed\u671f\u6301\u6709\u8005", tipAge: "UTXO\u5e74\u9f84\u6bb5 (21\u4e2a\u961f\u5217)",
     binsLabel: "\u533a\u95f4",
     titleUSD: "UTXO Realized Price Distribution (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "UTXO Realized Price Distribution (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "UTXO Realized Price Distribution (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "UTXO Realized Price Distribution (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
@@ -496,7 +507,8 @@ var T = {
   ja: {
     loading: "\u8aad\u307f\u8fbc\u307f\u4e2d...", loadingDates: "\u65e5\u4ed8\u3092\u8aad\u307f\u8fbc\u307f\u4e2d...",
     statusLoaded: "キーボード操作: 1-4 間隔 | Z/X/C/V ローリングウィンドウ | 左/右/A/D/スクロール ナビゲーション | 上/下/W/S 表示切替 | Home/End 最初/最後 | スペース Stock/Flow",
-    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "\u30b5\u30a4\u30af\u30eb\u30e9\u30f3\u30c9\u30de\u30fc\u30af", top: "\u5929\u4e95", bottom: "\u5e95", pl: "\u640d\u76ca", lthsth: "\u9577/\u77ed\u671f",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "\u30b5\u30a4\u30af\u30eb\u30e9\u30f3\u30c9\u30de\u30fc\u30af", top: "\u5929\u4e95", bottom: "\u5e95", pl: "\u640d\u76ca", lthsth: "\u9577/\u77ed\u671f", age: "AGE",
+    tipPL: "\u640d\u76ca\u5206\u5e03", tipLTHSTH: "\u9577\u671f/\u77ed\u671f\u4fdd\u6709\u8005", tipAge: "UTXO\u5e74\u9f62\u5e2f (21\u30b3\u30db\u30fc\u30c8)",
     binsLabel: "\u30d3\u30f3",
     titleUSD: "UTXO Realized Price Distribution (\u7c73\u30c9\u30eb\u52a0\u91cd) ", titleUSDCohort: "UTXO Realized Price Distribution (\u7c73\u30c9\u30eb\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
     titleBTC: "UTXO Realized Price Distribution (BTC\u52a0\u91cd) ", titleBTCCohort: "UTXO Realized Price Distribution (BTC\u52a0\u91cd) \u30b3\u30db\u30fc\u30c8\u5225 ",
@@ -525,7 +537,8 @@ var T = {
   fr: {
     loading: "Chargement...", loadingDates: "Chargement des dates...",
     statusLoaded: "Raccourcis clavier: 1-4 intervalle | Z/X/C/V fenêtre glissante | Gauche/Droite ou A/D ou Molette naviguer | Haut/Bas ou W/S basculer vue | Début/Fin premier/dernier | Espace Stock/Flow",
-    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "Rep\u00e8res de cycle", top: "Sommet", bottom: "Creux", pl: "P/P", lthsth: "LTH/STH",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "Rep\u00e8res de cycle", top: "Sommet", bottom: "Creux", pl: "P/P", lthsth: "LTH/STH", age: "AGE",
+    tipPL: "Profit / Perte", tipLTHSTH: "D\u00e9tenteurs Long/Court Terme", tipAge: "Bandes d'\u00e2ge UTXO (21 cohortes)",
     binsLabel: "Classes",
     titleUSD: "UTXO Realized Price Distribution (pond\u00e9r\u00e9 en USD) au ", titleUSDCohort: "UTXO Realized Price Distribution (pond\u00e9r\u00e9 en USD) par Cohorte au ",
     titleBTC: "UTXO Realized Price Distribution (pond\u00e9r\u00e9 en BTC) au ", titleBTCCohort: "UTXO Realized Price Distribution (pond\u00e9r\u00e9 en BTC) par Cohorte au ",
@@ -554,7 +567,8 @@ var T = {
   fa: {
     loading: "\u062f\u0631 \u062d\u0627\u0644 \u0628\u0627\u0631\u06af\u0630\u0627\u0631\u06cc...", loadingDates: "\u0628\u0627\u0631\u06af\u0630\u0627\u0631\u06cc \u062a\u0627\u0631\u06cc\u062e\u200c\u0647\u0627...",
     statusLoaded: "کلیدهای میانبر: 1-4 فاصله | Z/X/C/V پنجره متحرک | چپ/راست/A/D/اسکرول ناوبری | بالا/پایین/W/S تغییر نما | Home/End اول/آخر | فاصله Stock/Flow",
-    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "\u0646\u0634\u0627\u0646\u0647\u200c\u0647\u0627\u06cc \u0686\u0631\u062e\u0647", top: "\u0633\u0642\u0641", bottom: "\u06a9\u0641", pl: "\u0633\u0648\u062f/\u0632\u06cc\u0627\u0646", lthsth: "LTH/STH",
+    landmarks: "CYCLE TOP/BTM", cycleLandmarks: "\u0646\u0634\u0627\u0646\u0647\u200c\u0647\u0627\u06cc \u0686\u0631\u062e\u0647", top: "\u0633\u0642\u0641", bottom: "\u06a9\u0641", pl: "\u0633\u0648\u062f/\u0632\u06cc\u0627\u0646", lthsth: "LTH/STH", age: "AGE",
+    tipPL: "\u0633\u0648\u062f / \u0632\u06cc\u0627\u0646", tipLTHSTH: "\u0646\u06af\u0647\u200c\u062f\u0627\u0631\u0646\u062f\u06af\u0627\u0646 \u0628\u0644\u0646\u062f/\u06a9\u0648\u062a\u0627\u0647 \u0645\u062f\u062a", tipAge: "\u0628\u0627\u0646\u062f\u0647\u0627\u06cc \u0633\u0646\u06cc UTXO (21 \u06a9\u0648\u0647\u0648\u0631\u062a)",
     binsLabel: "\u06a9\u0644\u0627\u0633\u200c\u0647\u0627",
     titleUSD: "UTXO Realized Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u062f\u0644\u0627\u0631\u06cc) \u062a\u0627 ", titleUSDCohort: "UTXO Realized Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc \u062f\u0644\u0627\u0631\u06cc) \u0628\u0631 \u0627\u0633\u0627\u0633 \u06a9\u0648\u0647\u0648\u0631\u062a \u062a\u0627 ",
     titleBTC: "UTXO Realized Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc BTC) \u062a\u0627 ", titleBTCCohort: "UTXO Realized Price Distribution (\u0648\u0632\u0646\u200c\u062f\u0647\u06cc BTC) \u0628\u0631 \u0627\u0633\u0627\u0633 \u06a9\u0648\u0647\u0648\u0631\u062a \u062a\u0627 ",
@@ -689,11 +703,13 @@ function applyLang() {
   }
   document.getElementById("btnPL").textContent = t("pl");
   document.getElementById("btnSplit").textContent = t("lthsth");
+  document.getElementById("btnAge").textContent = t("age");
   $loading.textContent = t("loading");
   var binLabels = document.querySelectorAll("#binWrap label");
   if (binLabels[0]) binLabels[0].textContent = t("binsLabel");
   document.getElementById("btnPL").title = t("tipPL");
   document.getElementById("btnSplit").title = t("tipLTHSTH");
+  document.getElementById("btnAge").title = t("tipAge");
   document.getElementById("btnUSD").title = t("tipUSD");
   document.getElementById("btnBTC").title = t("tipBTC");
   document.getElementById("btnVD").title = t("tipVD");
@@ -729,10 +745,10 @@ var rollingWindow = 1; // days
 
 var WEIGHT_MODES = ["usd","btc","vd","cd"];
 var VIEW_MODES = [];
-// Build: 8 combinations (4 weights × 2 cohorts)
+// Build: 12 combinations (4 weights × 3 cohorts)
+var SPLIT_MODES = ["pl","lthsth","age"];
 WEIGHT_MODES.forEach(function(w){
-  VIEW_MODES.push({split:false,weight:w});
-  VIEW_MODES.push({split:true,weight:w});
+  SPLIT_MODES.forEach(function(s){ VIEW_MODES.push({split:s,weight:w}); });
 });
 var viewIdx = 0;
 
@@ -875,10 +891,15 @@ function setViewMode(idx) {
   splitMode = m.split;
   weightMode = m.weight;
   coinMode = (weightMode === "btc");
-  document.getElementById("btnPL").classList.toggle("active", !splitMode);
-  document.getElementById("btnSplit").classList.toggle("active", splitMode);
+  updateSplitButtons();
   updateWeightButtons();
   loadAndRender();
+}
+
+function updateSplitButtons() {
+  document.getElementById("btnPL").classList.toggle("active", splitMode === "pl");
+  document.getElementById("btnSplit").classList.toggle("active", splitMode === "lthsth");
+  document.getElementById("btnAge").classList.toggle("active", splitMode === "age");
 }
 
 function updateWeightButtons() {
@@ -976,11 +997,11 @@ function prefetchAdjacent() {
     // Only prefetch cohort data for the nearest few dates (expensive)
     var dist = Math.abs(idx - currentIdx);
     if (dist <= 3) {
-      if (splitMode && !isCD) {
+      if (splitMode === "lthsth" && !isCD) {
         fetchJSON(BASE + "/api/urpd/lth/" + ds).catch(function(){});
         fetchJSON(BASE + "/api/urpd/sth/" + ds).catch(function(){});
       }
-      if (isCD) {
+      if (isCD || splitMode === "age") {
         AGE_BANDS.forEach(function(band) {
           fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + ds).catch(function(){});
         });
@@ -1008,7 +1029,7 @@ function loadAndRender() {
   var isCD = (weightMode === "cd" || weightMode === "vd");
   var isFlow = (viewMode === "flow");
   var isDelta = !isFlow && rollingWindow > 1;
-  var cacheKey = dateStr + "_" + viewMode + "_" + weightMode + (splitMode ? "_split" : "_pl") + (isFlow && includeMined ? "_mined" : "") + "_w" + rollingWindow;
+  var cacheKey = dateStr + "_" + viewMode + "_" + weightMode + ("_" + splitMode) + (isFlow && includeMined ? "_mined" : "") + "_w" + rollingWindow;
   if (cache[cacheKey]) {
     renderChart(cache[cacheKey]);
     hideLoading();
@@ -1080,13 +1101,16 @@ function loadAndRender() {
           data.totalCD = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
           data.realizedCap = data.totalCD;
           data.totalSupply = data.aggAll.reduce(function(s,b){return s+b.supply;}, 0);
-          if (splitMode) {
+          if (splitMode === "lthsth") {
             var sthBands = ageDiffData.filter(function(r){ return r.mid < 155; });
             var lthBands = ageDiffData.filter(function(r){ return r.mid >= 155; });
             data.aggSTH = aggregateAgeBands(sthBands, binWidth, weightMode);
             data.aggLTH = aggregateAgeBands(lthBands, binWidth, weightMode);
             data.sthCD = data.aggSTH.reduce(function(s,b){return s+b.invested;}, 0);
             data.lthCD = data.aggLTH.reduce(function(s,b){return s+b.invested;}, 0);
+          } else if (splitMode === "age") {
+            // Store per-band diffed data for age-band rendering
+            data.ageBandData = ageDiffData.map(function(d, i) { return { band: AGE_BANDS[i], data: d.buckets }; });
           }
         }));
       } else {
@@ -1096,7 +1120,7 @@ function loadAndRender() {
         data.aggAll = diffAgg(aggPrevF, aggCurrF);
         data.realizedCap = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
         data.totalSupply = data.aggAll.reduce(function(s,b){return s+b.supply;}, 0);
-        if (splitMode) {
+        if (splitMode === "lthsth") {
           fetches.push(Promise.all([
             fetchJSON(BASE + "/api/urpd/lth/" + dateStr),
             fetchJSON(BASE + "/api/urpd/lth/" + prevDateStr),
@@ -1116,6 +1140,24 @@ function loadAndRender() {
           }).catch(function(e) {
             console.warn("Flow cohort fetch failed", e);
             data.aggLTH = null; data.aggSTH = null;
+          }));
+        } else if (splitMode === "age") {
+          // AGE mode in USD/BTC flow: fetch all 21 bands, diff each
+          var ageFlowFetches = [];
+          AGE_BANDS.forEach(function(band) {
+            ageFlowFetches.push(fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + dateStr).catch(function(){ return null; }));
+            ageFlowFetches.push(fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + prevDateStr).catch(function(){ return null; }));
+          });
+          fetches.push(Promise.all(ageFlowFetches).then(function(ageRes) {
+            var ageBandData = [];
+            for (var ai = 0; ai < AGE_BANDS.length; ai++) {
+              var cr = ageRes[ai * 2];
+              var pr = ageRes[ai * 2 + 1];
+              if (!cr || !pr) continue;
+              var diffed = diffAgg(aggregate(pr.buckets, binWidth), aggregate(cr.buckets, binWidth));
+              ageBandData.push({ band: AGE_BANDS[ai], data: diffed });
+            }
+            data.ageBandData = ageBandData;
           }));
         }
       }
@@ -1175,10 +1217,9 @@ function loadAndRender() {
           arr.sort(function(a,b){ return a.price - b.price; });
           data.aggAll = arr;
           data.totalCD = arr.reduce(function(s,b){return s+b.invested;}, 0);
-          if (splitMode) {
+          if (splitMode === "lthsth") {
             var sthBands = ageDiffData.filter(function(r){ return r.mid < 155; });
             var lthBands = ageDiffData.filter(function(r){ return r.mid >= 155; });
-            // Aggregate STH bands
             var sthBins = {};
             sthBands.forEach(function(bd) {
               bd.buckets.forEach(function(db) {
@@ -1188,7 +1229,6 @@ function loadAndRender() {
               });
             });
             data.aggSTH = Object.values(sthBins).sort(function(a,b){return a.price-b.price;});
-            // Aggregate LTH bands
             var lthBins = {};
             lthBands.forEach(function(bd) {
               bd.buckets.forEach(function(db) {
@@ -1200,10 +1240,12 @@ function loadAndRender() {
             data.aggLTH = Object.values(lthBins).sort(function(a,b){return a.price-b.price;});
             data.sthCD = data.aggSTH.reduce(function(s,b){return s+b.invested;},0);
             data.lthCD = data.aggLTH.reduce(function(s,b){return s+b.invested;},0);
+          } else if (splitMode === "age") {
+            data.ageBandData = ageDiffData.map(function(d, i) { return { band: AGE_BANDS[i], data: d.buckets }; });
           }
         }));
       }
-      if (splitMode && !isCD) {
+      if (splitMode === "lthsth" && !isCD) {
         fetches.push(Promise.all([
           fetchJSON(BASE + "/api/urpd/lth/" + dateStr),
           fetchJSON(BASE + "/api/urpd/lth/" + prevDateStr),
@@ -1225,9 +1267,28 @@ function loadAndRender() {
           data.aggLTH = null; data.aggSTH = null;
         }));
       }
+      if (splitMode === "age" && !isCD) {
+        // AGE mode in delta non-CD: fetch all 21 bands for both days
+        var ageDeltaFetches = [];
+        AGE_BANDS.forEach(function(band) {
+          ageDeltaFetches.push(fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + dateStr).catch(function(){ return null; }));
+          ageDeltaFetches.push(fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + prevDateStr).catch(function(){ return null; }));
+        });
+        fetches.push(Promise.all(ageDeltaFetches).then(function(ageRes) {
+          var ageBandData = [];
+          for (var ai = 0; ai < AGE_BANDS.length; ai++) {
+            var cr = ageRes[ai * 2];
+            var pr = ageRes[ai * 2 + 1];
+            if (!cr || !pr) continue;
+            var diffed = deltaAgg(aggregate(pr.buckets, binWidth), aggregate(cr.buckets, binWidth));
+            ageBandData.push({ band: AGE_BANDS[ai], data: diffed });
+          }
+          data.ageBandData = ageBandData;
+        }));
+      }
     } else {
       // Normal snapshot mode (1D window)
-      if (isCD) {
+      if (isCD || splitMode === "age") {
         var ageFetches2 = AGE_BANDS.map(function(band) {
           return fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + dateStr).then(function(r) {
             return { mid: band.mid, buckets: r.buckets };
@@ -1235,22 +1296,32 @@ function loadAndRender() {
         });
         fetches.push(Promise.all(ageFetches2).then(function(results) {
           var valid = results.filter(function(r) { return r !== null; });
-          data.aggAll = aggregateAgeBands(valid, binWidth, weightMode);
-          data.totalCD = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
-          if (splitMode) {
-            var sthBands = valid.filter(function(r){ return r.mid < 155; });
-            var lthBands = valid.filter(function(r){ return r.mid >= 155; });
-            data.aggSTH = aggregateAgeBands(sthBands, binWidth, weightMode);
-            data.aggLTH = aggregateAgeBands(lthBands, binWidth, weightMode);
-            data.sthCD = data.aggSTH.reduce(function(s,b){return s+b.invested;}, 0);
-            data.lthCD = data.aggLTH.reduce(function(s,b){return s+b.invested;}, 0);
+          if (splitMode === "age") {
+            // Store per-band data for age-band rendering
+            data.ageBandData = valid.map(function(r, i) {
+              return { band: AGE_BANDS[i], data: aggregate(r.buckets, binWidth) };
+            });
+            // Also compute aggAll for totals
+            data.aggAll = aggregateAgeBands(valid, binWidth, isCD ? weightMode : "usd");
+            if (isCD) data.totalCD = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
+          } else {
+            data.aggAll = aggregateAgeBands(valid, binWidth, weightMode);
+            data.totalCD = data.aggAll.reduce(function(s,b){return s+b.invested;}, 0);
+            if (splitMode === "lthsth") {
+              var sthBands = valid.filter(function(r){ return r.mid < 155; });
+              var lthBands = valid.filter(function(r){ return r.mid >= 155; });
+              data.aggSTH = aggregateAgeBands(sthBands, binWidth, weightMode);
+              data.aggLTH = aggregateAgeBands(lthBands, binWidth, weightMode);
+              data.sthCD = data.aggSTH.reduce(function(s,b){return s+b.invested;}, 0);
+              data.lthCD = data.aggLTH.reduce(function(s,b){return s+b.invested;}, 0);
+            }
           }
         }));
       } else {
         data.aggAll = aggregate(buckets, binWidth);
       }
 
-      if (splitMode && !isCD) {
+      if (splitMode === "lthsth" && !isCD) {
         fetches.push(Promise.all([
           fetchJSON(BASE + "/api/urpd/lth/" + dateStr),
           fetchJSON(BASE + "/api/urpd/sth/" + dateStr)
@@ -1307,7 +1378,8 @@ function renderChart(data) {
   var aggLTH = data.aggLTH, aggSTH = data.aggSTH, realizedCap = data.realizedCap, totalSupply = data.totalSupply;
   var lthRC = data.lthRC, sthRC = data.sthRC, maxPrice = data.maxPrice;
   var wm = data.weightMode || weightMode;
-  var isSplit = splitMode && aggLTH && aggSTH;
+  var isSplit = (splitMode === "lthsth") && aggLTH && aggSTH;
+  var isAge = (splitMode === "age") && data.ageBandData && data.ageBandData.length > 0;
   var isCoin = (wm === "btc");
   var isCD = (wm === "cd");
   var isVD = (wm === "vd");
@@ -1371,6 +1443,46 @@ function renderChart(data) {
     var run1 = 0;
     var cumul1 = valuesForAxis.map(function(v){run1+=v;return 100*run1/total1;});
     traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:showCumulative?true:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+  } else if (isAge) {
+    // Age-band stacked bar rendering (21 cohorts)
+    var allPricesSetA = new Set();
+    data.ageBandData.forEach(function(ab) {
+      ab.data.forEach(function(b) { allPricesSetA.add(b.price); });
+    });
+    chartPrices = Array.from(allPricesSetA).sort(function(a,b){return a-b;});
+    barWidths = chartPrices.map(function(p,i,arr){if(arr.length<=1)return 1;if(i===arr.length-1)return arr[i]-arr[i-1];return arr[i+1]-arr[i];});
+    valuesForAxis = new Array(chartPrices.length).fill(0);
+    for (var ai = 0; ai < data.ageBandData.length; ai++) {
+      var ab = data.ageBandData[ai];
+      var bandData = ab.data;
+      var priceMap = {};
+      var mid = ab.band.mid;
+      bandData.forEach(function(b) {
+        var val;
+        if (isCoin) { val = b.supply; }
+        else if (isCD) { val = b.supply * mid; }
+        else if (isVD) { val = b.invested * mid; }
+        else { val = b.invested; }
+        priceMap[b.price] = val;
+      });
+      var bandValues = chartPrices.map(function(p) { return priceMap[p] || 0; });
+      var smoothedValues = smooth(bandValues);
+      var bandLabel = ab.band.label;
+      var hoverFmt = isCoin ? "%{y:,.2f} BTC" : isCD ? "%{y:,.0f} CD" : isVD ? "%{y:$,.0f} VD" : "%{y:$,.0f}";
+      traces.push({
+        x: chartPrices, y: smoothedValues, type: "bar", name: bandLabel,
+        width: barWidths,
+        marker: { color: AGE_BAND_COLORS[ai], line: { width: 0.3, color: "rgba(0,0,0,0.3)" } },
+        hovertemplate: hp + "%{x:,.0f}<br>" + bandLabel + ": " + hoverFmt + "<extra></extra>"
+      });
+      for (var pi = 0; pi < chartPrices.length; pi++) {
+        valuesForAxis[pi] += smoothedValues[pi];
+      }
+    }
+    var totalA = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
+    var runA = 0;
+    var cumulA = valuesForAxis.map(function(v){runA+=v;return 100*runA/totalA;});
+    traces.push({x:chartPrices,y:cumulA,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:showCumulative?true:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
     barWidths = chartPrices.map(function(p,i,arr){if(arr.length<=1)return 1;if(i===arr.length-1)return arr[i]-arr[i-1];return arr[i+1]-arr[i];});
@@ -1570,17 +1682,18 @@ function renderChart(data) {
   if (isDelta && !isFlow) titleDate += " (" + (data.rollingWindow || rollingWindow) + "-Day Rolling Window \u0394)";
   else if (isFlow && rollingWindow > 1) titleDate += " (" + rollingWindow + "-Day Rolling Window)";
   var titleText;
+  var cohortTitle = isSplit || isAge;
   if (isCD) {
-    titleText = isSplit ? "<b>" + t("titleCDCohort") + titleDate + "</b>" : "<b>" + t("titleCD") + titleDate + "</b>";
+    titleText = cohortTitle ? "<b>" + t("titleCDCohort") + titleDate + "</b>" : "<b>" + t("titleCD") + titleDate + "</b>";
   } else if (isVD) {
-    titleText = isSplit ? "<b>" + t("titleVDCohort") + titleDate + "</b>" : "<b>" + t("titleVD") + titleDate + "</b>";
+    titleText = cohortTitle ? "<b>" + t("titleVDCohort") + titleDate + "</b>" : "<b>" + t("titleVD") + titleDate + "</b>";
   } else if (isCoin) {
-    titleText = isSplit ? "<b>" + t("titleBTCCohort") + titleDate + "</b>" : "<b>" + t("titleBTC") + titleDate + "</b>";
+    titleText = cohortTitle ? "<b>" + t("titleBTCCohort") + titleDate + "</b>" : "<b>" + t("titleBTC") + titleDate + "</b>";
   } else {
-    titleText = isSplit ? "<b>" + t("titleUSDCohort") + titleDate + "</b>" : "<b>" + t("titleUSD") + titleDate + "</b>";
+    titleText = cohortTitle ? "<b>" + t("titleUSDCohort") + titleDate + "</b>" : "<b>" + t("titleUSD") + titleDate + "</b>";
   }
 
-  var legendItems = (isSplit ? 2 : 1) + 2 + (isFlow && data.minedBTC && !(isCD||isVD) ? 1 : 0); // bars + cumul + btcusd + mined
+  var legendItems = (isAge ? 23 : isSplit ? 2 : 1) + 2 + (isFlow && data.minedBTC && !(isCD||isVD) ? 1 : 0); // bars + cumul + btcusd + mined
   var annY = 0.98 - legendItems * 0.045 - 0.02;
   var shapes = [];
   var annotations = [
@@ -1635,7 +1748,7 @@ function renderChart(data) {
     title:{text:titleText,x:0.5,xanchor:"center",font:{size:isMob?11:18,family:FONT,color:"#ff8c00"}},
     font:{family:FONT,color:"#d4d4d4"},
     paper_bgcolor:"#000000",plot_bgcolor:"#000000",
-    barmode:isSplit?"stack":"overlay",bargap:0,
+    barmode:(isSplit||isAge)?"stack":"overlay",bargap:0,
     legend:isMob?{visible:false}:{orientation:"v",yanchor:"top",y:0.98,xanchor:"left",x:0.01,font:{family:FONT,size:13,color:"#ccc"},bgcolor:"rgba(0,0,0,0.75)"},
     xaxis:{title:isMob?{text:""}:{text:t("priceUSD"),font:{family:FONT,size:12,color:"#ff8c00"}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.06)",tickfont:{family:FONT,size:isMob?(isLand?8:6):11,color:"#ff8c00"},tickangle:isMob?0:undefined},
     yaxis:{title:isMob?{text:""}:{text:yAxisTitle,font:{family:FONT,size:12,color:"#ff8c00"}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:yRange,showgrid:isDelta&&!isFlow,gridcolor:(isDelta&&!isFlow)?"rgba(255,255,255,0.06)":"rgba(0,0,0,0)",tickfont:{family:FONT,size:isMob?7:11,color:"#ff8c00"}},
@@ -1709,13 +1822,13 @@ function renderChart(data) {
     var clickedName = evtData.data[evtData.curveNumber].name;
     if (clickedName === t("btcusd")) {
       showPriceOverlay = !showPriceOverlay;
-      var ck = allDates[currentIdx] + "_" + viewMode + "_" + weightMode + (splitMode ? "_split" : "_pl") + (viewMode==="flow"&&includeMined?"_mined":"") + "_w" + rollingWindow;
+      var ck = allDates[currentIdx] + "_" + viewMode + "_" + weightMode + ("_" + splitMode) + (viewMode==="flow"&&includeMined?"_mined":"") + "_w" + rollingWindow;
       if (cache[ck]) renderChart(cache[ck]); else loadAndRender();
       return false;
     }
     if (clickedName === t("pctTotal")) {
       showCumulative = !showCumulative;
-      var ck = allDates[currentIdx] + "_" + viewMode + "_" + weightMode + (splitMode ? "_split" : "_pl") + (viewMode==="flow"&&includeMined?"_mined":"") + "_w" + rollingWindow;
+      var ck = allDates[currentIdx] + "_" + viewMode + "_" + weightMode + ("_" + splitMode) + (viewMode==="flow"&&includeMined?"_mined":"") + "_w" + rollingWindow;
       if (cache[ck]) renderChart(cache[ck]); else loadAndRender();
       return false;
     }
@@ -1737,20 +1850,20 @@ document.getElementById("btnNext").onclick = function(){goTo(currentIdx + stepSi
 document.getElementById("btnFirst").onclick = function(){goTo(0);};
 document.getElementById("btnLast").onclick = function(){goTo(allDates.length - 1);};
 
-document.getElementById("btnPL").onclick = function(){
-  splitMode = false;
-  document.getElementById("btnPL").classList.add("active");
-  document.getElementById("btnSplit").classList.remove("active");
+function setSplit(mode) {
+  splitMode = mode;
+  cache = {}; // age mode uses different data structure
+  updateSplitButtons();
   viewIdx = findViewIdx();
+  var url = new URL(window.location);
+  if (mode === "pl") url.searchParams.delete("split");
+  else url.searchParams.set("split", mode);
+  window.history.replaceState({}, "", url);
   loadAndRender();
-};
-document.getElementById("btnSplit").onclick = function(){
-  splitMode = true;
-  document.getElementById("btnSplit").classList.add("active");
-  document.getElementById("btnPL").classList.remove("active");
-  viewIdx = findViewIdx();
-  loadAndRender();
-};
+}
+document.getElementById("btnPL").onclick = function(){ setSplit("pl"); };
+document.getElementById("btnSplit").onclick = function(){ setSplit("lthsth"); };
+document.getElementById("btnAge").onclick = function(){ setSplit("age"); };
 function setWeight(mode) {
   weightMode = mode;
   coinMode = (mode === "btc");
@@ -1978,7 +2091,9 @@ async function init() {
   // Restore state from URL params (passed by Stock/Flow navigation)
   var params = new URLSearchParams(window.location.search);
   if (params.get("mode") && WEIGHT_MODES.indexOf(params.get("mode")) >= 0) { weightMode = params.get("mode"); coinMode = (weightMode === "btc"); updateWeightButtons(); }
-  if (params.get("split") === "1") { splitMode = true; document.getElementById("btnPL").classList.remove("active"); document.getElementById("btnSplit").classList.add("active"); }
+  var splitParam = params.get("split");
+  if (splitParam === "1" || splitParam === "lthsth") { splitMode = "lthsth"; updateSplitButtons(); }
+  else if (splitParam === "age") { splitMode = "age"; updateSplitButtons(); }
   if (params.get("iv")) { var iv = parseInt(params.get("iv")); var si = STEPS.indexOf(iv); if (si >= 0) setInterval1(si); }
   if (params.get("rw")) { var rw = parseInt(params.get("rw")); if ([1,7,30,90].indexOf(rw) >= 0) { rollingWindow = rw; var wbtns = document.querySelectorAll("#windowBar .wv"); wbtns.forEach(function(b){ b.classList.toggle("active", parseInt(b.getAttribute("data-w")) === rw); }); } }
   if (params.get("lang") && T[params.get("lang")]) { lang = params.get("lang"); }
