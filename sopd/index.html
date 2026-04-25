@@ -285,8 +285,7 @@ var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
 var LTH_COLOR = "#5599ff";
 var STH_COLOR = "#e6a817";
-var CUMUL_COLOR = "rgba(171,71,188,0.45)";
-var SCALAR_COLOR = "rgba(38,198,218,0.55)";
+var CUMUL_COLOR = "rgba(38,198,218,0.55)";
 var SPOT_COLOR = "#ff8c00";
 var MINED_COLOR = "#ffff00"; // Bloomberg yellow — pops against green/red
 var FONT = "'Source Code Pro', Consolas, monospace";
@@ -295,9 +294,7 @@ var allDates = [];
 var currentIdx = 0;
 var priceArray = null;
 var priceDateStrs = null; // precomputed date strings for priceArray
-var srcHistory = {};
 var showPriceOverlay = true;
-var showSRCOverlay = true;
 var splitMode = false;
 var coinMode = false;
 var weightMode = "usd"; // "usd", "btc", "cd", "vd"
@@ -932,7 +929,6 @@ function loadAndRender() {
     }
 
     if (thisGen !== renderGeneration) return; // stale — user already navigated away
-    if (data.realizedCap && data.totalSupply > 0 && weightMode === "usd") srcHistory[dateStr] = data.realizedCap / data.totalSupply;
     cache[cacheKey] = data;
     renderChart(data);
     hideLoading();
@@ -1009,7 +1005,7 @@ function renderChart(data) {
     var total1 = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
     var run1 = 0;
     var cumul1 = valuesForAxis.map(function(v){run1+=v;return 100*run1/total1;});
-    traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+    traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
     barWidths = barWidths;
@@ -1022,7 +1018,7 @@ function renderChart(data) {
       var hoverUnit = isCD ? "CD" : "VD";
       var hoverFmt = isVD ? "%{y:$,.0f}" : "%{y:,.0f}";
       traces.push({x:chartPrices,y:cdVals,type:"bar",name:t("profitLoss"),width:barWidths,marker:{color:colorsCV,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumulCV.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>" + hoverUnit + ": " + hoverFmt + "<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumulCV,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = cdVals;
     } else if (isCoin) {
       var supplyVals = smooth(aggAll.map(function(b){return b.supply;}));
@@ -1031,7 +1027,7 @@ function renderChart(data) {
       var cumul2 = supplyVals.map(function(v){run2+=v;return 100*run2/total2;});
       var colors2 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
       traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("profitLoss"),width:barWidths,marker:{color:colors2,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
       var invested = smooth(aggAll.map(function(b){return b.invested;}));
@@ -1040,7 +1036,7 @@ function renderChart(data) {
       var cumul3 = invested.map(function(v){run3+=v;return 100*run3/total3;});
       var colors3 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
       traces.push({x:chartPrices,y:invested,type:"bar",name:t("profitLoss"),width:barWidths,marker:{color:colors3,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:"legendonly",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",visible:true,hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
   }
@@ -1295,26 +1291,6 @@ function renderChart(data) {
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
   }
-  // Spent Realized Cap time series overlay (accumulated from visited dates)
-  if (Object.keys(srcHistory).length > 0) {
-    var srcDates=[], srcVals=[];
-    var srcCutoff=new Date(dateStr+"T00:00:00");
-    srcCutoff.setFullYear(srcCutoff.getFullYear()-1);
-    var srcCStr=srcCutoff.toISOString().split("T")[0];
-    var sortedSrcDates=Object.keys(srcHistory).sort();
-    for(var si=0;si<sortedSrcDates.length;si++){
-      if(sortedSrcDates[si]>=srcCStr&&sortedSrcDates[si]<=dateStr){
-        srcDates.push(sortedSrcDates[si]);srcVals.push(srcHistory[sortedSrcDates[si]]);
-      }
-    }
-    if(srcDates.length>0){
-      if(!layout.xaxis2){layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};}
-      var spNow = (realizedCap && totalSupply > 0) ? realizedCap / totalSupply : 0;
-      traces.push({x:srcDates,y:srcVals,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showSRCOverlay?SCALAR_COLOR:"rgba(0,0,0,0)",width:showSRCOverlay?2:0},hoverinfo:"skip",showlegend:true,name:t("spentPrice"),visible:true});
-      if(showSRCOverlay&&spNow>0){traces.push({x:[dateStr],y:[spNow],type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:SCALAR_COLOR,size:9,line:{color:"rgba(38,198,218,0.5)",width:1.5}},text:[t("tracerSP")],textposition:"bottom center",textfont:{color:SCALAR_COLOR,size:11,family:FONT},hoverinfo:"skip",showlegend:false});}
-      if(showSRCOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:"rgba(38,198,218,0.3)",width:1,dash:"dot"}});}
-    }
-  }
   var plotConfig = {responsive:true, displayModeBar: !isPort};
   if (isMob) { plotConfig.scrollZoom = false; plotConfig.staticPlot = true; }
   Plotly.react("chart", traces, layout, plotConfig);
@@ -1325,12 +1301,6 @@ function renderChart(data) {
       showPriceOverlay = !showPriceOverlay;
       var ck = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + (includeMined ? "_mined" : "") + "_w" + rollingWindow;
       if (cache[ck]) renderChart(cache[ck]); else loadAndRender();
-      return false;
-    }
-    if (clickedName === t("spentPrice")) {
-      showSRCOverlay = !showSRCOverlay;
-      var ck2 = allDates[currentIdx] + "_" + weightMode + (splitMode ? "_split" : "_pl") + (includeMined ? "_mined" : "") + "_w" + rollingWindow;
-      if (cache[ck2]) renderChart(cache[ck2]); else loadAndRender();
       return false;
     }
   });
@@ -1559,73 +1529,6 @@ function closeDateDD() {
   });
 })();
 
-// Compute spent price from two raw URPD responses (no binning needed)
-function computeSpentPrice(prevResp, currResp) {
-  var currMap = {};
-  currResp.buckets.forEach(function(b) { currMap[b.price_floor] = b; });
-  var spentSup = 0, spentInv = 0;
-  prevResp.buckets.forEach(function(b) {
-    var cb = currMap[b.price_floor];
-    var dSup = b.supply - (cb ? cb.supply : 0);
-    if (dSup > 0) {
-      spentSup += dSup;
-      spentInv += dSup * b.price_floor;
-    }
-  });
-  return spentSup > 0 ? spentInv / spentSup : 0;
-}
-
-// Background preloader: fetch sampled dates to build spent price time series
-var _preloadRunning = false;
-async function preloadSpentPrices() {
-  if (_preloadRunning || allDates.length < 2) return;
-  _preloadRunning = true;
-  var endIdx = currentIdx;
-  // Find index 1 year back
-  var cutoff = new Date(allDates[endIdx] + "T00:00:00");
-  cutoff.setFullYear(cutoff.getFullYear() - 1);
-  var cutoffStr = cutoff.toISOString().split("T")[0];
-  var startIdx = 1;
-  for (var i = 0; i < allDates.length; i++) {
-    if (allDates[i] >= cutoffStr) { startIdx = Math.max(1, i); break; }
-  }
-  // Collect indices to fetch (every 5th date)
-  var toFetch = [];
-  for (var i = startIdx; i <= endIdx; i += 5) {
-    if (!srcHistory[allDates[i]]) toFetch.push(i);
-  }
-  // Also include the last date
-  if (!srcHistory[allDates[endIdx]] && toFetch[toFetch.length - 1] !== endIdx) toFetch.push(endIdx);
-
-  console.log("Preloading spent price for", toFetch.length, "dates...");
-  // Fetch in batches of 3 concurrent pairs
-  for (var batch = 0; batch < toFetch.length; batch += 3) {
-    var batchEnd = Math.min(batch + 3, toFetch.length);
-    var promises = [];
-    for (var j = batch; j < batchEnd; j++) {
-      (function(idx) {
-        var d = allDates[idx];
-        var prevIdx = idx - 1;
-        var pd = allDates[prevIdx];
-        promises.push(
-          Promise.all([
-            fetchJSON(BASE + "/api/urpd/all/" + d),
-            fetchJSON(BASE + "/api/urpd/all/" + pd)
-          ]).then(function(res) {
-            var sp = computeSpentPrice(res[1], res[0]);
-            if (sp > 0) srcHistory[d] = sp;
-          }).catch(function() {})
-        );
-      })(toFetch[j]);
-    }
-    await Promise.all(promises);
-  }
-  console.log("Spent price preload complete:", Object.keys(srcHistory).length, "dates");
-  _preloadRunning = false;
-  // Re-render to show the full line
-  if (showSRCOverlay) loadAndRender();
-}
-
 async function init() {
   $chart = document.getElementById("chart");
   $status = document.getElementById("status");
@@ -1650,8 +1553,6 @@ async function init() {
       console.warn("Price array preload failed:", e);
     }
     loadAndRender();
-    // Start background preload of spent prices after initial render
-    preloadSpentPrices();
     // Aggressive initial prefetch: bias heavily toward previous dates
     setTimeout(function() {
       var BACK_DEPTH = 30;
