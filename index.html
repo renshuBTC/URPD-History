@@ -190,7 +190,7 @@
 // ============================================================================
 
 const BASE = "https://bitview.space";
-const NUM_BINS = 600;     // resolution of the histogram (linear bins)
+const NUM_BINS = 750;     // resolution of the histogram (linear bins)
 const Y_CAP_PCT = 0.99;   // y-axis caps at 99th-percentile bin so a few tall bars don't squash the rest
 const SMOOTH_WIN = 5;
 const FONT = "'Source Code Pro', Consolas, monospace";
@@ -675,17 +675,21 @@ function buildLayoutAndTraces(data) {
     xaxis2Range = [cStr, new Date(rightEdgeMs).toISOString().slice(0, 10)];
   }
 
-  // ----- Big white spot-price annotation, centered in the upper chart area -----
-  const priceLabelText = (spot && spot > 0)
-    ? "$" + spot.toLocaleString("en-US", { maximumFractionDigits: 0 })
-    : "";
+  // ----- Big white spot-price + date annotation, centered in the upper chart -----
+  let priceLabelText = "";
+  if (spot && spot > 0) {
+    const dt = new Date(dateStr + "T00:00:00Z");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const dateLabel = String(dt.getUTCDate()).padStart(2, "0") + "/" + months[dt.getUTCMonth()] + "/" + dt.getUTCFullYear();
+    priceLabelText = "$" + spot.toLocaleString("en-US", { maximumFractionDigits: 0 }) + "   " + dateLabel;
+  }
   const priceLabelAnnotations = priceLabelText ? [{
     xref: "paper", yref: "paper",
     x: 0.5, y: 0.88,
     xanchor: "center", yanchor: "middle",
     text: priceLabelText,
     showarrow: false,
-    font: { size: 56, family: "'Times New Roman', Times, serif", color: "#ffffff" },
+    font: { size: 48, family: "'Times New Roman', Times, serif", color: "#ffffff" },
   }] : [];
 
   // ----- Layout -----
