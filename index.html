@@ -675,14 +675,26 @@ function buildLayoutAndTraces(data) {
     xaxis2Range = [cStr, new Date(rightEdgeMs).toISOString().slice(0, 10)];
   }
 
+  // ----- Big white spot-price annotation, centered in the upper chart area -----
+  const priceLabelText = (spot && spot > 0)
+    ? "$" + spot.toLocaleString("en-US", { maximumFractionDigits: 0 })
+    : "";
+  const priceLabelAnnotations = priceLabelText ? [{
+    xref: "paper", yref: "paper",
+    x: 0.5, y: 0.88,
+    xanchor: "center", yanchor: "middle",
+    text: priceLabelText,
+    showarrow: false,
+    font: { size: 56, family: "'Times New Roman', Times, serif", color: "#ffffff" },
+  }] : [];
+
   // ----- Layout -----
-  // Chart-rendered title/date/logo/axis-titles/y-tick-labels were moved into
-  // the top control bar — chart is now bars only.
   const layout = {
     paper_bgcolor: "#000000",
     plot_bgcolor: "#000000",
     barmode: "stack", bargap: 0,
     legend: { visible: false },
+    annotations: priceLabelAnnotations,
     xaxis: {
       tickvals: xTickvals, ticktext: xTicktext,
       showgrid: true, gridcolor: "rgba(255,255,255,0.05)",
