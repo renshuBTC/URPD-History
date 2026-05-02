@@ -1,1 +1,975 @@
-<html><head><meta http-equiv="refresh" content="0;url=https://bitcointerminal.net/"></head></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Life Cycle of Bitcoin</title>
+<meta name="description" content="A live, interactive view of Bitcoin's UTXO Realised Price Distribution from genesis to today. Scrub through every day. Open source.">
+
+<link rel="preconnect" href="https://bitview.space" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap">
+
+<!-- Plotly served from jsDelivr (cdn.plot.ly has been flaky since Plotly migrated). -->
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist@2.27.0/plotly.min.js"></script>
+
+<style>
+  /* ===== Bloomberg-terminal aesthetic: pure black, amber accents, monospace,
+     hairline dividers, sharp corners, dense and quiet. ===== */
+
+  :root { color-scheme: dark; --amber: #ff8c00; --hairline: #151515; --dim: #555; --text: #b8b8b8; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #000; color: var(--text); font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; }
+
+  body { display: flex; flex-direction: column; }
+
+  /* ===== Top bar (hidable) ===== */
+  #topBar {
+    flex-shrink: 0;
+    background: #000;
+    border-bottom: 1px solid var(--hairline);
+    padding: 5px 8px;
+    display: flex; align-items: center; gap: 0;
+    flex-wrap: wrap;
+    transition: max-height 0.18s ease, padding 0.18s ease, opacity 0.15s ease;
+    max-height: 200px;
+    overflow: hidden;
+  }
+  body.panel-hidden #topBar { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; pointer-events: none; }
+
+  .ctrl-group { display: flex; align-items: center; }
+  .ctrl-sep   { width: 1px; height: 14px; background: var(--hairline); margin: 0 8px; }
+
+  /* All controls share a single hairline-bordered, square, monospace style. */
+  button, select {
+    font-family: inherit;
+    font-size: 11px;
+    height: 22px;
+    padding: 0 9px;
+    background: #000;
+    color: #888;
+    border: 1px solid var(--hairline);
+    border-radius: 0;
+    cursor: pointer;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    transition: color 0.1s, border-color 0.1s, background 0.1s;
+  }
+  /* Adjacent buttons in a group share borders so it reads as a single segmented control. */
+  .ctrl-group button + button { border-left: 0; }
+
+  button:hover, select:hover { color: #fff; border-color: #2a2a2a; }
+  button.active { background: var(--amber); color: #000; border-color: var(--amber); font-weight: 700; }
+  button.active:hover { background: #ffaa33; border-color: #ffaa33; }
+  button:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  /* Cycle-jump dropdown — native control, force dark scheme. */
+  select { padding-right: 18px; appearance: none; -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #888 50%),
+                      linear-gradient(135deg, #888 50%, transparent 50%);
+    background-position: calc(100% - 10px) calc(50% - 1px), calc(100% - 6px) calc(50% - 1px);
+    background-size: 4px 4px, 4px 4px;
+    background-repeat: no-repeat;
+  }
+  select option { background: #000; color: #ccc; }
+
+  /* ===== Price + date readout — the lone bright element in the bar ===== */
+  #dateDisplay {
+    display: flex; align-items: center; gap: 6px;
+    height: 22px; padding: 0 14px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+    /* No border — adjacent buttons frame it, and the amber price is the focal point. */
+  }
+  #dateDisplay img             { width: 13px; height: 13px; opacity: 0.9; }
+  #dateDisplay #priceText      { color: var(--amber); }
+  #dateDisplay #dateText       { color: #777; font-weight: 400; }
+
+  #navHint   { color: var(--dim); font-size: 9px; letter-spacing: 0.8px; margin-left: auto; padding: 0 10px; text-transform: uppercase; white-space: nowrap; }
+  #hideBtn   { width: 22px; padding: 0; font-size: 10px; color: var(--dim); }
+  #hideBtn:hover { color: var(--amber); border-color: var(--amber); }
+
+  /* ===== Show-panel pill (only visible when panel hidden) ===== */
+  #showBtn {
+    position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+    z-index: 100;
+    background: #000; color: var(--dim);
+    border: 1px solid var(--hairline); border-top: 0; border-radius: 0;
+    padding: 2px 14px; font-size: 9px; letter-spacing: 0.8px; cursor: pointer;
+    text-transform: uppercase;
+    transition: color 0.15s, opacity 0.2s;
+    opacity: 0; pointer-events: none;
+  }
+  body.panel-hidden #showBtn          { opacity: 0.6; pointer-events: auto; }
+  body.panel-hidden #showBtn:hover    { opacity: 1; color: var(--amber); }
+
+  /* ===== Chart ===== */
+  #chart { flex: 1; min-height: 0; width: 100%; background: #000; }
+
+  /* ===== Loading ===== */
+  #loading {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-size: 11px; color: var(--amber); letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  #loading.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div id="topBar">
+  <div class="ctrl-group" id="intervalBar">
+    <button class="iv active" data-iv="1">1D</button>
+    <button class="iv" data-iv="7">1W</button>
+    <button class="iv" data-iv="30">1M</button>
+    <button class="iv" data-iv="365">1Y</button>
+    <button class="iv" data-iv="1825">5Y</button>
+  </div>
+
+  <div class="ctrl-sep"></div>
+
+  <div class="ctrl-group" id="splitBar">
+    <button class="sp" data-sp="pl"     title="Profit / Loss">P/L</button>
+    <button class="sp" data-sp="lthsth" title="Long-Term / Short-Term Holders">LTH/STH</button>
+    <button class="sp active" data-sp="age" title="UTXO Age Bands (21 cohorts)">AGE</button>
+  </div>
+
+  <div class="ctrl-sep"></div>
+
+  <div class="ctrl-group">
+    <button id="btnDimLoss" title="Dim bars in loss (cost basis above spot)">DIM LOSS</button>
+    <button id="btnXTicks" class="active" title="Show / hide x-axis cost-basis label and ticks">X-AXIS</button>
+    <button id="btnYTicks" class="active" title="Show / hide y-axis supply label and ticks">Y-AXIS</button>
+    <button id="btnBtcLine" title="Overlay BTC price line, white, tip centered">BTC LINE</button>
+  </div>
+
+  <div class="ctrl-sep"></div>
+
+  <select id="cycleJump" title="Jump to a cycle top or bottom">
+    <option value="">CYCLE…</option>
+  </select>
+
+  <select id="langSelect" title="Language">
+    <option value="en">EN</option>
+    <option value="zh">中文</option>
+    <option value="ja">日本語</option>
+    <option value="fr">FR</option>
+    <option value="fa">فارسی</option>
+  </select>
+
+  <div class="ctrl-sep"></div>
+
+  <div class="ctrl-group">
+    <button id="btnFirst" title="First date (Home)">&laquo;</button>
+    <button id="btnPrev"  title="Previous (A / ←)">&lsaquo;</button>
+    <span id="dateDisplay">
+      <img id="btcLogo" alt="">
+      <span id="priceText">—</span>
+      <span id="dateText"></span>
+    </span>
+    <button id="btnNext"  title="Next (D / →)">&rsaquo;</button>
+    <button id="btnLast"  title="Last date (End)">&raquo;</button>
+  </div>
+
+  <span id="navHint">A/D · ←/→ scrub &nbsp;·&nbsp; SPACE hide</span>
+
+  <button id="hideBtn" title="Hide panel (Spacebar)">&#9650;</button>
+</div>
+
+<button id="showBtn" title="Show panel (Spacebar)">&#9660; CONTROLS</button>
+
+<div id="chart"></div>
+<div id="loading">Loading…</div>
+
+<script>
+"use strict";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const BASE = "https://bitview.space";
+const NUM_BINS = 500;     // resolution of the histogram (linear bins)
+const Y_CAP_PCT = 0.98;   // y-axis caps at 98th-percentile bin so a few tall bars don't squash the rest
+const SMOOTH_WIN = 5;
+const FONT = "'Source Code Pro', Consolas, monospace";
+
+const PROFIT_COLOR = "#00d97e";
+const LOSS_COLOR   = "#ff4444";
+const LTH_COLOR    = "#5599ff";
+const STH_COLOR    = "#e6a817";
+
+// 21-cohort age palette: red (youngest) → green (mid-age) → blue (oldest).
+const AGE_BAND_COLORS = [
+  "#FF3B2E", "#FF5A2E", "#FF7A2E", "#FF9A2E", "#FFB82E",
+  "#FFD42E", "#E8D834", "#C8D43A", "#A0C840", "#5AAF54",
+  "#3A9A6A", "#2E8878", "#287888", "#226898", "#1C58A8",
+  "#1848B8", "#2040C0", "#4858C8", "#6878D8", "#90A0E8",
+  "#B8C8F0",
+];
+
+const AGE_BANDS = [
+  { cohort: "utxos_under_1h_old",   label: "<1h",    mid: 0.02 },
+  { cohort: "utxos_1h_to_1d_old",   label: "1h-1d",  mid: 0.5 },
+  { cohort: "utxos_1d_to_1w_old",   label: "1d-1w",  mid: 4 },
+  { cohort: "utxos_1w_to_1m_old",   label: "1w-1m",  mid: 19 },
+  { cohort: "utxos_1m_to_2m_old",   label: "1m-2m",  mid: 45 },
+  { cohort: "utxos_2m_to_3m_old",   label: "2m-3m",  mid: 75 },
+  { cohort: "utxos_3m_to_4m_old",   label: "3m-4m",  mid: 105 },
+  { cohort: "utxos_4m_to_5m_old",   label: "4m-5m",  mid: 135 },
+  { cohort: "utxos_5m_to_6m_old",   label: "5m-6m",  mid: 165 },
+  { cohort: "utxos_6m_to_1y_old",   label: "6m-1y",  mid: 274 },
+  { cohort: "utxos_1y_to_2y_old",   label: "1y-2y",  mid: 548 },
+  { cohort: "utxos_2y_to_3y_old",   label: "2y-3y",  mid: 913 },
+  { cohort: "utxos_3y_to_4y_old",   label: "3y-4y",  mid: 1278 },
+  { cohort: "utxos_4y_to_5y_old",   label: "4y-5y",  mid: 1643 },
+  { cohort: "utxos_5y_to_6y_old",   label: "5y-6y",  mid: 2008 },
+  { cohort: "utxos_6y_to_7y_old",   label: "6y-7y",  mid: 2373 },
+  { cohort: "utxos_7y_to_8y_old",   label: "7y-8y",  mid: 2738 },
+  { cohort: "utxos_8y_to_10y_old",  label: "8y-10y", mid: 3287 },
+  { cohort: "utxos_10y_to_12y_old", label: "10y-12y", mid: 4018 },
+  { cohort: "utxos_12y_to_15y_old", label: "12y-15y", mid: 4931 },
+  { cohort: "utxos_over_15y_old",   label: ">15y",   mid: 6388 },
+];
+
+// Cycle landmarks for the BTC price overlay (only shown when overlay is on).
+const LANDMARKS = [
+  { d: "2011-06-08", p: 32,     n: "C1 Top",    top: true },
+  { d: "2011-11-18", p: 2,      n: "C1 Bottom", top: false },
+  { d: "2013-11-29", p: 1163,   n: "C2 Top",    top: true },
+  { d: "2015-01-14", p: 152,    n: "C2 Bottom", top: false },
+  { d: "2017-12-17", p: 19783,  n: "C3 Top",    top: true },
+  { d: "2018-12-15", p: 3122,   n: "C3 Bottom", top: false },
+  { d: "2021-11-10", p: 69000,  n: "C4 Top",    top: true },
+  { d: "2022-11-21", p: 15476,  n: "C4 Bottom", top: false },
+  { d: "2025-10-06", p: 126198, n: "C5 Top",    top: true },
+];
+
+// Bitcoin logo for the centered title.
+const BTC_LOGO_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4091.27 4091.73"><path fill="#F7931A" d="M4030.06 2540.77c-273.24 1096.01 -1383.32 1763.02 -2479.46 1489.71 -1095.68 -273.24 -1762.69 -1383.39 -1489.33 -2479.31 273.12 -1096.13 1383.2 -1763.19 2479 -1489.95 1096.06 273.24 1763.03 1383.51 1489.76 2479.57l0.02 -0.02z"/><path fill="white" d="M2947.77 1754.38c40.72 -272.26 -166.56 -418.61 -450 -516.24l91.95 -368.8 -224.5 -55.94 -89.51 359.09c-59.02 -14.72 -119.63 -28.59 -179.87 -42.34l90.16 -361.46 -224.36 -55.94 -92 368.68c-48.84 -11.12 -96.81 -22.11 -143.35 -33.69l0.26 -1.16 -309.59 -77.31 -59.72 239.78c0 0 166.56 38.18 163.05 40.53 90.91 22.69 107.35 82.87 104.62 130.57l-104.74 420.15c6.26 1.59 14.38 3.89 23.34 7.49 -7.49 -1.86 -15.46 -3.89 -23.73 -5.87l-146.81 588.57c-11.11 27.62 -39.31 69.07 -102.87 53.33 2.25 3.26 -163.17 -40.72 -163.17 -40.72l-111.46 256.98 292.15 72.83c54.35 13.63 107.61 27.89 160.06 41.3l-92.9 373.03 224.24 55.94 92 -369.07c61.26 16.63 120.71 31.97 178.91 46.43l-91.69 367.33 224.51 55.94 92.89 -372.33c382.82 72.45 670.67 43.24 791.83 -303.02 97.63 -278.78 -4.86 -439.58 -206.26 -544.44 146.69 -33.83 257.18 -130.31 286.64 -329.61l-0.07 -0.05zm-512.93 719.26c-69.38 278.78 -538.76 128.08 -690.94 90.29l123.28 -494.2c152.17 37.99 640.17 113.17 567.67 403.91zm69.43 -723.3c-63.29 253.58 -453.96 124.75 -580.69 93.16l111.77 -448.21c126.73 31.59 534.85 90.55 468.94 355.05l-0.02 0z"/></svg>';
+const BTC_LOGO_URI = "data:image/svg+xml;base64," + btoa(BTC_LOGO_SVG);
+
+// ============================================================================
+// i18n — strings used in the chart title, hover labels, status, and buttons.
+// English is canonical; other languages fall back to en for missing keys.
+// ============================================================================
+
+const T = {
+  en: {
+    title:        "The Life Cycle of Bitcoin",
+    titleSub:     "UTXO Realised Price Distribution",
+    spot:         "Spot",
+    btcPrice:     "BTC Price",
+    pl:           "P/L", lthsth: "LTH/STH", age: "AGE",
+    btcOverlay:   "BTC PRICE",
+    navHint:      "A/D or ←/→ to scrub · Spacebar to hide panel",
+    loading:      "Loading…",
+    statusReady:  function(n) { return n + " days · click any control or press Space to navigate"; },
+    pctSupply:    "Percent of total supply",
+    supplyBTC:    "Supply (BTC)",
+    costBasis:    "Cost basis (USD)",
+    cap99:        "Y-axis capped at 98th pct",
+  },
+  zh: {
+    title:        "比特币的生命周期",
+    titleSub:     "UTXO 已实现价格分布",
+    spot:         "现价",
+    btcPrice:     "BTC 价格",
+    pl:           "盈亏", lthsth: "长/短持有", age: "龄段",
+    btcOverlay:   "BTC 价格线",
+    navHint:      "A/D 或 ←/→ 切换 · 空格键隐藏面板",
+    loading:      "加载中…",
+    statusReady:  function(n) { return n + " 天 · 点击控件或按空格键导航"; },
+    pctSupply:    "占总供应量百分比",
+    supplyBTC:    "供应量 (BTC)",
+    costBasis:    "成本基础 (美元)",
+    cap99:        "Y 轴在第 98 百分位封顶",
+  },
+  ja: {
+    title:        "ビットコインのライフサイクル",
+    titleSub:     "UTXO 実現価格分布",
+    spot:         "現在価格",
+    btcPrice:     "BTC 価格",
+    pl:           "損益", lthsth: "長期/短期", age: "年齢帯",
+    btcOverlay:   "BTC 価格ライン",
+    navHint:      "A/D または ←/→ でスクラブ · スペースでパネル非表示",
+    loading:      "読込中…",
+    statusReady:  function(n) { return n + " 日分 · コントロールをクリック or スペースで操作"; },
+    pctSupply:    "総供給量に占める割合",
+    supplyBTC:    "供給量 (BTC)",
+    costBasis:    "取得コスト (米ドル)",
+    cap99:        "Y 軸は 98 パーセンタイルでキャップ",
+  },
+  fr: {
+    title:        "Le cycle de vie de Bitcoin",
+    titleSub:     "Distribution des prix réalisés des UTXO",
+    spot:         "Prix actuel",
+    btcPrice:     "Prix BTC",
+    pl:           "P/P", lthsth: "LT/CT", age: "ÂGE",
+    btcOverlay:   "PRIX BTC",
+    navHint:      "A/D ou ←/→ pour parcourir · Espace pour masquer",
+    loading:      "Chargement…",
+    statusReady:  function(n) { return n + " jours · cliquez ou appuyez Espace pour naviguer"; },
+    pctSupply:    "Pourcentage de l'offre totale",
+    supplyBTC:    "Offre (BTC)",
+    costBasis:    "Prix de revient (USD)",
+    cap99:        "Axe Y plafonné au 98e centile",
+  },
+  fa: {  // Persian / Farsi — official language of Iran (RTL)
+    title:        "چرخهٔ زندگی بیت‌کوین",
+    titleSub:     "توزیع قیمت تحقق‌یافتهٔ UTXO",
+    spot:         "قیمت لحظه‌ای",
+    btcPrice:     "قیمت بیت‌کوین",
+    pl:           "س/ز", lthsth: "بلند/کوتاه", age: "سن",
+    btcOverlay:   "قیمت بیت‌کوین",
+    navHint:      "A/D یا ←/→ برای پیمایش · فاصله برای پنهان‌سازی",
+    loading:      "در حال بارگذاری…",
+    statusReady:  function(n) { return n + " روز · هر کنترلی را کلیک کنید یا فاصله بزنید"; },
+    pctSupply:    "درصد از کل عرضه",
+    supplyBTC:    "عرضه (BTC)",
+    costBasis:    "مبنای هزینه (دلار)",
+    cap99:        "محور Y در صدک ۹۸ محدود شده",
+  },
+};
+function t(key) {
+  const dict = T[lang] || T.en;
+  if (typeof dict[key] !== "undefined") return dict[key];
+  return T.en[key];
+}
+
+// ============================================================================
+// State
+// ============================================================================
+
+let lang = "en";
+let allDates = [];
+let currentIdx = 0;
+let stepSize = 1;            // 1, 7, 30, 365, 1825
+let splitMode = "age";       // "pl" | "lthsth" | "age"
+let showPriceOverlay = false;
+let dimLoss = false;         // dim bars below spot price (universal across split modes)
+let showXTicks = true;       // show "Cost basis" axis title + $-tick labels
+let showYTicks = true;       // show "Supply (BTC)" axis title + tick labels
+let priceArray = [];
+let priceDateStrs = [];      // parallel to priceArray
+let cache = {};              // dataset cache keyed by date+mode
+let fetchMemo = {};          // URL-keyed in-flight promise cache
+let renderGen = 0;           // discard stale loadAndRender results
+let panelHidden = false;
+
+const $chart = document.getElementById("chart");
+const $loading = document.getElementById("loading");
+const $btcLogo = document.getElementById("btcLogo");
+const $priceText = document.getElementById("priceText");
+const $dateText = document.getElementById("dateText");
+
+// ============================================================================
+// Fetch + cache
+// ============================================================================
+
+function fetchJSON(url) {
+  if (fetchMemo[url]) return fetchMemo[url];
+  const p = fetch(url).then(r => {
+    if (!r.ok) { delete fetchMemo[url]; throw new Error("HTTP " + r.status); }
+    return r.json();
+  }).catch(e => { delete fetchMemo[url]; throw e; });
+  fetchMemo[url] = p;
+  return p;
+}
+
+// ============================================================================
+// Aggregation — collapse raw BRK buckets into NUM_BINS linear-spaced bins.
+// ============================================================================
+
+function aggregate(buckets, binWidth) {
+  const bins = {};
+  for (let k = 0; k < buckets.length; k++) {
+    const b = buckets[k];
+    const price = b.price_floor;
+    if (isNaN(price) || price === undefined) continue;
+    const idx = Math.floor(price / binWidth);
+    const bp = (idx + 0.5) * binWidth;
+    if (!bins[bp]) bins[bp] = { price: bp, supply: 0, invested: 0 };
+    bins[bp].supply += b.supply || 0;
+    bins[bp].invested += b.realized_cap || 0;
+  }
+  const arr = [];
+  for (const k in bins) arr.push(bins[k]);
+  arr.sort((a, b) => a.price - b.price);
+  return arr;
+}
+
+function aggregateAgeBands(cohortData, binWidth) {
+  return cohortData.map(c => ({
+    band: c.band,
+    data: aggregate(c.buckets || [], binWidth),
+  }));
+}
+
+function smooth(arr, win) {
+  win = win || SMOOTH_WIN;
+  if (win <= 1 || arr.length < win) return arr.slice();
+  const out = new Array(arr.length).fill(0);
+  const half = Math.floor(win / 2);
+  for (let i = 0; i < arr.length; i++) {
+    let s = 0, c = 0;
+    for (let j = Math.max(0, i - half); j <= Math.min(arr.length - 1, i + half); j++) { s += arr[j]; c++; }
+    out[i] = c > 0 ? s / c : 0;
+  }
+  return out;
+}
+
+function bisectDateLeft(strs, target) {
+  let lo = 0, hi = strs.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (strs[m] < target) lo = m + 1; else hi = m; }
+  return lo;
+}
+
+// Dim a hex color (#rrggbb) to a reduced-alpha rgba so loss bars fade against
+// the pure-black background while keeping their hue for orientation. Default
+// alpha is gentle — bars remain clearly visible, just visibly de-emphasized.
+function dimColor(hex, alpha) {
+  if (typeof hex !== "string" || hex[0] !== "#" || hex.length !== 7) return hex;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return "rgba(" + r + "," + g + "," + b + "," + (alpha == null ? 0.45 : alpha) + ")";
+}
+
+// ============================================================================
+// Data loading per frame
+// ============================================================================
+
+async function loadFrameData(dateStr) {
+  // Cache key is just the date — split-mode-specific traces are derived from
+  // the same raw bucket arrays.
+  if (cache[dateStr]) return cache[dateStr];
+
+  const fetches = [
+    fetchJSON(BASE + "/api/urpd/all/" + dateStr),
+  ];
+  if (splitMode === "lthsth") {
+    fetches.push(fetchJSON(BASE + "/api/urpd/lth/" + dateStr));
+    fetches.push(fetchJSON(BASE + "/api/urpd/sth/" + dateStr));
+  } else if (splitMode === "age") {
+    AGE_BANDS.forEach(b => {
+      fetches.push(fetchJSON(BASE + "/api/urpd/" + b.cohort + "/" + dateStr).catch(() => null));
+    });
+  }
+  const results = await Promise.all(fetches);
+
+  const all = results[0];
+  const data = {
+    dateStr,
+    spot: all.close || null,
+    buckets: all.buckets || [],
+    totalSupply: all.total_supply || 0,
+  };
+  if (splitMode === "lthsth") {
+    data.lthBuckets = (results[1] && results[1].buckets) || [];
+    data.sthBuckets = (results[2] && results[2].buckets) || [];
+  } else if (splitMode === "age") {
+    data.ageBandData = AGE_BANDS.map((b, i) => ({
+      band: b,
+      buckets: (results[1 + i] && results[1 + i].buckets) || [],
+    }));
+  }
+  cache[dateStr] = data;
+  return data;
+}
+
+async function loadPriceSeries() {
+  try {
+    const r = await fetchJSON(BASE + "/api/series/price_close/day1");
+    const closes = Array.isArray(r) ? r : (r.data || []);
+    const genesis = new Date("2009-01-03T00:00:00Z");
+    priceArray = [];
+    priceDateStrs = [];
+    for (let i = 0; i < closes.length; i++) {
+      const v = closes[i];
+      if (typeof v !== "number") continue;
+      const d = new Date(genesis);
+      d.setUTCDate(d.getUTCDate() + i);
+      priceDateStrs.push(d.toISOString().slice(0, 10));
+      priceArray.push(v);
+    }
+  } catch (e) { console.warn("Price series failed:", e.message); }
+}
+
+// ============================================================================
+// Chart rendering
+// ============================================================================
+
+function buildLayoutAndTraces(data) {
+  const { dateStr, spot, buckets } = data;
+  const maxPrice = buckets.reduce((m, b) => Math.max(m, b.price_floor), 0);
+  const binWidth = maxPrice / NUM_BINS;
+  const aggAll = aggregate(buckets, binWidth);
+  const chartPrices = aggAll.map(b => b.price);
+  const barWidths = chartPrices.map((p, i, a) => {
+    if (a.length <= 1) return 1;
+    if (i === a.length - 1) return a[i] - a[i - 1];
+    return a[i + 1] - a[i];
+  });
+
+  // ----- Per-mode trace stacks -----
+  let bandArrays = [], bandColors = [], bandNames = [];
+
+  if (splitMode === "age") {
+    const aggBands = aggregateAgeBands(data.ageBandData || [], binWidth);
+    bandArrays = aggBands.map(c => {
+      const lookup = Object.create(null);
+      for (const b of c.data) lookup[b.price] = b.supply;
+      return smooth(chartPrices.map(p => lookup[p] || 0));
+    });
+    bandColors = aggBands.map((_, i) => AGE_BAND_COLORS[i] || "#888");
+    bandNames  = aggBands.map(c => c.band.label);
+  } else if (splitMode === "lthsth") {
+    const aggLTH = aggregate(data.lthBuckets || [], binWidth);
+    const aggSTH = aggregate(data.sthBuckets || [], binWidth);
+    const lthLU = Object.create(null), sthLU = Object.create(null);
+    for (const b of aggLTH) lthLU[b.price] = b.supply;
+    for (const b of aggSTH) sthLU[b.price] = b.supply;
+    // STH first so it sits on the x-axis; LTH stacks on top.
+    bandArrays = [
+      smooth(chartPrices.map(p => sthLU[p] || 0)),
+      smooth(chartPrices.map(p => lthLU[p] || 0)),
+    ];
+    bandColors = [STH_COLOR, LTH_COLOR];
+    bandNames  = ["STH", "LTH"];
+  } else { // "pl"
+    const colors = chartPrices.map(p => (spot && p > spot) ? LOSS_COLOR : PROFIT_COLOR);
+    bandArrays = [smooth(aggAll.map(b => b.supply))];
+    bandColors = [colors];
+    bandNames  = ["P/L"];
+  }
+
+  // ----- Dim coins in loss (cost basis ABOVE spot = bought high, now underwater) -----
+  // X-axis is cost basis, so bars at price > spot are in loss. Apply universally
+  // across split modes by switching each band's marker.color to a per-bar array
+  // where loss bars get a low-alpha rgba (fades on black, hue preserved).
+  if (dimLoss && spot && spot > 0) {
+    bandColors = bandColors.map(c => {
+      if (Array.isArray(c)) {
+        return c.map((cc, pi) => chartPrices[pi] > spot ? dimColor(cc) : cc);
+      }
+      const dimmed = dimColor(c);
+      return chartPrices.map(p => p > spot ? dimmed : c);
+    });
+  }
+
+  // ----- Per-bin total for y-axis cap -----
+  const valuesForAxis = chartPrices.map((_, pi) =>
+    bandArrays.reduce((s, arr) => s + arr[pi], 0),
+  );
+  let maxVal = valuesForAxis.reduce((a, b) => Math.max(a, b), 0);
+  const sortedVals = valuesForAxis.filter(v => v > 0).slice().sort((a, b) => a - b);
+  if (sortedVals.length > 0) {
+    const cap = sortedVals[Math.floor(sortedVals.length * Y_CAP_PCT)];
+    if (cap < maxVal * 0.7) maxVal = cap;
+  }
+  const rawStep = (maxVal * 1.04) / 6;
+  const magn = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
+  const yStep = Math.round(rawStep / magn) * magn || 1;
+  const yTickvals = Array.from({ length: 7 }, (_, i) => i * yStep);
+  const yRange = [0, yTickvals[yTickvals.length - 1]];
+  const yTicktext = yTickvals.map(v => {
+    if (v === 0)        return "0";
+    if (v >= 1e6)       return (v % 1e6 === 0 ? (v / 1e6) : (v / 1e6).toFixed(1)) + "M";
+    if (v >= 1e3)       return (v % 1e3 === 0 ? (v / 1e3) : (v / 1e3).toFixed(1)) + "K";
+    return String(v);
+  });
+
+  // ----- X-axis ticks: 1/2/5 × 10^k targeting ≤14 ticks -----
+  const xTickvals = [], xTicktext = [];
+  const picks = [1, 2, 5];
+  let xStep = null;
+  for (let mag = 0; mag < 9 && xStep === null; mag++) {
+    for (const np of picks) {
+      const c = np * Math.pow(10, mag);
+      if (maxPrice / c <= 14) { xStep = c; break; }
+    }
+  }
+  if (xStep === null) xStep = 10000;
+  for (let xv = xStep; xv <= maxPrice; xv += xStep) {
+    xTickvals.push(xv);
+    let xt;
+    if (xv >= 1e6)      xt = (xv % 1e6 === 0) ? (xv / 1e6) + "M" : (xv / 1e6).toFixed(1) + "M";
+    else if (xv >= 1e3) xt = (xv % 1e3 === 0) ? (xv / 1e3) + "K" : (xv / 1e3).toFixed(1) + "K";
+    else                xt = String(xv);
+    xTicktext.push("$" + xt);
+  }
+
+  // ----- Build traces -----
+  const traces = [];
+  for (let ai = 0; ai < bandArrays.length; ai++) {
+    traces.push({
+      x: chartPrices,
+      y: bandArrays[ai],
+      type: "bar",
+      name: bandNames[ai],
+      width: barWidths,
+      marker: { color: bandColors[ai], line: { width: 0.3, color: "rgba(0,0,0,0.3)" } },
+      hoverinfo: "skip",
+      showlegend: false,
+    });
+  }
+
+  // ----- Optional BTC price overlay (toggleable) -----
+  // Pure white line, width 2. The endpoint sits at dateStr and the secondary
+  // x-axis is widened symmetrically so the tip lands at the chart's horizontal
+  // center. The line never extends past dateStr (no future leakage).
+  let cStr = null, xaxis2Range = null;
+  if (showPriceOverlay && priceArray.length > 0) {
+    const lbDays = (stepSize > 365) ? stepSize : 365;
+    const cutoff = new Date(dateStr + "T00:00:00Z");
+    cutoff.setUTCDate(cutoff.getUTCDate() - lbDays);
+    cStr = cutoff.toISOString().slice(0, 10);
+    const pStart = bisectDateLeft(priceDateStrs, cStr);
+
+    // Bound the slice strictly to <= dateStr so we never plot future prices.
+    const pD = [], pP = [];
+    for (let pi = pStart; pi < priceArray.length; pi++) {
+      if (priceDateStrs[pi] > dateStr) break;
+      if (typeof priceArray[pi] === "number" && priceArray[pi] > 0) {
+        pD.push(priceDateStrs[pi]);
+        pP.push(priceArray[pi]);
+      }
+    }
+
+    traces.push({
+      x: pD, y: pP, type: "scatter", mode: "lines",
+      xaxis: "x2", yaxis: "y3",
+      line: { color: "#ffffff", width: 2 },
+      hoverinfo: "skip",
+      name: t("btcOverlay"), showlegend: false,
+    });
+
+    // Cycle landmarks — always shown when overlay is on, restricted to past dates only.
+    const lmD = [], lmP = [], lmT = [], lmS = [];
+    for (const lm of LANDMARKS) {
+      if (lm.d <= dateStr) {
+        lmD.push(lm.d); lmP.push(lm.p); lmT.push(lm.n);
+        lmS.push(lm.top ? "triangle-down" : "triangle-up");
+      }
+    }
+    if (lmD.length > 0) {
+      traces.push({
+        x: lmD, y: lmP, type: "scatter", mode: "markers+text",
+        xaxis: "x2", yaxis: "y3",
+        marker: { color: "#ffffff", size: 10, symbol: lmS, line: { color: "#000", width: 1 } },
+        text: lmT,
+        textposition: lmS.map(s => s === "triangle-down" ? "top center" : "bottom center"),
+        textfont: { color: "#ffffff", size: 9, family: FONT },
+        hoverinfo: "skip", showlegend: false,
+      });
+    }
+
+    // Compute centered xaxis2 range: extend symmetrically past dateStr so the
+    // line's tip lands at chart midpoint. Lookback window is fixed by lbDays.
+    const cMs = cutoff.getTime();
+    const dMs = new Date(dateStr + "T00:00:00Z").getTime();
+    const halfSpan = dMs - cMs;
+    const rightEdgeMs = dMs + halfSpan;
+    xaxis2Range = [cStr, new Date(rightEdgeMs).toISOString().slice(0, 10)];
+  }
+
+  // ----- Layout -----
+  // Chart-rendered title/date/logo/axis-titles/y-tick-labels were moved into
+  // the top control bar — chart is now bars only.
+  const layout = {
+    paper_bgcolor: "#000000",
+    plot_bgcolor: "#000000",
+    barmode: "stack", bargap: 0,
+    legend: { visible: false },
+    xaxis: {
+      tickvals: xTickvals, ticktext: xTicktext,
+      showgrid: true, gridcolor: "rgba(255,255,255,0.05)",
+      tickfont: { family: FONT, size: 11, color: "#bbb" },
+      showticklabels: showXTicks,
+      title: showXTicks ? { text: t("costBasis"), font: { family: FONT, size: 11, color: "#888" }, standoff: 8 } : undefined,
+      range: [0, maxPrice * 1.02], autorange: false,
+    },
+    yaxis: {
+      side: "left",
+      tickvals: yTickvals, ticktext: yTicktext, range: yRange,
+      showgrid: false, showticklabels: showYTicks,
+      tickfont: { family: FONT, size: 10, color: "#bbb" },
+      title: showYTicks ? { text: t("supplyBTC"), font: { family: FONT, size: 11, color: "#888" }, standoff: 8 } : undefined,
+      zeroline: false,
+    },
+    shapes: [],
+    // Margins shrink when an axis is toggled off so bars reclaim that space.
+    margin: { l: showYTicks ? 56 : 4, r: 4, t: 4, b: showXTicks ? 50 : 4 },
+    hovermode: false,
+  };
+
+  // BTC overlay needs a secondary date X-axis and a log Y3 for price.
+  if (showPriceOverlay && priceArray.length > 0) {
+    layout.xaxis2 = {
+      overlaying: "x", showticklabels: false, showgrid: false,
+      type: "date", visible: false,
+      range: xaxis2Range,  // centered: tip of line lands at chart middle
+    };
+    // Compute y3 range from price slice strictly within [cStr, dateStr]
+    let pMin = Infinity, pMax = -Infinity;
+    const pStart = bisectDateLeft(priceDateStrs, cStr || dateStr);
+    for (let pi = pStart; pi < priceArray.length; pi++) {
+      if (priceDateStrs[pi] > dateStr) break;
+      const v = priceArray[pi];
+      if (typeof v === "number" && v > 0) {
+        if (v < pMin) pMin = v;
+        if (v > pMax) pMax = v;
+      }
+    }
+    if (isFinite(pMin) && isFinite(pMax) && pMin > 0 && pMax > pMin) {
+      const lgMin = Math.log10(pMin), lgMax = Math.log10(pMax);
+      const span = lgMax - lgMin;
+      layout.yaxis3 = { overlaying: "y", showticklabels: false, showgrid: false, type: "log", visible: false, range: [lgMin - span * 0.5, lgMax + span * 0.1] };
+    }
+  }
+
+  return { traces, layout };
+}
+
+async function loadAndRender() {
+  if (allDates.length === 0) return;
+  const dateStr = allDates[currentIdx];
+  const gen = ++renderGen;
+
+  $loading.classList.remove("hidden");
+  $loading.textContent = t("loading");
+
+  try {
+    const data = await loadFrameData(dateStr);
+    if (gen !== renderGen) return; // newer render started, drop this one
+
+    const { traces, layout } = buildLayoutAndTraces(data);
+    const cfg = { responsive: true, displayModeBar: false };
+    await Plotly.react("chart", traces, layout, cfg);
+
+    $loading.classList.add("hidden");
+
+    // Update price + date readout in the top bar.
+    if (data.spot && data.spot > 0) {
+      $priceText.textContent = "$" + data.spot.toLocaleString("en-US", { maximumFractionDigits: 0 });
+    } else {
+      $priceText.textContent = "—";
+    }
+    const dt = new Date(dateStr + "T00:00:00Z");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    $dateText.textContent = String(dt.getUTCDate()).padStart(2, "0") + "/" + months[dt.getUTCMonth()] + "/" + dt.getUTCFullYear();
+  } catch (e) {
+    if (gen !== renderGen) return;
+    $loading.textContent = "Error: " + e.message;
+    console.error(e);
+  }
+}
+
+// ============================================================================
+// Controls
+// ============================================================================
+
+function setStep(s) {
+  stepSize = s;
+  document.querySelectorAll("#intervalBar .iv").forEach(b => {
+    b.classList.toggle("active", parseInt(b.getAttribute("data-iv"), 10) === s);
+  });
+}
+
+function setSplit(mode) {
+  if (mode === splitMode) return;
+  splitMode = mode;
+  // We still want the same date but a different aggregation, so we have to
+  // re-fetch (cohort buckets weren't downloaded if we were in P/L mode).
+  cache = {};
+  document.querySelectorAll("#splitBar .sp").forEach(b => {
+    b.classList.toggle("active", b.getAttribute("data-sp") === mode);
+  });
+  loadAndRender();
+}
+
+// RTL languages — Persian/Farsi is the only RTL we currently ship; others
+// can be added here (Arabic "ar", Hebrew "he", etc.) and will Just Work.
+const RTL_LANGS = new Set(["fa", "ar", "he"]);
+
+function setLang(l) {
+  if (!T[l]) l = "en";
+  lang = l;
+  document.documentElement.setAttribute("lang", l);
+  document.documentElement.setAttribute("dir", RTL_LANGS.has(l) ? "rtl" : "ltr");
+  applyLangStatic();
+  loadAndRender();
+}
+function applyLangStatic() {
+  document.querySelector('[data-sp="pl"]').textContent = t("pl");
+  document.querySelector('[data-sp="lthsth"]').textContent = t("lthsth");
+  document.querySelector('[data-sp="age"]').textContent = t("age");
+  document.getElementById("navHint").textContent = t("navHint");
+}
+
+function goTo(idx) {
+  if (allDates.length === 0) return;
+  idx = Math.max(0, Math.min(allDates.length - 1, idx));
+  if (idx === currentIdx) return;
+  currentIdx = idx;
+  loadAndRender();
+}
+
+function togglePanel(force) {
+  panelHidden = (typeof force === "boolean") ? force : !panelHidden;
+  document.body.classList.toggle("panel-hidden", panelHidden);
+  // Plotly needs a resize after the chart container changes height.
+  setTimeout(() => {
+    if (window.Plotly && document.getElementById("chart").data) {
+      Plotly.Plots.resize("chart");
+    }
+  }, 270);
+}
+
+// ----- Wire up controls -----
+document.getElementById("btnFirst").onclick = () => goTo(0);
+document.getElementById("btnPrev").onclick  = () => goTo(currentIdx - stepSize);
+document.getElementById("btnNext").onclick  = () => goTo(currentIdx + stepSize);
+document.getElementById("btnLast").onclick  = () => goTo(allDates.length - 1);
+
+document.querySelectorAll("#intervalBar .iv").forEach(b => {
+  b.onclick = () => setStep(parseInt(b.getAttribute("data-iv"), 10));
+});
+document.querySelectorAll("#splitBar .sp").forEach(b => {
+  b.onclick = () => setSplit(b.getAttribute("data-sp"));
+});
+
+document.getElementById("btnDimLoss").onclick = (e) => {
+  dimLoss = !dimLoss;
+  e.currentTarget.classList.toggle("active", dimLoss);
+  loadAndRender();
+};
+document.getElementById("btnXTicks").onclick = (e) => {
+  showXTicks = !showXTicks;
+  e.currentTarget.classList.toggle("active", showXTicks);
+  loadAndRender();
+};
+document.getElementById("btnYTicks").onclick = (e) => {
+  showYTicks = !showYTicks;
+  e.currentTarget.classList.toggle("active", showYTicks);
+  loadAndRender();
+};
+document.getElementById("btnBtcLine").onclick = (e) => {
+  showPriceOverlay = !showPriceOverlay;
+  e.currentTarget.classList.toggle("active", showPriceOverlay);
+  loadAndRender();
+};
+
+// Populate cycle-jump dropdown once from LANDMARKS, then wire change handler.
+(function buildCycleJump() {
+  const $sel = document.getElementById("cycleJump");
+  const fmt = (d) => {
+    const dt = new Date(d + "T00:00:00Z");
+    const m = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    return String(dt.getUTCDate()).padStart(2, "0") + " " + m[dt.getUTCMonth()] + " " + dt.getUTCFullYear();
+  };
+  for (const lm of LANDMARKS) {
+    const opt = document.createElement("option");
+    opt.value = lm.d;
+    opt.textContent = lm.n.toUpperCase() + " · " + fmt(lm.d);
+    $sel.appendChild(opt);
+  }
+  $sel.onchange = (e) => {
+    const target = e.target.value;
+    if (!target) return;
+    // Snap to the nearest available URPD date <= the landmark, since BRK may
+    // not have data for every calendar day (especially the early years).
+    let i = bisectDateLeft(allDates, target);
+    if (i >= allDates.length) i = allDates.length - 1;
+    if (i > 0 && allDates[i] !== target && allDates[i] > target) i -= 1;
+    goTo(i);
+    e.target.value = "";   // reset to placeholder so it can fire again
+    e.target.blur();       // hand focus back to body so A/D/←/→ scrubbing works
+  };
+})();
+
+document.getElementById("langSelect").onchange = (e) => {
+  setLang(e.target.value);
+  e.target.blur();   // give focus back so A/D/←/→ keep working
+};
+
+document.getElementById("hideBtn").onclick = () => togglePanel(true);
+document.getElementById("showBtn").onclick = () => togglePanel(false);
+
+// ----- Keyboard -----
+let keyTimer = null;
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+    e.preventDefault();
+    if (keyTimer) return;
+    goTo(currentIdx - stepSize);
+    keyTimer = setTimeout(() => keyTimer = null, 100);
+  } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+    e.preventDefault();
+    if (keyTimer) return;
+    goTo(currentIdx + stepSize);
+    keyTimer = setTimeout(() => keyTimer = null, 100);
+  } else if (e.key === "Home") { e.preventDefault(); goTo(0); }
+  else if (e.key === "End")    { e.preventDefault(); goTo(allDates.length - 1); }
+  else if (e.key === " ")      { e.preventDefault(); togglePanel(); }
+  else if (e.key === "1")      { setStep(1); }
+  else if (e.key === "2")      { setStep(7); }
+  else if (e.key === "3")      { setStep(30); }
+  else if (e.key === "4")      { setStep(365); }
+  else if (e.key === "5")      { setStep(1825); }
+});
+
+window.addEventListener("resize", () => {
+  if (window.Plotly && document.getElementById("chart").data) Plotly.Plots.resize("chart");
+});
+
+// ============================================================================
+// Init
+// ============================================================================
+
+(async function init() {
+  // BTC logo in the top-bar readout.
+  $btcLogo.src = BTC_LOGO_URI;
+
+  // URL-param hydration
+  const params = new URLSearchParams(window.location.search);
+  const urlLang = params.get("lang");
+  if (urlLang && T[urlLang]) { lang = urlLang; }
+  document.documentElement.setAttribute("lang", lang);
+  document.documentElement.setAttribute("dir", RTL_LANGS.has(lang) ? "rtl" : "ltr");
+  document.getElementById("langSelect").value = lang;
+  applyLangStatic();
+
+  $loading.textContent = t("loading");
+  try {
+    const [datesResp] = await Promise.all([
+      fetchJSON(BASE + "/api/urpd/all/dates"),
+      loadPriceSeries(),
+    ]);
+    allDates = Array.isArray(datesResp) ? datesResp : [];
+    if (allDates.length === 0) throw new Error("No dates returned by API");
+    currentIdx = allDates.length - 1;
+
+    // Optional ?date= deep link
+    const urlDate = params.get("date");
+    if (urlDate) { const i = allDates.indexOf(urlDate); if (i >= 0) currentIdx = i; }
+    const urlSplit = params.get("split");
+    if (urlSplit && ["pl","lthsth","age"].includes(urlSplit)) setSplit(urlSplit);
+    const urlBtc = params.get("btc");
+    if (urlBtc === "1") {
+      showPriceOverlay = true;
+      document.getElementById("btnBtcLine").classList.add("active");
+    }
+
+    await loadAndRender();
+  } catch (e) {
+    $loading.textContent = "Error: " + e.message;
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
