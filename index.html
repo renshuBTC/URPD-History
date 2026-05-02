@@ -602,6 +602,26 @@ function buildLayoutAndTraces(data) {
   }
 
   // ----- Build traces -----
+  // ----- Hover stats: total supply per bin, overall loss %, per-bin % of supply -----
+  const totalsPerBin = chartPrices.map((_, pi) =>
+    bandArrays.reduce((s, arr) => s + arr[pi], 0)
+  );
+  const totalSupply = totalsPerBin.reduce((a, b) => a + b, 0);
+  let supplyInLoss = 0;
+  if (spot && spot > 0) {
+    for (let pi = 0; pi < chartPrices.length; pi++) {
+      if (chartPrices[pi] > spot) supplyInLoss += totalsPerBin[pi];
+    }
+  }
+  const lossPct = totalSupply > 0 ? (supplyInLoss / totalSupply * 100) : 0;
+  const lossPctText = lossPct.toFixed(1);
+
+  // Per-bin percentage-of-total, used by hover. Avoids a per-render template
+  // string-concat for every band by piping the value through customdata.
+  const pctOfTotal = totalsPerBin.map(v =>
+    totalSupply > 0 ? ((v / totalSupply) * 100).toFixed(3) : "0.000"
+  );
+
   const traces = [];
   for (let ai = 0; ai < bandArrays.length; ai++) {
     traces.push({
@@ -611,7 +631,13 @@ function buildLayoutAndTraces(data) {
       name: bandNames[ai],
       width: barWidths,
       marker: { color: bandColors[ai], line: { width: 0.3, color: "rgba(0,0,0,0.3)" } },
-      hoverinfo: "skip",
+      customdata: pctOfTotal,
+      hovertemplate:
+        "<b>$%{x:,.0f}</b> cost basis<br>" +
+        bandNames[ai] + ": <b>%{y:,.0f} BTC</b><br>" +
+        "%{customdata}% of total supply at this price<br>" +
+        "<i>" + lossPctText + "% of all BTC currently in loss</i>" +
+        "<extra></extra>",
       showlegend: false,
     });
   }
@@ -718,7 +744,13 @@ function buildLayoutAndTraces(data) {
     shapes: [],
     // Margins shrink when an axis is toggled off so bars reclaim that space.
     margin: { l: showYTicks ? 56 : 4, r: 4, t: 4, b: showXTicks ? 50 : 4 },
-    hovermode: false,
+    hovermode: "closest",
+    hoverlabel: {
+      bgcolor: "#0a0a0a",
+      bordercolor: "#333",
+      font: { family: FONT, size: 11, color: "#e0e0e0" },
+      align: "left",
+    },
   };
 
   // BTC overlay needs a secondary date X-axis and a log Y3 for price.
