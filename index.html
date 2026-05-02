@@ -139,7 +139,7 @@
 
   <div class="ctrl-group">
     <button id="btnDimLoss" title="Dim bars in loss (cost basis above spot)">DIM LOSS</button>
-    <button id="btnXTicks" title="Show / hide x-axis cost-basis label and ticks">X-AXIS</button>
+    <button id="btnXTicks" class="active" title="Show / hide x-axis cost-basis label and ticks">X-AXIS</button>
     <button id="btnYTicks" title="Show / hide y-axis supply label and ticks">Y-AXIS</button>
     <button id="btnBtcLine" class="active" title="Overlay BTC price line, white, tip centered">BTC LINE</button>
   </div>
@@ -349,7 +349,7 @@ let stepSize = 1;            // 1, 7, 30, 365, 1825
 let splitMode = "pl";        // "pl" | "lthsth" | "age"
 let showPriceOverlay = true;
 let dimLoss = false;         // dim bars below spot price (universal across split modes)
-let showXTicks = false;      // show "Cost basis" axis title + $-tick labels
+let showXTicks = true;       // show "Cost basis" axis title + $-tick labels
 let showYTicks = false;      // show "Supply (BTC)" axis title + tick labels
 let priceArray = [];
 let priceDateStrs = [];      // parallel to priceArray
