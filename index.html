@@ -130,8 +130,8 @@
   <div class="ctrl-sep"></div>
 
   <div class="ctrl-group" id="splitBar">
-    <button class="sp" data-sp="pl"     title="Profit / Loss">P/L</button>
-    <button class="sp active" data-sp="lthsth" title="Long-Term / Short-Term Holders">LTH/STH</button>
+    <button class="sp active" data-sp="pl"     title="Profit / Loss">P/L</button>
+    <button class="sp" data-sp="lthsth" title="Long-Term / Short-Term Holders">LTH/STH</button>
     <button class="sp" data-sp="age" title="UTXO Age Bands (21 cohorts)">AGE</button>
   </div>
 
@@ -190,7 +190,7 @@
 // ============================================================================
 
 const BASE = "https://bitview.space";
-const NUM_BINS = 500;     // resolution of the histogram (linear bins)
+const NUM_BINS = 600;     // resolution of the histogram (linear bins)
 const Y_CAP_PCT = 0.98;   // y-axis caps at 98th-percentile bin so a few tall bars don't squash the rest
 const SMOOTH_WIN = 5;
 const FONT = "'Source Code Pro', Consolas, monospace";
@@ -346,7 +346,7 @@ let lang = "en";
 let allDates = [];
 let currentIdx = 0;
 let stepSize = 1;            // 1, 7, 30, 365, 1825
-let splitMode = "lthsth";    // "pl" | "lthsth" | "age"
+let splitMode = "pl";        // "pl" | "lthsth" | "age"
 let showPriceOverlay = true;
 let dimLoss = false;         // dim bars below spot price (universal across split modes)
 let showXTicks = false;      // show "Cost basis" axis title + $-tick labels
