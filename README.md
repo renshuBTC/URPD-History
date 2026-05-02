@@ -4,7 +4,11 @@ A single-file, open-source, interactive viewer for Bitcoin's UTXO Realised
 Price Distribution from genesis to today. Scrub through every day, switch
 between Profit/Loss / Long-Term & Short-Term Holders / 21 age cohorts, dim
 the in-loss supply, overlay the BTC price line, jump to any cycle top or
-bottom, and switch the UI between five languages.
+bottom, hover any bar for the cost-basis bin's BTC supply and the overall
+% of supply currently in loss, and switch the UI between five languages.
+
+This is the live, browse-yourself counterpart to the 4K time-lapse render at
+[The-Life-Cycle-of-Bitcoin](https://github.com/renshuBTC/The-Life-Cycle-of-Bitcoin).
 
 ## Try it
 
@@ -35,6 +39,9 @@ Buttons & dropdowns:
 - **CYCLE…** — jump straight to any cycle top or bottom date
 - **Language picker** — EN / 中文 / 日本語 / FR / فارسی (Persian renders RTL)
 
+Hover any bar for: cost basis (`$X,XXX`), supply at that bin (`X,XXX BTC`),
+that bin's share of total supply, and the overall % of supply currently in loss.
+
 ## URL params
 
 - `?date=2017-12-17` — open at a specific date
@@ -48,13 +55,13 @@ Every frame fetches up to 22 endpoints from BRK in parallel
 (`/api/urpd/all/<date>` plus 21 cohort endpoints in age mode, or `/api/urpd/lth`
 + `/api/urpd/sth` in LTH/STH mode). Per-fetch results are coalesced via a
 URL-keyed promise cache, and every loaded frame is kept in memory so scrubbing
-backwards is free. Bars are linear-binned at 500 bins per frame and the y-axis
-caps at the 98th-percentile bin so a few tall bars don't squash the rest.
+backwards is free. Bars are linear-binned at 750 bins per frame and the y-axis
+caps at the 99th-percentile bin so a few tall bars don't squash the rest.
 
 The visual treatment — pure-black background, amber Bloomberg-style controls,
-centered price + DD/Mon/YYYY readout — is borrowed from the Life Cycle view at
-[bitcointerminal.net](https://bitcointerminal.net), which itself uses the same
-data source.
+big white centered `$price  DD/Mon/YYYY` readout in the chart — is borrowed
+from the Life Cycle view at [bitcointerminal.net](https://bitcointerminal.net),
+which itself uses the same data source.
 
 ## Data source
 
