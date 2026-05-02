@@ -6,9 +6,6 @@ between Profit/Loss / Long-Term & Short-Term Holders / 21 age cohorts, dim
 the in-loss supply, overlay the BTC price line, jump to any cycle top or
 bottom, and switch the UI between five languages.
 
-This is the live, browse-yourself counterpart to the 4K time-lapse render at
-[The-Life-Cycle-of-Bitcoin](https://github.com/renshuBTC/The-Life-Cycle-of-Bitcoin).
-
 ## Try it
 
 Open `index.html` in any browser. No build step, no dependencies installed
