@@ -40,9 +40,11 @@ root. That's the entire deploy.
 
 ## Credits
 
-- **Original URPD charts** — [James Check (@_Checkmatey_)](https://x.com/_checkmatey_)
-  of [checkonchain.com](https://charts.checkonchain.com) and
-  [Renato Shira (@renato_shira)](https://x.com/renato_shira)
+- **Original URPD chart** — created by
+  [Renato Shira (@renato_shira)](https://x.com/renato_shira) at Glassnode;
+  popularized and extended by
+  [James Check (@_Checkmatey_)](https://x.com/_checkmatey_) of
+  [checkonchain.com](https://charts.checkonchain.com)
 - **Data** — [Bitcoin Research Kit (BRK)](https://github.com/bitcoinresearchkit/brk)
   by [@_nym21_](https://x.com/_nym21_), served via [bitview.space](https://bitview.space)
 - **Charting** — [Plotly.js](https://plotly.com/javascript/) (MIT)
