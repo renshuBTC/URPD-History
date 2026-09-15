@@ -24,7 +24,7 @@
     50% { text-shadow: 0 0 20px #FFE600, 0 0 40px #FFE600, 0 0 80px #FFE600; }
   }
   #thresholdWrap, #ymaxWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
-  #thresholdWrap label, #ymaxWrap label { color: #999; }
+  #thresholdWrap label, #ymaxWrap label { color: #999; white-space: nowrap; }
   #thresholdInput, #ymaxInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   #thresholdInput:focus, #ymaxInput:focus { border-color: #ff8c00; outline: none; }
   #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; }
@@ -108,7 +108,7 @@
   <div id="ymaxWrap">
     <label>Adjustable y-max</label>
     <input type="text" id="ymaxInput" value="99" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
-    <label>th percentile of bar heights</label>
+    <label>% of bar heights</label>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
@@ -201,7 +201,7 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH", age: "AGE",
-    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss", yMaxLabel: "Adjustable y-max", yMaxUnit: "th percentile of bar heights",
+    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss", yMaxLabel: "Adjustable y-max", yMaxUnit: "% of bar heights",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
