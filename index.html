@@ -150,6 +150,11 @@
 <script>
 var BASE = "https://bitview.space";
 var GENESIS = new Date(2009, 0, 3);
+// BRK's day1 index starts at 2009-01-01, two days before genesis. Dates come from /api/series/date/day1;
+// the epoch below is only the fallback if that call fails.
+var BRK_DAY0 = new Date(2009, 0, 1);
+var priceDates = null;
+var priceIndexByDate = null;
 var NUM_BINS = 625;
 var SMOOTH_WINDOW = 5;
 var PROFIT_COLOR = "#00e676";
@@ -279,8 +284,9 @@ function fetchJSON(url) {
 }
 
 function dayIndex(dateStr) {
+  if (priceIndexByDate && priceIndexByDate[dateStr] !== undefined) return priceIndexByDate[dateStr];
   var d = new Date(dateStr + "T00:00:00");
-  return Math.round((d - GENESIS) / 86400000);
+  return Math.round((d - BRK_DAY0) / 86400000);
 }
 
 function getSpotFromCache(dateStr) {
@@ -655,8 +661,7 @@ function renderChart(data) {
     var cStr=cutoff.toISOString().split("T")[0];
     for(var pi=0;pi<priceArray.length;pi++){
       if(typeof priceArray[pi]==="number"&&priceArray[pi]>0){
-        var pd=new Date(2009,0,3+pi);
-        var pds=pd.toISOString().split("T")[0];
+        var pds=(priceDates&&priceDates[pi])||new Date(BRK_DAY0.getTime()+pi*86400000).toISOString().split("T")[0];
         if(pds<cStr)continue;
         pD.push(pds);pP.push(priceArray[pi]);
       }
@@ -871,6 +876,14 @@ async function init() {
       var priceResp = await fetchJSON(BASE + "/api/series/price_close/day1");
       priceArray = priceResp.data || priceResp;
       console.log("Price array loaded:", priceArray.length, "entries");
+      try {
+        var dateResp = await fetchJSON(BASE + "/api/series/date/day1");
+        priceDates = dateResp.data || dateResp;
+        priceIndexByDate = {};
+        for (var di = 0; di < priceDates.length; di++) priceIndexByDate[priceDates[di]] = di;
+      } catch (e2) {
+        console.warn("Price date index preload failed, using epoch fallback:", e2);
+      }
     } catch (e) {
       console.warn("Price array preload failed:", e);
     }
