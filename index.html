@@ -92,6 +92,7 @@
   <div class="mode-toggle">
     <button id="btnPL" class="active">P/L</button>
     <button id="btnSplit">LTH/STH</button>
+    <button id="btnAge">AGE</button>
   </div>
   <div class="mode-toggle">
     <button id="btnUSD" class="active">USD</button>
@@ -136,6 +137,10 @@
 <h3>Bottom Signal</h3>
 <div class="desc">Triggers when USD invested wealth in loss exceeds the threshold. Historically coincides with cycle bottoms.</div>
 <div class="formula" id="f7">Signal when: Loss% ≥ Threshold (default 80%)</div>
+
+<h3>UTXO Age Bands (AGE)</h3>
+<div class="desc">Splits the distribution into 23 cohorts by how long each UTXO has sat unmoved, from under one hour to over fifteen years. Warm colours are recently moved coins, cool colours are long-dormant coins. Cohorts come directly from Bitcoin Research Kit.</div>
+<div class="formula" id="f8">Age(utxo) = now − t(last moved)</div>
 </div></div>
   <button id="langBtn">中文</button>
 </div>
@@ -151,6 +156,17 @@ var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
 var LTH_COLOR = "#5599ff";
 var STH_COLOR = "#e6a817";
+var AGE_BANDS = [
+  {cohort:"utxos_under_1h_old", label:"<1h"}, {cohort:"utxos_1h_to_1d_old", label:"1h-1d"}, {cohort:"utxos_1d_to_1w_old", label:"1d-1w"},
+  {cohort:"utxos_1w_to_1m_old", label:"1w-1m"}, {cohort:"utxos_1m_to_2m_old", label:"1m-2m"}, {cohort:"utxos_2m_to_3m_old", label:"2m-3m"},
+  {cohort:"utxos_3m_to_4m_old", label:"3m-4m"}, {cohort:"utxos_4m_to_5m_old", label:"4m-5m"}, {cohort:"utxos_5m_to_6m_old", label:"5m-6m"},
+  {cohort:"utxos_6m_to_9m_old", label:"6m-9m"}, {cohort:"utxos_9m_to_1y_old", label:"9m-1y"}, {cohort:"utxos_1y_to_18m_old", label:"1y-18m"},
+  {cohort:"utxos_18m_to_2y_old", label:"18m-2y"}, {cohort:"utxos_2y_to_3y_old", label:"2y-3y"},
+  {cohort:"utxos_3y_to_4y_old", label:"3y-4y"}, {cohort:"utxos_4y_to_5y_old", label:"4y-5y"}, {cohort:"utxos_5y_to_6y_old", label:"5y-6y"},
+  {cohort:"utxos_6y_to_7y_old", label:"6y-7y"}, {cohort:"utxos_7y_to_8y_old", label:"7y-8y"}, {cohort:"utxos_8y_to_10y_old", label:"8y-10y"},
+  {cohort:"utxos_10y_to_12y_old", label:"10y-12y"}, {cohort:"utxos_12y_to_15y_old", label:"12y-15y"}, {cohort:"utxos_over_15y_old", label:">15y"}
+];
+var AGE_BAND_COLORS = ["#FF3B2E","#FF5A2E","#FF7A2E","#FF9A2E","#FFB82E","#FFD42E","#E8D834","#C8D43A","#A0C840","#5AAF54","#4AA560","#3A9A6A","#348F72","#2E8878","#287888","#226898","#1C58A8","#1848B8","#2040C0","#4858C8","#6878D8","#90A0E8","#B8C8F0"];
 var CUMUL_COLOR = "rgba(38,198,218,0.45)";
 var SPOT_COLOR = "#ff8c00";
 var GLOW_COLOR = "#FFE600";
@@ -161,6 +177,7 @@ var currentIdx = 0;
 var priceArray = null;
 var showPriceOverlay = true;
 var splitMode = false;
+var ageMode = false;
 var coinMode = false;
 var bottomThreshold = 80;
 var cache = {};
@@ -171,11 +188,12 @@ var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
-    landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH",
+    landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH", age: "AGE",
     signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
+    titleUSDAge: "URPD (USD-weighted) by UTXO Age as of ", titleBTCAge: "URPD (BTC-weighted) by UTXO Age as of ",
     priceUSD: "Price [USD]", usdInvested: "USD Invested", btcSupply: "BTC Supply", pctTotal: "Percent of Total",
     realisedCap: "Realised Cap ", lthRC: "LTH Realised Cap ", sthRC: "STH Realised Cap ",
     totalSupply: "Total Supply ", lthSupply: "LTH Supply ", sthSupply: "STH Supply ",
@@ -189,11 +207,12 @@ var T = {
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
-    landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f",
+    landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f", age: "\u5e74\u9f84",
     signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
+    titleUSDAge: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ", titleBTCAge: "URPD (BTC\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ",
     priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u7f8e\u5143\u6295\u8d44", btcSupply: "BTC \u4f9b\u5e94", pctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4",
     realisedCap: "\u5df2\u5b9e\u73b0\u5e02\u503c ", lthRC: "\u957f\u671f\u6301\u6709\u8005\u5df2\u5b9e\u73b0\u5e02\u503c ", sthRC: "\u77ed\u671f\u6301\u6709\u8005\u5df2\u5b9e\u73b0\u5e02\u503c ",
     totalSupply: "\u603b\u4f9b\u5e94 ", lthSupply: "\u957f\u671f\u6301\u6709\u8005\u4f9b\u5e94 ", sthSupply: "\u77ed\u671f\u6301\u6709\u8005\u4f9b\u5e94 ",
@@ -234,6 +253,7 @@ function applyLang() {
   }
   document.getElementById("btnPL").textContent = t("pl");
   document.getElementById("btnSplit").textContent = t("lthsth");
+  document.getElementById("btnAge").textContent = t("age");
   document.getElementById("loading").textContent = t("loading");
   var labels = document.querySelectorAll("#thresholdWrap label");
   if (labels[0]) labels[0].textContent = t("signalLabel");
@@ -246,7 +266,9 @@ var stepSize = 1;
 var STEPS = [1, 7, 30, 365];
 var STEP_LABELS = ["1D", "1W", "1M", "1Y"];
 
-var VIEW_MODES = [{split:false,coin:false},{split:true,coin:false},{split:false,coin:true},{split:true,coin:true}];
+var VIEW_MODES = [{split:false,age:false,coin:false},{split:true,age:false,coin:false},{split:false,age:true,coin:false},{split:false,age:false,coin:true},{split:true,age:false,coin:true},{split:false,age:true,coin:true}];
+function modeKey() { return ageMode ? "_age" : (splitMode ? "_split" : "_pl"); }
+function viewIndexFor(coin, split, age) { return (coin ? 3 : 0) + (age ? 2 : (split ? 1 : 0)); }
 var viewIdx = 0;
 
 function fetchJSON(url) {
@@ -336,9 +358,11 @@ function setViewMode(idx) {
   viewIdx = idx;
   var m = VIEW_MODES[idx];
   splitMode = m.split;
+  ageMode = !!m.age;
   coinMode = m.coin;
-  document.getElementById("btnPL").classList.toggle("active", !splitMode);
+  document.getElementById("btnPL").classList.toggle("active", !splitMode && !ageMode);
   document.getElementById("btnSplit").classList.toggle("active", splitMode);
+  document.getElementById("btnAge").classList.toggle("active", ageMode);
   document.getElementById("btnUSD").classList.toggle("active", !coinMode);
   document.getElementById("btnBTC").classList.toggle("active", coinMode);
   loadAndRender();
@@ -354,7 +378,7 @@ function setInterval1(idx) {
 function loadAndRender() {
   var dateStr = allDates[currentIdx];
   document.getElementById("loading").style.display = "block";
-  var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
+  var cacheKey = dateStr + modeKey();
   if (cache[cacheKey]) {
     renderChart(cache[cacheKey]);
     document.getElementById("loading").style.display = "none";
@@ -391,9 +415,25 @@ function loadAndRender() {
         return data;
       });
     }
+    if (ageMode) {
+      return Promise.all(AGE_BANDS.map(function(band) {
+        return fetchJSON(BASE + "/api/series/cost-basis/" + band.cohort + "/" + dateStr).catch(function(){ return null; });
+      })).then(function(res) {
+        var cohorts = [];
+        for (var ci = 0; ci < AGE_BANDS.length; ci++) {
+          var raw = res[ci];
+          if (!raw) continue;
+          var ks = Object.keys(raw), sup = 0, rc = 0;
+          for (var kk = 0; kk < ks.length; kk++) { var pp = parseFloat(ks[kk]); if (isNaN(pp)) continue; sup += raw[ks[kk]]; rc += pp * raw[ks[kk]]; }
+          cohorts.push({ label: AGE_BANDS[ci].label, color: AGE_BAND_COLORS[ci], agg: aggregate(raw, binWidth), supply: sup, rc: rc });
+        }
+        data.aggAge = cohorts.length ? cohorts : null;
+        return data;
+      });
+    }
     return data;
   }).then(function(data) {
-    cache[data.dateStr + (splitMode ? "_split" : "_pl")] = data;
+    cache[data.dateStr + modeKey()] = data;
     renderChart(data);
     document.getElementById("loading").style.display = "none";
   }).catch(function(e) {
@@ -407,6 +447,7 @@ function renderChart(data) {
   var aggLTH = data.aggLTH, aggSTH = data.aggSTH, realizedCap = data.realizedCap, totalSupply = data.totalSupply;
   var lthRC = data.lthRC, sthRC = data.sthRC, maxPrice = data.maxPrice, redPct = data.redPct;
   var isSplit = splitMode && aggLTH && aggSTH;
+  var isAge = ageMode && data.aggAge && data.aggAge.length > 0;
   var isCoin = coinMode;
   var isBottom = redPct >= bottomThreshold;
 
@@ -432,7 +473,22 @@ function renderChart(data) {
   var valuesForAxis, chartPrices;
   var hp = t("hoverPrice"), hpt = t("hoverPctTotal");
 
-  if (isSplit) {
+  if (isAge) {
+    var ageSet = new Set();
+    data.aggAge.forEach(function(c){ c.agg.forEach(function(b){ ageSet.add(b.price); }); });
+    chartPrices = Array.from(ageSet).sort(function(a,b){return a-b;});
+    valuesForAxis = chartPrices.map(function(){ return 0; });
+    data.aggAge.forEach(function(c) {
+      var cm = {}; c.agg.forEach(function(b){ cm[b.price] = b; });
+      var vals = smooth(chartPrices.map(function(p){ return cm[p] ? (isCoin ? cm[p].supply : cm[p].invested) : 0; }));
+      for (var vi = 0; vi < vals.length; vi++) valuesForAxis[vi] += vals[vi];
+      traces.push({x:chartPrices,y:vals,type:"bar",name:c.label,width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:c.color,line:{width:0}},hovertemplate:hp+"%{x:,.0f}<br>"+c.label+": "+(isCoin?"%{y:,.2f} BTC":"%{y:$,.0f}")+"<extra></extra>"});
+    });
+    var totalA = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
+    var runA = 0;
+    var cumulA = valuesForAxis.map(function(v){runA+=v;return 100*runA/totalA;});
+    traces.push({x:chartPrices,y:cumulA,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+  } else if (isSplit) {
     var allPricesSet = new Set();
     aggLTH.forEach(function(b){allPricesSet.add(b.price);});
     aggSTH.forEach(function(b){allPricesSet.add(b.price);});
@@ -540,9 +596,9 @@ function renderChart(data) {
   var titleDate = d.toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"});
   var titleText;
   if (isCoin) {
-    titleText = isSplit ? "<b>" + t("titleBTCCohort") + titleDate + "</b>" : "<b>" + t("titleBTC") + titleDate + "</b>";
+    titleText = "<b>" + (isAge ? t("titleBTCAge") : isSplit ? t("titleBTCCohort") : t("titleBTC")) + titleDate + "</b>";
   } else {
-    titleText = isSplit ? "<b>" + t("titleUSDCohort") + titleDate + "</b>" : "<b>" + t("titleUSD") + titleDate + "</b>";
+    titleText = "<b>" + (isAge ? t("titleUSDAge") : isSplit ? t("titleUSDCohort") : t("titleUSD")) + titleDate + "</b>";
   }
 
   var shapes = [];
@@ -583,13 +639,13 @@ function renderChart(data) {
     title:{text:titleText,x:0.5,xanchor:"center",font:{size:20,family:FONT,color:"#ff8c00"}},
     font:{family:FONT,color:"#ff8c00"},
     paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
-    barmode:isSplit?"stack":"overlay",bargap:0,
-    legend:{orientation:"h",yanchor:"bottom",y:1.02,xanchor:"center",x:0.5,font:{family:FONT,size:12}},
+    barmode:(isSplit||isAge)?"stack":"overlay",bargap:0,
+    legend:{orientation:"h",yanchor:"bottom",y:1.02,xanchor:"center",x:0.5,font:{family:FONT,size:isAge?10:12},traceorder:isAge?"normal":undefined},
     xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13}},tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11}},
     yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:11}},
     yaxis2:{title:{text:t("pctTotal"),font:{family:FONT,size:13}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11}},
     annotations:annotations,shapes:shapes,
-    margin:{l:80,r:80,t:90,b:80},hovermode:"closest"
+    margin:{l:80,r:80,t:isAge?130:90,b:80},hovermode:"closest"
   };
   // BTC price overlay (1yr trailing)
   if (priceArray && priceArray.length > 0) {
@@ -659,30 +715,11 @@ document.getElementById("btnNext").onclick = function(){goTo(currentIdx + stepSi
 document.getElementById("btnFirst").onclick = function(){goTo(0);};
 document.getElementById("btnLast").onclick = function(){goTo(allDates.length - 1);};
 
-document.getElementById("btnPL").onclick = function(){
-  splitMode = false; viewIdx = coinMode ? 2 : 0;
-  document.getElementById("btnPL").classList.add("active");
-  document.getElementById("btnSplit").classList.remove("active");
-  loadAndRender();
-};
-document.getElementById("btnSplit").onclick = function(){
-  splitMode = true; viewIdx = coinMode ? 3 : 1;
-  document.getElementById("btnSplit").classList.add("active");
-  document.getElementById("btnPL").classList.remove("active");
-  loadAndRender();
-};
-document.getElementById("btnUSD").onclick = function(){
-  coinMode = false; viewIdx = splitMode ? 1 : 0;
-  document.getElementById("btnUSD").classList.add("active");
-  document.getElementById("btnBTC").classList.remove("active");
-  loadAndRender();
-};
-document.getElementById("btnBTC").onclick = function(){
-  coinMode = true; viewIdx = splitMode ? 3 : 2;
-  document.getElementById("btnBTC").classList.add("active");
-  document.getElementById("btnUSD").classList.remove("active");
-  loadAndRender();
-};
+document.getElementById("btnPL").onclick = function(){ setViewMode(viewIndexFor(coinMode, false, false)); };
+document.getElementById("btnSplit").onclick = function(){ setViewMode(viewIndexFor(coinMode, true, false)); };
+document.getElementById("btnAge").onclick = function(){ setViewMode(viewIndexFor(coinMode, false, true)); };
+document.getElementById("btnUSD").onclick = function(){ setViewMode(viewIndexFor(false, splitMode, ageMode)); };
+document.getElementById("btnBTC").onclick = function(){ setViewMode(viewIndexFor(true, splitMode, ageMode)); };
 
 // Language toggle
 
@@ -702,7 +739,7 @@ document.getElementById("thresholdInput").addEventListener("input", function(e){
   if (!isNaN(v) && v >= 0 && v <= 100) {
     bottomThreshold = v;
     var dateStr = allDates[currentIdx];
-    var cacheKey = dateStr + (splitMode ? "_split" : "_pl");
+    var cacheKey = dateStr + modeKey();
     if (cache[cacheKey]) renderChart(cache[cacheKey]);
   }
 });
@@ -887,7 +924,9 @@ function updateExplainerLang() {
     if(document.getElementById("f6")) document.getElementById("f6").textContent = "\u76c8\u5229% = \u03a3 W(P)\uff0c\u5176\u4e2d P \u2264 \u73b0\u4ef7 / \u03a3 W(P) \u00d7 100";
     if(document.getElementById("f7")) document.getElementById("f7").textContent = "\u4fe1\u53f7\u89e6\u53d1\u6761\u4ef6: \u4e8f\u635f% \u2265 \u9608\u503c (\u9ed8\u8ba4 80%)";
     descs[7].textContent = "\u5f53\u7f8e\u5143\u6295\u8d44\u8d22\u5bcc\u4e8f\u635f\u767e\u5206\u6bd4\u8d85\u8fc7\u7528\u6237\u5b9a\u4e49\u7684\u9608\u503c(\u9ed8\u8ba480%)\u65f6\u89e6\u53d1\u3002\u5386\u53f2\u4e0a\uff0c\u6781\u7aef\u4e8f\u635f\u6c34\u5e73\u4e0e\u5468\u671f\u5e95\u90e8\u5438\u5408\u3002";
-    box.querySelector(".close-btn").textContent = "\u5173\u95ed";
+    if (h3s[8]) h3s[8].textContent = "UTXO \u5e74\u9f84\u6bb5 (AGE)";
+    if (descs[8]) descs[8].textContent = "\u6309\u6bcf\u4e2aUTXO\u672a\u79fb\u52a8\u7684\u65f6\u957f\u5c06\u5206\u5e03\u5206\u4e3a23\u4e2a\u961f\u5217\uff0c\u4ece\u4e0d\u8db3\u4e00\u5c0f\u65f6\u5230\u8d85\u8fc7\u5341\u4e94\u5e74\u3002\u6696\u8272\u4e3a\u8fd1\u671f\u79fb\u52a8\u7684\u5e01\uff0c\u51b7\u8272\u4e3a\u957f\u671f\u672a\u52a8\u7684\u5e01\u3002\u961f\u5217\u76f4\u63a5\u6765\u81ea Bitcoin Research Kit\u3002";
+    if (box.querySelector(".close-btn")) box.querySelector(".close-btn").textContent = "\u5173\u95ed";
   } else {
     box.querySelector("#explainTitle").textContent = "Understanding URPD";
     var h3s = box.querySelectorAll("h3");
@@ -907,6 +946,8 @@ function updateExplainerLang() {
     h3s[6].textContent = "Supply in Profit / Loss";
     descs[6].textContent = "At the spot price line, the percentage of invested wealth (USD) or supply (BTC) with a cost basis below spot is \"in profit\"; above spot is \"in loss\".";
     h3s[7].textContent = "Bottom Signal";
+    if (h3s[8]) h3s[8].textContent = "UTXO Age Bands (AGE)";
+    if (descs[8]) descs[8].textContent = "Splits the distribution into 23 cohorts by how long each UTXO has sat unmoved, from under one hour to over fifteen years. Warm colours are recently moved coins, cool colours are long-dormant coins. Cohorts come directly from Bitcoin Research Kit.";
     if(document.getElementById("f1")) document.getElementById("f1").textContent = "Invested Wealth(P) = P \u00b7 S(P)";
     if(document.getElementById("f2")) document.getElementById("f2").textContent = "S(P) = \u03a3 utxo.value  where utxo.price \u2208 [P, P + \u0394P)";
     if(document.getElementById("f3")) document.getElementById("f3").textContent = "RC = \u03a3\u1d62 P\u1d62 \u00b7 S\u1d62  for all price bins i";
