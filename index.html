@@ -663,7 +663,13 @@ function renderChart(data) {
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:2.5},layer:"above"});
     var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + (isCoin ? "<br>" + t("btcProfit") + profitPct + "%<br>" + t("btcLoss") + lossPct + "%" : "<br>" + t("usdProfit") + profitPct + "%<br>" + t("usdLoss") + lossPct + "%");
     if (isBottom) labelText += "<br><b>" + t("bottomSigHover") + redPct.toFixed(0) + "% Red)</b>";
-    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",align:"left",font:{color:"#ffffff",size:13,family:FONT},bgcolor:"rgba(0,0,0,0.92)",bordercolor:"rgba(255,255,255,0.45)",borderwidth:1,borderpad:5});
+    // The label sits to the right of the spot line unless it would run past the plot edge, in which
+    // case it flips to the left of the line (estimate: 13px monospace ~7.9px per character, plus box).
+    var plotPx = Math.max(200, (document.getElementById("chart").offsetWidth || 1200) - 160);
+    var labelChars = labelText.split("<br>").reduce(function(m, s){ return Math.max(m, s.replace(/<[^>]+>/g, "").length); }, 0);
+    var labelFrac = (labelChars * 7.9 + 24) / plotPx;
+    var flipLabel = (spot / (maxP || spot)) + labelFrac > 0.99;
+    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:flipLabel?"right":"left",xshift:flipLabel?-6:6,yanchor:"top",align:"left",font:{color:"#ffffff",size:13,family:FONT},bgcolor:"rgba(0,0,0,0.92)",bordercolor:"rgba(255,255,255,0.45)",borderwidth:1,borderpad:5});
   }
 
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
