@@ -664,7 +664,9 @@ function renderChart(data) {
     annotations:annotations,shapes:shapes,
     margin:{l:80,r:80,t:isAge?130:90,b:80},hovermode:"closest"
   };
-  // BTC price overlay (1yr trailing)
+  // BTC price overlay: the year leading up to the selected date. The line stops at that date, so
+  // the spot marker sits on its tip and the window moves with navigation instead of staying pinned
+  // to the chain tip.
   if (priceArray && priceArray.length > 0) {
     var pD=[],pP=[];
     var cutoff=new Date(dateStr+"T00:00:00");
@@ -674,6 +676,7 @@ function renderChart(data) {
       if(typeof priceArray[pi]==="number"&&priceArray[pi]>0){
         var pds=(priceDates&&priceDates[pi])||new Date(BRK_DAY0.getTime()+pi*86400000).toISOString().split("T")[0];
         if(pds<cStr)continue;
+        if(pds>dateStr)break;
         pD.push(pds);pP.push(priceArray[pi]);
       }
     }
@@ -698,7 +701,7 @@ function renderChart(data) {
     var lmD=[],lmP=[],lmT=[],lmC=[],lmS=[];
     for(var li=0;li<LANDMARKS.length;li++){
       var lm=LANDMARKS[li];
-      if(lm.d>=cStr){
+      if(lm.d>=cStr&&lm.d<=dateStr){
         lmD.push(lm.d);lmP.push(lm.p);lmT.push(lm.l);
         lmC.push("rgba(255,255,255,0.6)");
         lmS.push(lm.top?"triangle-down":"triangle-up");
