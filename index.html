@@ -18,6 +18,10 @@
   #dateDisplay { font-size: 14px; font-weight: bold; color: #ff8c00; min-width: 280px; text-align: center; padding: 0 6px; }
   #status { text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
   #chart { width: 100%; height: calc(100vh - 70px); }
+  #tracer { position: fixed; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ff8c00; border: 2px solid #ffffff; box-sizing: border-box; box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 0 6px rgba(255,140,0,0.5); cursor: grab; z-index: 50; display: none; touch-action: none; }
+  #tracer.show { display: block; }
+  #tracer.dragging { cursor: grabbing; }
+  body.tracer-dragging, body.tracer-dragging * { cursor: grabbing !important; user-select: none; }
   #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 24px; color: #ff8c00; display: none; z-index: 999; }
   @keyframes glowPulse {
     0%, 100% { text-shadow: 0 0 10px #FFE600, 0 0 20px #FFE600, 0 0 40px #FFE600; }
@@ -194,6 +198,7 @@
 </div>
 <div id="status">Left/Right navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down toggle view | Home/End first/last</div>
 <div id="chart"></div>
+<div id="tracer" title="Drag along the BTC price line"></div>
 <div id="loading">Loading...</div>
 <script>
 var BASE = "https://bitview.space";
@@ -235,20 +240,21 @@ var coinMode = false;
 var bottomThreshold = 80;
 var yMaxPct = 99;
 var cache = {};
+var renderSeq = 0; // bumped per loadAndRender call so a slow fetch cannot paint over a newer date
 var spotCache = {};
 var lang = "en";
 
 var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
-    statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
+    statusLoaded: " days loaded. Left/Right or A/D navigate | drag the dot on the price line | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH", age: "AGE",
     signalLabel: "Adjustable bottom signal", signalUnit: "% USD value held in loss", yMaxLabel: "Adjustable y-max", yMaxUnit: "% of bar heights",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Value Held in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
     titleUSDAge: "URPD (USD-weighted) by UTXO Age as of ", titleBTCAge: "URPD (BTC-weighted) by UTXO Age as of ",
-    priceUSD: "Price [USD]", usdInvested: "USD Value at Last Move", btcSupply: "BTC Supply", pctTotal: "Percent of Total",
+    priceUSD: "Price [USD]", usdInvested: "USD Value Held at Last Move", btcSupply: "BTC Supply Held", pctTotal: "Percent of Total",
     realisedCap: "Realised Cap ", lthRC: "LTH Realised Cap ", sthRC: "STH Realised Cap ",
     totalSupply: "Total Supply ", lthSupply: "LTH Supply ", sthSupply: "STH Supply ",
     inProfit: "In Profit ", inLoss: "In Loss ", source: "Source: local BRK node",
@@ -260,14 +266,14 @@ var T = {
   },
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
-    statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
+    statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | \u62d6\u52a8\u4ef7\u683c\u7ebf\u4e0a\u7684\u5706\u70b9 | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f", age: "\u5e74\u9f84",
     signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f", yMaxLabel: "\u53ef\u8c03 Y \u8f74\u4e0a\u9650", yMaxUnit: "\u767e\u5206\u4f4d\uff08\u67f1\u9ad8\uff09",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleUSDAge: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ", titleBTCAge: "URPD (BTC\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ",
-    priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u6700\u540e\u79fb\u52a8\u65f6\u7f8e\u5143\u4ef7\u503c", btcSupply: "BTC \u4f9b\u5e94", pctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4",
+    priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u6301\u6709\u7684\u7f8e\u5143\u4ef7\u503c\uff08\u6700\u540e\u79fb\u52a8\u65f6\uff09", btcSupply: "\u6301\u6709\u7684 BTC \u4f9b\u5e94", pctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4",
     realisedCap: "\u5df2\u5b9e\u73b0\u5e02\u503c ", lthRC: "\u957f\u671f\u6301\u6709\u8005\u5df2\u5b9e\u73b0\u5e02\u503c ", sthRC: "\u77ed\u671f\u6301\u6709\u8005\u5df2\u5b9e\u73b0\u5e02\u503c ",
     totalSupply: "\u603b\u4f9b\u5e94 ", lthSupply: "\u957f\u671f\u6301\u6709\u8005\u4f9b\u5e94 ", sthSupply: "\u77ed\u671f\u6301\u6709\u8005\u4f9b\u5e94 ",
     inProfit: "\u76c8\u5229 ", inLoss: "\u4e8f\u635f ", source: "\u6570\u636e\u6765\u6e90: \u672c\u5730 BRK \u8282\u70b9",
@@ -436,6 +442,7 @@ function setInterval1(idx) {
 
 function loadAndRender() {
   var dateStr = allDates[currentIdx];
+  var mySeq = ++renderSeq;
   document.getElementById("loading").style.display = "block";
   var cacheKey = dateStr + modeKey();
   if (cache[cacheKey]) {
@@ -493,6 +500,7 @@ function loadAndRender() {
     return data;
   }).then(function(data) {
     cache[data.dateStr + modeKey()] = data;
+    if (mySeq !== renderSeq) return;
     renderChart(data);
     document.getElementById("loading").style.display = "none";
   }).catch(function(e) {
@@ -699,6 +707,7 @@ function renderChart(data) {
     var ovTip=new Date(allDates[allDates.length-1]+"T00:00:00").getTime();
     var ovRight=Math.min(ovTip+OV_PAD, ovSel+OV_FUTURE);
     var ovLeft=ovRight-OV_WINDOW;
+    if (window.tracerDragWindow) { ovLeft=window.tracerDragWindow[0]; ovRight=window.tracerDragWindow[1]; } // window stays put while the dot is dragged
     var cStr=ovYmd(ovLeft-OV_DAY), rStr=ovYmd(ovRight+OV_DAY);
     for(var pi=0;pi<priceArray.length;pi++){
       if(typeof priceArray[pi]==="number"&&priceArray[pi]>0){
@@ -741,7 +750,7 @@ function renderChart(data) {
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false,autorange:false,range:[ovYmd(ovLeft),ovYmd(ovRight)]};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
   }
-  Plotly.react("chart", traces, layout, {responsive:true});
+  Plotly.react("chart", traces, layout, {responsive:true}).then(function(){ if (window.placeTracer) placeTracer(); });
   document.getElementById("chart").removeAllListeners("plotly_legendclick");
   document.getElementById("chart").on("plotly_legendclick", function(evtData) {
     if (evtData.data[evtData.curveNumber].name === "BTC/USD") {
@@ -1126,6 +1135,81 @@ function updateVideoLang() {
     }
     captureFrames();
   };
+})();
+// ---- Draggable tracer: grab the dot on the BTC price line and drag it; the URPD follows the date ----
+// The dot is a fixed-position element laid over Plotly's marker (Plotly's own drag layer would otherwise
+// turn the gesture into a zoom box). While dragging, the overlay window is frozen so the line stays put
+// under the cursor; on release it re-centres as usual.
+window.tracerDragWindow = null;
+(function(){
+  var el = document.getElementById("tracer");
+  var gd = document.getElementById("chart");
+  function axes() { var fl = gd._fullLayout; return fl && fl.xaxis2 && fl.yaxis3 && fl.xaxis2._length ? fl : null; }
+  window.placeTracer = function() {
+    var fl = axes();
+    var data = cache[allDates[currentIdx] + modeKey()];
+    var spot = data && data.spot;
+    if (!fl || !showPriceOverlay || !(spot > 0)) { el.classList.remove("show"); return; }
+    var xa = fl.xaxis2, ya = fl.yaxis3;
+    var x = xa._offset + xa.d2p(allDates[currentIdx]);
+    var y = ya._offset + ya.d2p(spot);
+    if (!isFinite(x) || !isFinite(y) || x < xa._offset - 8 || x > xa._offset + xa._length + 8) { el.classList.remove("show"); return; }
+    var r = gd.getBoundingClientRect();
+    el.style.left = (r.left + x) + "px";
+    el.style.top = (r.top + y) + "px";
+    el.classList.add("show");
+  };
+  window.addEventListener("resize", function(){ setTimeout(window.placeTracer, 80); });
+  function nearestDateIndex(ds) {
+    var lo = 0, hi = allDates.length - 1;
+    while (lo < hi) { var mid = (lo + hi) >> 1; if (allDates[mid] < ds) lo = mid + 1; else hi = mid; }
+    if (lo > 0) {
+      var t = new Date(ds + "T00:00:00").getTime();
+      if (Math.abs(new Date(allDates[lo - 1] + "T00:00:00").getTime() - t) < Math.abs(new Date(allDates[lo] + "T00:00:00").getTime() - t)) lo--;
+    }
+    return lo;
+  }
+  function indexAtClientX(cx) {
+    var fl = axes(); if (!fl) return -1;
+    var xa = fl.xaxis2, r = gd.getBoundingClientRect();
+    var px = Math.max(0, Math.min(xa._length, cx - r.left - xa._offset));
+    var ds = String(xa.p2d(px)).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ds)) return -1;
+    return nearestDateIndex(ds);
+  }
+  var dragging = false, pending = false, lastX = 0, lastDate = null;
+  el.addEventListener("pointerdown", function(e){
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (window.videoRecording) return;
+    e.preventDefault(); e.stopPropagation();
+    dragging = true; lastDate = allDates[currentIdx];
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    el.classList.add("dragging"); document.body.classList.add("tracer-dragging");
+    var rng = gd.layout && gd.layout.xaxis2 && gd.layout.xaxis2.range;
+    window.tracerDragWindow = rng ? [new Date(String(rng[0]).slice(0, 10) + "T00:00:00").getTime(), new Date(String(rng[1]).slice(0, 10) + "T00:00:00").getTime()] : null;
+  });
+  el.addEventListener("pointermove", function(e){
+    if (!dragging) return;
+    e.preventDefault(); lastX = e.clientX;
+    if (pending) return; pending = true;
+    setTimeout(function(){
+      pending = false; if (!dragging) return;
+      var idx = indexAtClientX(lastX);
+      if (idx < 0 || idx >= allDates.length || allDates[idx] === lastDate) return;
+      lastDate = allDates[idx]; currentIdx = idx; loadAndRender();
+    }, 16);
+  });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    try { el.releasePointerCapture(e.pointerId); } catch (_) {}
+    el.classList.remove("dragging"); document.body.classList.remove("tracer-dragging");
+    window.tracerDragWindow = null;
+    loadAndRender(); // window re-centres on the new date
+  }
+  el.addEventListener("pointerup", endDrag);
+  el.addEventListener("pointercancel", endDrag);
+  el.addEventListener("dblclick", function(e){ e.preventDefault(); });
 })();
 var EXPLAINER = {
   en: { title: "Understanding URPD", sections: [["UTXO Realized Price Distribution (URPD)","Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved on-chain: its realised price, or cost basis. Each bar is the supply whose cost basis falls in that price range. One snapshot per day since 2009-01-03, from Bitcoin Research Kit via bitview.space.",null],["URPD (USD-weighted) — USD Value at Last Move","Weights each UTXO by its dollar value at its last on-chain move. Shows where that value is concentrated.",["f1","USD Value at Last Move(P) = P · S(P)"]],["URPD (BTC-weighted) — Supply Distribution","Shows raw BTC supply at each cost-basis price, unweighted by dollar value.",["f2","S(P) = Σ utxo.value  where utxo.price ∈ [P, P + ΔP)"]],["Realized Cap","The total value of all UTXOs priced at their last-moved price. Unlike market cap, it reflects the aggregate cost basis of the entire supply.",["f3","RC = Σᵢ Pᵢ · Sᵢ  for all price bins i"]],["Long-Term Holders (LTH)","UTXOs that have not moved for at least 150 days, which is Bitcoin Research Kit's threshold (Glassnode uses 155). Conviction holders and long-term accumulators.",["f4","LTH = { utxo | age(utxo) ≥ 150 days }"]],["Short-Term Holders (STH)","UTXOs that moved within the last 150 days: recent buyers, traders and speculators. LTH + STH = the whole supply.",["f5","STH = { utxo | age(utxo) < 150 days }"]],["Supply in Profit / Loss","At the spot price line: the share of the day's USD value at last move (USD view) or BTC supply (BTC view) whose cost basis is at or below spot is \"in profit\"; above spot is \"in loss\". Computed from the displayed bins.",["f6","Profit % = Σ W(P) for P ≤ Spot  /  Σ W(P) × 100"]],["Bottom Signal","Fires when the share of USD value held in loss, computed from the exact realised prices, reaches the threshold set in the toolbar (default 80%). Historically, extreme readings have coincided with cycle bottoms.",["f7","Signal when: Loss% ≥ Threshold (default 80%)"]],["UTXO Age Bands (AGE)","Splits the distribution into 23 cohorts by how long each UTXO has sat unmoved, from under one hour to over fifteen years. Warm colours are recently moved coins, cool colours are long-dormant coins. Cohorts come directly from Bitcoin Research Kit.",["f8","Age(utxo) = now − t(last moved)"]],["Histogram Bins","625 equal-width price bins from $0 to the day's highest cost basis, so the bin width changes with the date (about $200 when the high is $125K). Bar heights are smoothed with a 5-bin moving average.",["f9","ΔP = max cost basis / 625;  bar(P) = mean of the 5 bins centred on P"]],["Percent of Total","The line on the right axis is the cumulative share of the day's supply (BTC view) or USD value at last move (USD view) with a cost basis at or below each price.",["f10","Cum %(P) = Σ W(p ≤ P) / Σ W × 100"]],["Adjustable Y-max","Caps the left axis at the Nth percentile of the non-zero bar heights so one tall spike does not flatten the rest (default 99; 100 = tallest bar). Bars above the cap are clipped.",["f11","y-max = percentileₙ(bar heights)"]],["BTC Price Overlay","The white line is the daily close for the year leading up to the selected date, on a log scale, with the orange marker on that day's close and cycle tops and bottoms marked. Click the BTC/USD legend entry to hide or show it.",null],["Video Export (▶)","Records the chart moving through a date range, one frame per step of the current interval (1D/1W/1M/1Y) in the current view, at the chosen frames per second, and saves a WebM.",null]] },
