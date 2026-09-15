@@ -364,8 +364,8 @@ function getSpotFromCache(dateStr) {
 // needles and, after a moving average, flat-topped blocks. Each price point's mass is instead spread with a
 // Gaussian of one bin (the narrowest kernel that still draws every point as a bell rather than a needle),
 // widened to half the bucket size where BRK's $1/$10 keys are coarser than a bin (early dates). Measured on
-// 15-Sep-2026 against the raw $200 bins this displaces 23% of the mass, versus 27% for Checkonchain's chart
-// (which fits a 1.25-bin Gaussian), 33% for a 0.5%-of-price kernel and 35% for the old 5-bin moving average.
+// 15-Sep-2026 against the raw $200 bins this displaces 23% of the mass, versus 27% for another public URPD
+// chart (which fits a 1.25-bin Gaussian), 33% for a 0.5%-of-price kernel and 35% for the old 5-bin moving average.
 // Mass and USD value are preserved exactly and every bin is returned, so each date shows the same number of bars.
 var KERNEL_BINS = 1;
 function aggregate(raw, binWidth) {
