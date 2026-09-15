@@ -682,16 +682,24 @@ function renderChart(data) {
     annotations:annotations,shapes:shapes,
     margin:{l:80,r:80,t:isAge?130:90,b:80},hovermode:"closest"
   };
-  // BTC price overlay (1yr trailing)
+  // BTC price overlay: a one-year window at a fixed horizontal scale. The chain tip stays at the
+  // right edge while the marker is within three months of it; further back, the window follows the
+  // marker (kept three months from the right edge) and the later part of the line runs off-screen,
+  // so navigating back never compresses the line.
   if (priceArray && priceArray.length > 0) {
     var pD=[],pP=[];
-    var cutoff=new Date(dateStr+"T00:00:00");
-    cutoff.setFullYear(cutoff.getFullYear()-1);
-    var cStr=cutoff.toISOString().split("T")[0];
+    var OV_DAY=86400000, OV_WINDOW=365*OV_DAY, OV_FUTURE=90*OV_DAY, OV_PAD=7*OV_DAY;
+    var ovYmd=function(t){var d=new Date(t);return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);};
+    var ovSel=new Date(dateStr+"T00:00:00").getTime();
+    var ovTip=new Date(allDates[allDates.length-1]+"T00:00:00").getTime();
+    var ovRight=Math.min(ovTip+OV_PAD, ovSel+OV_FUTURE);
+    var ovLeft=ovRight-OV_WINDOW;
+    var cStr=ovYmd(ovLeft-OV_DAY), rStr=ovYmd(ovRight+OV_DAY);
     for(var pi=0;pi<priceArray.length;pi++){
       if(typeof priceArray[pi]==="number"&&priceArray[pi]>0){
         var pds=(priceDates&&priceDates[pi])||new Date(BRK_DAY0.getTime()+pi*86400000).toISOString().split("T")[0];
         if(pds<cStr)continue;
+        if(pds>rStr)break;
         pD.push(pds);pP.push(priceArray[pi]);
       }
     }
@@ -716,7 +724,7 @@ function renderChart(data) {
     var lmD=[],lmP=[],lmT=[],lmC=[],lmS=[];
     for(var li=0;li<LANDMARKS.length;li++){
       var lm=LANDMARKS[li];
-      if(lm.d>=cStr){
+      if(lm.d>=cStr&&lm.d<=rStr){
         lmD.push(lm.d);lmP.push(lm.p);lmT.push(lm.l);
         lmC.push("rgba(255,255,255,0.6)");
         lmS.push(lm.top?"triangle-down":"triangle-up");
@@ -725,7 +733,7 @@ function renderChart(data) {
     if(showPriceOverlay&&lmD.length>0){
       traces.push({x:lmD,y:lmP,type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:lmC,size:10,symbol:lmS,line:{color:"rgba(0,0,0,0.5)",width:1}},text:lmT,textposition:lmD.map(function(_,i){return lmS[i]==="triangle-down"?"top center":"bottom center";}),textfont:{color:lmC,size:9,family:"Source Code Pro, Consolas, monospace"},hoverinfo:"skip",showlegend:false});
     }
-    layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false};
+    layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false,autorange:false,range:[ovYmd(ovLeft),ovYmd(ovRight)]};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
   }
   Plotly.react("chart", traces, layout, {responsive:true});
