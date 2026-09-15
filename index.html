@@ -8,7 +8,7 @@
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; height: 100%; }
-  #controls { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: wrap; }
+  #controls { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: wrap; }
   #controls button { background: #252525; color: #d4d4d4; border: 1px solid #555; padding: 4px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
   #controls button:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .mode-toggle { display: flex; gap: 2px; }
@@ -27,7 +27,7 @@
   #thresholdWrap label, #ymaxWrap label { color: #999; white-space: nowrap; }
   #thresholdInput, #ymaxInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   #thresholdInput:focus, #ymaxInput:focus { border-color: #ff8c00; outline: none; }
-  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; }
+  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 2px; }
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
   #intervalBar .iv.active { background: #ff8c00; color: #000; font-weight: bold; }
@@ -47,6 +47,21 @@
   #explainBtn { background: #0d1117; color: #8b949e; border: 1px solid #1c2733; padding: 3px 7px; font-family: inherit; font-size: 11px; font-weight:700; cursor: pointer; border-radius: 1px; letter-spacing: 0.5px; transition: all 0.15s; }
   #explainBtn:hover { background: #161b22; color: #ff8c00; border-color: #ff8c00; }
   #explainWrap { position:relative; display:inline-block; }
+  #videoWrap { position:relative; display:inline-block; }
+  #videoBtn { background: #0d1117; color: #8b949e; border: 1px solid #1c2733; padding: 3px 6px; font-family: inherit; font-size: 11px; font-weight:700; cursor: pointer; border-radius: 1px; letter-spacing: 0.5px; transition: all 0.15s; white-space: nowrap; }
+  #videoBtn:hover, #videoBtn.rec { background: #161b22; color: #ff8c00; border-color: #ff8c00; }
+  #videoPanel { display:none; position:absolute; top:100%; right:0; width:250px; background:#0d1117; border:1px solid #1c2733; border-radius:2px; z-index:9999; padding:12px; margin-top:6px; font-size:11px; text-align:left; }
+  #videoPanel h2 { color:#ff8c00; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin:0 0 10px 0; }
+  #videoPanel .vrow { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0; }
+  #videoPanel label { color:#8b949e; }
+  #videoPanel input { background:#1e1e1e; color:#ff8c00; border:1px solid #555; padding:3px 5px; font-family:inherit; font-size:11px; border-radius:2px; width:150px; box-sizing:border-box; color-scheme:dark; }
+  #videoPanel input:focus { border-color:#ff8c00; outline:none; }
+  #videoPanel .vhint { color:#6e7681; font-size:10px; line-height:1.5; margin:8px 0 0 0; }
+  #videoStatus { color:#8b949e; min-height:14px; margin-top:8px; line-height:1.5; }
+  #videoPanel .vbtns { display:flex; gap:6px; margin-top:10px; }
+  #videoPanel .vbtns button { flex:1; background:#1e1e1e; color:#d4d4d4; border:1px solid #555; padding:4px 8px; font-family:inherit; font-size:11px; cursor:pointer; border-radius:2px; }
+  #videoPanel .vbtns button:hover { color:#ff8c00; border-color:#ff8c00; }
+  #videoPanel .vbtns button:disabled { opacity:0.4; cursor:default; color:#d4d4d4; border-color:#555; }
   #explainPanel { display:none; position:absolute; top:100%; right:0; width:460px; max-height:75vh; overflow-y:auto; background:#0d1117; border:1px solid #1c2733; border-radius:2px; z-index:9999; padding:24px 28px; margin-top:6px; box-shadow:0 4px 24px rgba(0,0,0,0.8); }
   #explainPanel::-webkit-scrollbar { width:4px; }
   #explainPanel::-webkit-scrollbar-track { background:#0d1117; }
@@ -57,7 +72,7 @@
   #explainPanel .desc { color:#8b949e; margin:4px 0 8px 0; font-size:12px; line-height:1.65; font-weight:400; letter-spacing:0.2px; }
   #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; }
   #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
-  .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 4px; }
+  .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 3px; }
 </style>
 </head>
 <body>
@@ -148,6 +163,15 @@
 <div class="desc">Splits the distribution into 23 cohorts by how long each UTXO has sat unmoved, from under one hour to over fifteen years. Warm colours are recently moved coins, cool colours are long-dormant coins. Cohorts come directly from Bitcoin Research Kit.</div>
 <div class="formula" id="f8">Age(utxo) = now − t(last moved)</div>
 </div></div>
+  <div id="videoWrap"><button id="videoBtn" title="Export video: records the chart moving through a date range">&#9654;</button><div id="videoPanel">
+    <h2 id="videoTitle">Export video</h2>
+    <div class="vrow"><label id="videoFromLbl">From</label><input type="date" id="videoFrom"></div>
+    <div class="vrow"><label id="videoToLbl">To</label><input type="date" id="videoTo"></div>
+    <div class="vrow"><label id="videoFpsLbl">Frames / sec</label><input type="text" id="videoFps" value="10"></div>
+    <div class="vhint" id="videoHint">One frame per step of the current interval (1D/1W/1M/1Y) in the current view. Saves a WebM.</div>
+    <div id="videoStatus"></div>
+    <div class="vbtns"><button id="videoRecBtn">Record</button><button id="videoCancelBtn" disabled>Cancel</button></div>
+  </div></div>
   <button id="langBtn">中文</button>
 </div>
 <div id="status">Left/Right navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down toggle view | Home/End first/last</div>
@@ -241,6 +265,7 @@ function t(key) { return T[lang][key] || T.en[key] || key; }
 
 function applyLang() {
   document.getElementById("langBtn").textContent = t("langBtn");
+  if (window.updateVideoLang) updateVideoLang();
   if(document.getElementById("footer")) document.getElementById("footer").innerHTML = t("poweredBy");
   document.getElementById("landmarks").options[0].textContent = t("landmarks");
   var lm = document.getElementById("landmarks");
@@ -597,7 +622,7 @@ function renderChart(data) {
   var shapes = [];
   var annotations = [
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>",showarrow:false,font:{family:FONT}},
-    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301" : "Powered by Bitcoin Research Kit & Bitcoin Core"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
+    {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301 \u00b7 \u7075\u611f\u6765\u81ea Renato Shira \u4e0e James Check" : "Powered by Bitcoin Research Kit & Bitcoin Core \u00b7 Inspired by Renato Shira and James Check"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
   if (yClipped) {
     annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at " + yMaxPct + "th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
@@ -747,6 +772,7 @@ document.getElementById("ymaxInput").addEventListener("input", function(e){
 
 document.addEventListener("keydown", function(e){
   if (e.target.tagName === "INPUT") return;
+  if (window.videoRecording) return;
   // The landmarks <select> keeps focus after a pick. Left to the browser, arrow/Home/End keys would cycle
   // its options (jumping between landmarks) instead of stepping the chart, so navigation keys are handled here.
   if (e.target.tagName === "SELECT" && e.target.id !== "landmarks") return;
@@ -909,6 +935,167 @@ document.addEventListener("click", function(e){
   var wrap = document.getElementById("explainWrap");
   if (panel.style.display === "block" && !wrap.contains(e.target)) panel.style.display = "none";
 });
+// ---- Video export: play the chart through a date range and save it as a WebM ----
+// Two passes: every frame is rendered and captured with Plotly.toImage first, then the frames are
+// played onto a canvas at a fixed rate while MediaRecorder records it, so playback speed is the
+// chosen frames/sec rather than however long each render took.
+var videoRecording = false;
+var videoCancel = false;
+function updateVideoLang() {
+  var zh = lang === "zh";
+  document.getElementById("videoBtn").title = zh ? "\u5bfc\u51fa\u89c6\u9891\uff1a\u5f55\u5236\u56fe\u8868\u5728\u65e5\u671f\u8303\u56f4\u5185\u7684\u53d8\u5316" : "Export video: records the chart moving through a date range";
+  document.getElementById("videoTitle").textContent = zh ? "\u5bfc\u51fa\u89c6\u9891" : "Export video";
+  document.getElementById("videoFromLbl").textContent = zh ? "\u8d77" : "From";
+  document.getElementById("videoToLbl").textContent = zh ? "\u6b62" : "To";
+  document.getElementById("videoFpsLbl").textContent = zh ? "\u5e27 / \u79d2" : "Frames / sec";
+  document.getElementById("videoHint").textContent = zh ? "\u6309\u5f53\u524d\u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) \u6bcf\u6b65\u4e00\u5e27\uff0c\u4f7f\u7528\u5f53\u524d\u89c6\u56fe\u3002\u4fdd\u5b58\u4e3a WebM\u3002" : "One frame per step of the current interval (1D/1W/1M/1Y) in the current view. Saves a WebM.";
+  if (!videoRecording) {
+    document.getElementById("videoRecBtn").textContent = zh ? "\u5f55\u5236" : "Record";
+    document.getElementById("videoCancelBtn").textContent = zh ? "\u53d6\u6d88" : "Cancel";
+  }
+}
+(function(){
+  var wrap = document.getElementById("videoWrap");
+  var panel = document.getElementById("videoPanel");
+  var btn = document.getElementById("videoBtn");
+  var fromEl = document.getElementById("videoFrom"), toEl = document.getElementById("videoTo"), fpsEl = document.getElementById("videoFps");
+  var statusEl = document.getElementById("videoStatus");
+  var recBtn = document.getElementById("videoRecBtn"), cancelBtn = document.getElementById("videoCancelBtn");
+  function vt(en, zh) { return lang === "zh" ? zh : en; }
+  function setStatus(s) { statusEl.textContent = s; }
+  btn.onclick = function(e) {
+    e.stopPropagation();
+    var open = panel.style.display === "block";
+    panel.style.display = open ? "none" : "block";
+    if (!open && allDates.length) {
+      fromEl.min = allDates[0]; fromEl.max = allDates[allDates.length - 1];
+      toEl.min = allDates[0]; toEl.max = allDates[allDates.length - 1];
+      if (!fromEl.value) fromEl.value = allDates[Math.max(0, currentIdx - 365)];
+      if (!toEl.value) toEl.value = allDates[currentIdx];
+      updateVideoLang();
+    }
+  };
+  document.addEventListener("click", function(e){
+    if (panel.style.display === "block" && !wrap.contains(e.target) && !videoRecording) panel.style.display = "none";
+  });
+  cancelBtn.onclick = function(){ if (videoRecording) { videoCancel = true; setStatus(vt("Stopping\u2026", "\u6b63\u5728\u505c\u6b62\u2026")); } };
+  recBtn.onclick = function() {
+    if (videoRecording) return;
+    var from = fromEl.value, to = toEl.value;
+    var fps = parseFloat(fpsEl.value);
+    if (!(fps > 0 && fps <= 60)) { fps = 10; fpsEl.value = "10"; }
+    if (!from || !to) { setStatus(vt("Pick both dates.", "\u8bf7\u9009\u62e9\u8d77\u6b62\u65e5\u671f\u3002")); return; }
+    if (from > to) { var tmp = from; from = to; to = tmp; fromEl.value = from; toEl.value = to; }
+    var startIdx = -1, endIdx = -1;
+    for (var i = 0; i < allDates.length; i++) {
+      if (allDates[i] >= from && startIdx < 0) startIdx = i;
+      if (allDates[i] <= to) endIdx = i;
+    }
+    if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) { setStatus(vt("No data in that range.", "\u8be5\u8303\u56f4\u5185\u6ca1\u6709\u6570\u636e\u3002")); return; }
+    var frameIndices = [];
+    for (var fi = startIdx; fi <= endIdx; fi += stepSize) frameIndices.push(fi);
+    if (frameIndices[frameIndices.length - 1] !== endIdx) frameIndices.push(endIdx);
+    if (frameIndices.length < 2) { setStatus(vt("Needs at least two frames: widen the range or use a smaller interval.", "\u81f3\u5c11\u9700\u8981\u4e24\u5e27\uff1a\u8bf7\u6269\u5927\u8303\u56f4\u6216\u7f29\u5c0f\u95f4\u9694\u3002")); return; }
+    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { setStatus(vt("This browser cannot record video.", "\u6b64\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5f55\u5236\u89c6\u9891\u3002")); return; }
+
+    videoRecording = true; videoCancel = false;
+    recBtn.disabled = true; cancelBtn.disabled = false; btn.classList.add("rec");
+    var savedIdx = currentIdx;
+    var gd = document.getElementById("chart");
+    var cw = gd.offsetWidth || 1200, ch = gd.offsetHeight || 600;
+    var scale = Math.min(2, 1920 / cw);
+    var W = Math.round(cw * scale), H = Math.round(ch * scale);
+    var frames = [];
+    var fIdx = 0;
+
+    function finish(ok) {
+      videoRecording = false; videoCancel = false;
+      recBtn.disabled = false; cancelBtn.disabled = true; btn.classList.remove("rec");
+      currentIdx = savedIdx;
+      loadAndRender();
+      if (!ok) setStatus(vt("Cancelled.", "\u5df2\u53d6\u6d88\u3002"));
+    }
+    function renderIndex(idx) {
+      return new Promise(function(resolve) {
+        var done = false, timer = null;
+        function fin() { if (done) return; done = true; clearTimeout(timer); gd.removeListener("plotly_afterplot", fin); setTimeout(resolve, 120); }
+        gd.on("plotly_afterplot", fin);
+        currentIdx = idx;
+        loadAndRender();
+        timer = setTimeout(fin, 15000);
+      });
+    }
+    function captureFrames() {
+      if (videoCancel) { finish(false); return; }
+      if (fIdx >= frameIndices.length) { encode(); return; }
+      setStatus(vt("Rendering frame ", "\u6e32\u67d3\u5e27 ") + (fIdx + 1) + " / " + frameIndices.length + "  (" + allDates[frameIndices[fIdx]] + ")");
+      renderIndex(frameIndices[fIdx]).then(function(){
+        return Plotly.toImage(gd, { format: "png", width: W, height: H });
+      }).then(function(dataUrl){
+        frames.push(dataUrl);
+        fIdx++;
+        captureFrames();
+      }).catch(function(e){ setStatus("Error: " + e.message); finish(false); });
+    }
+    function encode() {
+      setStatus(vt("Encoding ", "\u7f16\u7801 ") + frames.length + vt(" frames at ", " \u5e27\uff0c") + fps + " fps\u2026");
+      var canvas = document.createElement("canvas");
+      canvas.width = W; canvas.height = H;
+      var ctx = canvas.getContext("2d");
+      var stream = canvas.captureStream(0);
+      var track = stream.getVideoTracks()[0];
+      var mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9"
+        : MediaRecorder.isTypeSupported("video/webm;codecs=vp8") ? "video/webm;codecs=vp8"
+        : "video/webm";
+      var recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 8000000 });
+      var chunks = [];
+      recorder.ondataavailable = function(e){ if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = function(){
+        if (videoCancel) { finish(false); return; }
+        var blob = new Blob(chunks, { type: mimeType });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "urpd_" + allDates[frameIndices[0]] + "_" + allDates[frameIndices[frameIndices.length - 1]] + "_" + (coinMode ? "btc" : "usd") + modeKey() + ".webm";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
+        setStatus(vt("Saved ", "\u5df2\u4fdd\u5b58 ") + frames.length + vt(" frames, ", " \u5e27\uff0c") + (blob.size / 1048576).toFixed(1) + " MB, " + (frames.length / fps).toFixed(1) + " s");
+        finish(true);
+      };
+      // MediaRecorder stamps each pushed frame with the wall clock, so frames are pushed on a fixed
+      // schedule (start + i / fps). The next frame is decoded while the current one waits its turn,
+      // so decode time does not stretch the playback.
+      var i = 0, interval = 1000 / fps;
+      function decodeFrame(k) { var im = new Image(); im.src = frames[k]; return im.decode().then(function(){ return im; }); }
+      var pending = decodeFrame(0);
+      recorder.start();
+      var start = performance.now();
+      function step() {
+        pending.then(function(im) {
+          var wait = Math.max(0, start + i * interval - performance.now());
+          setTimeout(function() {
+            ctx.drawImage(im, 0, 0, W, H);
+            track.requestFrame();
+            i++;
+            if (videoCancel) { recorder.stop(); return; }
+            if (i < frames.length) { pending = decodeFrame(i); step(); return; }
+            // Hold the final frame for a second, then let the encoder drain before stopping: frames
+            // pushed right before stop() are dropped otherwise.
+            var holdEnd = performance.now() + 1000;
+            (function hold() {
+              ctx.drawImage(im, 0, 0, W, H);
+              track.requestFrame();
+              if (performance.now() < holdEnd) setTimeout(hold, interval);
+              else setTimeout(function(){ recorder.stop(); }, 1500);
+            })();
+          }, wait);
+        }).catch(function(e){ setStatus("Error: " + e.message); videoCancel = true; recorder.stop(); });
+      }
+      step();
+    }
+    captureFrames();
+  };
+})();
 function updateExplainerLang() {
   var box = document.getElementById("explainPanel");
   if (lang === "zh") {
