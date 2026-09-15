@@ -156,7 +156,8 @@ var BRK_DAY0 = new Date(2009, 0, 1);
 var priceDates = null;
 var priceIndexByDate = null;
 var NUM_BINS = 625;
-var SMOOTH_WINDOW = 5;
+var SMOOTH_SIGMA = 2; // bins. BRK prices each UTXO at the daily close, so cost basis lands in one spike per day;
+                      // a Gaussian turns those into bell-shaped humps where a moving average leaves flat blocks with cliffs.
 var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
 var LTH_COLOR = "#5599ff";
@@ -320,16 +321,32 @@ function aggregate(raw, binWidth) {
 }
 
 function smooth(values) {
-  var half = Math.floor(SMOOTH_WINDOW / 2);
+  var r = Math.ceil(SMOOTH_SIGMA * 3), kern = [];
+  for (var j = -r; j <= r; j++) kern.push(Math.exp(-0.5 * (j / SMOOTH_SIGMA) * (j / SMOOTH_SIGMA)));
   var result = [];
   for (var i = 0; i < values.length; i++) {
-    var lo = Math.max(0, i - half);
-    var hi = Math.min(values.length, i + half + 1);
-    var sum = 0;
-    for (var j = lo; j < hi; j++) sum += values[j];
-    result.push(sum / (hi - lo));
+    var sum = 0, wsum = 0;
+    for (var k = -r; k <= r; k++) {
+      var idx = i + k;
+      if (idx < 0 || idx >= values.length) continue;
+      sum += values[idx] * kern[k + r]; wsum += kern[k + r];
+    }
+    result.push(wsum > 0 ? sum / wsum : 0);
   }
   return result;
+}
+
+// Profit share from BRK's raw price points (like computeRedPct), so smoothing and binning only affect
+// what is drawn, never the numbers.
+function rawProfitShare(rawAll, spot, isCoin) {
+  var tot = 0, prof = 0, keys = Object.keys(rawAll);
+  for (var k = 0; k < keys.length; k++) {
+    var p = parseFloat(keys[k]);
+    if (isNaN(p)) continue;
+    var v = isCoin ? rawAll[keys[k]] : p * rawAll[keys[k]];
+    tot += v; if (p <= spot) prof += v;
+  }
+  return tot > 0 ? 100 * prof / tot : 0;
 }
 
 function fmtUSD(v) {
@@ -590,10 +607,7 @@ function renderChart(data) {
     }
   }
   if (spot && spot > 0 && !isSplit) {
-    var totalPL = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
-    var profitVal = 0;
-    chartPrices.forEach(function(p,i){if(p<=spot) profitVal += valuesForAxis[i];});
-    var profitPct = 100 * profitVal / totalPL;
+    var profitPct = rawProfitShare(data.rawAll, spot, isCoin);
     annText += "<br><span style='color:" + PROFIT_COLOR + "'><b>" + t("inProfit") + profitPct.toFixed(1) + "%</b></span>";
     annText += "<br><span style='color:" + LOSS_COLOR + "'><b>" + t("inLoss") + (100-profitPct).toFixed(1) + "%</b></span>";
   }
@@ -619,14 +633,7 @@ function renderChart(data) {
 
   var spotLineColor = isBottom ? GLOW_COLOR : SPOT_COLOR;
   if (spot && spot > 0) {
-    var spotCumul = 0;
-    var totalSC = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
-    var runSC = 0;
-    for (var i = 0; i < chartPrices.length; i++) {
-      runSC += valuesForAxis[i];
-      if (chartPrices[i] <= spot) spotCumul = 100 * runSC / totalSC;
-      else break;
-    }
+    var spotCumul = rawProfitShare(data.rawAll, spot, isCoin);
     if (isBottom) {
       shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.06)",width:20},layer:"above"});
       shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.12)",width:12},layer:"above"});
