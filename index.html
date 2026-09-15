@@ -646,7 +646,9 @@ function renderChart(data) {
     annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at " + yMaxPct + "th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
   }
 
-  var spotLineColor = isBottom ? GLOW_COLOR : SPOT_COLOR;
+  // Spot line and its label are pure white and drawn above everything else so they stay readable while
+  // navigating; the bottom-signal state keeps its orange halo behind the line.
+  var spotLineColor = "#ffffff";
   if (spot && spot > 0) {
     var spotCumul = 0;
     var totalSC = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
@@ -661,10 +663,10 @@ function renderChart(data) {
       shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.12)",width:12},layer:"above"});
       shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.25)",width:6},layer:"above"});
     }
-    shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:2},layer:"above"});
+    shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:2.5},layer:"above"});
     var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + (isCoin ? "<br>" + t("btcProfit") + profitPct + "%<br>" + t("btcLoss") + lossPct + "%" : "<br>" + t("usdProfit") + profitPct + "%<br>" + t("usdLoss") + lossPct + "%");
     if (isBottom) labelText += "<br><b>" + t("bottomSigHover") + redPct.toFixed(0) + "% Red)</b>";
-    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",align:"left",font:{color:spotLineColor,size:12,family:FONT},bgcolor:"rgba(17,17,17,0.8)",borderpad:4});
+    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:"left",yanchor:"top",align:"left",font:{color:"#ffffff",size:13,family:FONT},bgcolor:"rgba(0,0,0,0.92)",bordercolor:"rgba(255,255,255,0.45)",borderwidth:1,borderpad:5});
   }
 
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
