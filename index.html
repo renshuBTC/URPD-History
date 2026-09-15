@@ -156,7 +156,7 @@ var BRK_DAY0 = new Date(2009, 0, 1);
 var priceDates = null;
 var priceIndexByDate = null;
 var BIN_WIDTH = 200; // BRK's own lin200 aggregation grid, so every bar equals BRK's official bucket exactly
-var SMOOTH_SIGMA = 0; // bins of Gaussian smoothing for display only. 0 = none: bars are BRK's raw lin200 buckets.
+var SMOOTH_SIGMA = 1.5; // bins of Gaussian smoothing for display only. 0 = none: bars are BRK's raw lin200 buckets.
                       // BRK prices each UTXO at the daily close, so the raw distribution is one spike per trading day;
                       // Checkonchain smooths the same BRK output (roughly sigma 1-1.5). Set 1.5-2 here to match that look.
 var PROFIT_COLOR = "#00e676";
