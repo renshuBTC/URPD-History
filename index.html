@@ -155,9 +155,10 @@ var GENESIS = new Date(2009, 0, 3);
 var BRK_DAY0 = new Date(2009, 0, 1);
 var priceDates = null;
 var priceIndexByDate = null;
-var NUM_BINS = 625;
-var SMOOTH_SIGMA = 2; // bins. BRK prices each UTXO at the daily close, so cost basis lands in one spike per day;
-                      // a Gaussian turns those into bell-shaped humps where a moving average leaves flat blocks with cliffs.
+var BIN_WIDTH = 200; // BRK's own lin200 aggregation grid, so every bar equals BRK's official bucket exactly
+var SMOOTH_SIGMA = 0; // bins of Gaussian smoothing for display only. 0 = none: bars are BRK's raw lin200 buckets.
+                      // BRK prices each UTXO at the daily close, so the raw distribution is one spike per trading day;
+                      // Checkonchain smooths the same BRK output (roughly sigma 1-1.5). Set 1.5-2 here to match that look.
 var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
 var LTH_COLOR = "#5599ff";
@@ -321,6 +322,7 @@ function aggregate(raw, binWidth) {
 }
 
 function smooth(values) {
+  if (!(SMOOTH_SIGMA > 0)) return values.slice();
   var r = Math.ceil(SMOOTH_SIGMA * 3), kern = [];
   for (var j = -r; j <= r; j++) kern.push(Math.exp(-0.5 * (j / SMOOTH_SIGMA) * (j / SMOOTH_SIGMA)));
   var result = [];
@@ -411,7 +413,7 @@ function loadAndRender() {
     var spot = getSpotFromCache(dateStr);
     var prices = Object.keys(rawAll).map(Number).filter(function(n){return !isNaN(n);});
     var maxPrice = prices.reduce(function(a,b){return a>b?a:b},0);
-    var binWidth = maxPrice / NUM_BINS;
+    var binWidth = BIN_WIDTH;
     var aggAll = aggregate(rawAll, binWidth);
     var dispText = dateStr + "  (" + (currentIdx+1) + "/" + allDates.length + ")  " + t("spot") + ": " + (spot ? "$"+spot.toLocaleString("en-US",{maximumFractionDigits:0}) : "N/A");
     document.getElementById("dateDisplay").textContent = dispText;
