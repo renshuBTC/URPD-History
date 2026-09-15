@@ -750,7 +750,10 @@ document.getElementById("thresholdInput").addEventListener("input", function(e){
 });
 
 document.addEventListener("keydown", function(e){
-  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if (e.target.tagName === "INPUT") return;
+  // The landmarks <select> keeps focus after a pick. Left to the browser, arrow/Home/End keys would cycle
+  // its options (jumping between landmarks) instead of stepping the chart, so navigation keys are handled here.
+  if (e.target.tagName === "SELECT" && e.target.id !== "landmarks") return;
   if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); goTo(currentIdx - stepSize); }
   else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); goTo(currentIdx + stepSize); }
   else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") { e.preventDefault(); setViewMode((viewIdx - 1 + VIEW_MODES.length) % VIEW_MODES.length); }
@@ -787,6 +790,7 @@ document.getElementById("landmarks").addEventListener("change", function(e){
     document.getElementById("dateInput").value = e.target.value;
     jumpToDate();
     e.target.value = "";
+    e.target.blur();
   }
 });
 
@@ -821,6 +825,7 @@ function buildDateDropdown(filterQ) {
         document.getElementById("dateInput").value = date;
         closeDateDD();
         jumpToDate();
+        document.getElementById("dateInput").blur();
       });
     })(d);
     dd.appendChild(item);
@@ -857,7 +862,7 @@ function closeDateDD() {
     else buildDateDropdown(this.value.trim());
   });
   inp.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") { e.preventDefault(); closeDateDD(); jumpToDate(); }
+    if (e.key === "Enter") { e.preventDefault(); closeDateDD(); jumpToDate(); this.blur(); }
     else if (e.key === "Escape") { closeDateDD(); this.blur(); }
   });
   document.addEventListener("click", function(e) {
