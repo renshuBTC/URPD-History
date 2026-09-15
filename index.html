@@ -636,9 +636,18 @@ function renderChart(data) {
       }
     }
   }
-  var rawStep = maxVal * 1.15 / 6;
-  var magn = Math.pow(10, Math.floor(Math.log10(rawStep)));
-  var yStep = Math.round(rawStep / magn) * magn;
+  // Six ticks; the step is the smallest "nice" value (1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10 x a power of ten)
+  // whose sixth tick clears the tallest bar with 2% headroom, so the axis can never cut the bars off
+  // (rounding the step used to do that when the stacked total sat just above a tick).
+  var yStep;
+  if (maxVal > 0) {
+    var magn = Math.pow(10, Math.floor(Math.log10(maxVal / 6)));
+    var nice = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+    yStep = nice[nice.length - 1] * magn;
+    for (var ni = 0; ni < nice.length; ni++) { if (nice[ni] * magn * 6 >= maxVal * 1.02) { yStep = nice[ni] * magn; break; } }
+  } else {
+    yStep = 1;
+  }
   var yTickvals = Array.from({length:7}, function(_,i){return i*yStep;});
   var maxP = maxPrice || chartPrices.reduce(function(a,b){return a>b?a:b},0);
   var xStep = maxP / 25;
