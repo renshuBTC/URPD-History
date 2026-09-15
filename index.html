@@ -23,10 +23,10 @@
     0%, 100% { text-shadow: 0 0 10px #FFE600, 0 0 20px #FFE600, 0 0 40px #FFE600; }
     50% { text-shadow: 0 0 20px #FFE600, 0 0 40px #FFE600, 0 0 80px #FFE600; }
   }
-  #thresholdWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
-  #thresholdWrap label { color: #999; }
-  #thresholdInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
-  #thresholdInput:focus { border-color: #ff8c00; outline: none; }
+  #thresholdWrap, #ymaxWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+  #thresholdWrap label, #ymaxWrap label { color: #999; }
+  #thresholdInput, #ymaxInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
+  #thresholdInput:focus, #ymaxInput:focus { border-color: #ff8c00; outline: none; }
   #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 8px; }
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
@@ -103,6 +103,12 @@
     <label>Adjustable bottom signal</label>
     <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label>% USD invested in loss</label>
+  </div>
+  <div class="ctrl-sep"></div>
+  <div id="ymaxWrap">
+    <label>Adjustable y-max</label>
+    <input type="text" id="ymaxInput" value="99" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <label>th percentile of bar heights</label>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
@@ -185,6 +191,7 @@ var splitMode = false;
 var ageMode = false;
 var coinMode = false;
 var bottomThreshold = 80;
+var yMaxPct = 99;
 var cache = {};
 var spotCache = {};
 var lang = "en";
@@ -194,7 +201,7 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "P/L", lthsth: "LTH/STH", age: "AGE",
-    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss",
+    signalLabel: "Adjustable bottom signal", signalUnit: "% USD invested in loss", yMaxLabel: "Adjustable y-max", yMaxUnit: "th percentile of bar heights",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Invested in Loss",
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
@@ -213,7 +220,7 @@ var T = {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8/\u4e8f", lthsth: "\u957f/\u77ed\u671f", age: "\u5e74\u9f84",
-    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
+    signalLabel: "\u5e95\u90e8\u4fe1\u53f7\u5f53", signalUnit: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f", yMaxLabel: "\u53ef\u8c03 Y \u8f74\u4e0a\u9650", yMaxUnit: "\u767e\u5206\u4f4d\uff08\u67f1\u9ad8\uff09",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u6295\u8d44\u5904\u4e8e\u4e8f\u635f",
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
@@ -263,6 +270,9 @@ function applyLang() {
   var labels = document.querySelectorAll("#thresholdWrap label");
   if (labels[0]) labels[0].textContent = t("signalLabel");
   if (labels[1]) labels[1].textContent = t("signalUnit");
+  var ylabels = document.querySelectorAll("#ymaxWrap label");
+  if (ylabels[0]) ylabels[0].textContent = t("yMaxLabel");
+  if (ylabels[1]) ylabels[1].textContent = t("yMaxUnit");
   loadAndRender();
 }
 
@@ -544,12 +554,12 @@ function renderChart(data) {
 
   var maxVal = valuesForAxis.reduce(function(a,b){return a>b?a:b},0);
   var yClipped = false;
-  if (isCoin) {
+  if (yMaxPct < 100) {
     var sorted = valuesForAxis.filter(function(v){return v>0;}).slice().sort(function(a,b){return a-b;});
     if (sorted.length > 0) {
-      var p95 = sorted[Math.floor(sorted.length * 0.99)];
-      if (p95 < maxVal * 0.7) {
-        maxVal = p95;
+      var pN = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * yMaxPct / 100))];
+      if (pN > 0 && pN < maxVal) {
+        maxVal = pN;
         yClipped = true;
       }
     }
@@ -575,29 +585,6 @@ function renderChart(data) {
     xTicktext.push("$" + xt);
   }
 
-  var annText;
-  if (isCoin) {
-    annText = "<span style='color:#e67e22'><b>" + t("totalSupply") + fmtBTC(totalSupply) + "</b></span>";
-    if (isSplit && data.lthSup && data.sthSup) {
-      annText += "<br><span style='color:" + LTH_COLOR + "'><b>" + t("lthSupply") + fmtBTC(data.lthSup) + "</b></span>";
-      annText += "<br><span style='color:" + STH_COLOR + "'><b>" + t("sthSupply") + fmtBTC(data.sthSup) + "</b></span>";
-    }
-  } else {
-    annText = "<span style='color:#e67e22'><b>" + t("realisedCap") + fmtUSD(realizedCap) + "</b></span>";
-    if (isSplit && lthRC && sthRC) {
-      annText += "<br><span style='color:" + LTH_COLOR + "'><b>" + t("lthRC") + fmtUSD(lthRC) + "</b></span>";
-      annText += "<br><span style='color:" + STH_COLOR + "'><b>" + t("sthRC") + fmtUSD(sthRC) + "</b></span>";
-    }
-  }
-  if (spot && spot > 0 && !isSplit) {
-    var totalPL = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
-    var profitVal = 0;
-    chartPrices.forEach(function(p,i){if(p<=spot) profitVal += valuesForAxis[i];});
-    var profitPct = 100 * profitVal / totalPL;
-    annText += "<br><span style='color:" + PROFIT_COLOR + "'><b>" + t("inProfit") + profitPct.toFixed(1) + "%</b></span>";
-    annText += "<br><span style='color:" + LOSS_COLOR + "'><b>" + t("inLoss") + (100-profitPct).toFixed(1) + "%</b></span>";
-  }
-
   var d = new Date(dateStr + "T00:00:00");
   var titleDate = d.toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"});
   var titleText;
@@ -609,12 +596,11 @@ function renderChart(data) {
 
   var shapes = [];
   var annotations = [
-    {xref:"paper",yref:"paper",x:0.02,y:0.98,text:annText,showarrow:false,align:"left",font:{size:13,family:FONT}},
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>",showarrow:false,font:{family:FONT}},
     {xref:"paper",yref:"paper",x:0.0,y:-0.08,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301" : "Powered by Bitcoin Research Kit & Bitcoin Core"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
   if (yClipped) {
-    annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at 99th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
+    annotations.push({xref:"paper",yref:"paper",x:0.98,y:0.02,text:"* Y-axis capped at " + yMaxPct + "th pct",showarrow:false,font:{size:10,color:"rgba(255,255,255,0.4)",family:FONT},xanchor:"right"});
   }
 
   var spotLineColor = isBottom ? GLOW_COLOR : SPOT_COLOR;
@@ -743,6 +729,16 @@ document.getElementById("thresholdInput").addEventListener("input", function(e){
   var v = parseFloat(e.target.value);
   if (!isNaN(v) && v >= 0 && v <= 100) {
     bottomThreshold = v;
+    var dateStr = allDates[currentIdx];
+    var cacheKey = dateStr + modeKey();
+    if (cache[cacheKey]) renderChart(cache[cacheKey]);
+  }
+});
+
+document.getElementById("ymaxInput").addEventListener("input", function(e){
+  var v = parseFloat(e.target.value);
+  if (!isNaN(v) && v >= 1 && v <= 100) {
+    yMaxPct = v;
     var dateStr = allDates[currentIdx];
     var cacheKey = dateStr + modeKey();
     if (cache[cacheKey]) renderChart(cache[cacheKey]);
