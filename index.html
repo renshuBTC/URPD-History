@@ -168,8 +168,8 @@
 <div class="formula" id="f8">Age(utxo) = now − t(last moved)</div>
 
 <h3>Histogram Bins</h3>
-<div class="desc">625 equal-width price bins from $0 to the day's highest cost basis, so the bin width changes with the date (about $200 when the high is $125K). Bar heights are smoothed with a 5-bin moving average.</div>
-<div class="formula" id="f9">ΔP = max cost basis / 625;  bar(P) = mean of the 5 bins centred on P</div>
+<div class="desc">625 equal-width price bins from $0 to the day's highest cost basis, so the bin width changes with the date (about $200 when the high is $125K). Bitcoin Research Kit prices coins at block-level prices in $1 buckets below $100K and $10 buckets above, and one large transfer can land a huge mass on a single price, so each price point's mass is spread with a Gaussian of σ = max(0.5% of price, one bin, half the bucket) instead of plain binning. Mass and USD value are preserved exactly.</div>
+<div class="formula" id="f9">ΔP = max cost basis / 625;  σ(P) = max(0.5% × P, ΔP, bucket / 2);  bar = Σ mass · N(P, σ) over the bin</div>
 
 <h3>Percent of Total</h3>
 <div class="desc">The line on the right axis is the cumulative share of the day's supply (BTC view) or USD value at last move (USD view) with a cost basis at or below each price.</div>
@@ -209,7 +209,7 @@ var BRK_DAY0 = new Date(2009, 0, 1);
 var priceDates = null;
 var priceIndexByDate = null;
 var NUM_BINS = 625;
-var SMOOTH_WINDOW = 5;
+var SMOOTH_WINDOW = 1; // smoothing now happens in aggregate() (kernel binning); 1 = pass-through
 var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
 var LTH_COLOR = "#5599ff";
@@ -359,22 +359,32 @@ function getSpotFromCache(dateStr) {
   return null;
 }
 
+// Kernel binning. Bitcoin Research Kit prices coins at block-level prices, in $1 buckets below $100K and
+// $10 buckets above, and one large transfer can land a huge mass on a single price, so plain binning gives
+// needles and, after a moving average, flat-topped blocks. Each price point's mass is instead spread with a
+// Gaussian whose sigma is the largest of 0.5% of the price (price noise scales with price), one bin
+// (nothing narrower can be drawn) and half the bucket size (a key is only known to its bucket). Mass and
+// USD value are preserved exactly and every bin is returned, so each date shows the same number of bars.
+var KERNEL_PCT = 0.5;
 function aggregate(raw, binWidth) {
-  var bins = {};
+  var n = NUM_BINS + 1;
+  var supply = new Float64Array(n), invested = new Float64Array(n);
   var keys = Object.keys(raw);
   for (var k = 0; k < keys.length; k++) {
     var price = parseFloat(keys[k]);
-    var supply = raw[keys[k]];
-    if (isNaN(price)) continue;
-    var binIdx = Math.floor(price / binWidth);
-    var binPrice = (binIdx + 0.5) * binWidth;
-    if (!bins[binPrice]) bins[binPrice] = { price: binPrice, supply: 0, invested: 0 };
-    bins[binPrice].supply += supply;
-    bins[binPrice].invested += price * supply;
+    var s = raw[keys[k]];
+    if (isNaN(price) || typeof s !== "number" || !(s > 0)) continue;
+    var sig = Math.max(binWidth, price * KERNEL_PCT / 100, (price < 100000 ? 1 : 10) * 0.5);
+    var c = price / binWidth, half = 3 * sig / binWidth;
+    var i0 = Math.max(0, Math.floor(c - half)), i1 = Math.min(n - 1, Math.ceil(c + half));
+    var ws = 0, w = [], i;
+    for (i = i0; i <= i1; i++) { var x = ((i + 0.5) * binWidth - price) / sig; var v = Math.exp(-0.5 * x * x); w.push(v); ws += v; }
+    var usd = price * s;
+    if (!(ws > 0)) { var j = Math.min(n - 1, Math.max(0, Math.floor(c))); supply[j] += s; invested[j] += usd; continue; }
+    for (i = i0; i <= i1; i++) { var f = w[i - i0] / ws; supply[i] += s * f; invested[i] += usd * f; }
   }
   var arr = [];
-  for (var bp in bins) arr.push(bins[bp]);
-  arr.sort(function(a, b) { return a.price - b.price; });
+  for (var bi = 0; bi < n; bi++) arr.push({ price: (bi + 0.5) * binWidth, supply: supply[bi], invested: invested[bi] });
   return arr;
 }
 
@@ -549,7 +559,7 @@ function renderChart(data) {
       var cm = {}; c.agg.forEach(function(b){ cm[b.price] = b; });
       var vals = smooth(chartPrices.map(function(p){ return cm[p] ? (isCoin ? cm[p].supply : cm[p].invested) : 0; }));
       for (var vi = 0; vi < vals.length; vi++) valuesForAxis[vi] += vals[vi];
-      traces.push({x:chartPrices,y:vals,type:"bar",name:c.label,width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:c.color,line:{width:0}},hovertemplate:hp+"%{x:,.0f}<br>"+c.label+": "+(isCoin?"%{y:,.2f} BTC":"%{y:$,.0f}")+"<extra></extra>"});
+      traces.push({x:chartPrices,y:vals,type:"bar",name:c.label,width:Array(chartPrices.length).fill(binWidth),marker:{color:c.color,line:{width:0}},hovertemplate:hp+"%{x:,.0f}<br>"+c.label+": "+(isCoin?"%{y:,.2f} BTC":"%{y:$,.0f}")+"<extra></extra>"});
     });
     var totalA = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
     var runA = 0;
@@ -566,14 +576,14 @@ function renderChart(data) {
     if (isCoin) {
       var lthSupV = smooth(chartPrices.map(function(p){return lthMap[p] ? lthMap[p].supply : 0;}));
       var sthSupV = smooth(chartPrices.map(function(p){return sthMap[p] ? sthMap[p].supply : 0;}));
-      traces.push({x:chartPrices,y:sthSupV,type:"bar",name:t("sth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:STH_COLOR,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>STH: %{y:,.2f} BTC<extra></extra>"});
-      traces.push({x:chartPrices,y:lthSupV,type:"bar",name:t("lth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:LTH_COLOR,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>LTH: %{y:,.2f} BTC<extra></extra>"});
+      traces.push({x:chartPrices,y:sthSupV,type:"bar",name:t("sth"),width:Array(chartPrices.length).fill(binWidth),marker:{color:STH_COLOR,line:{width:0}},hovertemplate:hp+"%{x:,.0f}<br>STH: %{y:,.2f} BTC<extra></extra>"});
+      traces.push({x:chartPrices,y:lthSupV,type:"bar",name:t("lth"),width:Array(chartPrices.length).fill(binWidth),marker:{color:LTH_COLOR,line:{width:0}},hovertemplate:hp+"%{x:,.0f}<br>LTH: %{y:,.2f} BTC<extra></extra>"});
       valuesForAxis = chartPrices.map(function(_,i){return lthSupV[i]+sthSupV[i];});
     } else {
       var lthInv = smooth(chartPrices.map(function(p){return lthMap[p] ? lthMap[p].invested : 0;}));
       var sthInv = smooth(chartPrices.map(function(p){return sthMap[p] ? sthMap[p].invested : 0;}));
-      traces.push({x:chartPrices,y:sthInv,type:"bar",name:t("sth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:STH_COLOR,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>STH: %{y:$,.0f}<extra></extra>"});
-      traces.push({x:chartPrices,y:lthInv,type:"bar",name:t("lth"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:LTH_COLOR,line:{width:0.3,color:"rgba(0,0,0,0.3)"}},hovertemplate:hp+"%{x:,.0f}<br>LTH: %{y:$,.0f}<extra></extra>"});
+      traces.push({x:chartPrices,y:sthInv,type:"bar",name:t("sth"),width:Array(chartPrices.length).fill(binWidth),marker:{color:STH_COLOR,line:{width:0}},hovertemplate:hp+"%{x:,.0f}<br>STH: %{y:$,.0f}<extra></extra>"});
+      traces.push({x:chartPrices,y:lthInv,type:"bar",name:t("lth"),width:Array(chartPrices.length).fill(binWidth),marker:{color:LTH_COLOR,line:{width:0}},hovertemplate:hp+"%{x:,.0f}<br>LTH: %{y:$,.0f}<extra></extra>"});
       valuesForAxis = chartPrices.map(function(_,i){return lthInv[i]+sthInv[i];});
     }
     var total1 = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
@@ -588,7 +598,7 @@ function renderChart(data) {
       var run2 = 0;
       var cumul2 = supplyVals.map(function(v){run2+=v;return 100*run2/total2;});
       var colors2 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
-      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colors2,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth),marker:{color:colors2,line:{width:0}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
@@ -597,7 +607,7 @@ function renderChart(data) {
       var run3 = 0;
       var cumul3 = invested.map(function(v){run3+=v;return 100*run3/total3;});
       var colors3 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
-      traces.push({x:chartPrices,y:invested,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth*0.95),marker:{color:colors3,line:{width:0.5,color:"rgba(0,0,0,0.3)"}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:invested,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(binWidth),marker:{color:colors3,line:{width:0}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
@@ -1212,8 +1222,8 @@ window.tracerDragWindow = null;
   el.addEventListener("dblclick", function(e){ e.preventDefault(); });
 })();
 var EXPLAINER = {
-  en: { title: "Understanding URPD", sections: [["UTXO Realized Price Distribution (URPD)","Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved on-chain: its realised price, or cost basis. Each bar is the supply whose cost basis falls in that price range. One snapshot per day since 2009-01-03, from Bitcoin Research Kit via bitview.space.",null],["URPD (USD-weighted) — USD Value at Last Move","Weights each UTXO by its dollar value at its last on-chain move. Shows where that value is concentrated.",["f1","USD Value at Last Move(P) = P · S(P)"]],["URPD (BTC-weighted) — Supply Distribution","Shows raw BTC supply at each cost-basis price, unweighted by dollar value.",["f2","S(P) = Σ utxo.value  where utxo.price ∈ [P, P + ΔP)"]],["Realized Cap","The total value of all UTXOs priced at their last-moved price. Unlike market cap, it reflects the aggregate cost basis of the entire supply.",["f3","RC = Σᵢ Pᵢ · Sᵢ  for all price bins i"]],["Long-Term Holders (LTH)","UTXOs that have not moved for at least 150 days, which is Bitcoin Research Kit's threshold (Glassnode uses 155). Conviction holders and long-term accumulators.",["f4","LTH = { utxo | age(utxo) ≥ 150 days }"]],["Short-Term Holders (STH)","UTXOs that moved within the last 150 days: recent buyers, traders and speculators. LTH + STH = the whole supply.",["f5","STH = { utxo | age(utxo) < 150 days }"]],["Supply in Profit / Loss","At the spot price line: the share of the day's USD value at last move (USD view) or BTC supply (BTC view) whose cost basis is at or below spot is \"in profit\"; above spot is \"in loss\". Computed from the displayed bins.",["f6","Profit % = Σ W(P) for P ≤ Spot  /  Σ W(P) × 100"]],["Bottom Signal","Fires when the share of USD value held in loss, computed from the exact realised prices, reaches the threshold set in the toolbar (default 80%). Historically, extreme readings have coincided with cycle bottoms.",["f7","Signal when: Loss% ≥ Threshold (default 80%)"]],["UTXO Age Bands (AGE)","Splits the distribution into 23 cohorts by how long each UTXO has sat unmoved, from under one hour to over fifteen years. Warm colours are recently moved coins, cool colours are long-dormant coins. Cohorts come directly from Bitcoin Research Kit.",["f8","Age(utxo) = now − t(last moved)"]],["Histogram Bins","625 equal-width price bins from $0 to the day's highest cost basis, so the bin width changes with the date (about $200 when the high is $125K). Bar heights are smoothed with a 5-bin moving average.",["f9","ΔP = max cost basis / 625;  bar(P) = mean of the 5 bins centred on P"]],["Percent of Total","The line on the right axis is the cumulative share of the day's supply (BTC view) or USD value at last move (USD view) with a cost basis at or below each price.",["f10","Cum %(P) = Σ W(p ≤ P) / Σ W × 100"]],["Adjustable Y-max","Caps the left axis at the Nth percentile of the non-zero bar heights so one tall spike does not flatten the rest (default 99; 100 = tallest bar). Bars above the cap are clipped.",["f11","y-max = percentileₙ(bar heights)"]],["BTC Price Overlay","The white line is the daily close for the year leading up to the selected date, on a log scale, with the orange marker on that day's close and cycle tops and bottoms marked. Click the BTC/USD legend entry to hide or show it.",null],["Video Export (▶)","Records the chart moving through a date range, one frame per step of the current interval (1D/1W/1M/1Y) in the current view, at the chosen frames per second, and saves a WebM.",null]] },
-  zh: { title: "\u7406\u89e3 URPD", sections: [["UTXO 已实现价格分布 (URPD)","显示比特币供应按每个 UTXO 最后一次链上移动时的价格（即已实现价格或成本基础）的分布。每个柱代表成本基础落在该价格区间的供应量。自 2009-01-03 起每日一个快照，数据来自 Bitcoin Research Kit（bitview.space）。",null],["URPD (美元加权) — 最后移动时美元价值","按最后一次链上移动时的美元价值对每个 UTXO 加权。显示该价值集中在哪里。","最后移动时美元价值(P) = 价格 P · 供应量 S(P)"],["URPD (BTC加权) — 供应分布","显示每个成本基础价格的原始 BTC 供应，不按美元价值加权。","S(P) = Σ UTXO金额，其中 UTXO价格 ∈ [P, P + ΔP)"],["已实现市值 (Realized Cap)","所有 UTXO 按其最后移动价格计价的总价值。与市值不同，它反映整个供应的总成本基础。","已实现市值 = Σᵢ Pᵢ · Sᵢ，遍历所有价格区间 i"],["长期持有者 (LTH)","至少 150 天未移动的 UTXO（Bitcoin Research Kit 的阈值；Glassnode 使用 155 天）。代表坚定持有者和长期积累者。","LTH = { UTXO | UTXO年龄 ≥ 150 天 }"],["短期持有者 (STH)","在过去 150 天内移动过的 UTXO：近期买家、交易者和投机者。LTH + STH = 全部供应。","STH = { UTXO | UTXO年龄 < 150 天 }"],["供应盈利 / 亏损","在现价线处：当日最后移动时美元价值（美元视图）或 BTC 供应（BTC 视图）中，成本基础不高于现价的部分为“盈利”，高于现价的为“亏损”。按显示的柱计算。","盈利% = Σ W(P)，其中 P ≤ 现价 / Σ W(P) × 100"],["底部信号","当处于亏损的美元价值占比（按精确的已实现价格计算）达到工具栏中设定的阈值（默认 80%）时触发。历史上，极端读数与周期底部相吹合。","信号触发条件: 亏损% ≥ 阈值 (默认 80%)"],["UTXO 年龄段 (AGE)","按每个 UTXO 未移动的时长将分布分为 23 个队列，从不足一小时到超过十五年。暖色为近期移动的币，冷色为长期未动的币。队列直接来自 Bitcoin Research Kit。","年龄(UTXO) = 现在 − 最后移动时间"],["直方图分箱","从 $0 到当日最高成本基础平均分为 625 个等宽价格区间，因此区间宽度随日期变化（最高价 $125K 时约 $200）。柱高经 5 个区间的移动平均平滑。","ΔP = 最高成本基础 / 625；柱(P) = 以 P 为中心的 5 个区间的均值"],["占总量百分比","右轴的曲线是当日供应（BTC 视图）或最后移动时美元价值（美元视图）中成本基础不高于各价格的累计占比。","累计%(P) = Σ W(p ≤ P) / Σ W × 100"],["可调 Y 轴上限","将左轴上限设为非零柱高的第 N 百分位，以免一根高尖峰压扁其余柱（默认 99；100 = 最高柱）。超出上限的柱会被截断。","Y轴上限 = 柱高的第 N 百分位"],["BTC 价格叠加","白线是所选日期之前一年的每日收盘价（对数刻度），橙色标记为当日收盘价，并标出周期顶部与底部。点击图例中的 BTC/USD 可隐藏或显示。",null],["视频导出 (▶)","录制图表在日期范围内的变化：按当前间隔（1天/1周/1月/1年）每步一帧，使用当前视图和所选帧率，保存为 WebM。",null]] }
+  en: { title: "Understanding URPD", sections: [["UTXO Realized Price Distribution (URPD)","Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved on-chain: its realised price, or cost basis. Each bar is the supply whose cost basis falls in that price range. One snapshot per day since 2009-01-03, from Bitcoin Research Kit via bitview.space.",null],["URPD (USD-weighted) — USD Value at Last Move","Weights each UTXO by its dollar value at its last on-chain move. Shows where that value is concentrated.",["f1","USD Value at Last Move(P) = P · S(P)"]],["URPD (BTC-weighted) — Supply Distribution","Shows raw BTC supply at each cost-basis price, unweighted by dollar value.",["f2","S(P) = Σ utxo.value  where utxo.price ∈ [P, P + ΔP)"]],["Realized Cap","The total value of all UTXOs priced at their last-moved price. Unlike market cap, it reflects the aggregate cost basis of the entire supply.",["f3","RC = Σᵢ Pᵢ · Sᵢ  for all price bins i"]],["Long-Term Holders (LTH)","UTXOs that have not moved for at least 150 days, which is Bitcoin Research Kit's threshold (Glassnode uses 155). Conviction holders and long-term accumulators.",["f4","LTH = { utxo | age(utxo) ≥ 150 days }"]],["Short-Term Holders (STH)","UTXOs that moved within the last 150 days: recent buyers, traders and speculators. LTH + STH = the whole supply.",["f5","STH = { utxo | age(utxo) < 150 days }"]],["Supply in Profit / Loss","At the spot price line: the share of the day's USD value at last move (USD view) or BTC supply (BTC view) whose cost basis is at or below spot is \"in profit\"; above spot is \"in loss\". Computed from the displayed bins.",["f6","Profit % = Σ W(P) for P ≤ Spot  /  Σ W(P) × 100"]],["Bottom Signal","Fires when the share of USD value held in loss, computed from the exact realised prices, reaches the threshold set in the toolbar (default 80%). Historically, extreme readings have coincided with cycle bottoms.",["f7","Signal when: Loss% ≥ Threshold (default 80%)"]],["UTXO Age Bands (AGE)","Splits the distribution into 23 cohorts by how long each UTXO has sat unmoved, from under one hour to over fifteen years. Warm colours are recently moved coins, cool colours are long-dormant coins. Cohorts come directly from Bitcoin Research Kit.",["f8","Age(utxo) = now − t(last moved)"]],["Histogram Bins","625 equal-width price bins from $0 to the day's highest cost basis, so the bin width changes with the date (about $200 when the high is $125K). Bitcoin Research Kit prices coins at block-level prices in $1 buckets below $100K and $10 buckets above, and one large transfer can land a huge mass on a single price, so each price point's mass is spread with a Gaussian of σ = max(0.5% of price, one bin, half the bucket) instead of plain binning. Mass and USD value are preserved exactly.",["f9","ΔP = max cost basis / 625;  σ(P) = max(0.5% × P, ΔP, bucket / 2);  bar = Σ mass · N(P, σ) over the bin"]],["Percent of Total","The line on the right axis is the cumulative share of the day's supply (BTC view) or USD value at last move (USD view) with a cost basis at or below each price.",["f10","Cum %(P) = Σ W(p ≤ P) / Σ W × 100"]],["Adjustable Y-max","Caps the left axis at the Nth percentile of the non-zero bar heights so one tall spike does not flatten the rest (default 99; 100 = tallest bar). Bars above the cap are clipped.",["f11","y-max = percentileₙ(bar heights)"]],["BTC Price Overlay","The white line is the daily close for the year leading up to the selected date, on a log scale, with the orange marker on that day's close and cycle tops and bottoms marked. Click the BTC/USD legend entry to hide or show it.",null],["Video Export (▶)","Records the chart moving through a date range, one frame per step of the current interval (1D/1W/1M/1Y) in the current view, at the chosen frames per second, and saves a WebM.",null]] },
+  zh: { title: "\u7406\u89e3 URPD", sections: [["UTXO 已实现价格分布 (URPD)","显示比特币供应按每个 UTXO 最后一次链上移动时的价格（即已实现价格或成本基础）的分布。每个柱代表成本基础落在该价格区间的供应量。自 2009-01-03 起每日一个快照，数据来自 Bitcoin Research Kit（bitview.space）。",null],["URPD (美元加权) — 最后移动时美元价值","按最后一次链上移动时的美元价值对每个 UTXO 加权。显示该价值集中在哪里。","最后移动时美元价值(P) = 价格 P · 供应量 S(P)"],["URPD (BTC加权) — 供应分布","显示每个成本基础价格的原始 BTC 供应，不按美元价值加权。","S(P) = Σ UTXO金额，其中 UTXO价格 ∈ [P, P + ΔP)"],["已实现市值 (Realized Cap)","所有 UTXO 按其最后移动价格计价的总价值。与市值不同，它反映整个供应的总成本基础。","已实现市值 = Σᵢ Pᵢ · Sᵢ，遍历所有价格区间 i"],["长期持有者 (LTH)","至少 150 天未移动的 UTXO（Bitcoin Research Kit 的阈值；Glassnode 使用 155 天）。代表坚定持有者和长期积累者。","LTH = { UTXO | UTXO年龄 ≥ 150 天 }"],["短期持有者 (STH)","在过去 150 天内移动过的 UTXO：近期买家、交易者和投机者。LTH + STH = 全部供应。","STH = { UTXO | UTXO年龄 < 150 天 }"],["供应盈利 / 亏损","在现价线处：当日最后移动时美元价值（美元视图）或 BTC 供应（BTC 视图）中，成本基础不高于现价的部分为“盈利”，高于现价的为“亏损”。按显示的柱计算。","盈利% = Σ W(P)，其中 P ≤ 现价 / Σ W(P) × 100"],["底部信号","当处于亏损的美元价值占比（按精确的已实现价格计算）达到工具栏中设定的阈值（默认 80%）时触发。历史上，极端读数与周期底部相吹合。","信号触发条件: 亏损% ≥ 阈值 (默认 80%)"],["UTXO 年龄段 (AGE)","按每个 UTXO 未移动的时长将分布分为 23 个队列，从不足一小时到超过十五年。暖色为近期移动的币，冷色为长期未动的币。队列直接来自 Bitcoin Research Kit。","年龄(UTXO) = 现在 − 最后移动时间"],["直方图分箱","从 $0 到当日最高成本基础平均分为 625 个等宽价格区间，因此区间宽度随日期变化（最高价 $125K 时约 $200）。Bitcoin Research Kit 按区块级价格计价，$100K 以下以 $1、以上以 $10 为桶，一笔大额转账可能把巨量集中在单一价格上，因此每个价格点的量按高斯核展开，σ = max(价格的 0.5%、一个区间、半个桶)，而非简单分箱。总量与美元价值完全保持不变。","ΔP = 最高成本基础 / 625；σ(P) = max(0.5% × P, ΔP, 桶/2)；柱 = Σ 量 · N(P, σ) 在区间内"],["占总量百分比","右轴的曲线是当日供应（BTC 视图）或最后移动时美元价值（美元视图）中成本基础不高于各价格的累计占比。","累计%(P) = Σ W(p ≤ P) / Σ W × 100"],["可调 Y 轴上限","将左轴上限设为非零柱高的第 N 百分位，以免一根高尖峰压扁其余柱（默认 99；100 = 最高柱）。超出上限的柱会被截断。","Y轴上限 = 柱高的第 N 百分位"],["BTC 价格叠加","白线是所选日期之前一年的每日收盘价（对数刻度），橙色标记为当日收盘价，并标出周期顶部与底部。点击图例中的 BTC/USD 可隐藏或显示。",null],["视频导出 (▶)","录制图表在日期范围内的变化：按当前间隔（1天/1周/1月/1年）每步一帧，使用当前视图和所选帧率，保存为 WebM。",null]] }
 };
 function updateExplainerLang() {
   var box = document.getElementById("explainPanel");
