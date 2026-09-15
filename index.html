@@ -109,8 +109,8 @@
   </select>
   <div class="ctrl-sep"></div>
   <div class="mode-toggle">
-    <button id="btnPL" class="active">P/L</button>
-    <button id="btnAge">AGE</button>
+    <button id="btnPL">P/L</button>
+    <button id="btnAge" class="active">AGE</button>
     <button id="btnSplit">LTH/STH</button>
   </div>
   <div class="mode-toggle">
@@ -241,7 +241,7 @@ var currentIdx = 0;
 var priceArray = null;
 var showPriceOverlay = true;
 var splitMode = false;
-var ageMode = false;
+var ageMode = true;   // default view: AGE, USD-weighted
 var coinMode = false;
 var bottomThreshold = 80;
 var yMaxPct = 100;
@@ -342,7 +342,7 @@ var STEP_LABELS = ["1D", "1W", "1M", "1Y"];
 var VIEW_MODES = [{split:false,age:false,coin:false},{split:false,age:true,coin:false},{split:true,age:false,coin:false},{split:false,age:false,coin:true},{split:false,age:true,coin:true},{split:true,age:false,coin:true}];
 function modeKey() { return ageMode ? "_age" : (splitMode ? "_split" : "_pl"); }
 function viewIndexFor(coin, split, age) { return (coin ? 3 : 0) + (age ? 1 : (split ? 2 : 0)); }
-var viewIdx = 0;
+var viewIdx = 1; // VIEW_MODES index of USD AGE (the default view)
 
 function fetchJSON(url) {
   return fetch(url).then(function(r) {
