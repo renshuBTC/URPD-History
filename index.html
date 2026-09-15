@@ -156,9 +156,15 @@ var BRK_DAY0 = new Date(2009, 0, 1);
 var priceDates = null;
 var priceIndexByDate = null;
 var BIN_WIDTH = 200; // BRK's own lin200 aggregation grid, so every bar equals BRK's official bucket exactly
-var SMOOTH_SIGMA = 1.5; // bins of Gaussian smoothing for display only. 0 = none: bars are BRK's raw lin200 buckets.
-                      // BRK prices each UTXO at the daily close, so the raw distribution is one spike per trading day;
-                      // Checkonchain smooths the same BRK output (roughly sigma 1-1.5). Set 1.5-2 here to match that look.
+// Display smoothing. BRK prices every UTXO at the daily close, so the raw distribution is one spike per trading day.
+// "intraday": each bar is spread by the price range of the days its coins were acquired (BRK daily high/low), so the
+//             smoothing is evidence-based - wide in volatile weeks, near zero in calm ones - and mass-preserving.
+// "fixed":    plain Gaussian of SMOOTH_SIGMA bins (Checkonchain-style, roughly sigma 1-1.5).   "none": raw lin200 bars.
+// Profit/loss figures always come from the raw price points; smoothing only changes what is drawn.
+var SMOOTH_MODE = "intraday";
+var SMOOTH_SIGMA = 1.5;
+var SIGMA_BINS = null;   // per-bin sigma for "intraday", built once from BRK's daily high/low
+var priceHigh = null, priceLow = null;
 var PROFIT_COLOR = "#00e676";
 var LOSS_COLOR = "#ff1744";
 var LTH_COLOR = "#5599ff";
@@ -315,27 +321,54 @@ function aggregate(raw, binWidth) {
     bins[binPrice].supply += supply;
     bins[binPrice].invested += price * supply;
   }
+  var maxIdx = -1;
+  for (var bp in bins) { var bi = Math.round(bins[bp].price / binWidth - 0.5); if (bi > maxIdx) maxIdx = bi; }
   var arr = [];
-  for (var bp in bins) arr.push(bins[bp]);
-  arr.sort(function(a, b) { return a.price - b.price; });
+  for (var i = 0; i <= maxIdx; i++) { var cp = (i + 0.5) * binWidth; arr.push(bins[cp] || { price: cp, supply: 0, invested: 0 }); }
   return arr;
 }
 
-function smooth(values) {
-  if (!(SMOOTH_SIGMA > 0)) return values.slice();
-  var r = Math.ceil(SMOOTH_SIGMA * 3), kern = [];
-  for (var j = -r; j <= r; j++) kern.push(Math.exp(-0.5 * (j / SMOOTH_SIGMA) * (j / SMOOTH_SIGMA)));
-  var result = [];
-  for (var i = 0; i < values.length; i++) {
-    var sum = 0, wsum = 0;
-    for (var k = -r; k <= r; k++) {
-      var idx = i + k;
-      if (idx < 0 || idx >= values.length) continue;
-      sum += values[idx] * kern[k + r]; wsum += kern[k + r];
-    }
-    result.push(wsum > 0 ? sum / wsum : 0);
+function buildSigmaTable() {
+  if (!priceArray || !priceHigh || !priceLow) { SIGMA_BINS = null; return; }
+  var byBin = {}, maxHigh = 0;
+  for (var d = 0; d < priceArray.length; d++) {
+    var c = priceArray[d], h = priceHigh[d], l = priceLow[d];
+    if (!(c > 0 && h > 0 && l > 0 && h >= l)) continue;
+    if (h > maxHigh) maxHigh = h;
+    var b = Math.floor(c / BIN_WIDTH);
+    (byBin[b] = byBin[b] || []).push(h - l);
   }
-  return result;
+  var nb = Math.ceil(maxHigh / BIN_WIDTH) + 1;
+  SIGMA_BINS = new Array(nb);
+  for (var i = 0; i < nb; i++) {
+    var p = (i + 0.5) * BIN_WIDTH, span = Math.max(1, Math.round(p * 0.01 / BIN_WIDTH)); // days that closed within ~1% of this price
+    var ranges = [];
+    for (var bb = i - span; bb <= i + span; bb++) if (byBin[bb]) ranges = ranges.concat(byBin[bb]);
+    if (!ranges.length) { SIGMA_BINS[i] = 0; continue; }
+    ranges.sort(function(a, b) { return a - b; });
+    var med = ranges[Math.floor(ranges.length / 2)];
+    SIGMA_BINS[i] = med / Math.sqrt(12) / BIN_WIDTH; // std dev of a uniform spread across the day's range, in bins
+  }
+}
+
+// Mass-preserving: each bin spreads its own value with a Gaussian of its sigma; nothing is created or lost.
+// Arrays are dense from bin 0 (see aggregate), so index == price bin.
+function smooth(values) {
+  var n = values.length;
+  if (SMOOTH_MODE === "none" || n === 0) return values.slice();
+  var fixed = SMOOTH_MODE !== "intraday" || !SIGMA_BINS;
+  var out = new Array(n);
+  for (var z = 0; z < n; z++) out[z] = 0;
+  for (var j = 0; j < n; j++) {
+    var m = values[j];
+    if (!m) continue;
+    var s = fixed ? SMOOTH_SIGMA : (j < SIGMA_BINS.length ? SIGMA_BINS[j] : 0);
+    if (!(s >= 0.15)) { out[j] += m; continue; }
+    var r = Math.ceil(3 * s), w = 0, ks = [];
+    for (var d = -r; d <= r; d++) { var idx = j + d; var k = (idx < 0 || idx >= n) ? 0 : Math.exp(-0.5 * (d / s) * (d / s)); ks.push(k); w += k; }
+    for (var d2 = -r; d2 <= r; d2++) { var idx2 = j + d2; if (idx2 < 0 || idx2 >= n) continue; out[idx2] += m * ks[d2 + r] / w; }
+  }
+  return out;
 }
 
 // Profit share from BRK's raw price points (like computeRedPct), so smoothing and binning only affect
@@ -890,6 +923,13 @@ async function init() {
       var priceResp = await fetchJSON(BASE + "/api/series/price_close/day1");
       priceArray = priceResp.data || priceResp;
       console.log("Price array loaded:", priceArray.length, "entries");
+      try {
+        var hl = await Promise.all([fetchJSON(BASE + "/api/series/price_high/day1"), fetchJSON(BASE + "/api/series/price_low/day1")]);
+        priceHigh = hl[0].data || hl[0]; priceLow = hl[1].data || hl[1];
+        buildSigmaTable();
+      } catch (e3) {
+        console.warn("Daily high/low preload failed, using fixed smoothing:", e3);
+      }
       try {
         var dateResp = await fetchJSON(BASE + "/api/series/date/day1");
         priceDates = dateResp.data || dateResp;
