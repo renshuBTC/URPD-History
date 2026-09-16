@@ -2,8 +2,8 @@
 
 An interactive, single-file viewer for Bitcoin's **UTXO Realised Price
 Distribution (URPD)** across its full history. Scrub through every day since
-genesis, split the distribution by Profit/Loss or Long-Term vs Short-Term
-Holders, weight it by BTC supply or USD value at last move, overlay the BTC price line
+genesis, colour the distribution by profit/loss at spot or by UTXO age,
+weight it by BTC supply or USD value at last move, overlay the BTC price line
 with cycle tops and bottoms, and watch an adjustable bottom signal fire when
 enough of that USD value is held in loss.
 
@@ -22,7 +22,7 @@ Toolbar:
 
 - Interval buttons and a **YYYY-MM-DD** date picker
 - **Landmarks** dropdown — jump straight to any cycle top or bottom
-- **P/L · LTH/STH** — split the histogram by profit/loss or holder duration
+- **P/L · AGE** — colour the histogram by profit/loss at spot, or by UTXO age (23 bands from under an hour to over fifteen years)
 - **USD · BTC** — weight bars by USD value at last move (realized cap) or BTC supply
 - **Adjustable bottom signal** — fires when the chosen % of USD value is held in loss
 - **中文 / EN** — language toggle
