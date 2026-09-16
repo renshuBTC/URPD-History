@@ -382,14 +382,7 @@ function rerenderCurrent() {
   if (d) renderChart(d);
 }
 var lastPlotW = 0, reflowCount = 0, resizeTimer = null;
-var legendDims = {}, lastLegendKey = null, lastLegendDims = { h: 0, w: 0 }, lastLegendBeside = false; // measured legend size per view and width
-var titleWidths = {}, lastTitleKey = null; // measured title width per language / view
-// Rough text width before anything is measured: monospace at the given px per Latin character, CJK wider.
-function estimateTextWidth(txt, latinPx, cjkPx) {
-  var plain = String(txt).replace(/<[^>]+>/g, ""), w = 0;
-  for (var i = 0; i < plain.length; i++) w += plain.charCodeAt(i) > 0x2e7f ? cjkPx : latinPx;
-  return w;
-}
+var legendDims = {}, lastLegendKey = null, lastLegendDims = { h: 0 }; // measured legend height per view and width
 var tracerHooked = false;
 // Width of the plotting area in CSS px: from the current layout when it matches the container, else the
 // container minus the fixed left/right margins.
@@ -833,24 +826,21 @@ function renderChart(data) {
   var yAxisPrefix = isCoin ? "" : "$";
 
   // ---- Header -------------------------------------------------------------------------------------
-  // The title is centred over the plot. The legend shares that row, right-aligned, whenever it clears the
-  // title (P/L, LTH/STH); otherwise (AGE's 25 entries) it takes its own centred row directly under the title. The plot starts right below. Legend size and title width are measured after the first
-  // draw of each view at each width and the chart is drawn once more if the guess was off, so no pixel is
-  // left idle above the bars.
+  // The title is centred over the plot and the legend sits centred directly under it, the same in every
+  // view; the plot starts right below the legend. The legend height is measured after the first draw of
+  // each view at each width and the chart is drawn once more if the guess was off, so no pixel is left idle
+  // above the bars.
   var legendKey = (isAge ? "age" : isSplit ? "split" : "pl") + "|" + Math.round(plotW);
-  var ld = legendDims[legendKey] || { h: 29, w: isAge ? 1900 : (isSplit ? 420 : 340) };
-  var titleKey = lang + "|" + (isCoin ? "c" : "u") + "|" + (isAge ? "a" : isSplit ? "s" : "p");
-  var titleW = titleWidths[titleKey] || estimateTextWidth(titleText, 12, 20);
-  var legendBeside = titleW / 2 + 40 + ld.w <= plotW / 2; // legend clears the centred title
-  var topMargin = legendBeside ? 4 + Math.max(26, ld.h) + 2 : 4 + 26 + ld.h;
-  lastLegendKey = legendKey; lastLegendDims = ld; lastLegendBeside = legendBeside; lastTitleKey = titleKey;
+  var ld = legendDims[legendKey] || { h: 29 };
+  var topMargin = 4 + 26 + ld.h;
+  lastLegendKey = legendKey; lastLegendDims = ld;
 
   var layout = {
     title:{text:titleText,xref:"paper",x:0.5,xanchor:"center",y:1,yanchor:"top",pad:{t:4},font:{size:20,family:FONT,color:"#ffffff"}},
     font:{family:FONT,color:"#ffffff"}, // inherited by the legend, the axis titles and every tick label
     paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
     barmode:(isSplit||isAge)?"stack":"overlay",bargap:0,
-    legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:legendBeside?"right":"center",x:legendBeside?1:0.5,font:{family:FONT,size:isAge?9.5:12,color:"#ffffff"},traceorder:isAge?"normal":undefined},
+    legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:"center",x:0.5,font:{family:FONT,size:isAge?9.5:12,color:"#ffffff"},traceorder:isAge?"normal":undefined},
     xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13,color:"#ffffff"},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11,color:"#ffffff"}},
     yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:"#ffffff"},standoff:8},automargin:true,side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:11,color:"#ffffff"}},
     yaxis2:{title:{text:t("pctTotal"),font:{family:FONT,size:13,color:"#ffffff"},standoff:8},automargin:true,side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11,color:"#ffffff"}},
@@ -926,12 +916,8 @@ function renderChart(data) {
     // 1 px gaps are computed from the real pitch.
     var fl = gdEl._fullLayout;
     var legH = (fl && fl.legend && fl.legend._height) ? fl.legend._height : 0;
-    var legW = (fl && fl.legend && fl.legend._width) ? fl.legend._width : 0;
-    if (fl && lastLegendKey) legendDims[lastLegendKey] = { h: legH, w: legW };
-    var tEl = gdEl.querySelector(".g-gtitle");
-    if (tEl && lastTitleKey) titleWidths[lastTitleKey] = tEl.getBoundingClientRect().width;
-    var besideNow = fl && fl.xaxis && ((titleWidths[lastTitleKey] || 0) / 2 + 40 + legW <= fl.xaxis._length / 2);
-    var off = fl && fl.xaxis && fl.xaxis._length > 0 && (Math.abs(fl.xaxis._length - lastPlotW) > 0.5 || Math.abs(legH - lastLegendDims.h) > 1 || besideNow !== lastLegendBeside);
+    if (fl && lastLegendKey) legendDims[lastLegendKey] = { h: legH };
+    var off = fl && fl.xaxis && fl.xaxis._length > 0 && (Math.abs(fl.xaxis._length - lastPlotW) > 0.5 || Math.abs(legH - lastLegendDims.h) > 1);
     if (off && reflowCount < 2 && lastRenderedData === data) { reflowCount++; renderChart(data); }
     else reflowCount = 0;
   });
