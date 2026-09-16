@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>URPD History — @renshuBTC</title>
+<title>Bitcoin Supply Distribution</title>
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
@@ -291,7 +291,7 @@ var T = {
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom",
     signalLabel: "Bottom signal", signalUnit: "% held in loss", yMaxLabel: "Y-max", yMaxUnit: "% of bars", smoothLabel: "Smoothing", smoothUnit: "% of price", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Value Held in Loss",
-        titleUSDAge: "URPD (USD-weighted) by UTXO Age as of ", titleBTCAge: "URPD (BTC-weighted) by UTXO Age as of ",
+        titleUSDAge: "Bitcoin Supply Distribution (by USD Value) as of ", titleBTCAge: "Bitcoin Supply Distribution as of ",
     priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Share of Total [%]", pctLegend: "% of Total",
     realisedCap: "Realised Cap ",
     totalSupply: "Total Supply ",
@@ -308,7 +308,7 @@ var T = {
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8",
     signalLabel: "\u5e95\u90e8\u4fe1\u53f7", signalUnit: "% \u5904\u4e8e\u4e8f\u635f", yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "% \u67f1\u9ad8", smoothLabel: "\u5e73\u6ed1", smoothUnit: "% \u4ef7\u683c", binsLabel: "\u5206\u7bb1",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f",
-        titleUSDAge: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ", titleBTCAge: "URPD (BTC\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ",
+        titleUSDAge: "比特币供应分布（按美元价值）截至 ", titleBTCAge: "比特币供应分布 截至 ",
     priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4ef7\u503c [\u7f8e\u5143]", btcSupply: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4f9b\u5e94 [BTC]", pctTotal: "\u5360\u603b\u91cf\u6bd4\u4f8b [%]", pctLegend: "\u5360\u6bd4",
     realisedCap: "\u5df2\u5b9e\u73b0\u5e02\u503c ",
     totalSupply: "\u603b\u4f9b\u5e94 ",
@@ -816,7 +816,6 @@ function renderChart(data) {
     }
     traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(255,255,255,0.6)":"rgba(0,0,0,0)",width:showPriceOverlay?2:0},hoverinfo:"skip",showlegend:true,name:"BTC/USD",visible:true});
     if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
-    if(showPriceOverlay){shapes.push({type:"line",x0:dateStr,x1:dateStr,y0:0,y1:1,xref:"x2",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});} // date marker under the tracer dot: same 1 px white dash as the spot line
     // Cycle landmark markers on price chart
     var cyc2=lang==="zh"?"周期":"Cycle";
     var tp2=lang==="zh"?"顶部":"Top";
