@@ -260,7 +260,14 @@ var AGE_BAND_COLORS = (function() {
     return oklchToHex(L, 0.2, h);
   });
 })();
-var CUMUL_COLOR = "rgba(38,198,218,0.45)";
+// ---- Overlay lines: the histogram is the subject, the lines are context. On the #0a0a0a background the
+// bars run from 15.7:1 (newest, yellow) down to 2:1 (oldest, blue) contrast, median 3.1:1. The BTC price line is
+// neutral grey (white at 50 %, 1.5 px -> 5.4:1) so it reads as a reference, not as another cohort, and stays below
+// the young cohorts in brightness; the cumulative "% of Total" line is a dim teal (2.7:1, 1.5 px) - teal is the hue
+// farthest from the yellow->magenta->blue age ramp, so neither line can be mistaken for an age band. Both hues also
+// hold up under red-green colour-vision deficiency (they differ from the bars on the blue-yellow axis and in lightness).
+var CUMUL_COLOR = "rgba(38,198,218,0.45)";     // % of Total (cumulative share)
+var PRICE_LINE_COLOR = "rgba(255,255,255,0.5)"; // BTC/USD price line
 var SPOT_COLOR = "#ff8c00";
 var GLOW_COLOR = "#FFE600";
 var FONT = "'Source Code Pro', Consolas, monospace";
@@ -663,7 +670,7 @@ function renderChart(data) {
     var totalA = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
     var runA = 0;
     var cumulA = valuesForAxis.map(function(v){runA+=v;return 100*runA/totalA;});
-    traces.push({x:chartPrices,y:cumulA,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+    traces.push({x:chartPrices,y:cumulA,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:1.5},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
     if (isCoin) {
@@ -672,7 +679,7 @@ function renderChart(data) {
       var run2 = 0;
       var cumul2 = supplyVals.map(function(v){run2+=v;return 100*run2/total2;});
       traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("allSupply"),width:Array(chartPrices.length).fill(barW),marker:{color:FALLBACK_COLOR,line:{width:0}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:1.5},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
       var invested = smooth(aggAll.map(function(b){return b.invested;}));
@@ -680,7 +687,7 @@ function renderChart(data) {
       var run3 = 0;
       var cumul3 = invested.map(function(v){run3+=v;return 100*run3/total3;});
       traces.push({x:chartPrices,y:invested,type:"bar",name:t("allSupply"),width:Array(chartPrices.length).fill(barW),marker:{color:FALLBACK_COLOR,line:{width:0}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:1.5},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
   }
@@ -814,7 +821,7 @@ function renderChart(data) {
         pD.push(pds);pP.push(priceArray[pi]);
       }
     }
-    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?"rgba(255,255,255,0.6)":"rgba(0,0,0,0)",width:showPriceOverlay?2:0},hoverinfo:"skip",showlegend:true,name:"BTC/USD",visible:true});
+    traces.push({x:pD,y:pP,type:"scatter",mode:"lines",xaxis:"x2",yaxis:"y3",line:{color:showPriceOverlay?PRICE_LINE_COLOR:"rgba(0,0,0,0)",width:showPriceOverlay?1.5:0},hoverinfo:"skip",showlegend:true,name:"BTC/USD",visible:true});
     if(showPriceOverlay&&spot&&spot>0){traces.push({x:[dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
     // Cycle landmark markers on price chart
     var cyc2=lang==="zh"?"周期":"Cycle";
