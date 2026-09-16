@@ -112,10 +112,6 @@
   </select>
   <div class="ctrl-sep"></div>
   <div class="mode-toggle">
-    <button id="btnPL">Profit/Loss</button>
-    <button id="btnAge" class="active">AGE</button>
-  </div>
-  <div class="mode-toggle">
     <button id="btnUSD" class="active">USD</button>
     <button id="btnBTC">BTC</button>
   </div>
@@ -216,8 +212,9 @@ var priceDates = null;
 var priceIndexByDate = null;
 var NUM_BINS = 625; // equal-width bins over the day's $0..max range; the Bins field in the toolbar changes it (50-1000)
 var SMOOTH_WINDOW = 1; // smoothing now happens in aggregate() (kernel binning); 1 = pass-through
-var PROFIT_COLOR = "#00e676";
-var LOSS_COLOR = "#ff1744";
+var PROFIT_COLOR = "#00e676";   // spot label: share held in profit
+var LOSS_COLOR = "#ff1744";     // spot label: share held in loss
+var FALLBACK_COLOR = "#8a94b8"; // single-colour histogram if the age cohorts cannot be fetched
 var AGE_BANDS = [
   {cohort:"utxos_under_1h_old", label:"<1h"}, {cohort:"utxos_1h_to_1d_old", label:"1h-1d"}, {cohort:"utxos_1d_to_1w_old", label:"1d-1w"},
   {cohort:"utxos_1w_to_1m_old", label:"1w-1m"}, {cohort:"utxos_1m_to_2m_old", label:"1m-2m"}, {cohort:"utxos_2m_to_3m_old", label:"2m-3m"},
@@ -272,7 +269,6 @@ var allDates = [];
 var currentIdx = 0;
 var priceArray = null;
 var showPriceOverlay = true;
-var ageMode = true;   // default view: AGE, USD-weighted
 var coinMode = false;
 var bottomThreshold = 80;
 var yMaxPct = 100;
@@ -292,12 +288,10 @@ var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
     statusLoaded: " days loaded. Left/Right or A/D navigate | drag the dot on the price line | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
-    landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom", pl: "Profit/Loss", age: "AGE",
+    landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom",
     signalLabel: "Bottom signal", signalUnit: "% held in loss", yMaxLabel: "Y-max", yMaxUnit: "% of bars", smoothLabel: "Smoothing", smoothUnit: "% of price", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Value Held in Loss",
-    titleUSD: "URPD (USD-weighted) as of ",
-    titleBTC: "URPD (BTC-weighted) as of ",
-    titleUSDAge: "URPD (USD-weighted) by UTXO Age as of ", titleBTCAge: "URPD (BTC-weighted) by UTXO Age as of ",
+        titleUSDAge: "URPD (USD-weighted) by UTXO Age as of ", titleBTCAge: "URPD (BTC-weighted) by UTXO Age as of ",
     priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Share of Total [%]", pctLegend: "% of Total",
     realisedCap: "Realised Cap ",
     totalSupply: "Total Supply ",
@@ -306,17 +300,15 @@ var T = {
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", usdProfit: "USD Value Held in Profit: ", usdLoss: "USD Value Held in Loss: ", btcProfit: "BTC Supply Held in Profit: ", btcLoss: "BTC Supply Held in Loss: ",
     langBtn: "\u4e2d\u6587", bottomSigHover: "BOTTOM SIGNAL (",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Make sure BRK is running on localhost:3110",
-    profitLoss: "Profit/Loss", spot: "Spot"
+    allSupply: "All supply (age data unavailable)", spot: "Spot"
   },
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | \u62d6\u52a8\u4ef7\u683c\u7ebf\u4e0a\u7684\u5706\u70b9 | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
-    landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8", pl: "\u76c8\u5229/\u4e8f\u635f", age: "\u5e74\u9f84",
+    landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8",
     signalLabel: "\u5e95\u90e8\u4fe1\u53f7", signalUnit: "% \u5904\u4e8e\u4e8f\u635f", yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "% \u67f1\u9ad8", smoothLabel: "\u5e73\u6ed1", smoothUnit: "% \u4ef7\u683c", binsLabel: "\u5206\u7bb1",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f",
-    titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ",
-    titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ",
-    titleUSDAge: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ", titleBTCAge: "URPD (BTC\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ",
+        titleUSDAge: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ", titleBTCAge: "URPD (BTC\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ",
     priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4ef7\u503c [\u7f8e\u5143]", btcSupply: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4f9b\u5e94 [BTC]", pctTotal: "\u5360\u603b\u91cf\u6bd4\u4f8b [%]", pctLegend: "\u5360\u6bd4",
     realisedCap: "\u5df2\u5b9e\u73b0\u5e02\u503c ",
     totalSupply: "\u603b\u4f9b\u5e94 ",
@@ -325,7 +317,7 @@ var T = {
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", usdProfit: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u5904\u4e8e\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u5904\u4e8e\u4e8f\u635f: ",
     langBtn: "EN", bottomSigHover: "\u5e95\u90e8\u4fe1\u53f7 (",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
-    profitLoss: "\u76c8/\u4e8f", spot: "\u73b0\u4ef7"
+    allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", spot: "\u73b0\u4ef7"
   }
 };
 
@@ -356,8 +348,6 @@ function applyLang() {
       opts[oi].textContent = (isTop ? tp : bt) + ": " + mon + " " + yr + price;
     }
   }
-  document.getElementById("btnPL").textContent = t("pl");
-  document.getElementById("btnAge").textContent = t("age");
   document.getElementById("loading").textContent = t("loading");
   var labels = document.querySelectorAll("#thresholdWrap label");
   if (labels[0]) labels[0].textContent = t("signalLabel");
@@ -378,8 +368,8 @@ var stepSize = 1;
 var STEPS = [1, 7, 30, 365];
 var STEP_LABELS = ["1D", "1W", "1M", "1Y"];
 
-var VIEW_MODES = [{age:false,coin:false},{age:true,coin:false},{age:false,coin:true},{age:true,coin:true}];
-function modeKey() { return ageMode ? "_age" : "_pl"; }
+var VIEW_MODES = [{coin:false},{coin:true}]; // the histogram is always by UTXO age; the view is its weighting, USD or BTC
+function modeKey() { return "_age"; }
 // Binned data depends on the view, the bin count and the smoothing, so all three are in the key: a response
 // that lands after a setting changed can never be drawn or cached under the wrong settings.
 function dataKey(dateStr) { return dateStr + modeKey() + "|b" + NUM_BINS + "|s" + KERNEL_PCT; }
@@ -395,7 +385,7 @@ function rawTouch(dateStr) {
   if (!rawCache[dateStr]) rawCache[dateStr] = {};
   return rawCache[dateStr];
 }
-function rawComplete(raw) { return !!(raw && raw.all && (!ageMode || raw.age)); }
+function rawComplete(raw) { return !!(raw && raw.all && raw.age); }
 // Bottom signal and Y-max only change how the current data is drawn, so they re-draw it from the cache. If a
 // fetch is in flight for this date the new setting is picked up when it lands.
 function rerenderCurrent() {
@@ -417,8 +407,7 @@ window.addEventListener("resize", function() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(function() { if (lastRenderedData && !window.videoRecording) renderChart(lastRenderedData); }, 150);
 });
-function viewIndexFor(coin, age) { return (coin ? 2 : 0) + (age ? 1 : 0); }
-var viewIdx = 1; // VIEW_MODES index of USD AGE (the default view)
+var viewIdx = 0; // VIEW_MODES index of the USD view (the default)
 
 function fetchJSON(url) {
   return fetch(url).then(function(r) {
@@ -520,10 +509,7 @@ function setViewMode(idx) {
   if (window.videoRecording) return;
   viewIdx = idx;
   var m = VIEW_MODES[idx];
-  ageMode = !!m.age;
   coinMode = m.coin;
-  document.getElementById("btnPL").classList.toggle("active", !ageMode);
-  document.getElementById("btnAge").classList.toggle("active", ageMode);
   document.getElementById("btnUSD").classList.toggle("active", !coinMode);
   document.getElementById("btnBTC").classList.toggle("active", coinMode);
   loadAndRender();
@@ -541,11 +527,10 @@ function setInterval1(idx) {
 function fetchRaw(dateStr) {
   var key = dateStr + modeKey();
   if (rawInflight[key]) return rawInflight[key];
-  var wantAge = ageMode;
   var raw = rawTouch(dateStr);
   var p = (raw.all ? Promise.resolve(raw.all) : fetchJSON(BASE + "/api/series/cost-basis/all/" + dateStr)).then(function(rawAll) {
     raw.all = rawAll;
-    if (wantAge && !raw.age) {
+    if (!raw.age) {
       return Promise.all(AGE_BANDS.map(function(band) {
         return fetchJSON(BASE + "/api/series/cost-basis/" + band.cohort + "/" + dateStr).catch(function(){ return null; });
       })).then(function(res) {
@@ -572,7 +557,7 @@ function buildData(dateStr, raw) {
   data.realizedCap = aggAll.reduce(function(s,b){return s+b.invested;}, 0);
   data.totalSupply = aggAll.reduce(function(s,b){return s+b.supply;}, 0);
   data.redPct = computeRedPct(rawAll, spot);
-  if (ageMode) {
+  {
     var cohorts = [];
     var res = raw.age || [];
     for (var ci = 0; ci < AGE_BANDS.length; ci++) {
@@ -639,7 +624,7 @@ function renderChart(data) {
   var bottomMargin = creditRow ? 44 : 64;
   document.getElementById("binsUnit").textContent = "= $" + (binWidth >= 100 ? Math.round(binWidth).toLocaleString("en-US") : binWidth >= 1 ? binWidth.toFixed(1) : binWidth.toFixed(3)) + " \u00b7 " + pitch.toFixed(1) + "px";
   var realizedCap = data.realizedCap, totalSupply = data.totalSupply, maxPrice = data.maxPrice, redPct = data.redPct;
-  var isAge = ageMode && data.aggAge && data.aggAge.length > 0;
+  var isAge = !!(data.aggAge && data.aggAge.length > 0); // false only if every cohort fetch failed
   var isCoin = coinMode;
   var isBottom = redPct >= bottomThreshold;
 
@@ -686,8 +671,7 @@ function renderChart(data) {
       var total2 = supplyVals.reduce(function(s,v){return s+v;},0) || 1;
       var run2 = 0;
       var cumul2 = supplyVals.map(function(v){run2+=v;return 100*run2/total2;});
-      var colors2 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
-      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(barW),marker:{color:colors2,line:{width:0}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("allSupply"),width:Array(chartPrices.length).fill(barW),marker:{color:FALLBACK_COLOR,line:{width:0}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
@@ -695,8 +679,7 @@ function renderChart(data) {
       var total3 = invested.reduce(function(s,v){return s+v;},0) || 1;
       var run3 = 0;
       var cumul3 = invested.map(function(v){run3+=v;return 100*run3/total3;});
-      var colors3 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
-      traces.push({x:chartPrices,y:invested,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(barW),marker:{color:colors3,line:{width:0}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:invested,type:"bar",name:t("allSupply"),width:Array(chartPrices.length).fill(barW),marker:{color:FALLBACK_COLOR,line:{width:0}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
       traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
@@ -748,9 +731,9 @@ function renderChart(data) {
   var titleDate = d.toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"});
   var titleText;
   if (isCoin) {
-    titleText = "<b>" + (isAge ? t("titleBTCAge") : t("titleBTC")) + titleDate + "</b>";
+    titleText = "<b>" + t("titleBTCAge") + titleDate + "</b>";
   } else {
-    titleText = "<b>" + (isAge ? t("titleUSDAge") : t("titleUSD")) + titleDate + "</b>";
+    titleText = "<b>" + t("titleUSDAge") + titleDate + "</b>";
   }
 
   var shapes = [];
@@ -777,7 +760,7 @@ function renderChart(data) {
       shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.25)",width:6},layer:"above"});
     }
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:2.5},layer:"above"});
-    var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + (isCoin ? "<br>" + t("btcProfit") + profitPct + "%<br>" + t("btcLoss") + lossPct + "%" : "<br>" + t("usdProfit") + profitPct + "%<br>" + t("usdLoss") + lossPct + "%");
+    var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br><span style='color:" + PROFIT_COLOR + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "%</span><br><span style='color:" + LOSS_COLOR + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "%</span>";
     if (isBottom) labelText += "<br><b>" + t("bottomSigHover") + redPct.toFixed(0) + "% Red)</b>";
     // The label sits to the right of the spot line unless it would run past the plot edge, in which
     // case it flips to the left of the line (estimate: 13px monospace ~7.9px per character, plus box).
@@ -796,7 +779,7 @@ function renderChart(data) {
   // view; the plot starts right below the legend. The legend height is measured after the first draw of
   // each view at each width and the chart is drawn once more if the guess was off, so no pixel is left idle
   // above the bars.
-  var legendKey = (isAge ? "age" : "pl") + "|" + Math.round(plotW);
+  var legendKey = "age|" + Math.round(plotW);
   var ld = legendDims[legendKey] || { h: 29 };
   var topMargin = 4 + 26 + ld.h;
   lastLegendKey = legendKey; lastLegendDims = ld;
@@ -907,10 +890,8 @@ document.getElementById("btnNext").onclick = function(){goTo(currentIdx + stepSi
 document.getElementById("btnFirst").onclick = function(){goTo(0);};
 document.getElementById("btnLast").onclick = function(){goTo(allDates.length - 1);};
 
-document.getElementById("btnPL").onclick = function(){ setViewMode(viewIndexFor(coinMode, false)); };
-document.getElementById("btnAge").onclick = function(){ setViewMode(viewIndexFor(coinMode, true)); };
-document.getElementById("btnUSD").onclick = function(){ setViewMode(viewIndexFor(false, ageMode)); };
-document.getElementById("btnBTC").onclick = function(){ setViewMode(viewIndexFor(true, ageMode)); };
+document.getElementById("btnUSD").onclick = function(){ setViewMode(0); };
+document.getElementById("btnBTC").onclick = function(){ setViewMode(1); };
 
 // Language toggle
 
