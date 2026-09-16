@@ -743,7 +743,8 @@ function renderChart(data) {
   ];
 
   // Spot line and its label are pure white and drawn above everything else so they stay readable while
-  // navigating; the bottom-signal state keeps its orange halo behind the line.
+  // navigating. The line is a 1 px dash, thinner than a bar, so it never hides a tall bar behind it, and it
+  // does not change when the bottom signal fires (the status bar carries that).
   var spotLineColor = "#ffffff";
   if (spot && spot > 0) {
     var spotCumul = 0;
@@ -754,12 +755,7 @@ function renderChart(data) {
       if (chartPrices[i] <= spot) spotCumul = 100 * runSC / totalSC;
       else break;
     }
-    if (isBottom) {
-      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.06)",width:20},layer:"above"});
-      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.12)",width:12},layer:"above"});
-      shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:"rgba(255,165,0,0.25)",width:6},layer:"above"});
-    }
-    shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:2.5},layer:"above"});
+    shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});
     var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br><span style='color:" + PROFIT_COLOR + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "%</span><br><span style='color:" + LOSS_COLOR + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "%</span>";
     if (isBottom) labelText += "<br><b>" + t("bottomSigHover") + redPct.toFixed(0) + "% Red)</b>";
     // The label sits to the right of the spot line unless it would run past the plot edge, in which
