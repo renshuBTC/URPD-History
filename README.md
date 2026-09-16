@@ -7,7 +7,7 @@ USD value at last move, overlay the BTC price line
 with cycle tops and bottoms, and watch an adjustable bottom signal fire when
 enough of that USD value is held in loss.
 
-**Live:** https://renshubtc.github.io/URPD-History/
+**Live:** https://bitcoinsupplydistribution.com/ (also served at https://renshubtc.github.io/URPD-History/)
 
 ## Controls
 
