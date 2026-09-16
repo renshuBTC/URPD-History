@@ -18,7 +18,7 @@
   .mode-toggle button.active:hover { background: #ffaa33; }
   #dateDisplay { font-size: 14px; font-weight: bold; color: #ff8c00; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
   #status { text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
-  #chart { width: 100%; flex: 1 1 auto; min-height: 0; } /* every pixel the toolbar and status line leave */
+  #chart { width: calc(100% - 8px); margin: 0 4px; flex: 1 1 auto; min-height: 0; } /* every pixel the toolbar and status line leave; 4 px so the axis titles do not touch the window edge */
   #tracer { position: fixed; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ff8c00; border: 2px solid #ffffff; box-sizing: border-box; box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 0 6px rgba(255,140,0,0.5); cursor: grab; z-index: 50; display: none; touch-action: none; }
   #tracer.show { display: block; }
   #tracer.dragging { cursor: grabbing; }
@@ -276,7 +276,7 @@ var T = {
     titleUSD: "URPD (USD-weighted) as of ", titleUSDCohort: "URPD (USD-weighted) by Cohort as of ",
     titleBTC: "URPD (BTC-weighted) as of ", titleBTCCohort: "URPD (BTC-weighted) by Cohort as of ",
     titleUSDAge: "URPD (USD-weighted) by UTXO Age as of ", titleBTCAge: "URPD (BTC-weighted) by UTXO Age as of ",
-    priceUSD: "Price [USD]", usdInvested: "USD Value Held at Last Move", btcSupply: "BTC Supply Held", pctTotal: "Percent of Total",
+    priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Share of Total [%]", pctLegend: "% of Total",
     realisedCap: "Realised Cap ", lthRC: "LTH Realised Cap ", sthRC: "STH Realised Cap ",
     totalSupply: "Total Supply ", lthSupply: "LTH Supply ", sthSupply: "STH Supply ",
     inProfit: "In Profit ", inLoss: "In Loss ", source: "Source: local BRK node",
@@ -295,7 +295,7 @@ var T = {
     titleUSD: "URPD (\u7f8e\u5143\u52a0\u6743) \u622a\u81f3 ", titleUSDCohort: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleBTC: "URPD (BTC\u52a0\u6743) \u622a\u81f3 ", titleBTCCohort: "URPD (BTC\u52a0\u6743) \u6309\u7fa4\u7ec4 \u622a\u81f3 ",
     titleUSDAge: "URPD (\u7f8e\u5143\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ", titleBTCAge: "URPD (BTC\u52a0\u6743) \u6309UTXO\u5e74\u9f84 \u622a\u81f3 ",
-    priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u6301\u6709\u7684\u7f8e\u5143\u4ef7\u503c\uff08\u6700\u540e\u79fb\u52a8\u65f6\uff09", btcSupply: "\u6301\u6709\u7684 BTC \u4f9b\u5e94", pctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4",
+    priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4ef7\u503c [\u7f8e\u5143]", btcSupply: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4f9b\u5e94 [BTC]", pctTotal: "\u5360\u603b\u91cf\u6bd4\u4f8b [%]", pctLegend: "\u5360\u6bd4",
     realisedCap: "\u5df2\u5b9e\u73b0\u5e02\u503c ", lthRC: "\u957f\u671f\u6301\u6709\u8005\u5df2\u5b9e\u73b0\u5e02\u503c ", sthRC: "\u77ed\u671f\u6301\u6709\u8005\u5df2\u5b9e\u73b0\u5e02\u503c ",
     totalSupply: "\u603b\u4f9b\u5e94 ", lthSupply: "\u957f\u671f\u6301\u6709\u8005\u4f9b\u5e94 ", sthSupply: "\u77ed\u671f\u6301\u6709\u8005\u4f9b\u5e94 ",
     inProfit: "\u76c8\u5229 ", inLoss: "\u4e8f\u635f ", source: "\u6570\u636e\u6765\u6e90: \u672c\u5730 BRK \u8282\u70b9",
@@ -382,7 +382,14 @@ function rerenderCurrent() {
   if (d) renderChart(d);
 }
 var lastPlotW = 0, reflowCount = 0, resizeTimer = null;
-var legendHeights = {}, lastLegendKey = null, lastLegendH = 0; // measured legend heights per view and width
+var legendDims = {}, lastLegendKey = null, lastLegendDims = { h: 0, w: 0 }, lastLegendBeside = false; // measured legend size per view and width
+var titleWidths = {}, lastTitleKey = null; // measured title width per language / view
+// Rough text width before anything is measured: monospace at the given px per Latin character, CJK wider.
+function estimateTextWidth(txt, latinPx, cjkPx) {
+  var plain = String(txt).replace(/<[^>]+>/g, ""), w = 0;
+  for (var i = 0; i < plain.length; i++) w += plain.charCodeAt(i) > 0x2e7f ? cjkPx : latinPx;
+  return w;
+}
 var tracerHooked = false;
 // Width of the plotting area in CSS px: from the current layout when it matches the container, else the
 // container minus the fixed left/right margins.
@@ -640,6 +647,10 @@ function renderChart(data) {
   var pitch = plotW * binWidth / xSpan;
   var barW = pitch >= 3 ? binWidth * (pitch - 1) / pitch : binWidth;
   lastPlotW = plotW;
+  // Bottom margin: tick labels, then the axis title; the credit line shares the axis-title row (left-aligned,
+  // the title is centred) when the plot is wide enough for the two not to meet, otherwise it goes underneath.
+  var creditRow = plotW >= 1300;
+  var bottomMargin = creditRow ? 44 : 64;
   document.getElementById("binsUnit").textContent = "= $" + (binWidth >= 100 ? Math.round(binWidth).toLocaleString("en-US") : binWidth >= 1 ? binWidth.toFixed(1) : binWidth.toFixed(3)) + " \u00b7 " + pitch.toFixed(1) + "px";
   var aggLTH = data.aggLTH, aggSTH = data.aggSTH, realizedCap = data.realizedCap, totalSupply = data.totalSupply;
   var lthRC = data.lthRC, sthRC = data.sthRC, maxPrice = data.maxPrice, redPct = data.redPct;
@@ -683,7 +694,7 @@ function renderChart(data) {
     var totalA = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
     var runA = 0;
     var cumulA = valuesForAxis.map(function(v){runA+=v;return 100*runA/totalA;});
-    traces.push({x:chartPrices,y:cumulA,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+    traces.push({x:chartPrices,y:cumulA,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else if (isSplit) {
     var allPricesSet = new Set();
     aggLTH.forEach(function(b){allPricesSet.add(b.price);});
@@ -708,7 +719,7 @@ function renderChart(data) {
     var total1 = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
     var run1 = 0;
     var cumul1 = valuesForAxis.map(function(v){run1+=v;return 100*run1/total1;});
-    traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+    traces.push({x:chartPrices,y:cumul1,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
     if (isCoin) {
@@ -718,7 +729,7 @@ function renderChart(data) {
       var cumul2 = supplyVals.map(function(v){run2+=v;return 100*run2/total2;});
       var colors2 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
       traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(barW),marker:{color:colors2,line:{width:0}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
       var invested = smooth(aggAll.map(function(b){return b.invested;}));
@@ -727,7 +738,7 @@ function renderChart(data) {
       var cumul3 = invested.map(function(v){run3+=v;return 100*run3/total3;});
       var colors3 = spot && spot > 0 ? chartPrices.map(function(p){return p <= spot ? PROFIT_COLOR : LOSS_COLOR;}) : chartPrices.map(function(){return "#7f7f7f";});
       traces.push({x:chartPrices,y:invested,type:"bar",name:t("profitLoss"),width:Array(chartPrices.length).fill(barW),marker:{color:colors3,line:{width:0}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctTotal"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:2},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
   }
@@ -786,7 +797,7 @@ function renderChart(data) {
   var shapes = [];
   var annotations = [
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>",showarrow:false,font:{family:FONT}},
-    {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:-62,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301 \u00b7 \u7075\u611f\u6765\u81ea Renato Shira \u4e0e James Check" : "Powered by Bitcoin Research Kit & Bitcoin Core \u00b7 Inspired by Renato Shira and James Check"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
+    {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:creditRow?-38:-62,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301 \u00b7 \u7075\u611f\u6765\u81ea Renato Shira \u4e0e James Check" : "Powered by Bitcoin Research Kit & Bitcoin Core \u00b7 Inspired by Renato Shira and James Check"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
 
   // Spot line and its label are pure white and drawn above everything else so they stay readable while
@@ -811,7 +822,7 @@ function renderChart(data) {
     if (isBottom) labelText += "<br><b>" + t("bottomSigHover") + redPct.toFixed(0) + "% Red)</b>";
     // The label sits to the right of the spot line unless it would run past the plot edge, in which
     // case it flips to the left of the line (estimate: 13px monospace ~7.9px per character, plus box).
-    var plotPx = Math.max(200, (document.getElementById("chart").offsetWidth || 1200) - 160);
+    var plotPx = Math.max(200, plotWidthPx());
     var labelChars = labelText.split("<br>").reduce(function(m, s){ return Math.max(m, s.replace(/<[^>]+>/g, "").length); }, 0);
     var labelFrac = (labelChars * 7.9 + 24) / plotPx;
     var flipLabel = (spot / (maxP || spot)) + labelFrac > 0.99;
@@ -821,26 +832,30 @@ function renderChart(data) {
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
   var yAxisPrefix = isCoin ? "" : "$";
 
-  // Vertical budget: the title sits at the very top (8 px pad + 26 px), the legend directly under it and
-  // the plot right below the legend; the bottom keeps only the tick labels, the axis title and the credit
-  // line. The legend height is measured after the first draw of each view at each width and the chart is
-  // drawn once more if the guess was off, so no pixel is left idle above or below the bars.
+  // ---- Header -------------------------------------------------------------------------------------
+  // The title is centred over the plot. The legend shares that row, right-aligned, whenever it clears the
+  // title (P/L, LTH/STH); otherwise (AGE's 25 entries) it takes its own centred row directly under the title. The plot starts right below. Legend size and title width are measured after the first
+  // draw of each view at each width and the chart is drawn once more if the guess was off, so no pixel is
+  // left idle above the bars.
   var legendKey = (isAge ? "age" : isSplit ? "split" : "pl") + "|" + Math.round(plotW);
-  var legendH = legendHeights[legendKey] !== undefined ? legendHeights[legendKey] : (isAge ? 48 : 26);
-  var topMargin = 8 + 26 + 10 + legendH;
-  lastLegendKey = legendKey; lastLegendH = legendH;
+  var ld = legendDims[legendKey] || { h: 29, w: isAge ? 1900 : (isSplit ? 420 : 340) };
+  var titleKey = lang + "|" + (isCoin ? "c" : "u") + "|" + (isAge ? "a" : isSplit ? "s" : "p");
+  var titleW = titleWidths[titleKey] || estimateTextWidth(titleText, 12, 20);
+  var legendBeside = titleW / 2 + 40 + ld.w <= plotW / 2; // legend clears the centred title
+  var topMargin = legendBeside ? 4 + Math.max(26, ld.h) + 2 : 4 + 26 + ld.h;
+  lastLegendKey = legendKey; lastLegendDims = ld; lastLegendBeside = legendBeside; lastTitleKey = titleKey;
 
   var layout = {
-    title:{text:titleText,x:0.5,xanchor:"center",y:1,yanchor:"top",pad:{t:8},font:{size:20,family:FONT,color:"#ff8c00"}},
-    font:{family:FONT,color:"#ff8c00"},
+    title:{text:titleText,xref:"paper",x:0.5,xanchor:"center",y:1,yanchor:"top",pad:{t:4},font:{size:20,family:FONT,color:"#ffffff"}},
+    font:{family:FONT,color:"#ffffff"}, // inherited by the legend, the axis titles and every tick label
     paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
     barmode:(isSplit||isAge)?"stack":"overlay",bargap:0,
-    legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:"center",x:0.5,font:{family:FONT,size:isAge?10:12},traceorder:isAge?"normal":undefined},
-    xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11}},
-    yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13}},side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:11}},
-    yaxis2:{title:{text:t("pctTotal"),font:{family:FONT,size:13}},side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11}},
+    legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:legendBeside?"right":"center",x:legendBeside?1:0.5,font:{family:FONT,size:isAge?9.5:12,color:"#ffffff"},traceorder:isAge?"normal":undefined},
+    xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13,color:"#ffffff"},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11,color:"#ffffff"}},
+    yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:"#ffffff"},standoff:8},automargin:true,side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:11,color:"#ffffff"}},
+    yaxis2:{title:{text:t("pctTotal"),font:{family:FONT,size:13,color:"#ffffff"},standoff:8},automargin:true,side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11,color:"#ffffff"}},
     annotations:annotations,shapes:shapes,
-    margin:{l:80,r:80,t:topMargin,b:64},hovermode:"closest"
+    margin:{l:24,r:24,t:topMargin,b:bottomMargin},hovermode:"closest"
   };
   // BTC price overlay: a one-year window at a fixed horizontal scale. The chain tip stays at the
   // right edge while the marker is within three months of it; further back, the window follows the
@@ -909,10 +924,14 @@ function renderChart(data) {
     if (window.placeTracer) placeTracer();
     // If the plotting area came out a different width than assumed (first draw), draw once more so the
     // 1 px gaps are computed from the real pitch.
-    var fl = document.getElementById("chart")._fullLayout;
+    var fl = gdEl._fullLayout;
     var legH = (fl && fl.legend && fl.legend._height) ? fl.legend._height : 0;
-    if (fl && lastLegendKey) legendHeights[lastLegendKey] = legH;
-    var off = fl && fl.xaxis && fl.xaxis._length > 0 && (Math.abs(fl.xaxis._length - lastPlotW) > 0.5 || Math.abs(legH - lastLegendH) > 1);
+    var legW = (fl && fl.legend && fl.legend._width) ? fl.legend._width : 0;
+    if (fl && lastLegendKey) legendDims[lastLegendKey] = { h: legH, w: legW };
+    var tEl = gdEl.querySelector(".g-gtitle");
+    if (tEl && lastTitleKey) titleWidths[lastTitleKey] = tEl.getBoundingClientRect().width;
+    var besideNow = fl && fl.xaxis && ((titleWidths[lastTitleKey] || 0) / 2 + 40 + legW <= fl.xaxis._length / 2);
+    var off = fl && fl.xaxis && fl.xaxis._length > 0 && (Math.abs(fl.xaxis._length - lastPlotW) > 0.5 || Math.abs(legH - lastLegendDims.h) > 1 || besideNow !== lastLegendBeside);
     if (off && reflowCount < 2 && lastRenderedData === data) { reflowCount++; renderChart(data); }
     else reflowCount = 0;
   });
