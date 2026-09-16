@@ -29,6 +29,8 @@
   }
   #thresholdWrap, #ymaxWrap, #smoothWrap, #binsWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
   #thresholdWrap label, #ymaxWrap label, #smoothWrap label, #binsWrap label { color: #999; white-space: nowrap; }
+  /* While a video is being captured the recorder drives the chart, so everything but the video panel is locked. */
+  body.recording #controls > *:not(#videoWrap) { pointer-events: none; opacity: 0.45; }
   #thresholdInput, #ymaxInput, #smoothInput, #binsInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   #thresholdInput:focus, #ymaxInput:focus, #smoothInput:focus, #binsInput:focus { border-color: #ff8c00; outline: none; }
   #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 2px; }
@@ -251,7 +253,14 @@ var ageMode = true;   // default view: AGE, USD-weighted
 var coinMode = false;
 var bottomThreshold = 80;
 var yMaxPct = 100;
-var cache = {};
+var cache = {};        // binned chart data keyed by date + view + bins + smoothing (see dataKey)
+var cacheOrder = [];   // insertion order, for eviction
+var CACHE_MAX = 150;
+var rawCache = {};     // raw API responses per date ({all, lth, sth, age}); re-binned locally when Bins or Smoothing change
+var rawOrder = [];
+var RAW_CACHE_MAX = 6;
+var rawInflight = {};  // date + view -> pending fetch, shared by rapid repeat requests
+var lastRenderedData = null; // what the chart is showing right now (the tracer follows this, not currentIdx)
 var renderSeq = 0; // bumped per loadAndRender call so a slow fetch cannot paint over a newer date
 var spotCache = {};
 var lang = "en";
@@ -349,6 +358,28 @@ var STEP_LABELS = ["1D", "1W", "1M", "1Y"];
 
 var VIEW_MODES = [{split:false,age:false,coin:false},{split:false,age:true,coin:false},{split:true,age:false,coin:false},{split:false,age:false,coin:true},{split:false,age:true,coin:true},{split:true,age:false,coin:true}];
 function modeKey() { return ageMode ? "_age" : (splitMode ? "_split" : "_pl"); }
+// Binned data depends on the view, the bin count and the smoothing, so all three are in the key: a response
+// that lands after a setting changed can never be drawn or cached under the wrong settings.
+function dataKey(dateStr) { return dateStr + modeKey() + "|b" + NUM_BINS + "|s" + KERNEL_PCT; }
+function cacheSet(key, data) {
+  if (!cache[key]) { cacheOrder.push(key); if (cacheOrder.length > CACHE_MAX) delete cache[cacheOrder.shift()]; }
+  cache[key] = data;
+}
+function rawTouch(dateStr) {
+  var i = rawOrder.indexOf(dateStr);
+  if (i >= 0) rawOrder.splice(i, 1);
+  rawOrder.push(dateStr);
+  if (rawOrder.length > RAW_CACHE_MAX) delete rawCache[rawOrder.shift()];
+  if (!rawCache[dateStr]) rawCache[dateStr] = {};
+  return rawCache[dateStr];
+}
+function rawComplete(raw) { return !!(raw && raw.all && (!splitMode || raw.lth !== undefined) && (!ageMode || raw.age)); }
+// Bottom signal and Y-max only change how the current data is drawn, so they re-draw it from the cache. If a
+// fetch is in flight for this date the new setting is picked up when it lands.
+function rerenderCurrent() {
+  var d = cache[dataKey(allDates[currentIdx])];
+  if (d) renderChart(d);
+}
 function viewIndexFor(coin, split, age) { return (coin ? 3 : 0) + (age ? 1 : (split ? 2 : 0)); }
 var viewIdx = 1; // VIEW_MODES index of USD AGE (the default view)
 
@@ -449,6 +480,7 @@ function computeRedPct(rawAll, spot) {
 }
 
 function setViewMode(idx) {
+  if (window.videoRecording) return;
   viewIdx = idx;
   var m = VIEW_MODES[idx];
   splitMode = m.split;
@@ -469,76 +501,116 @@ function setInterval1(idx) {
   btns[idx].classList.add("active");
 }
 
-function loadAndRender() {
-  var dateStr = allDates[currentIdx];
-  var mySeq = ++renderSeq;
-  document.getElementById("loading").style.display = "block";
-  var cacheKey = dateStr + modeKey();
-  if (cache[cacheKey]) {
-    renderChart(cache[cacheKey]);
-    document.getElementById("loading").style.display = "none";
-    return;
-  }
-  fetchJSON(BASE + "/api/series/cost-basis/all/" + dateStr).then(function(rawAll) {
-    var spot = getSpotFromCache(dateStr);
-    var prices = Object.keys(rawAll).map(Number).filter(function(n){return !isNaN(n);});
-    var maxPrice = prices.reduce(function(a,b){return a>b?a:b},0);
-    var binWidth = maxPrice / NUM_BINS;
-    var aggAll = aggregate(rawAll, binWidth);
-    // The toolbar shows only the position counter; the date is in the chart title and the price on the spot label.
-    document.getElementById("dateDisplay").textContent = "(" + (currentIdx+1) + "/" + allDates.length + ")";
-    var data = { dateStr: dateStr, spot: spot, aggAll: aggAll, binWidth: binWidth, maxPrice: maxPrice, rawAll: rawAll };
-    data.realizedCap = aggAll.reduce(function(s,b){return s+b.invested;}, 0);
-    data.totalSupply = aggAll.reduce(function(s,b){return s+b.supply;}, 0);
-    data.redPct = computeRedPct(rawAll, spot);
-    if (splitMode) {
+// Fetch whatever raw series the current view needs for a date (all supply, plus LTH/STH or the age cohorts) and
+// keep them in rawCache so Bins / Smoothing changes re-bin locally instead of re-downloading.
+function fetchRaw(dateStr) {
+  var key = dateStr + modeKey();
+  if (rawInflight[key]) return rawInflight[key];
+  var wantSplit = splitMode, wantAge = ageMode;
+  var raw = rawTouch(dateStr);
+  var p = (raw.all ? Promise.resolve(raw.all) : fetchJSON(BASE + "/api/series/cost-basis/all/" + dateStr)).then(function(rawAll) {
+    raw.all = rawAll;
+    if (wantSplit && raw.lth === undefined) {
       return Promise.all([
         fetchJSON(BASE + "/api/series/cost-basis/lth/" + dateStr),
         fetchJSON(BASE + "/api/series/cost-basis/sth/" + dateStr)
       ]).then(function(res) {
-        var rawLTH = res[0], rawSTH = res[1];
-        data.aggLTH = aggregate(rawLTH, binWidth);
-        data.aggSTH = aggregate(rawSTH, binWidth);
-        data.lthRC = Object.keys(rawLTH).reduce(function(s,k){return s + parseFloat(k)*rawLTH[k];}, 0);
-        data.sthRC = Object.keys(rawSTH).reduce(function(s,k){return s + parseFloat(k)*rawSTH[k];}, 0);
-        data.lthSup = Object.keys(rawLTH).reduce(function(s,k){return s + rawLTH[k];}, 0);
-        data.sthSup = Object.keys(rawSTH).reduce(function(s,k){return s + rawSTH[k];}, 0);
-        return data;
+        raw.lth = res[0]; raw.sth = res[1];
+        return raw;
       }).catch(function(e) {
         console.warn("Cohort fetch failed", e);
-        data.aggLTH = null; data.aggSTH = null;
-        return data;
+        raw.lth = null; raw.sth = null;
+        return raw;
       });
     }
-    if (ageMode) {
+    if (wantAge && !raw.age) {
       return Promise.all(AGE_BANDS.map(function(band) {
         return fetchJSON(BASE + "/api/series/cost-basis/" + band.cohort + "/" + dateStr).catch(function(){ return null; });
       })).then(function(res) {
-        var cohorts = [];
-        for (var ci = 0; ci < AGE_BANDS.length; ci++) {
-          var raw = res[ci];
-          if (!raw) continue;
-          var ks = Object.keys(raw), sup = 0, rc = 0;
-          for (var kk = 0; kk < ks.length; kk++) { var pp = parseFloat(ks[kk]); if (isNaN(pp)) continue; sup += raw[ks[kk]]; rc += pp * raw[ks[kk]]; }
-          cohorts.push({ label: AGE_BANDS[ci].label, color: AGE_BAND_COLORS[ci], agg: aggregate(raw, binWidth), supply: sup, rc: rc });
-        }
-        data.aggAge = cohorts.length ? cohorts : null;
-        return data;
+        raw.age = res;
+        return raw;
       });
     }
-    return data;
-  }).then(function(data) {
-    cache[data.dateStr + modeKey()] = data;
-    if (mySeq !== renderSeq) return;
-    renderChart(data);
-    document.getElementById("loading").style.display = "none";
+    return raw;
+  });
+  rawInflight[key] = p;
+  p.then(function(){ delete rawInflight[key]; }, function(){ delete rawInflight[key]; });
+  return p;
+}
+
+// Bin the raw series with the current Bins / Smoothing settings.
+function buildData(dateStr, raw) {
+  var rawAll = raw.all;
+  var spot = getSpotFromCache(dateStr);
+  var prices = Object.keys(rawAll).map(Number).filter(function(n){return !isNaN(n);});
+  var maxPrice = prices.reduce(function(a,b){return a>b?a:b},0);
+  var binWidth = maxPrice / NUM_BINS;
+  var aggAll = aggregate(rawAll, binWidth);
+  var data = { dateStr: dateStr, spot: spot, aggAll: aggAll, binWidth: binWidth, maxPrice: maxPrice };
+  data.realizedCap = aggAll.reduce(function(s,b){return s+b.invested;}, 0);
+  data.totalSupply = aggAll.reduce(function(s,b){return s+b.supply;}, 0);
+  data.redPct = computeRedPct(rawAll, spot);
+  if (splitMode) {
+    var rawLTH = raw.lth, rawSTH = raw.sth;
+    if (rawLTH && rawSTH) {
+      data.aggLTH = aggregate(rawLTH, binWidth);
+      data.aggSTH = aggregate(rawSTH, binWidth);
+      data.lthRC = Object.keys(rawLTH).reduce(function(s,k){return s + parseFloat(k)*rawLTH[k];}, 0);
+      data.sthRC = Object.keys(rawSTH).reduce(function(s,k){return s + parseFloat(k)*rawSTH[k];}, 0);
+      data.lthSup = Object.keys(rawLTH).reduce(function(s,k){return s + rawLTH[k];}, 0);
+      data.sthSup = Object.keys(rawSTH).reduce(function(s,k){return s + rawSTH[k];}, 0);
+    } else {
+      data.aggLTH = null; data.aggSTH = null;
+    }
+  }
+  if (ageMode) {
+    var cohorts = [];
+    var res = raw.age || [];
+    for (var ci = 0; ci < AGE_BANDS.length; ci++) {
+      var r = res[ci];
+      if (!r) continue;
+      var ks = Object.keys(r), sup = 0, rc = 0;
+      for (var kk = 0; kk < ks.length; kk++) { var pp = parseFloat(ks[kk]); if (isNaN(pp)) continue; sup += r[ks[kk]]; rc += pp * r[ks[kk]]; }
+      cohorts.push({ label: AGE_BANDS[ci].label, color: AGE_BAND_COLORS[ci], agg: aggregate(r, binWidth), supply: sup, rc: rc });
+    }
+    data.aggAge = cohorts.length ? cohorts : null;
+  }
+  return data;
+}
+
+function showData(data) {
+  renderChart(data);
+  document.getElementById("loading").style.display = "none";
+}
+
+function loadAndRender() {
+  var dateStr = allDates[currentIdx];
+  var mySeq = ++renderSeq;
+  var key = dataKey(dateStr);
+  if (cache[key]) { showData(cache[key]); return; }
+  var raw = rawCache[dateStr];
+  if (rawComplete(raw)) {
+    rawTouch(dateStr);
+    var data = buildData(dateStr, raw);
+    cacheSet(key, data);
+    showData(data);
+    return;
+  }
+  document.getElementById("loading").style.display = "block";
+  fetchRaw(dateStr).then(function(raw) {
+    if (mySeq !== renderSeq) return; // superseded; the raw stays cached for when this date comes back
+    var data = buildData(dateStr, raw); // binned with whatever Bins / Smoothing are set now
+    cacheSet(dataKey(dateStr), data);
+    showData(data);
   }).catch(function(e) {
+    if (mySeq !== renderSeq) return;
     document.getElementById("status").textContent = "Error: " + e.message;
     document.getElementById("loading").style.display = "none";
   });
 }
 
 function renderChart(data) {
+  lastRenderedData = data;
   var dateStr = data.dateStr, spot = data.spot, aggAll = data.aggAll, binWidth = data.binWidth;
   document.getElementById("binsUnit").textContent = "= $" + (binWidth >= 100 ? Math.round(binWidth).toLocaleString("en-US") : binWidth >= 1 ? binWidth.toFixed(1) : binWidth.toFixed(3));
   var aggLTH = data.aggLTH, aggSTH = data.aggSTH, realizedCap = data.realizedCap, totalSupply = data.totalSupply;
@@ -792,14 +864,14 @@ function renderChart(data) {
   document.getElementById("chart").removeAllListeners("plotly_legendclick");
   document.getElementById("chart").on("plotly_legendclick", function(evtData) {
     if (evtData.data[evtData.curveNumber].name === "BTC/USD") {
-      showPriceOverlay = !showPriceOverlay;
-      loadAndRender();
+      if (!window.videoRecording) { showPriceOverlay = !showPriceOverlay; loadAndRender(); }
       return false;
     }
   });
 }
 
 function goTo(idx) {
+  if (window.videoRecording) return; // the recorder drives the date while it captures frames
   idx = Math.max(0, Math.min(allDates.length - 1, idx));
   if (idx !== currentIdx) { currentIdx = idx; loadAndRender(); }
 }
@@ -818,6 +890,7 @@ document.getElementById("btnBTC").onclick = function(){ setViewMode(viewIndexFor
 // Language toggle
 
 document.getElementById("langBtn").onclick = function(){
+  if (window.videoRecording) return;
   lang = (lang === "en") ? "zh" : "en";
   applyLang();
 };
@@ -828,54 +901,81 @@ document.querySelectorAll("#intervalBar .iv").forEach(function(btn) {
   });
 });
 
-document.getElementById("thresholdInput").addEventListener("input", function(e){
-  var v = parseFloat(e.target.value);
-  if (!isNaN(v) && v >= 0 && v <= 100) {
-    bottomThreshold = v;
-    var dateStr = allDates[currentIdx];
-    var cacheKey = dateStr + modeKey();
-    if (cache[cacheKey]) renderChart(cache[cacheKey]);
-  }
-});
-
-// Smoothing is entered in tenths of a percent of price (0.1-0.3 is a light touch); anything above 1 blurs the
-// distribution too much to be useful, so the value is capped at 1. The field is tidied to one decimal on blur.
-document.getElementById("binsInput").addEventListener("input", function(e){
-  var v = parseInt(e.target.value, 10);
+// Toolbar settings. Bottom signal and Y-max only change how the current data is drawn, so they re-draw from
+// the cache; Bins and Smoothing change the binning, so they re-bin the cached raw series (no re-download) and
+// render. Each applies live while typing, is clamped and tidied on blur, and Enter or Escape leaves the field so
+// the arrow keys go back to stepping the chart. All are locked while a video is being captured.
+function applyThreshold(v) {
+  if (isNaN(v) || v < 0 || v > 100 || v === bottomThreshold) return;
+  bottomThreshold = v;
+  rerenderCurrent();
+}
+function applyYMax(v) {
+  if (isNaN(v) || v < 1 || v > 100 || v === yMaxPct) return;
+  yMaxPct = v;
+  rerenderCurrent();
+}
+function applyBins(v) {
   if (isNaN(v) || v < 50 || v > 1000 || v === NUM_BINS) return;
   NUM_BINS = v;
-  cache = {}; // binned data depends on the bin count
   loadAndRender();
+}
+// Smoothing is entered in tenths of a percent of price (0.1-0.3 is a light touch); anything above 1 blurs the
+// distribution too much to be useful, so the value is capped at 1.
+function applySmoothing(v) {
+  if (isNaN(v) || v < 0) return;
+  if (v > 1) v = 1;
+  if (v === KERNEL_PCT) return;
+  KERNEL_PCT = v;
+  loadAndRender();
+}
+document.getElementById("thresholdInput").addEventListener("input", function(e){
+  if (!window.videoRecording) applyThreshold(parseFloat(e.target.value));
+});
+document.getElementById("thresholdInput").addEventListener("change", function(e){
+  var v = parseFloat(e.target.value);
+  v = isNaN(v) ? bottomThreshold : Math.max(0, Math.min(100, v));
+  e.target.value = String(v);
+  if (!window.videoRecording) applyThreshold(v);
+});
+document.getElementById("binsInput").addEventListener("input", function(e){
+  if (!window.videoRecording) applyBins(parseInt(e.target.value, 10));
 });
 document.getElementById("binsInput").addEventListener("change", function(e){
   var v = parseInt(e.target.value, 10);
   v = isNaN(v) ? NUM_BINS : Math.max(50, Math.min(1000, v));
   e.target.value = String(v);
-  if (v !== NUM_BINS) { NUM_BINS = v; cache = {}; loadAndRender(); }
+  if (!window.videoRecording) applyBins(v);
 });
-
 document.getElementById("smoothInput").addEventListener("input", function(e){
-  var v = parseFloat(e.target.value);
-  if (isNaN(v) || v < 0) return;
-  if (v > 1) v = 1;
-  if (v === KERNEL_PCT) return;
-  KERNEL_PCT = v;
-  cache = {}; // binned data depends on the kernel
-  loadAndRender();
+  if (!window.videoRecording) applySmoothing(parseFloat(e.target.value));
 });
 document.getElementById("smoothInput").addEventListener("change", function(e){
   var v = parseFloat(e.target.value);
-  e.target.value = (isNaN(v) || v < 0 ? 0 : Math.min(1, v)).toFixed(1);
+  v = isNaN(v) || v < 0 ? KERNEL_PCT : Math.min(1, v);
+  e.target.value = v.toFixed(1);
+  if (!window.videoRecording) applySmoothing(v);
 });
-
 document.getElementById("ymaxInput").addEventListener("input", function(e){
+  if (!window.videoRecording) applyYMax(parseFloat(e.target.value));
+});
+document.getElementById("ymaxInput").addEventListener("change", function(e){
   var v = parseFloat(e.target.value);
-  if (!isNaN(v) && v >= 1 && v <= 100) {
-    yMaxPct = v;
-    var dateStr = allDates[currentIdx];
-    var cacheKey = dateStr + modeKey();
-    if (cache[cacheKey]) renderChart(cache[cacheKey]);
-  }
+  v = isNaN(v) ? yMaxPct : Math.max(1, Math.min(100, v));
+  e.target.value = String(v);
+  if (!window.videoRecording) applyYMax(v);
+});
+// Make the fields show the settings in force (used after a recording, when typing was locked out).
+function syncSettingFields() {
+  document.getElementById("thresholdInput").value = String(bottomThreshold);
+  document.getElementById("binsInput").value = String(NUM_BINS);
+  document.getElementById("smoothInput").value = KERNEL_PCT.toFixed(1);
+  document.getElementById("ymaxInput").value = String(yMaxPct);
+}
+["thresholdInput", "binsInput", "smoothInput", "ymaxInput"].forEach(function(id) {
+  document.getElementById(id).addEventListener("keydown", function(e) {
+    if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); this.blur(); }
+  });
 });
 
 document.addEventListener("keydown", function(e){
@@ -894,11 +994,19 @@ document.addEventListener("keydown", function(e){
   else if (e.key === "2") { e.preventDefault(); setInterval1(1); }
   else if (e.key === "3") { e.preventDefault(); setInterval1(2); }
   else if (e.key === "4") { e.preventDefault(); setInterval1(3); }
+  else if (e.key === "Escape") {
+    // Close whatever is open and drop focus so the next key goes to the chart.
+    closeDateDD();
+    document.getElementById("explainPanel").style.display = "none";
+    var vp = document.getElementById("videoPanel");
+    if (vp) vp.style.display = "none";
+    if (e.target && e.target.blur) e.target.blur();
+  }
 });
 
 function jumpToDate() {
   var val = document.getElementById("dateInput").value;
-  if (!val) return;
+  if (!val || window.videoRecording) return;
   var idx = allDates.indexOf(val);
   if (idx >= 0) {
     currentIdx = idx;
@@ -1107,7 +1215,8 @@ function updateVideoLang() {
     if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { setStatus(vt("This browser cannot record video.", "\u6b64\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5f55\u5236\u89c6\u9891\u3002")); return; }
 
     videoRecording = true; videoCancel = false;
-    recBtn.disabled = true; cancelBtn.disabled = false; btn.classList.add("rec");
+    recBtn.disabled = true; cancelBtn.disabled = false; btn.classList.add("rec"); document.body.classList.add("recording");
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); // nothing keeps keyboard focus while frames are captured
     var savedIdx = currentIdx;
     var gd = document.getElementById("chart");
     var cw = gd.offsetWidth || 1200, ch = gd.offsetHeight || 600;
@@ -1118,7 +1227,8 @@ function updateVideoLang() {
 
     function finish(ok) {
       videoRecording = false; videoCancel = false;
-      recBtn.disabled = false; cancelBtn.disabled = true; btn.classList.remove("rec");
+      recBtn.disabled = false; cancelBtn.disabled = true; btn.classList.remove("rec"); document.body.classList.remove("recording");
+      syncSettingFields();
       currentIdx = savedIdx;
       loadAndRender();
       if (!ok) setStatus(vt("Cancelled.", "\u5df2\u53d6\u6d88\u3002"));
@@ -1215,11 +1325,11 @@ window.tracerDragWindow = null;
   function axes() { var fl = gd._fullLayout; return fl && fl.xaxis2 && fl.yaxis3 && fl.xaxis2._length ? fl : null; }
   window.placeTracer = function() {
     var fl = axes();
-    var data = cache[allDates[currentIdx] + modeKey()];
+    var data = lastRenderedData; // the dot marks the date the chart is showing
     var spot = data && data.spot;
     if (!fl || !showPriceOverlay || !(spot > 0)) { el.classList.remove("show"); return; }
     var xa = fl.xaxis2, ya = fl.yaxis3;
-    var x = xa._offset + xa.d2p(allDates[currentIdx]);
+    var x = xa._offset + xa.d2p(data.dateStr);
     var y = ya._offset + ya.d2p(spot);
     if (!isFinite(x) || !isFinite(y) || x < xa._offset - 8 || x > xa._offset + xa._length + 8) { el.classList.remove("show"); return; }
     var r = gd.getBoundingClientRect();
