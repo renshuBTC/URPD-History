@@ -29,11 +29,6 @@
     0%, 100% { text-shadow: 0 0 10px #FFE600, 0 0 20px #FFE600, 0 0 40px #FFE600; }
     50% { text-shadow: 0 0 20px #FFE600, 0 0 40px #FFE600, 0 0 80px #FFE600; }
   }
-@keyframes glowBox {
-  0%, 100% { filter: drop-shadow(0 0 4px #FFE600) drop-shadow(0 0 10px #FFE600); }
-  50% { filter: drop-shadow(0 0 8px #FFE600) drop-shadow(0 0 20px #FFE600); }
-}
-.spot-label-glow rect.bg { animation: glowBox 2s ease-in-out infinite; } /* spot-price box while the bottom signal is on */
   #thresholdWrap, #ymaxWrap, #smoothWrap, #binsWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
   #thresholdWrap label, #ymaxWrap label, #smoothWrap label, #binsWrap label { color: #999; white-space: nowrap; }
   /* While a video is being captured the recorder drives the chart, so everything but the video panel is locked. */
@@ -408,16 +403,6 @@ function rerenderCurrent() {
 var lastPlotW = 0, reflowCount = 0, resizeTimer = null;
 var legendDims = {}, lastLegendKey = null, lastLegendDims = { h: 0 }; // measured legend height per view and width
 var tracerHooked = false;
-var spotLabelIdx = -1, spotLabelGlow = false; // which annotation is the spot-price box, and whether it should glow
-// Plotly rebuilds the annotation nodes on every draw, so the glow class is re-applied after each one.
-function glowSpotLabel() {
-  var gd = document.getElementById("chart");
-  var groups = gd.querySelectorAll(".annotation");
-  for (var i = 0; i < groups.length; i++) {
-    var g = groups[i];
-    g.classList.toggle("spot-label-glow", spotLabelGlow && g.getAttribute("data-index") === String(spotLabelIdx));
-  }
-}
 // Width of the plotting area in CSS px: from the current layout when it matches the container, else the
 // container minus the fixed left/right margins.
 function plotWidthPx() {
@@ -769,7 +754,7 @@ function renderChart(data) {
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});
     var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br><span style='color:" + PROFIT_COLOR + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "%</span><br><span style='color:" + LOSS_COLOR + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "%</span>";
     // Bottom signal: a fourth line in the same yellow and glow as the old banner (the words are identical), and the
-    // box border turns yellow and glows too (glowSpotLabel adds the class after every draw).
+    // box border turns the same yellow (no glow on the border).
     if (isBottom) labelText += "<br><span style='color:" + GLOW_COLOR + ";text-shadow:0 0 10px " + GLOW_COLOR + ",0 0 20px " + GLOW_COLOR + ",0 0 40px " + GLOW_COLOR + ";animation:glowPulse 2s ease-in-out infinite'>" + t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix") + "</span>";
     // The label sits to the right of the spot line unless it would run past the plot edge, in which
     // case it flips to the left of the line (estimate: 13px monospace ~7.9px per character, plus box).
@@ -778,7 +763,6 @@ function renderChart(data) {
     var labelFrac = (labelChars * 7.9 + 24) / plotPx;
     var flipLabel = (spot / (maxP || spot)) + labelFrac > 0.99;
     annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:flipLabel?"right":"left",xshift:flipLabel?-6:6,yanchor:"top",align:"left",font:{color:"#ffffff",size:13,family:FONT},bgcolor:"rgba(0,0,0,0.92)",bordercolor:isBottom ? GLOW_COLOR : "rgba(255,255,255,0.45)",borderwidth:1,borderpad:5});
-    spotLabelIdx = annotations.length - 1; spotLabelGlow = isBottom;
   }
 
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
@@ -865,11 +849,11 @@ function renderChart(data) {
     if (!tracerHooked && typeof gdEl.on === "function") {
       // Plotly redraws on its own too (responsive resize, zoom, autosize); the dot must follow every redraw,
       // otherwise it is left where the marker used to be and two dots show.
-      gdEl.on("plotly_afterplot", function(){ if (window.placeTracer) placeTracer(); glowSpotLabel(); });
-      gdEl.on("plotly_relayout", function(){ if (window.placeTracer) placeTracer(); glowSpotLabel(); });
+      gdEl.on("plotly_afterplot", function(){ if (window.placeTracer) placeTracer(); });
+      gdEl.on("plotly_relayout", function(){ if (window.placeTracer) placeTracer(); });
       tracerHooked = true;
     }
-    if (window.placeTracer) placeTracer(); glowSpotLabel();
+    if (window.placeTracer) placeTracer();
     // If the plotting area came out a different width than assumed (first draw), draw once more so the
     // 1 px gaps are computed from the real pitch.
     var fl = gdEl._fullLayout;
