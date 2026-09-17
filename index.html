@@ -88,6 +88,14 @@
   #controls label, #controls #binsUnit, #controls #thresholdInput, #controls #binsInput,
   #controls #smoothInput, #controls #ymaxInput, #controls #dateDisplay { font-size: 12px; }
   #controls label, #controls #binsUnit { color: #8a8a8a; }
+  /* the export panel reads like the explainer: one size, one weight, white or orange */
+  #videoPanel { width: 300px; }
+  #videoPanel, #videoPanel h2, #videoPanel label, #videoPanel input, #videoPanel .vhint,
+  #controls #videoPanel button, #controls #videoPanel #videoStatus { font-size: 13px; font-weight: 400; font-family: inherit; }
+  #videoPanel, #videoPanel label, #videoPanel .vhint, #controls #videoPanel button,
+  #controls #videoPanel button:disabled, #controls #videoPanel #videoStatus { color: #ffffff; }
+  #videoPanel h2, #videoPanel input { color: #ff8c00; }
+  #controls #videoPanel input, #controls #videoPanel button { height: 26px; }
 </style>
 </head>
 <body>
@@ -1362,8 +1370,10 @@ function updateVideoLang() {
       if (!tStart) tStart = performance.now();
       var etaTxt = "";
       if (fIdx > 2) {
-        var mins = Math.round(((performance.now() - tStart) / fIdx) * (frameIndices.length - fIdx) / 60000);
-        etaTxt = "  ·  " + (mins > 90 ? (mins / 60).toFixed(1) + vt(" h left", " 小时", " 時間") : mins + vt(" min left", " 分钟", " 分"));
+        var secsLeft = Math.round(((performance.now() - tStart) / fIdx) * (frameIndices.length - fIdx) / 1000);
+        etaTxt = "  ·  " + (secsLeft >= 5400 ? (secsLeft / 3600).toFixed(1) + vt(" h left", " 小时", " 時間")
+          : secsLeft >= 60 ? Math.round(secsLeft / 60) + vt(" min left", " 分钟", " 分")
+          : secsLeft + vt(" s left", " 秒", " 秒"));
       }
       setStatus(vt("Rendering frame ", "\u6e32\u67d3\u5e27 ") + (fIdx + 1) + " / " + frameIndices.length + "  (" + allDates[frameIndices[fIdx]] + ")" + etaTxt);
       renderIndex(frameIndices[fIdx]).then(function(){
