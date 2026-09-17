@@ -79,6 +79,11 @@
   #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; }
   #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 3px; }
+  /* one height for every control in the bar, and one gap between them */
+  #controls button, #controls input, #controls select, #controls #intervalBar { height: 24px; line-height: 1; }
+  #controls #intervalBar .iv { height: 22px; line-height: 1; }
+  #controls #intervalBar { margin-right: 0; }
+  #controls #langBtn { margin-left: 0; }
 </style>
 </head>
 <body>
@@ -115,6 +120,10 @@
     <button id="btnBTC">BTC</button>
   </div>
   <div class="ctrl-sep"></div>
+  <div class="mode-toggle">
+    <button id="btnPeak" title="Pin this day's tallest bar as a fixed scale">Pin scale</button>
+  </div>
+  <div class="ctrl-sep"></div>
   <div id="thresholdWrap">
     <label>Bottom signal</label>
     <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
@@ -137,10 +146,6 @@
     <label>Y-max</label>
     <input type="text" id="ymaxInput" value="100" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label>percentile</label>
-  </div>
-  <div class="ctrl-sep"></div>
-  <div class="mode-toggle">
-    <button id="btnPeak" title="Pin this day's tallest bar as a fixed scale">Pin scale</button>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle"></h2>
