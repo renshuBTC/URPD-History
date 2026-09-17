@@ -1302,8 +1302,6 @@ function updateVideoLang() {
     if (videoRecording) return;
     var from = fromEl.value, to = toEl.value;
     var fps = 30;  // one sensible speed, no dial to get wrong
-    // a handful of frames at 30 fps would flash past, so stretch a short export to about three seconds
-      if (frameIndices.length / fps < 3) fps = Math.max(2, Math.round(frameIndices.length / 3));
     if (!from || !to) { setStatus(vt("Pick both dates.", "\u8bf7\u9009\u62e9\u8d77\u6b62\u65e5\u671f\u3002")); return; }
     if (from > to) { var tmp = from; from = to; to = tmp; fromEl.value = from; toEl.value = to; }
     var startIdx = -1, endIdx = -1;
@@ -1317,6 +1315,8 @@ function updateVideoLang() {
     if (frameIndices[frameIndices.length - 1] !== endIdx) frameIndices.push(endIdx);
     if (frameIndices.length < 2) { setStatus(vt("Needs at least two frames: widen the range or use a smaller interval.", "\u81f3\u5c11\u9700\u8981\u4e24\u5e27\uff1a\u8bf7\u6269\u5927\u8303\u56f4\u6216\u7f29\u5c0f\u95f4\u9694\u3002")); return; }
     if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { setStatus(vt("This browser cannot record video.", "\u6b64\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5f55\u5236\u89c6\u9891\u3002")); return; }
+    // a handful of frames at 30 fps would flash past, so stretch a short export to about three seconds
+      if (frameIndices.length / fps < 3) fps = Math.max(2, Math.round(frameIndices.length / 3));
     // A long export is hours of work. Say so before it starts, not after it has failed.
     if (frameIndices.length > 400) {
       var estSec = Math.round(frameIndices.length / fps), estMB = Math.round(estSec * 8000000 / 8 / 1048576);
