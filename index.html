@@ -10,8 +10,8 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; display: flex; flex-direction: column; }
-  #controls { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: wrap; }
-  #controls button { background: #252525; color: #d4d4d4; border: 1px solid #555; padding: 4px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
+  #controls { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: wrap; }
+  #controls button { background: #252525; color: #d4d4d4; border: 1px solid #555; padding: 3px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
   #controls button:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .mode-toggle { display: flex; gap: 2px; }
   .mode-toggle button { padding: 4px 10px; font-size: 12px; letter-spacing: 0.5px; }
@@ -33,7 +33,7 @@
   body.recording #controls > *:not(#videoWrap) { pointer-events: none; opacity: 0.45; }
   #thresholdInput, #ymaxInput, #smoothInput, #binsInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   #thresholdInput:focus, #ymaxInput:focus, #smoothInput:focus, #binsInput:focus { border-color: #ff8c00; outline: none; }
-  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 2px; border: 1px solid #555; border-radius: 2px; margin-right: 2px; }
+  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 0; border: 1px solid #555; border-radius: 2px; margin-right: 2px; }
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
   #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
   #intervalBar .iv.active { background: #ff8c00; color: #000; font-weight: bold; }
@@ -836,11 +836,12 @@ function renderChart(data) {
   // above the bars.
   var legendKey = "age|" + Math.round(plotW);
   var ld = legendDims[legendKey] || { h: 29 };
-  var topMargin = 4 + 26 + ld.h;
+  var topMargin = 13 + 26 + ld.h; // the 13 is the title's clearance below the toolbar and must match title.pad.t,
+  // otherwise the title slides down into the legend instead of the whole block moving together
   lastLegendKey = legendKey; lastLegendDims = ld;
 
   var layout = {
-    title:{text:titleText,xref:"paper",x:0.5,xanchor:"center",y:1,yanchor:"top",pad:{t:4},font:{size:20,family:FONT,color:"#ffffff"}},
+    title:{text:titleText,xref:"paper",x:0.5,xanchor:"center",y:1,yanchor:"top",pad:{t:13},font:{size:20,family:FONT,color:"#ffffff"}},
     font:{family:FONT,color:"#ffffff"}, // inherited by the legend, the axis titles and every tick label
     paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
     barmode:isAge?"stack":"overlay",bargap:0,
