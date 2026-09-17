@@ -25,10 +25,6 @@
   #tracer.dragging { cursor: grabbing; }
   body.tracer-dragging, body.tracer-dragging * { cursor: grabbing !important; user-select: none; }
   #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 24px; color: #ff8c00; display: none; z-index: 999; }
-  @keyframes glowPulse {
-    0%, 100% { text-shadow: 0 0 10px #FFE600, 0 0 20px #FFE600, 0 0 40px #FFE600; }
-    50% { text-shadow: 0 0 20px #FFE600, 0 0 40px #FFE600, 0 0 80px #FFE600; }
-  }
   #thresholdWrap, #ymaxWrap, #smoothWrap, #binsWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
   #thresholdWrap label, #ymaxWrap label, #smoothWrap label, #binsWrap label { color: #999; white-space: nowrap; }
   /* While a video is being captured the recorder drives the chart, so everything but the video panel is locked. */
@@ -753,9 +749,9 @@ function renderChart(data) {
     }
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});
     var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br><span style='color:" + PROFIT_COLOR + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "%</span><br><span style='color:" + LOSS_COLOR + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "%</span>";
-    // Bottom signal: a fourth line in the same yellow and glow as the old banner (the words are identical), and the
-    // box border turns the same yellow (no glow on the border).
-    if (isBottom) labelText += "<br><span style='color:" + GLOW_COLOR + ";text-shadow:0 0 10px " + GLOW_COLOR + ",0 0 20px " + GLOW_COLOR + ",0 0 40px " + GLOW_COLOR + ";animation:glowPulse 2s ease-in-out infinite'>" + t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix") + "</span>";
+    // Bottom signal: a fourth line in bright yellow (the words the old status-bar banner had), and the box border
+    // turns the same yellow. Colour only, no glow anywhere.
+    if (isBottom) labelText += "<br><span style='color:" + GLOW_COLOR + "'>" + t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix") + "</span>";
     // The label sits to the right of the spot line unless it would run past the plot edge, in which
     // case it flips to the left of the line (estimate: 13px monospace ~7.9px per character, plus box).
     var plotPx = Math.max(200, plotWidthPx());
