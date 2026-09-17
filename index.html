@@ -84,6 +84,10 @@
   #controls #intervalBar .iv { height: 22px; line-height: 1; }
   #controls #intervalBar { margin-right: 0; }
   #controls #langBtn { margin-left: 0; }
+  /* one type size in the bar, hierarchy carried by colour instead */
+  #controls label, #controls #binsUnit, #controls #thresholdInput, #controls #binsInput,
+  #controls #smoothInput, #controls #ymaxInput, #controls #dateDisplay { font-size: 12px; }
+  #controls label, #controls #binsUnit { color: #8a8a8a; }
 </style>
 </head>
 <body>
@@ -309,7 +313,7 @@ var T = {
     landmarks: "Landmarks",     signalLabel: "Bottom signal", signalUnit: "% of value in loss", yMaxLabel: "Y-max", yMaxUnit: "percentile", smoothLabel: "Smoothing", smoothUnit: "% of price", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Value Held in Loss",
         titleUSDAge: "Bitcoin Supply Distribution (by USD Value) as of ", titleBTCAge: "Bitcoin Supply Distribution as of ",
-    priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Share of Total [%]", pctLegend: "% of Total",
+    priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Percent of Total [%]", pctLegend: "% of Total",
                 poweredBy: "Powered by <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> & <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a>",
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", usdProfit: "USD Value Held in Profit: ", usdLoss: "USD Value Held in Loss: ", btcProfit: "BTC Supply Held in Profit: ", btcLoss: "BTC Supply Held in Loss: ",
     langBtn: "\u4e2d\u6587",
