@@ -287,6 +287,34 @@ var rawInflight = {};  // date + view -> pending fetch, shared by rapid repeat r
 var lastRenderedData = null; // what the chart is showing right now (the tracer follows this, not currentIdx)
 var renderSeq = 0; // bumped per loadAndRender call so a slow fetch cannot paint over a newer date
 var spotCache = {};
+// ---- Peak marker ---------------------------------------------------------------------------------
+// A bar's height depends on the day, the weighting, the bin count and the smoothing, so a true all-time
+// high would mean re-binning every past day: the raw distribution is about 1.7 MB a day, 11 GB for the
+// full history. Instead every day you render offers up its own tallest bar and the marker keeps the
+// highest one seen, so scrubbing leaves a high-water mark to read the current day against. Records are
+// held per setting combination, so changing the weighting, the bin count or the smoothing starts a fresh
+// record rather than comparing heights that were never measured the same way.
+var PEAK_STORE_KEY = "bsd_peaks_v1";
+var peakStore = (function() {
+  try { return JSON.parse(localStorage.getItem(PEAK_STORE_KEY)) || {}; } catch (e) { return {}; }
+})();
+function peakKey() { return (coinMode ? "btc" : "usd") + "|b" + NUM_BINS + "|s" + KERNEL_PCT; }
+function peakBest() { return peakStore[peakKey()] || null; }
+function peakRecord(dateStr, value) {
+  if (!(value > 0)) return;
+  var best = peakBest();
+  if (best && best[1] >= value) return;
+  peakStore[peakKey()] = [dateStr, value];
+  try { localStorage.setItem(PEAK_STORE_KEY, JSON.stringify(peakStore)); } catch (e) {}
+}
+function peakCompact(v) {
+  var a = Math.abs(v);
+  if (a >= 1e12) return (v / 1e12).toFixed(2) + "T";
+  if (a >= 1e9) return (v / 1e9).toFixed(2) + "B";
+  if (a >= 1e6) return (v / 1e6).toFixed(2) + "M";
+  if (a >= 1e3) return (v / 1e3).toFixed(2) + "K";
+  return v.toFixed(2);
+}
 var lang = "en";
 
 var T = {
@@ -305,7 +333,7 @@ var T = {
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", usdProfit: "USD Value Held in Profit: ", usdLoss: "USD Value Held in Loss: ", btcProfit: "BTC Supply Held in Profit: ", btcLoss: "BTC Supply Held in Loss: ",
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Make sure BRK is running on localhost:3110",
-    allSupply: "All supply (age data unavailable)", spot: "Spot"
+    allSupply: "All supply (age data unavailable)", spot: "Spot", peakLabel: "Peak "
   },
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
@@ -322,7 +350,7 @@ var T = {
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", usdProfit: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u5904\u4e8e\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u5904\u4e8e\u4e8f\u635f: ",
     langBtn: "EN",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
-    allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", spot: "\u73b0\u4ef7"
+    allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", spot: "\u73b0\u4ef7", peakLabel: "峰值 "
   }
 };
 
@@ -679,6 +707,8 @@ function renderChart(data) {
   }
 
   var maxVal = valuesForAxis.reduce(function(a,b){return a>b?a:b},0);
+  peakRecord(dateStr, maxVal);
+  var peak = peakBest();
   var yClipped = false;
   if (yMaxPct < 100) {
     var sorted = valuesForAxis.filter(function(v){return v>0;}).slice().sort(function(a,b){return a-b;});
@@ -690,6 +720,11 @@ function renderChart(data) {
       }
     }
   }
+  // The axis grows to keep the marker on screen, so a day can be read against the record rather than
+  // against itself. An explicit Y-max overrides that: clipping the bars is a deliberate instruction.
+  var peakVal = (peak && !yClipped) ? peak[1] : 0;
+  if (peakVal > maxVal) maxVal = peakVal;
+
   // Six ticks; the step is the smallest "nice" value (1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10 x a power of ten)
   // whose sixth tick clears the tallest bar with 2% headroom, so the axis can never cut the bars off
   // (rounding the step used to do that when the stacked total sat just above a tick).
@@ -760,6 +795,14 @@ function renderChart(data) {
     var labelFrac = (labelChars * 7.9 + 24) / plotPx;
     var flipLabel = (spot / (maxP || spot)) + labelFrac > 0.99;
     annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:flipLabel?"right":"left",xshift:flipLabel?-6:6,yanchor:"top",align:"left",font:{color:"#ffffff",size:13,family:FONT},bgcolor:"rgba(0,0,0,0.92)",bordercolor:isBottom ? GLOW_COLOR : "rgba(255,255,255,0.45)",borderwidth:1,borderpad:5});
+  }
+
+  // Same 1 px white dash as the spot line, labelled at the left edge with the value and the day that set it.
+  if (peakVal > 0) {
+    shapes.push({type:"line",x0:0,x1:1,xref:"paper",y0:peakVal,y1:peakVal,yref:"y",line:{color:"#ffffff",width:1,dash:"dash"},layer:"above"});
+    var peakDate = new Date(peak[0] + "T00:00:00").toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"});
+    var peakText = t("peakLabel") + (isCoin ? peakCompact(peakVal) + " BTC" : "$" + peakCompact(peakVal)) + " \u00b7 " + peakDate;
+    annotations.push({x:0,xref:"paper",xanchor:"left",xshift:4,y:peakVal,yref:"y",yanchor:"bottom",yshift:2,text:peakText,showarrow:false,font:{color:"#ffffff",size:11,family:FONT},bgcolor:"rgba(0,0,0,0.75)",borderpad:2});
   }
 
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
