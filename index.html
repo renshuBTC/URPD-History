@@ -1417,12 +1417,11 @@ function updateVideoLang() {
           var wait = Math.max(0, start + i * interval - performance.now());
           setTimeout(function() {
             ctx.drawImage(im, 0, 0, W, H);
-            if (im.close) im.close();   // free the decoded bitmap and the frame behind it
-            frames[i] = null;
+            frames[i] = null;   // the pixels are on the canvas now, let the blob go
             track.requestFrame();
             i++;
             if (videoCancel) { recorder.stop(); return; }
-            if (i < frames.length) { pending = decodeFrame(i); step(); return; }
+            if (i < frames.length) { if (im.close) im.close(); pending = decodeFrame(i); step(); return; }
             // Hold the final frame for a second, then let the encoder drain before stopping: frames
             // pushed right before stop() are dropped otherwise.
             var holdEnd = performance.now() + 1000;
