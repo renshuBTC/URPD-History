@@ -994,6 +994,14 @@ function syncSettingFields() {
   });
 });
 
+// A toolbar field keeps focus after you type in it, and the chart is an SVG, which cannot take focus away by
+// being clicked. So a click anywhere on the chart drops focus from the field: after that the arrow keys drive
+// the chart again. Enter and Escape still do the same thing, whichever you reach for.
+document.getElementById("chart").addEventListener("pointerdown", function() {
+  var a = document.activeElement;
+  if (a && a.blur && (a.tagName === "INPUT" || a.tagName === "SELECT")) a.blur();
+}, true);
+
 document.addEventListener("keydown", function(e){
   if (e.target.tagName === "INPUT") return;
   if (window.videoRecording) return;
