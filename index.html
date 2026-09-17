@@ -129,7 +129,7 @@
   <div class="ctrl-sep"></div>
   <div id="smoothWrap">
     <label>Smoothing</label>
-    <input type="text" id="smoothInput" value="0.0" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <input type="text" id="smoothInput" value="0.3" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label>% of price</label>
   </div>
   <div class="ctrl-sep"></div>
@@ -488,7 +488,7 @@ function getSpotFromCache(dateStr) {
 // single price, so raw bins show needles; smoothing trades that fidelity for readability (a one-bin kernel
 // displaces about 23% of the mass at $200 bins). Mass and USD value are preserved exactly either way, and every
 // bin is returned, so each date shows the same number of bars.
-var KERNEL_PCT = 0; // smoothing: Gaussian sigma as a percentage of price; 0 = raw bins
+var KERNEL_PCT = 0.3; // smoothing: Gaussian sigma as a percentage of price; 0 = raw bins
 function aggregate(raw, binWidth) {
   var n = NUM_BINS + 1;
   var supply = new Float64Array(n), invested = new Float64Array(n);
