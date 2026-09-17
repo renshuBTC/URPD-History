@@ -750,10 +750,10 @@ function renderChart(data) {
     {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:creditRow?-38:-62,text:(lang==="zh" ? "\u7531 Bitcoin Research Kit \u548c Bitcoin Core \u63d0\u4f9b\u652f\u6301 \u00b7 \u7075\u611f\u6765\u81ea Renato Shira \u4e0e James Check" : "Powered by Bitcoin Research Kit & Bitcoin Core \u00b7 Inspired by Renato Shira and James Check"),showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
   ];
 
-  // Spot line and its label are pure white and drawn above everything else so they stay readable while
-  // navigating. The line is a 1 px dash, thinner than a bar, so it never hides a tall bar behind it, and it
-  // does not change when the bottom signal fires (the status bar carries that).
-  var spotLineColor = "#ffffff";
+  // Spot line and its label are drawn above everything else so they stay readable while navigating. The line
+  // is a 1 px dash, thinner than a bar, so it never hides a tall bar behind it. It is white, and switches to the
+  // status bar's bright yellow while the bottom signal is on (colour only, no glow, so it still covers nothing).
+  var spotLineColor = isBottom ? GLOW_COLOR : "#ffffff";
   if (spot && spot > 0) {
     var spotCumul = 0;
     var totalSC = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
