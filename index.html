@@ -636,20 +636,8 @@ function renderChart(data) {
   var isCoin = coinMode;
   var isBottom = redPct >= bottomThreshold;
 
-  var statusEl = document.getElementById("status");
-  if (isBottom) {
-    statusEl.textContent = t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix");
-    statusEl.style.color = "#FFE600";
-    statusEl.style.background = "#1a1800";
-    statusEl.style.borderBottom = "2px solid #FFE600";
-    statusEl.style.animation = "glowPulse 2s ease-in-out infinite";
-  } else {
-    statusEl.textContent = allDates.length + t("statusLoaded");
-    statusEl.style.color = "#666";
-    statusEl.style.background = "#111";
-    statusEl.style.borderBottom = "1px solid #222";
-    statusEl.style.animation = "none";
-  }
+  // The status bar only reports the loaded range; the bottom signal is shown in the spot-price box.
+  document.getElementById("status").textContent = allDates.length + t("statusLoaded");
 
   document.getElementById("dateDisplay").textContent = "(" + (currentIdx+1) + "/" + allDates.length + ")";
 
@@ -752,7 +740,7 @@ function renderChart(data) {
 
   // Spot line and its label are drawn above everything else so they stay readable while navigating. The line
   // is a 1 px dash, thinner than a bar, so it never hides a tall bar behind it. It is white, and switches to the
-  // status bar's bright yellow while the bottom signal is on (colour only, no glow, so it still covers nothing).
+  // bottom-signal yellow while the signal is on (colour only, no glow, so it still covers nothing).
   var spotLineColor = isBottom ? GLOW_COLOR : "#ffffff";
   if (spot && spot > 0) {
     var spotCumul = 0;
@@ -765,13 +753,16 @@ function renderChart(data) {
     }
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});
     var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br><span style='color:" + PROFIT_COLOR + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "%</span><br><span style='color:" + LOSS_COLOR + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "%</span>";
+    // Bottom signal: a fourth line in the same yellow and glow as the old banner (the words are identical), and the
+    // box border turns the same yellow (no glow on the border).
+    if (isBottom) labelText += "<br><span style='color:" + GLOW_COLOR + ";text-shadow:0 0 10px " + GLOW_COLOR + ",0 0 20px " + GLOW_COLOR + ",0 0 40px " + GLOW_COLOR + ";animation:glowPulse 2s ease-in-out infinite'>" + t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix") + "</span>";
     // The label sits to the right of the spot line unless it would run past the plot edge, in which
     // case it flips to the left of the line (estimate: 13px monospace ~7.9px per character, plus box).
     var plotPx = Math.max(200, plotWidthPx());
     var labelChars = labelText.split("<br>").reduce(function(m, s){ return Math.max(m, s.replace(/<[^>]+>/g, "").length); }, 0);
     var labelFrac = (labelChars * 7.9 + 24) / plotPx;
     var flipLabel = (spot / (maxP || spot)) + labelFrac > 0.99;
-    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:flipLabel?"right":"left",xshift:flipLabel?-6:6,yanchor:"top",align:"left",font:{color:"#ffffff",size:13,family:FONT},bgcolor:"rgba(0,0,0,0.92)",bordercolor:"rgba(255,255,255,0.45)",borderwidth:1,borderpad:5});
+    annotations.push({x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:flipLabel?"right":"left",xshift:flipLabel?-6:6,yanchor:"top",align:"left",font:{color:"#ffffff",size:13,family:FONT},bgcolor:"rgba(0,0,0,0.92)",bordercolor:isBottom ? GLOW_COLOR : "rgba(255,255,255,0.45)",borderwidth:1,borderpad:5});
   }
 
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
