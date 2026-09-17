@@ -259,12 +259,12 @@ var AGE_BAND_COLORS = (function() {
 })();
 // ---- Overlay lines -------------------------------------------------------------------------------
 // Both lines are drawn at full strength and the same weight: neither is subordinate to the other. The price
-// line is pure white, which no age band comes near. The cumulative line is Bitcoin orange, which reads clearly
-// against the white line (0.30 apart in OKLab, further than any cool hue manages) and against the background at
-// 8.6:1. It is the one hue the age ramp also uses, though: the youngest bands are warm, so the line runs close to
-// the 1h-1d and 1d-1w colours (0.08 apart once deuteranopia is simulated), and it matches the orange spot marker.
-// Those bands are thin slivers and the marker is a dot on the other axis, so in practice the line stays legible.
-var CUMUL_COLOR = "#f7931a";      // % of Total (cumulative share)
+// line is pure white, which no age band comes near. The cumulative line is cyan, the hue kept clear of the
+// yellow->magenta->blue age ramp: in OKLab it sits at least 0.21 from every bar, from the orange spot marker
+// and from white itself, and still 0.18 away once deuteranopia is simulated (Machado 2009), where its nearest
+// neighbour is white rather than any bar. Green was the obvious alternative and is the worst possible one here:
+// simulated, it collapses to 0.03 from the youngest yellow band.
+var CUMUL_COLOR = "#00e5ff";      // % of Total (cumulative share)
 var PRICE_LINE_COLOR = "#ffffff"; // BTC/USD price line
 var SPOT_COLOR = "#ff8c00";
 var GLOW_COLOR = "#FFE600";
