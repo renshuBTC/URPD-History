@@ -15,16 +15,16 @@
   #controls button:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .mode-toggle { display: flex; gap: 2px; }
   .mode-toggle button { padding: 4px 10px; font-size: 12px; letter-spacing: 0.5px; }
-  .mode-toggle button.active { background: #ff8c00; color: #000000; border-color: #ff8c00; font-weight: bold; }
-  .mode-toggle button.active:hover { background: #ffaa33; }
+  /* #controls button sets a background with id specificity, so the active state has to outrank it;
+     without the prefix the only thing that ever showed was the bold weight. */
+  #controls .mode-toggle button.active { background: #ff8c00; color: #000000; border-color: #ff8c00; font-weight: bold; }
+  #controls .mode-toggle button.active:hover { background: #ffaa33; }
   #dateDisplay { font-size: 14px; font-weight: bold; color: #ff8c00; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
   #status { text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
   #chart { width: calc(100% - 8px); margin: 0 4px; flex: 1 1 auto; min-height: 0; } /* every pixel the toolbar and status line leave; 4 px so the axis titles do not touch the window edge */
   #tracer { position: fixed; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ff8c00; border: 2px solid #ffffff; box-sizing: border-box; box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 0 6px rgba(255,140,0,0.5); cursor: grab; z-index: 50; display: none; touch-action: none; }
   #tracer.show { display: block; }
   #tracer.dragging { cursor: grabbing; }
-  #peakReset { position: fixed; display: none; height: 17px; padding: 0 5px; font-family: inherit; font-size: 11px; line-height: 15px; color: #d4d4d4; background: #252525; border: 1px solid #555; border-radius: 2px; cursor: pointer; z-index: 60; }
-  #peakReset:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   body.tracer-dragging, body.tracer-dragging * { cursor: grabbing !important; user-select: none; }
   #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 24px; color: #ff8c00; display: none; z-index: 999; }
   #thresholdWrap, #ymaxWrap, #smoothWrap, #binsWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
@@ -138,6 +138,10 @@
     <input type="text" id="ymaxInput" value="100" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label>% of bars</label>
   </div>
+  <div class="ctrl-sep"></div>
+  <div class="mode-toggle">
+    <button id="btnPeak" title="Pin this day's tallest bar as a fixed scale">Peak</button>
+  </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
 
@@ -200,7 +204,6 @@
 <div id="status">Left/Right navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down toggle view | Home/End first/last</div>
 <div id="chart"></div>
 <div id="tracer" title="Drag along the BTC price line"></div>
-<button id="peakReset" type="button" title="Reset the peak marker">✕</button>
 <div id="loading">Loading...</div>
 <script>
 var BASE = "https://bitview.space";
@@ -291,52 +294,32 @@ var lastRenderedData = null; // what the chart is showing right now (the tracer 
 var renderSeq = 0; // bumped per loadAndRender call so a slow fetch cannot paint over a newer date
 var spotCache = {};
 // ---- Peak marker ---------------------------------------------------------------------------------
-// A bar's height depends on the day, the weighting, the bin count and the smoothing, so a true all-time
-// high would mean re-binning every past day: the raw distribution is about 1.7 MB a day, 11 GB for the
-// full history. Instead every day you render offers up its own tallest bar and the marker keeps the
-// highest one seen, so scrubbing leaves a high-water mark to read the current day against. Records are
-// held per setting combination, so changing the weighting, the bin count or the smoothing starts a fresh
-// record rather than comparing heights that were never measured the same way.
-var PEAK_STORE_KEY = "bsd_peaks_v1";
+// ---- Peak marker ---------------------------------------------------------------------------------
+// Pinned by hand from the toolbar, never automatically. The pin fixes the left axis at that day's tallest
+// bar, so scrubbing stops rescaling the chart and any other day can be read against it at a glance; bars
+// taller than the pin run into the top of the plot. A bar's height depends on the weighting, the bin count
+// and the smoothing as well as the day, so pins are held per setting combination - comparing a 625-bin
+// height against a 400-bin one would be meaningless. Stored in localStorage so a pin survives a reload.
+var lastDayPeak = 0; // tallest bar of the day last drawn
 var peakStore = (function() {
   try { return JSON.parse(localStorage.getItem(PEAK_STORE_KEY)) || {}; } catch (e) { return {}; }
 })();
 function peakKey() { return (coinMode ? "btc" : "usd") + "|b" + NUM_BINS + "|s" + KERNEL_PCT; }
 function peakBest() { return peakStore[peakKey()] || null; }
-function peakRecord(dateStr, value) {
-  if (!(value > 0)) return;
-  var best = peakBest();
-  if (best && best[1] >= value) return;
-  peakStore[peakKey()] = [dateStr, value];
-  try { localStorage.setItem(PEAK_STORE_KEY, JSON.stringify(peakStore)); } catch (e) {}
+// Pin the day on screen as the reference. Nothing is recorded automatically: scrubbing past a taller day
+// must not move a scale you chose deliberately, or the comparison you pinned it for is gone.
+function peakPin() {
+  if (!(lastDayPeak > 0)) return;
+  peakStore[peakKey()] = [allDates[currentIdx], lastDayPeak];
+  peakSave();
 }
-var peakAnnIdx = -1; // which annotation is the peak label, so its reset button can be parked at the end of it
-// Set by the reset button: while the day and the settings are unchanged the marker stays hidden, so the
-// click is visibly acknowledged instead of the line snapping straight back onto the day already on screen.
-var peakOffDate = null, peakOffKey = null;
-// Plotly rebuilds the annotation nodes on every draw, so the button is repositioned from the label's own
-// box afterwards. It lives outside the plot element, which keeps its clicks away from the chart.
-function placePeakReset() {
-  var btn = document.getElementById("peakReset");
-  if (!btn) return;
-  var gd = document.getElementById("chart");
-  var node = peakAnnIdx >= 0 ? gd.querySelector('.annotation[data-index="' + peakAnnIdx + '"]') : null;
-  var box = node ? node.getBoundingClientRect() : null;
-  if (!box || !(box.width > 0)) { btn.style.display = "none"; return; }
-  btn.style.left = Math.round(box.right + 4) + "px";
-  btn.style.top = Math.round(box.top + box.height / 2 - 8) + "px";
-  btn.style.display = "block";
-}
-// Forget the record for the current settings. The day on screen is measured again straight away, so the
-// marker restarts from here rather than vanishing until the next scrub.
-function peakReset() {
-  peakOffDate = allDates[currentIdx];
-  peakOffKey = peakKey();
+function peakClear() {
   delete peakStore[peakKey()];
-  try { localStorage.setItem(PEAK_STORE_KEY, JSON.stringify(peakStore)); } catch (e) {}
-  loadAndRender();
+  peakSave();
 }
-
+function peakSave() {
+  try { localStorage.setItem(PEAK_STORE_KEY, JSON.stringify(peakStore)); } catch (e) {}
+}
 function peakCompact(v) {
   var a = Math.abs(v);
   if (a >= 1e12) return (v / 1e12).toFixed(2) + "T";
@@ -363,7 +346,7 @@ var T = {
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", usdProfit: "USD Value Held in Profit: ", usdLoss: "USD Value Held in Loss: ", btcProfit: "BTC Supply Held in Profit: ", btcLoss: "BTC Supply Held in Loss: ",
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Make sure BRK is running on localhost:3110",
-    allSupply: "All supply (age data unavailable)", spot: "Spot", peakLabel: "Peak ", peakResetTitle: "Reset the peak marker"
+    allSupply: "All supply (age data unavailable)", spot: "Spot", peakLabel: "Peak ", peakBtn: "Peak", peakBtnTitle: "Pin this day's tallest bar as a fixed scale"
   },
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
@@ -380,7 +363,7 @@ var T = {
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", usdProfit: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u5904\u4e8e\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u5904\u4e8e\u4e8f\u635f: ",
     langBtn: "EN",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
-    allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", spot: "\u73b0\u4ef7", peakLabel: "峰值 ", peakResetTitle: "重置峰值标记"
+    allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", spot: "\u73b0\u4ef7", peakLabel: "峰值 ", peakBtn: "峰值", peakBtnTitle: "将当日最高柱固定为比较基准"
   }
 };
 
@@ -411,7 +394,8 @@ function applyLang() {
       opts[oi].textContent = (isTop ? tp : bt) + ": " + mon + " " + yr + price;
     }
   }
-  document.getElementById("peakReset").title = t("peakResetTitle");
+  document.getElementById("btnPeak").textContent = t("peakBtn");
+  document.getElementById("btnPeak").title = t("peakBtnTitle");
   document.getElementById("loading").textContent = t("loading");
   var labels = document.querySelectorAll("#thresholdWrap label");
   if (labels[0]) labels[0].textContent = t("signalLabel");
@@ -738,10 +722,8 @@ function renderChart(data) {
   }
 
   var maxVal = valuesForAxis.reduce(function(a,b){return a>b?a:b},0);
-  peakAnnIdx = -1;
-  var peakOff = (peakOffDate === dateStr && peakOffKey === peakKey());
-  if (!peakOff) peakRecord(dateStr, maxVal);
-  var peak = peakOff ? null : peakBest();
+  lastDayPeak = maxVal; // this day's tallest bar, offered to the Peak button
+  var peak = peakBest();
   var yClipped = false;
   if (yMaxPct < 100) {
     var sorted = valuesForAxis.filter(function(v){return v>0;}).slice().sort(function(a,b){return a-b;});
@@ -753,10 +735,14 @@ function renderChart(data) {
       }
     }
   }
-  // The axis grows to keep the marker on screen, so a day can be read against the record rather than
-  // against itself. An explicit Y-max overrides that: clipping the bars is a deliberate instruction.
+  // A pin fixes the axis at that day's tallest bar rather than merely fitting it on screen: the scale stops
+  // following the day, so heights can be compared directly from one day to the next, and a day taller than
+  // the pin runs into the top of the plot instead of quietly rescaling everything. An explicit Y-max still
+  // wins, since clipping the bars by percentile is its own deliberate instruction.
   var peakVal = (peak && !yClipped) ? peak[1] : 0;
-  if (peakVal > maxVal) maxVal = peakVal;
+  if (peakVal > 0) maxVal = peakVal;
+  var btnPeakEl = document.getElementById("btnPeak");
+  if (btnPeakEl) btnPeakEl.classList.toggle("active", !!peak);
 
   // Six ticks; the step is the smallest "nice" value (1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10 x a power of ten)
   // whose sixth tick clears the tallest bar with 2% headroom, so the axis can never cut the bars off
@@ -836,7 +822,6 @@ function renderChart(data) {
     var peakDate = new Date(peak[0] + "T00:00:00").toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"});
     var peakText = t("peakLabel") + (isCoin ? peakCompact(peakVal) + " BTC" : "$" + peakCompact(peakVal)) + " \u00b7 " + peakDate;
     annotations.push({x:0,xref:"paper",xanchor:"left",xshift:4,y:peakVal,yref:"y",yanchor:"bottom",yshift:2,text:peakText,showarrow:false,font:{color:"#ffffff",size:11,family:FONT},bgcolor:"rgba(0,0,0,0.75)",borderpad:2});
-    peakAnnIdx = annotations.length - 1;
   }
 
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
@@ -923,11 +908,11 @@ function renderChart(data) {
     if (!tracerHooked && typeof gdEl.on === "function") {
       // Plotly redraws on its own too (responsive resize, zoom, autosize); the dot must follow every redraw,
       // otherwise it is left where the marker used to be and two dots show.
-      gdEl.on("plotly_afterplot", function(){ if (window.placeTracer) placeTracer(); placePeakReset(); });
-      gdEl.on("plotly_relayout", function(){ if (window.placeTracer) placeTracer(); placePeakReset(); });
+      gdEl.on("plotly_afterplot", function(){ if (window.placeTracer) placeTracer(); });
+      gdEl.on("plotly_relayout", function(){ if (window.placeTracer) placeTracer(); });
       tracerHooked = true;
     }
-    if (window.placeTracer) placeTracer(); placePeakReset();
+    if (window.placeTracer) placeTracer();
     // If the plotting area came out a different width than assumed (first draw), draw once more so the
     // 1 px gaps are computed from the real pitch.
     var fl = gdEl._fullLayout;
@@ -957,7 +942,12 @@ document.getElementById("btnNext").onclick = function(){goTo(currentIdx + stepSi
 document.getElementById("btnFirst").onclick = function(){goTo(0);};
 document.getElementById("btnLast").onclick = function(){goTo(allDates.length - 1);};
 
-document.getElementById("peakReset").onclick = function(e){ e.stopPropagation(); peakReset(); };
+// Pin or unpin from the toolbar. Pressing it again is the only way the marker goes away.
+document.getElementById("btnPeak").onclick = function(){
+  if (window.videoRecording) return;
+  if (peakBest()) { peakClear(); } else { peakPin(); }
+  rerenderCurrent();
+};
 document.getElementById("btnUSD").onclick = function(){ setViewMode(0); };
 document.getElementById("btnBTC").onclick = function(){ setViewMode(1); };
 
