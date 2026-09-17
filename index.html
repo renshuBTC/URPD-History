@@ -1314,6 +1314,15 @@ function updateVideoLang() {
     if (frameIndices[frameIndices.length - 1] !== endIdx) frameIndices.push(endIdx);
     if (frameIndices.length < 2) { setStatus(vt("Needs at least two frames: widen the range or use a smaller interval.", "\u81f3\u5c11\u9700\u8981\u4e24\u5e27\uff1a\u8bf7\u6269\u5927\u8303\u56f4\u6216\u7f29\u5c0f\u95f4\u9694\u3002")); return; }
     if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { setStatus(vt("This browser cannot record video.", "\u6b64\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5f55\u5236\u89c6\u9891\u3002")); return; }
+    // A long export is hours of work. Say so before it starts, not after it has failed.
+    if (frameIndices.length > 400) {
+      var estSec = Math.round(frameIndices.length / fps), estMB = Math.round(estSec * 8000000 / 8 / 1048576);
+      var warn = vt(
+        "This is " + frameIndices.length + " frames. Rendering takes roughly two seconds each, about " + Math.round(frameIndices.length * 2 / 60) + " minutes, and this tab has to stay open and in front for all of it. The video will run about " + estSec + " seconds and weigh around " + estMB + " MB. Start?",
+        "共 " + frameIndices.length + " 帧。每帧渲染约两秒，合计约 " + Math.round(frameIndices.length * 2 / 60) + " 分钟，期间需保持本标签页打开并处于前台。视频约 " + estSec + " 秒，约 " + estMB + " MB。是否开始？",
+        "合計 " + frameIndices.length + " フレーム。レンダリングは 1 フレーム約 2 秒、全体で約 " + Math.round(frameIndices.length * 2 / 60) + " 分かかり、その間このタブを開いたまま前面にしておく必要があります。動画は約 " + estSec + " 秒、約 " + estMB + " MB になります。開始しますか？");
+      if (!window.confirm(warn)) { setStatus(""); return; }
+    }
 
     videoRecording = true; videoCancel = false;
     recBtn.disabled = true; cancelBtn.disabled = false; btn.classList.add("rec"); document.body.classList.add("recording");
@@ -1327,6 +1336,7 @@ function updateVideoLang() {
     var W = cw * scale, H = ch * scale;
     var frames = [];
     var fIdx = 0;
+    var tStart = 0;
 
     function finish(ok) {
       videoRecording = false; videoCancel = false;
@@ -1349,11 +1359,22 @@ function updateVideoLang() {
     function captureFrames() {
       if (videoCancel) { finish(false); return; }
       if (fIdx >= frameIndices.length) { encode(); return; }
-      setStatus(vt("Rendering frame ", "\u6e32\u67d3\u5e27 ") + (fIdx + 1) + " / " + frameIndices.length + "  (" + allDates[frameIndices[fIdx]] + ")");
+      if (!tStart) tStart = performance.now();
+      var etaTxt = "";
+      if (fIdx > 2) {
+        var mins = Math.round(((performance.now() - tStart) / fIdx) * (frameIndices.length - fIdx) / 60000);
+        etaTxt = "  ·  " + (mins > 90 ? (mins / 60).toFixed(1) + vt(" h left", " 小时", " 時間") : mins + vt(" min left", " 分钟", " 分"));
+      }
+      setStatus(vt("Rendering frame ", "\u6e32\u67d3\u5e27 ") + (fIdx + 1) + " / " + frameIndices.length + "  (" + allDates[frameIndices[fIdx]] + ")" + etaTxt);
       renderIndex(frameIndices[fIdx]).then(function(){
         return Plotly.toImage(gd, { format: "png", width: cw, height: ch, scale: scale });
       }).then(function(dataUrl){
-        frames.push(dataUrl);
+        // Keep each frame as a Blob, never as a data URL. A data URL is a JS string, and a few
+        // thousand of them is gigabytes of heap: that is what killed long exports part-way through.
+        // Blobs live outside the heap and Chrome spills them to disk.
+        return fetch(dataUrl).then(function(r){ return r.blob(); });
+      }).then(function(frameBlob){
+        frames.push(frameBlob);
         fIdx++;
         captureFrames();
       }).catch(function(e){ setStatus("Error: " + e.message); finish(false); });
@@ -1387,15 +1408,17 @@ function updateVideoLang() {
       // schedule (start + i / fps). The next frame is decoded while the current one waits its turn,
       // so decode time does not stretch the playback.
       var i = 0, interval = 1000 / fps;
-      function decodeFrame(k) { var im = new Image(); im.src = frames[k]; return im.decode().then(function(){ return im; }); }
+      function decodeFrame(k) { return createImageBitmap(frames[k]); }
       var pending = decodeFrame(0);
-      recorder.start();
+      recorder.start(4000);  // hand the encoder output over in pieces rather than one blob at the end
       var start = performance.now();
       function step() {
         pending.then(function(im) {
           var wait = Math.max(0, start + i * interval - performance.now());
           setTimeout(function() {
             ctx.drawImage(im, 0, 0, W, H);
+            if (im.close) im.close();   // free the decoded bitmap and the frame behind it
+            frames[i] = null;
             track.requestFrame();
             i++;
             if (videoCancel) { recorder.stop(); return; }
