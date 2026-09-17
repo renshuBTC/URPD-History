@@ -79,6 +79,15 @@
   #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; }
   #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 3px; }
+  /* one height for every control in the bar, and one gap between them */
+  #controls button, #controls input, #controls select, #controls #intervalBar { height: 24px; line-height: 1; }
+  #controls #intervalBar .iv { height: 22px; line-height: 1; }
+  #controls #intervalBar { margin-right: 0; }
+  #controls #langBtn { margin-left: 0; }
+  /* one type size in the bar, hierarchy carried by colour instead */
+  #controls label, #controls #binsUnit, #controls #thresholdInput, #controls #binsInput,
+  #controls #smoothInput, #controls #ymaxInput, #controls #dateDisplay { font-size: 12px; }
+  #controls label, #controls #binsUnit { color: #8a8a8a; }
 </style>
 </head>
 <body>
@@ -115,6 +124,10 @@
     <button id="btnBTC">BTC</button>
   </div>
   <div class="ctrl-sep"></div>
+  <div class="mode-toggle">
+    <button id="btnPeak" title="Pin this day's tallest bar as a fixed scale">Pin scale</button>
+  </div>
+  <div class="ctrl-sep"></div>
   <div id="thresholdWrap">
     <label>Bottom signal</label>
     <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
@@ -137,10 +150,6 @@
     <label>Y-max</label>
     <input type="text" id="ymaxInput" value="100" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
     <label>percentile</label>
-  </div>
-  <div class="ctrl-sep"></div>
-  <div class="mode-toggle">
-    <button id="btnPeak" title="Pin this day's tallest bar as a fixed scale">Pin scale</button>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle"></h2>
@@ -304,7 +313,7 @@ var T = {
     landmarks: "Landmarks",     signalLabel: "Bottom signal", signalUnit: "% of value in loss", yMaxLabel: "Y-max", yMaxUnit: "percentile", smoothLabel: "Smoothing", smoothUnit: "% of price", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Value Held in Loss",
         titleUSDAge: "Bitcoin Supply Distribution (by USD Value) as of ", titleBTCAge: "Bitcoin Supply Distribution as of ",
-    priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Share of Total [%]", pctLegend: "% of Total",
+    priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Percent of Total [%]", pctLegend: "% of Total",
                 poweredBy: "Powered by <a href='https://bitcoin.org' target='_blank'>Bitcoin Core</a> & <a href='https://github.com/0xB10C/bitcoin-research-kit' target='_blank'>Bitcoin Research Kit</a>",
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", usdProfit: "USD Value Held in Profit: ", usdLoss: "USD Value Held in Loss: ", btcProfit: "BTC Supply Held in Profit: ", btcLoss: "BTC Supply Held in Loss: ",
     langBtn: "\u4e2d\u6587",
