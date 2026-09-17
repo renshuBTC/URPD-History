@@ -257,14 +257,15 @@ var AGE_BAND_COLORS = (function() {
     return oklchToHex(L, 0.2, h);
   });
 })();
-// ---- Overlay lines: the histogram is the subject, the lines are context. On the #0a0a0a background the
-// bars run from 15.7:1 (newest, yellow) down to 2:1 (oldest, blue) contrast, median 3.1:1. The BTC price line is
-// neutral grey (white at 50 %, 1.5 px -> 5.4:1) so it reads as a reference, not as another cohort, and stays below
-// the young cohorts in brightness; the cumulative "% of Total" line is a dim teal (2.7:1, 1.5 px) - teal is the hue
-// farthest from the yellow->magenta->blue age ramp, so neither line can be mistaken for an age band. Both hues also
-// hold up under red-green colour-vision deficiency (they differ from the bars on the blue-yellow axis and in lightness).
-var CUMUL_COLOR = "rgba(38,198,218,0.45)";     // % of Total (cumulative share)
-var PRICE_LINE_COLOR = "rgba(255,255,255,0.5)"; // BTC/USD price line
+// ---- Overlay lines -------------------------------------------------------------------------------
+// Both lines are drawn at full strength and the same weight: neither is subordinate to the other. The price
+// line is pure white, which no age band comes near. The cumulative line is cyan, the hue kept clear of the
+// yellow->magenta->blue age ramp: in OKLab it sits at least 0.21 from every bar, from the orange spot marker
+// and from white itself, and still 0.18 away once deuteranopia is simulated (Machado 2009), where its nearest
+// neighbour is white rather than any bar. Green was the obvious alternative and is the worst possible one here:
+// simulated, it collapses to 0.03 from the youngest yellow band.
+var CUMUL_COLOR = "#00e5ff";      // % of Total (cumulative share)
+var PRICE_LINE_COLOR = "#ffffff"; // BTC/USD price line
 var SPOT_COLOR = "#ff8c00";
 var GLOW_COLOR = "#FFE600";
 var FONT = "'Source Code Pro', Consolas, monospace";
