@@ -20,7 +20,7 @@
   #controls .mode-toggle button.active { background: #ff8c00; color: #000000; border-color: #ff8c00; font-weight: bold; }
   #controls .mode-toggle button.active:hover { background: #ffaa33; }
   #dateDisplay { font-size: 14px; font-weight: bold; color: #ff8c00; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
-  #status { text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
+  #status { display: none; text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
   #chart { width: calc(100% - 8px); margin: 0 4px; flex: 1 1 auto; min-height: 0; } /* every pixel the toolbar and status line leave; 4 px so the axis titles do not touch the window edge */
   #tracer { position: fixed; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ff8c00; border: 2px solid #ffffff; box-sizing: border-box; box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 0 6px rgba(255,140,0,0.5); cursor: grab; z-index: 50; display: none; touch-action: none; }
   #tracer.show { display: block; }
@@ -118,7 +118,7 @@
   <div id="thresholdWrap">
     <label>Bottom signal</label>
     <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
-    <label>% held in loss</label>
+    <label>% of value in loss</label>
   </div>
   <div class="ctrl-sep"></div>
   <div id="binsWrap">
@@ -136,11 +136,11 @@
   <div id="ymaxWrap">
     <label>Y-max</label>
     <input type="text" id="ymaxInput" value="100" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
-    <label>% of bars</label>
+    <label>percentile</label>
   </div>
   <div class="ctrl-sep"></div>
   <div class="mode-toggle">
-    <button id="btnPeak" title="Pin this day's tallest bar as a fixed scale">Peak</button>
+    <button id="btnPeak" title="Pin this day's tallest bar as a fixed scale">Pin scale</button>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn">?</button><div id="explainPanel">
 <h2 id="explainTitle">Understanding URPD</h2>
@@ -165,7 +165,7 @@
 <div class="formula" id="f6">Profit % = Σ W(P) for P ≤ Spot  /  Σ W(P) × 100</div>
 
 <h3>Bottom Signal</h3>
-<div class="desc">Fires when the share of USD value held in loss, computed from the exact realised prices, reaches the threshold set in the toolbar (default 80%). Historically, extreme readings have coincided with cycle bottoms.</div>
+<div class="desc">Fires when the share of USD value held in loss, computed from the exact realised prices, reaches the threshold set in the toolbar (default 80%). It shows as a fourth line inside the spot-price box, and the spot line turns the same yellow. Historically, extreme readings have coincided with cycle bottoms.</div>
 <div class="formula" id="f7">Signal when: Loss% ≥ Threshold (default 80%)</div>
 
 <h3>UTXO Age Bands (AGE)</h3>
@@ -173,7 +173,7 @@
 <div class="formula" id="f8">Age(utxo) = now − t(last moved)</div>
 
 <h3>Histogram Bins</h3>
-<div class="desc">Equal-width price bins from $0 to the day's highest cost basis (Bins in the toolbar, default 625, so about $200 when the high is $125K); the width in dollars and the on-screen width of each bar in pixels are shown next to the field and change with the date and window. Bars sit on whole screen pixels with a one-pixel gap between neighbours so every bar can be told apart; if the bars would be thinner than 2 px (too many bins for the window) they are drawn solid. Bitcoin Research Kit prices coins at block-level prices in $1 buckets below $100K and $10 buckets above, and one large transfer can land a huge mass on a single price, and each price point's mass goes into the bin that contains it: with Smoothing at 0 (the default) the bars are the raw binned data. Setting Smoothing to S spreads each point with a Gaussian of σ = S% of its price (0.1–0.3 is a light touch; the field accepts up to 1); mass and USD value are preserved exactly.</div>
+<div class="desc">Equal-width price bins from $0 to the day's highest cost basis (Bins in the toolbar, default 625, so about $200 when the high is $125K); the width in dollars and the on-screen width of each bar in pixels are shown next to the field and change with the date and window. Bars sit on whole screen pixels with a one-pixel gap between neighbours so every bar can be told apart; if the bars would be thinner than 2 px (too many bins for the window) they are drawn solid. Bitcoin Research Kit prices coins at block-level prices in $1 buckets below $100K and $10 buckets above, and one large transfer can land a huge mass on a single price, and each price point's mass goes into the bin that contains it: Smoothing defaults to 0.3, which spreads that mass without moving it; set it to 0 for the raw binned data. Setting Smoothing to S spreads each point with a Gaussian of σ = S% of its price (0.1–0.3 is a light touch; the field accepts up to 1); mass and USD value are preserved exactly.</div>
 <div class="formula" id="f9">ΔP = max cost basis / bins;  σ = S% × price (0 = raw);  bar(P) = Σ mass · N(P, σ) over the bin</div>
 
 <h3>Percent of Total</h3>
@@ -181,14 +181,19 @@
 <div class="formula" id="f10">Cum %(P) = Σ W(p ≤ P) / Σ W × 100</div>
 
 <h3>Adjustable Y-max</h3>
-<div class="desc">Caps the left axis at the Nth percentile of the non-zero bar heights so one tall spike does not flatten the rest (default 100 = the tallest bar; lower it to zoom in on the rest). Bars above the cap are clipped.</div>
+<div class="desc">Caps the left axis at the Nth percentile of the non-zero bar heights so one tall spike does not flatten the rest (default 100 = the tallest bar; lower it to zoom in on the rest). Bars above the cap are clipped. A pinned scale is overridden by this: an explicit Y-max wins.</div>
 <div class="formula" id="f11">y-max = percentileₙ(bar heights)</div>
 
 <h3>BTC Price Overlay</h3>
-<div class="desc">The white line is the daily close for the year leading up to the selected date, on a log scale, with the orange marker on that day's close and cycle tops and bottoms marked. Click the BTC/USD legend entry to hide or show it.</div>
+<div class="desc">The white line is a year of daily closes on a log scale, running from 275 days before the selected date to 90 days after it, with the orange marker on that day's close and cycle tops and bottoms marked. Click the BTC/USD legend entry to hide or show it.</div>
 
 <h3>Video Export (▶)</h3>
 <div class="desc">Records the chart moving through a date range, one frame per step of the current interval (1D/1W/1M/1Y) in the current view, at the chosen frames per second, and saves a WebM.</div>
+<h3>Pinned scale (PIN SCALE)</h3>
+<div class="desc">Pins the day on screen: a dashed line marks its tallest bar and the left axis stops rescaling, so every other day is drawn to that same height and can be read against it directly. A day taller than the pin runs into the top of the plot. Press the button again to unpin. Pins are kept separately for each weighting, bin count and smoothing, since a bar height only means the same thing under the same settings, and they survive a reload.</div>
+
+<h3>Keyboard and mouse</h3>
+<div class="desc">Left/Right or A/D step one interval; 1-4 choose the interval (1D/1W/1M/1Y); Home/End jump to the first or last day; Up/Down or W/S switch between USD and BTC weighting. Drag the orange dot along the price line to scrub by hand. Clicking the chart takes focus off a toolbar field so the arrow keys drive the chart again, and clicking a legend entry hides or shows that series.</div>
 </div></div>
   <div id="videoWrap"><button id="videoBtn" title="Export video: records the chart moving through a date range">&#9654;</button><div id="videoPanel">
     <h2 id="videoTitle">Export video</h2>
@@ -201,7 +206,7 @@
   </div></div>
   <button id="langBtn">中文</button>
 </div>
-<div id="status">Left/Right navigate | 1-4 interval (1D/1W/1M/1Y) | Up/Down toggle view | Home/End first/last</div>
+<div id="status"></div>
 <div id="chart"></div>
 <div id="tracer" title="Drag along the BTC price line"></div>
 <div id="loading">Loading...</div>
@@ -320,6 +325,18 @@ function peakClear() {
 function peakSave() {
   try { localStorage.setItem(PEAK_STORE_KEY, JSON.stringify(peakStore)); } catch (e) {}
 }
+// The status row under the toolbar restated the shortcuts on every screen, costing a row of chart for
+// something you read once; those moved into the explainer. What is left are the messages worth interrupting
+// for, shown briefly and then folded away so the row costs nothing the rest of the time.
+var noticeTimer = null;
+function showNotice(msg) {
+  var el = document.getElementById("status");
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? "block" : "none";
+  clearTimeout(noticeTimer);
+  if (msg) noticeTimer = setTimeout(function(){ el.style.display = "none"; }, 6000);
+}
 function peakCompact(v) {
   var a = Math.abs(v);
   if (a >= 1e12) return (v / 1e12).toFixed(2) + "T";
@@ -333,9 +350,8 @@ var lang = "en";
 var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
-    statusLoaded: " days loaded. Left/Right or A/D navigate | drag the dot on the price line | 1-4 interval (1D/1W/1M/1Y) | Up/Down or W/S toggle view | Home/End first/last",
     landmarks: "Landmarks", cycleLandmarks: "Cycle Landmarks", top: "Top", bottom: "Bottom",
-    signalLabel: "Bottom signal", signalUnit: "% held in loss", yMaxLabel: "Y-max", yMaxUnit: "% of bars", smoothLabel: "Smoothing", smoothUnit: "% of price", binsLabel: "Bins",
+    signalLabel: "Bottom signal", signalUnit: "% of value in loss", yMaxLabel: "Y-max", yMaxUnit: "percentile", smoothLabel: "Smoothing", smoothUnit: "% of price", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Value Held in Loss",
         titleUSDAge: "Bitcoin Supply Distribution (by USD Value) as of ", titleBTCAge: "Bitcoin Supply Distribution as of ",
     priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Share of Total [%]", pctLegend: "% of Total",
@@ -346,13 +362,12 @@ var T = {
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", usdProfit: "USD Value Held in Profit: ", usdLoss: "USD Value Held in Loss: ", btcProfit: "BTC Supply Held in Profit: ", btcLoss: "BTC Supply Held in Loss: ",
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Make sure BRK is running on localhost:3110",
-    allSupply: "All supply (age data unavailable)", spot: "Spot", peakLabel: "Peak ", peakBtn: "Peak", peakBtnTitle: "Pin this day's tallest bar as a fixed scale"
+    allSupply: "All supply (age data unavailable)", spot: "Spot", peakLabel: "Peak ", peakBtn: "Pin scale", peakBtnTitle: "Pin this day's tallest bar as a fixed scale"
   },
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
-    statusLoaded: " \u5929\u5df2\u52a0\u8f7d\u3002\u5de6/\u53f3/A/D \u5bfc\u822a | \u62d6\u52a8\u4ef7\u683c\u7ebf\u4e0a\u7684\u5706\u70b9 | 1-4 \u95f4\u9694 (1\u5929/1\u5468/1\u6708/1\u5e74) | \u4e0a/\u4e0b/W/S \u5207\u6362\u89c6\u56fe | Home/End \u9996/\u672b",
     landmarks: "\u91cd\u8981\u65f6\u523b", cycleLandmarks: "\u5468\u671f\u5730\u6807", top: "\u9876\u90e8", bottom: "\u5e95\u90e8",
-    signalLabel: "\u5e95\u90e8\u4fe1\u53f7", signalUnit: "% \u5904\u4e8e\u4e8f\u635f", yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "% \u67f1\u9ad8", smoothLabel: "\u5e73\u6ed1", smoothUnit: "% \u4ef7\u683c", binsLabel: "\u5206\u7bb1",
+    signalLabel: "\u5e95\u90e8\u4fe1\u53f7", signalUnit: "% 价值处于亏损", yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "百分位", smoothLabel: "\u5e73\u6ed1", smoothUnit: "% \u4ef7\u683c", binsLabel: "\u5206\u7bb1",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f",
         titleUSDAge: "比特币供应分布（按美元价值）截至 ", titleBTCAge: "比特币供应分布 截至 ",
     priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4ef7\u503c [\u7f8e\u5143]", btcSupply: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4f9b\u5e94 [BTC]", pctTotal: "\u5360\u603b\u91cf\u6bd4\u4f8b [%]", pctLegend: "\u5360\u6bd4",
@@ -363,7 +378,7 @@ var T = {
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", usdProfit: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u5904\u4e8e\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u5904\u4e8e\u4e8f\u635f: ",
     langBtn: "EN",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
-    allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", spot: "\u73b0\u4ef7", peakLabel: "峰值 ", peakBtn: "峰值", peakBtnTitle: "将当日最高柱固定为比较基准"
+    allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", spot: "\u73b0\u4ef7", peakLabel: "峰值 ", peakBtn: "固定标尺", peakBtnTitle: "将当日最高柱固定为比较基准"
   }
 };
 
@@ -646,7 +661,7 @@ function loadAndRender() {
     showData(data);
   }).catch(function(e) {
     if (mySeq !== renderSeq) return;
-    document.getElementById("status").textContent = "Error: " + e.message;
+    showNotice("Error: " + e.message);
     document.getElementById("loading").style.display = "none";
   });
 }
@@ -670,14 +685,13 @@ function renderChart(data) {
   // the title is centred) when the plot is wide enough for the two not to meet, otherwise it goes underneath.
   var creditRow = plotW >= 1300;
   var bottomMargin = creditRow ? 44 : 64;
-  document.getElementById("binsUnit").textContent = "= $" + (binWidth >= 100 ? Math.round(binWidth).toLocaleString("en-US") : binWidth >= 1 ? binWidth.toFixed(1) : binWidth.toFixed(3)) + " \u00b7 " + pitch.toFixed(1) + "px";
+  document.getElementById("binsUnit").textContent = "$" + (binWidth >= 100 ? Math.round(binWidth).toLocaleString("en-US") : binWidth >= 1 ? binWidth.toFixed(1) : binWidth.toFixed(3)) + " \u00b7 " + pitch.toFixed(1) + " px";
   var realizedCap = data.realizedCap, totalSupply = data.totalSupply, maxPrice = data.maxPrice, redPct = data.redPct;
   var isAge = !!(data.aggAge && data.aggAge.length > 0); // false only if every cohort fetch failed
   var isCoin = coinMode;
   var isBottom = redPct >= bottomThreshold;
 
   // The status bar only reports the loaded range; the bottom signal is shown in the spot-price box.
-  document.getElementById("status").textContent = allDates.length + t("statusLoaded");
 
   document.getElementById("dateDisplay").textContent = "(" + (currentIdx+1) + "/" + allDates.length + ")";
 
@@ -1105,7 +1119,7 @@ function jumpToDate() {
     }
     currentIdx = nearest;
     loadAndRender();
-    document.getElementById("status").textContent = t("notFound") + allDates[nearest];
+    showNotice(t("notFound") + allDates[nearest]);
   }
 }
 
@@ -1199,8 +1213,7 @@ async function init() {
   try {
     document.getElementById("dateDisplay").textContent = t("loadingDates");
     allDates = await fetchJSON(BASE + "/api/series/cost-basis/all/dates");
-    document.getElementById("status").textContent = allDates.length + t("statusLoaded");
-    currentIdx = allDates.length - 1;
+      currentIdx = allDates.length - 1;
     try {
       var priceResp = await fetchJSON(BASE + "/api/series/price_close/day1");
       priceArray = priceResp.data || priceResp;
@@ -1478,8 +1491,8 @@ window.tracerDragWindow = null;
   el.addEventListener("dblclick", function(e){ e.preventDefault(); });
 })();
 var EXPLAINER = {
-  en: { title: "Understanding URPD", sections: [["UTXO Realized Price Distribution (URPD)","Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved on-chain: its realised price, or cost basis. Each bar is the supply whose cost basis falls in that price range. One snapshot per day since 2009-01-03, from Bitcoin Research Kit via bitview.space.",null],["URPD (USD-weighted) — USD Value at Last Move","Weights each UTXO by its dollar value at its last on-chain move. Shows where that value is concentrated.",["f1","USD Value at Last Move(P) = P · S(P)"]],["URPD (BTC-weighted) — Supply Distribution","Shows raw BTC supply at each cost-basis price, unweighted by dollar value.",["f2","S(P) = Σ utxo.value  where utxo.price ∈ [P, P + ΔP)"]],["Realized Cap","The total value of all UTXOs priced at their last-moved price. Unlike market cap, it reflects the aggregate cost basis of the entire supply.",["f3","RC = Σᵢ Pᵢ · Sᵢ  for all price bins i"]],["Supply in Profit / Loss","At the spot price line: the share of the day's USD value at last move (USD view) or BTC supply (BTC view) whose cost basis is at or below spot is \"in profit\"; above spot is \"in loss\". Computed from the displayed bins.",["f6","Profit % = Σ W(P) for P ≤ Spot  /  Σ W(P) × 100"]],["Bottom Signal","Fires when the share of USD value held in loss, computed from the exact realised prices, reaches the threshold set in the toolbar (default 80%). Historically, extreme readings have coincided with cycle bottoms.",["f7","Signal when: Loss% ≥ Threshold (default 80%)"]],["UTXO Age Bands (AGE)","Splits the distribution into 23 cohorts by how long each UTXO has sat unmoved, from under one hour to over fifteen years. Colour is a spectrogram of age and needs no words: a band's colour position is the logarithm of its mid-age (as a spectrogram maps decibels), from 30 minutes to 16 years, so colour distance is age distance on a log scale and no band boundary is treated specially. Lightness falls strictly from young to old, so age can be read from brightness alone, even in greyscale; hue runs hot to cold (yellow → orange → red → magenta → violet → blue) as a second cue that never passes through green, so it also reads with red–green colour blindness. Cohorts come directly from Bitcoin Research Kit.",["f8","Age(utxo) = now − t(last moved)"]],["Histogram Bins","Equal-width price bins from $0 to the day's highest cost basis (Bins in the toolbar, default 625, so about $200 when the high is $125K); the width in dollars and the on-screen width of each bar in pixels are shown next to the field and change with the date and window. Bars sit on whole screen pixels with a one-pixel gap between neighbours so every bar can be told apart; if the bars would be thinner than 2 px (too many bins for the window) they are drawn solid. Bitcoin Research Kit prices coins at block-level prices in $1 buckets below $100K and $10 buckets above, and one large transfer can land a huge mass on a single price, and each price point's mass goes into the bin that contains it: with Smoothing at 0 (the default) the bars are the raw binned data. Setting Smoothing to S spreads each point with a Gaussian of σ = S% of its price (0.1–0.3 is a light touch; the field accepts up to 1); mass and USD value are preserved exactly.",["f9","ΔP = max cost basis / bins;  σ = S% × price (0 = raw);  bar(P) = Σ mass · N(P, σ) over the bin"]],["Percent of Total","The line on the right axis is the cumulative share of the day's supply (BTC view) or USD value at last move (USD view) with a cost basis at or below each price.",["f10","Cum %(P) = Σ W(p ≤ P) / Σ W × 100"]],["Adjustable Y-max","Caps the left axis at the Nth percentile of the non-zero bar heights so one tall spike does not flatten the rest (default 100 = the tallest bar; lower it to zoom in on the rest). Bars above the cap are clipped.",["f11","y-max = percentileₙ(bar heights)"]],["BTC Price Overlay","The white line is the daily close for the year leading up to the selected date, on a log scale, with the orange marker on that day's close and cycle tops and bottoms marked. Click the BTC/USD legend entry to hide or show it.",null],["Video Export (▶)","Records the chart moving through a date range, one frame per step of the current interval (1D/1W/1M/1Y) in the current view, at the chosen frames per second, and saves a WebM.",null]] },
-  zh: { title: "\u7406\u89e3 URPD", sections: [["UTXO 已实现价格分布 (URPD)","显示比特币供应按每个 UTXO 最后一次链上移动时的价格（即已实现价格或成本基础）的分布。每个柱代表成本基础落在该价格区间的供应量。自 2009-01-03 起每日一个快照，数据来自 Bitcoin Research Kit（bitview.space）。",null],["URPD (美元加权) — 最后移动时美元价值","按最后一次链上移动时的美元价值对每个 UTXO 加权。显示该价值集中在哪里。","最后移动时美元价值(P) = 价格 P · 供应量 S(P)"],["URPD (BTC加权) — 供应分布","显示每个成本基础价格的原始 BTC 供应，不按美元价值加权。","S(P) = Σ UTXO金额，其中 UTXO价格 ∈ [P, P + ΔP)"],["已实现市值 (Realized Cap)","所有 UTXO 按其最后移动价格计价的总价值。与市值不同，它反映整个供应的总成本基础。","已实现市值 = Σᵢ Pᵢ · Sᵢ，遍历所有价格区间 i"],["供应盈利 / 亏损","在现价线处：当日最后移动时美元价值（美元视图）或 BTC 供应（BTC 视图）中，成本基础不高于现价的部分为“盈利”，高于现价的为“亏损”。按显示的柱计算。","盈利% = Σ W(P)，其中 P ≤ 现价 / Σ W(P) × 100"],["底部信号","当处于亏损的美元价值占比（按精确的已实现价格计算）达到工具栏中设定的阈值（默认 80%）时触发。历史上，极端读数与周期底部相吹合。","信号触发条件: 亏损% ≥ 阈值 (默认 80%)"],["UTXO 年龄段 (AGE)","按每个 UTXO 未移动的时长将分布分为 23 个队列，从不足一小时到超过十五年。颜色是年龄的“频谱图”，无需任何文字：每段的颜色位置是其中位年龄的对数（如同频谱图把分贝线性映射到色条），从 30 分钟到 16 年，因此颜色距离即对数年龄距离，且不特殊对待任何分段边界。亮度从年轻到年老严格递减，仅凭明暗即可读出年龄（灰度下亦然）；色相由热到冷（黄→橙→红→品红→紫→蓝）作为第二线索，且不经过绿色，红绿色盲者看到的顺序相同。队列直接来自 Bitcoin Research Kit。","年龄(UTXO) = 现在 − 最后移动时间"],["直方图分箱","从 $0 到当日最高成本基础平均分为若干等宽价格区间（工具栏“分箱”，默认 625，最高价 $125K 时约 $200）；美元宽度和每根柱在屏幕上的像素宽度显示在输入框旁，随日期和窗口变化。柱对齐到整数屏幕像素并以一像素间隔分开，便于区分每根柱；若柱会窄于 2 像素（分箱数对窗口而言过多），则绘制为实心相连。Bitcoin Research Kit 按区块级价格计价，$100K 以下以 $1、以上以 $10 为桶，一笔大额转账可能把巨量集中在单一价格上，每个价格点的量计入其所在的区间：平滑为 0（默认）时，柱即原始分箱数据。平滑设为 S 时，每个点按 σ = 价格的 S% 的高斯核展开（0.1–0.3 为轻度；最大可输入 1）；总量与美元价值完全保持不变。","ΔP = 最高成本基础 / 分箱数；σ = S% × 价格（0 = 原始）；柱(P) = Σ 量 · N(P, σ) 在区间内"],["占总量百分比","右轴的曲线是当日供应（BTC 视图）或最后移动时美元价值（美元视图）中成本基础不高于各价格的累计占比。","累计%(P) = Σ W(p ≤ P) / Σ W × 100"],["可调 Y 轴上限","将左轴上限设为非零柱高的第 N 百分位，以免一根高尖峰压扁其余柱（默认 100 = 最高柱；调低可放大其余部分）。超出上限的柱会被截断。","Y轴上限 = 柱高的第 N 百分位"],["BTC 价格叠加","白线是所选日期之前一年的每日收盘价（对数刻度），橙色标记为当日收盘价，并标出周期顶部与底部。点击图例中的 BTC/USD 可隐藏或显示。",null],["视频导出 (▶)","录制图表在日期范围内的变化：按当前间隔（1天/1周/1月/1年）每步一帧，使用当前视图和所选帧率，保存为 WebM。",null]] }
+  en: { title: "Understanding URPD", sections: [["UTXO Realized Price Distribution (URPD)","Shows the distribution of Bitcoin's supply by the price at which each UTXO was last moved on-chain: its realised price, or cost basis. Each bar is the supply whose cost basis falls in that price range. One snapshot per day since 2009-01-03, from Bitcoin Research Kit via bitview.space.",null],["URPD (USD-weighted) — USD Value at Last Move","Weights each UTXO by its dollar value at its last on-chain move. Shows where that value is concentrated.",["f1","USD Value at Last Move(P) = P · S(P)"]],["URPD (BTC-weighted) — Supply Distribution","Shows raw BTC supply at each cost-basis price, unweighted by dollar value.",["f2","S(P) = Σ utxo.value  where utxo.price ∈ [P, P + ΔP)"]],["Realized Cap","The total value of all UTXOs priced at their last-moved price. Unlike market cap, it reflects the aggregate cost basis of the entire supply.",["f3","RC = Σᵢ Pᵢ · Sᵢ  for all price bins i"]],["Supply in Profit / Loss","At the spot price line: the share of the day's USD value at last move (USD view) or BTC supply (BTC view) whose cost basis is at or below spot is \"in profit\"; above spot is \"in loss\". Computed from the displayed bins.",["f6","Profit % = Σ W(P) for P ≤ Spot  /  Σ W(P) × 100"]],["Bottom Signal","Fires when the share of USD value held in loss, computed from the exact realised prices, reaches the threshold set in the toolbar (default 80%). It shows as a fourth line inside the spot-price box, and the spot line turns the same yellow. Historically, extreme readings have coincided with cycle bottoms.",["f7","Signal when: Loss% ≥ Threshold (default 80%)"]],["UTXO Age Bands (AGE)","Splits the distribution into 23 cohorts by how long each UTXO has sat unmoved, from under one hour to over fifteen years. Colour is a spectrogram of age and needs no words: a band's colour position is the logarithm of its mid-age (as a spectrogram maps decibels), from 30 minutes to 16 years, so colour distance is age distance on a log scale and no band boundary is treated specially. Lightness falls strictly from young to old, so age can be read from brightness alone, even in greyscale; hue runs hot to cold (yellow → orange → red → magenta → violet → blue) as a second cue that never passes through green, so it also reads with red–green colour blindness. Cohorts come directly from Bitcoin Research Kit.",["f8","Age(utxo) = now − t(last moved)"]],["Histogram Bins","Equal-width price bins from $0 to the day's highest cost basis (Bins in the toolbar, default 625, so about $200 when the high is $125K); the width in dollars and the on-screen width of each bar in pixels are shown next to the field and change with the date and window. Bars sit on whole screen pixels with a one-pixel gap between neighbours so every bar can be told apart; if the bars would be thinner than 2 px (too many bins for the window) they are drawn solid. Bitcoin Research Kit prices coins at block-level prices in $1 buckets below $100K and $10 buckets above, and one large transfer can land a huge mass on a single price, and each price point's mass goes into the bin that contains it: Smoothing defaults to 0.3, which spreads that mass without moving it; set it to 0 for the raw binned data. Setting Smoothing to S spreads each point with a Gaussian of σ = S% of its price (0.1–0.3 is a light touch; the field accepts up to 1); mass and USD value are preserved exactly.",["f9","ΔP = max cost basis / bins;  σ = S% × price (0 = raw);  bar(P) = Σ mass · N(P, σ) over the bin"]],["Percent of Total","The line on the right axis is the cumulative share of the day's supply (BTC view) or USD value at last move (USD view) with a cost basis at or below each price.",["f10","Cum %(P) = Σ W(p ≤ P) / Σ W × 100"]],["Adjustable Y-max","Caps the left axis at the Nth percentile of the non-zero bar heights so one tall spike does not flatten the rest (default 100 = the tallest bar; lower it to zoom in on the rest). Bars above the cap are clipped. A pinned scale is overridden by this: an explicit Y-max wins.",["f11","y-max = percentileₙ(bar heights)"]],["BTC Price Overlay","The white line is a year of daily closes on a log scale, running from 275 days before the selected date to 90 days after it, with the orange marker on that day's close and cycle tops and bottoms marked. Click the BTC/USD legend entry to hide or show it.",null],["Video Export (▶)","Records the chart moving through a date range, one frame per step of the current interval (1D/1W/1M/1Y) in the current view, at the chosen frames per second, and saves a WebM.",null],["Pinned scale (PIN SCALE)","Pins the day on screen: a dashed line marks its tallest bar and the left axis stops rescaling, so every other day is drawn to that same height and can be read against it directly. A day taller than the pin runs into the top of the plot. Press the button again to unpin. Pins are kept separately for each weighting, bin count and smoothing, since a bar height only means the same thing under the same settings, and they survive a reload.",null],["Keyboard and mouse","Left/Right or A/D step one interval; 1-4 choose the interval (1D/1W/1M/1Y); Home/End jump to the first or last day; Up/Down or W/S switch between USD and BTC weighting. Drag the orange dot along the price line to scrub by hand. Clicking the chart takes focus off a toolbar field so the arrow keys drive the chart again, and clicking a legend entry hides or shows that series.",null]] },
+  zh: { title: "\u7406\u89e3 URPD", sections: [["UTXO 已实现价格分布 (URPD)","显示比特币供应按每个 UTXO 最后一次链上移动时的价格（即已实现价格或成本基础）的分布。每个柱代表成本基础落在该价格区间的供应量。自 2009-01-03 起每日一个快照，数据来自 Bitcoin Research Kit（bitview.space）。",null],["URPD (美元加权) — 最后移动时美元价值","按最后一次链上移动时的美元价值对每个 UTXO 加权。显示该价值集中在哪里。","最后移动时美元价值(P) = 价格 P · 供应量 S(P)"],["URPD (BTC加权) — 供应分布","显示每个成本基础价格的原始 BTC 供应，不按美元价值加权。","S(P) = Σ UTXO金额，其中 UTXO价格 ∈ [P, P + ΔP)"],["已实现市值 (Realized Cap)","所有 UTXO 按其最后移动价格计价的总价值。与市值不同，它反映整个供应的总成本基础。","已实现市值 = Σᵢ Pᵢ · Sᵢ，遍历所有价格区间 i"],["供应盈利 / 亏损","在现价线处：当日最后移动时美元价值（美元视图）或 BTC 供应（BTC 视图）中，成本基础不高于现价的部分为“盈利”，高于现价的为“亏损”。按显示的柱计算。","盈利% = Σ W(P)，其中 P ≤ 现价 / Σ W(P) × 100"],["底部信号","当处于亏损的美元价值占比（按精确的已实现价格计算）达到工具栏中设定的阈值（默认 80%）时触发，在现价框内以第四行显示，现价线也转为同样的黄色。历史上，极端读数与周期底部相吹合。","信号触发条件: 亏损% ≥ 阈值 (默认 80%)"],["UTXO 年龄段 (AGE)","按每个 UTXO 未移动的时长将分布分为 23 个队列，从不足一小时到超过十五年。颜色是年龄的“频谱图”，无需任何文字：每段的颜色位置是其中位年龄的对数（如同频谱图把分贝线性映射到色条），从 30 分钟到 16 年，因此颜色距离即对数年龄距离，且不特殊对待任何分段边界。亮度从年轻到年老严格递减，仅凭明暗即可读出年龄（灰度下亦然）；色相由热到冷（黄→橙→红→品红→紫→蓝）作为第二线索，且不经过绿色，红绿色盲者看到的顺序相同。队列直接来自 Bitcoin Research Kit。","年龄(UTXO) = 现在 − 最后移动时间"],["直方图分箱","从 $0 到当日最高成本基础平均分为若干等宽价格区间（工具栏“分箱”，默认 625，最高价 $125K 时约 $200）；美元宽度和每根柱在屏幕上的像素宽度显示在输入框旁，随日期和窗口变化。柱对齐到整数屏幕像素并以一像素间隔分开，便于区分每根柱；若柱会窄于 2 像素（分箱数对窗口而言过多），则绘制为实心相连。Bitcoin Research Kit 按区块级价格计价，$100K 以下以 $1、以上以 $10 为桶，一笔大额转账可能把巨量集中在单一价格上，每个价格点的量计入其所在的区间：平滑默认为 0.3，将这些量杆开而不改变总量；设为 0 即得原始分箱数据。平滑设为 S 时，每个点按 σ = 价格的 S% 的高斯核展开（0.1–0.3 为轻度；最大可输入 1）；总量与美元价值完全保持不变。","ΔP = 最高成本基础 / 分箱数；σ = S% × 价格（0 = 原始）；柱(P) = Σ 量 · N(P, σ) 在区间内"],["占总量百分比","右轴的曲线是当日供应（BTC 视图）或最后移动时美元价值（美元视图）中成本基础不高于各价格的累计占比。","累计%(P) = Σ W(p ≤ P) / Σ W × 100"],["可调 Y 轴上限","将左轴上限设为非零柱高的第 N 百分位，以免一根高尖峰压扁其余柱（默认 100 = 最高柱；调低可放大其余部分）。超出上限的柱会被截断。设定 Y 轴上限优先于固定标尺。","Y轴上限 = 柱高的第 N 百分位"],["BTC 价格叠加","白线是一年的每日收盘价（对数刻度），从所选日期前 275 天到后 90 天，橙色标记为当日收盘价，并标出周期顶部与底部。点击图例中的 BTC/USD 可隐藏或显示。",null],["视频导出 (▶)","录制图表在日期范围内的变化：按当前间隔（1天/1周/1月/1年）每步一帧，使用当前视图和所选帧率，保存为 WebM。",null],["固定标尺","固定当前所选日期：虚线标出当日最高柱，左轴不再随日期缩放，因此其他日期都按同一高度绘制，可直接对比。高于该标尺的柱会顶到绘图区上沿。再次点击即可取消。标尺按加权方式、分箱数和平滑分别保存，并在刷新后保留。",null],["键盘与鼠标","左/右 或 A/D 按当前间隔前后移动；1-4 选择间隔（1天/1周/1月/1年）；Home/End 跳到首日或末日；上/下 或 W/S 在美元与 BTC 加权之间切换。拖动价格线上的橙色圆点可手动拖拽日期。点击图表可让工具栏输入框失去焦点，方向键便重新控制图表；点击图例项可隐藏或显示该系列。",null]] }
 };
 function updateExplainerLang() {
   var box = document.getElementById("explainPanel");
