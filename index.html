@@ -311,6 +311,9 @@ function peakRecord(dateStr, value) {
   try { localStorage.setItem(PEAK_STORE_KEY, JSON.stringify(peakStore)); } catch (e) {}
 }
 var peakAnnIdx = -1; // which annotation is the peak label, so its reset button can be parked at the end of it
+// Set by the reset button: while the day and the settings are unchanged the marker stays hidden, so the
+// click is visibly acknowledged instead of the line snapping straight back onto the day already on screen.
+var peakOffDate = null, peakOffKey = null;
 // Plotly rebuilds the annotation nodes on every draw, so the button is repositioned from the label's own
 // box afterwards. It lives outside the plot element, which keeps its clicks away from the chart.
 function placePeakReset() {
@@ -327,6 +330,8 @@ function placePeakReset() {
 // Forget the record for the current settings. The day on screen is measured again straight away, so the
 // marker restarts from here rather than vanishing until the next scrub.
 function peakReset() {
+  peakOffDate = allDates[currentIdx];
+  peakOffKey = peakKey();
   delete peakStore[peakKey()];
   try { localStorage.setItem(PEAK_STORE_KEY, JSON.stringify(peakStore)); } catch (e) {}
   loadAndRender();
@@ -734,8 +739,9 @@ function renderChart(data) {
 
   var maxVal = valuesForAxis.reduce(function(a,b){return a>b?a:b},0);
   peakAnnIdx = -1;
-  peakRecord(dateStr, maxVal);
-  var peak = peakBest();
+  var peakOff = (peakOffDate === dateStr && peakOffKey === peakKey());
+  if (!peakOff) peakRecord(dateStr, maxVal);
+  var peak = peakOff ? null : peakBest();
   var yClipped = false;
   if (yMaxPct < 100) {
     var sorted = valuesForAxis.filter(function(v){return v>0;}).slice().sort(function(a,b){return a-b;});
