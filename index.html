@@ -903,6 +903,20 @@ function renderChart(data) {
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false,autorange:false,range:[ovYmd(ovLeft),ovYmd(ovRight)]};
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
   }
+  // Legend toggles live on the trace objects and every draw builds those objects afresh, so anything hidden
+  // would reappear the moment the chart redrew - changing date, or clicking BTC/USD, which is intercepted
+  // below and redraws everything. Carry the hidden state across by trace name.
+  var prevGd = document.getElementById("chart");
+  if (prevGd && prevGd.data) {
+    var wasHidden = {};
+    for (var hv = 0; hv < prevGd.data.length; hv++) {
+      var pd = prevGd.data[hv];
+      if (pd && pd.name && pd.visible === "legendonly") wasHidden[pd.name] = true;
+    }
+    for (var hw = 0; hw < traces.length; hw++) {
+      if (traces[hw].name && wasHidden[traces[hw].name]) traces[hw].visible = "legendonly";
+    }
+  }
   Plotly.react("chart", traces, layout, {responsive:true}).then(function(){
     var gdEl = document.getElementById("chart");
     if (!tracerHooked && typeof gdEl.on === "function") {
