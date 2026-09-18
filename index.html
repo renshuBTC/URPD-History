@@ -1391,7 +1391,34 @@ function updateVideoLang() {
     var fIdx = 0;
     var tStart = 0;
 
+    // Chrome clamps setTimeout to once a second in a tab that is not visible, and
+    // MediaRecorder stamps every frame with the wall clock, so a backgrounded export
+    // writes those one-second gaps into the file as real pauses. Measured on this page:
+    // a 33 ms loop ran at a 1001 ms median while hidden, against the 33 ms it should be.
+    // A page that is playing audio is exempt from the clamp, so a 40 Hz tone at 0.0015 of
+    // full scale runs for the length of the export. It is inaudible in practice, and
+    // finish() is the single teardown path, so it always stops.
+    var wakeAudio = null;
+    function wakeOn() {
+      try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        var ac = new Ctx();
+        var osc = ac.createOscillator(), gain = ac.createGain();
+        gain.gain.value = 0.0015;
+        osc.frequency.value = 40;
+        osc.connect(gain); gain.connect(ac.destination); osc.start();
+        wakeAudio = { ac: ac, osc: osc };
+        if (ac.state === "suspended" && ac.resume) ac.resume();
+      } catch (e) { wakeAudio = null; }
+    }
+    function wakeOff() {
+      if (!wakeAudio) return;
+      try { wakeAudio.osc.stop(); wakeAudio.ac.close(); } catch (e) {}
+      wakeAudio = null;
+    }
     function finish(ok) {
+      wakeOff();
       videoRecording = false; videoCancel = false;
       recBtn.disabled = false; cancelBtn.disabled = true; btn.classList.remove("rec"); document.body.classList.remove("recording");
       syncSettingFields();
@@ -1486,6 +1513,7 @@ function updateVideoLang() {
       }
       pump();
       Promise.all(queue.slice()).then(function () {
+        wakeOn();
         recorder.start(4000);  // hand the encoder output over in pieces rather than one blob at the end
         var start = performance.now();
         function step() {
