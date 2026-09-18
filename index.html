@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bitcoin Supply Distribution</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -21,7 +22,14 @@
   #controls .mode-toggle button.active:hover { background: #ffaa33; }
   #dateDisplay { font-size: 14px; font-weight: bold; color: #ff8c00; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
   #status { display: none; text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
-  #chart { width: calc(100% - 8px); margin: 0 4px; flex: 1 1 auto; min-height: 0; } /* every pixel the toolbar and status line leave; 4 px so the axis titles do not touch the window edge */
+  #chart { width: calc(100% - 8px); margin: 0 4px; flex: 1 1 auto; min-height: 0; }
+  /* On a phone the toolbar is not worth the pixels: the chart takes the whole screen and
+     the gestures below do the driving. */
+  @media (max-width: 820px) {
+    #controls { display: none; }
+    html, body { height: 100dvh; overflow: hidden; }
+    #chart { width: 100%; margin: 0; }
+  } /* every pixel the toolbar and status line leave; 4 px so the axis titles do not touch the window edge */
   #tracer { position: fixed; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ff8c00; border: 2px solid #ffffff; box-sizing: border-box; box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 0 6px rgba(255,140,0,0.5); cursor: grab; z-index: 50; display: none; touch-action: none; }
   #tracer.show { display: block; }
   #tracer.dragging { cursor: grabbing; }
@@ -184,7 +192,9 @@ var GENESIS = new Date(2009, 0, 3);
 var BRK_DAY0 = new Date(2009, 0, 1);
 var priceDates = null;
 var priceIndexByDate = null;
-var NUM_BINS = 625; // equal-width bins over the day's $0..max range; the Bins field in the toolbar changes it (50-1000)
+var IS_MOBILE = window.matchMedia("(max-width: 820px)").matches;
+var mobRange = null;  // a pinch zoom on the price axis, kept across redraws
+var NUM_BINS = IS_MOBILE ? 180 : 625; // equal-width bins over the day's $0..max range; the Bins field in the toolbar changes it (50-1000)
 var SMOOTH_WINDOW = 1; // smoothing now happens in aggregate() (kernel binning); 1 = pass-through
 var PROFIT_COLOR = "#00e676";   // spot label: share held in profit
 var LOSS_COLOR = "#ff1744";     // spot label: share held in loss
@@ -928,6 +938,24 @@ function renderChart(data) {
       if (traces[hw].name && wasHidden[traces[hw].name]) traces[hw].visible = "legendonly";
     }
   }
+  if (IS_MOBILE) {
+    // One screenful of chart, no legend, bigger ticks, fewer of them.
+    var xTop = layout.xaxis.range[1] || 1;
+    layout.showlegend = false;
+    layout.title.font.size = 13;
+    layout.title.pad.t = 6;
+    layout.margin = { l: 34, r: 34, t: 26, b: 38 };
+    layout.xaxis.title.font.size = 11;
+    layout.xaxis.tickangle = 0;
+    layout.xaxis.tickfont = { family: FONT, size: 10, color: "#ffffff" };
+    layout.xaxis.dtick = Math.max(5000, Math.round(xTop / 4 / 5000) * 5000);
+    layout.yaxis.title.text = "";
+    layout.yaxis.tickfont = { family: FONT, size: 10, color: "#ffffff" };
+    layout.yaxis2.title.text = "";
+    layout.yaxis2.tickfont = { family: FONT, size: 10, color: "#ffffff" };
+    layout.yaxis2.dtick = 25;
+    if (mobRange) layout.xaxis.range = mobRange.slice();
+  }
   Plotly.react("chart", traces, layout, {responsive:true}).then(function(){
     var gdEl = document.getElementById("chart");
     if (!tracerHooked && typeof gdEl.on === "function") {
@@ -1549,6 +1577,74 @@ function updateExplainerLang() {
   }
 }
 updateExplainerLang();
+
+/* ---- Touch ---------------------------------------------------------------
+   One finger dragged sideways walks the calendar, a full screen width being
+   about four months. Two fingers pinch the price axis. Two quick taps undo the
+   pinch. Renders are serialised: a drag can outrun the data, so the newest
+   target waits its turn rather than queueing up a hundred redraws. */
+if (IS_MOBILE) (function () {
+  var gd = document.getElementById("chart");
+  if (!gd) return;
+  var SPAN = 120;  // days crossed by a full-width drag
+  var drag = null, pinch = null, busy = false, queued = null, lastTap = 0;
+
+  function go(i) {
+    i = Math.max(0, Math.min(allDates.length - 1, i));
+    if (i === currentIdx) return;
+    if (busy) { queued = i; return; }
+    busy = true;
+    currentIdx = i;
+    Promise.resolve(loadAndRender()).catch(function () {}).then(function () {
+      busy = false;
+      if (queued !== null) { var q = queued; queued = null; go(q); }
+    });
+  }
+
+  function gap(tt) {
+    var dx = tt[0].clientX - tt[1].clientX, dy = tt[0].clientY - tt[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  gd.addEventListener("touchstart", function (e) {
+    if (e.touches.length === 1) {
+      drag = { x: e.touches[0].clientX, y: e.touches[0].clientY, idx: currentIdx, moved: false };
+      pinch = null;
+    } else if (e.touches.length === 2) {
+      drag = null;
+      var r = gd._fullLayout && gd._fullLayout.xaxis ? gd._fullLayout.xaxis.range.slice() : null;
+      if (r) pinch = { d: gap(e.touches), lo: r[0], hi: r[1] };
+    }
+  }, { passive: false });
+
+  gd.addEventListener("touchmove", function (e) {
+    if (pinch && e.touches.length === 2) {
+      e.preventDefault();
+      var f = pinch.d / Math.max(20, gap(e.touches));
+      var mid = (pinch.lo + pinch.hi) / 2;
+      var half = Math.max(500, (pinch.hi - pinch.lo) / 2 * f);
+      mobRange = [Math.max(0, mid - half), mid + half];
+      Plotly.relayout(gd, { "xaxis.range": mobRange });
+      return;
+    }
+    if (drag && e.touches.length === 1) {
+      var dx = e.touches[0].clientX - drag.x, dy = e.touches[0].clientY - drag.y;
+      if (!drag.moved && Math.abs(dx) < 8) return;
+      if (!drag.moved && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }
+      drag.moved = true;
+      e.preventDefault();
+      var w = gd.getBoundingClientRect().width || 1;
+      go(drag.idx + Math.round(-dx / w * SPAN));
+    }
+  }, { passive: false });
+
+  gd.addEventListener("touchend", function () {
+    var now = Date.now();
+    if (!drag && !pinch && now - lastTap < 320 && mobRange) { mobRange = null; loadAndRender(); }
+    lastTap = now;
+    drag = null; pinch = null;
+  });
+})();
 </script>
 </body>
 </html>
