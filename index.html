@@ -954,6 +954,9 @@ function renderChart(data) {
     layout.yaxis2.title.text = "";
     layout.yaxis2.tickfont = { family: FONT, size: 10, color: "#ffffff" };
     layout.yaxis2.dtick = 25;
+    layout.xaxis.automargin = false;
+    layout.yaxis.automargin = false;
+    layout.yaxis2.automargin = false;
     if (mobRange) layout.xaxis.range = mobRange.slice();
   }
   Plotly.react("chart", traces, layout, {responsive:true}).then(function(){
@@ -1639,9 +1642,9 @@ if (IS_MOBILE) (function () {
   }, { passive: false });
 
   gd.addEventListener("touchend", function () {
-    var now = Date.now();
-    if (!drag && !pinch && now - lastTap < 320 && mobRange) { mobRange = null; loadAndRender(); }
-    lastTap = now;
+    var now = Date.now(), tap = drag && !drag.moved && !pinch;
+    if (tap && now - lastTap < 320 && mobRange) { mobRange = null; loadAndRender(); lastTap = 0; }
+    else if (tap) { lastTap = now; }
     drag = null; pinch = null;
   });
 })();
