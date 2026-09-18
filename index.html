@@ -336,7 +336,7 @@ var T = {
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Value Held in Loss",
         titleUSDAge: "Bitcoin Supply Distribution (by USD Value) as of ", titleBTCAge: "Bitcoin Supply Distribution as of ",
     priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Percent of Total [%]", pctLegend: "% of Total",
-    hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", hoverDate: "Date: ", usdProfit: "USD Value Held in Profit: ", usdLoss: "USD Value Held in Loss: ", btcProfit: "BTC Supply Held in Profit: ", btcLoss: "BTC Supply Held in Loss: ",
+    hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", hoverTotalUSD: "Total Value Held: ", hoverTotalBTC: "Total Supply Held: ", hoverDate: "Date: ", usdProfit: "USD Value Held in Profit: ", usdLoss: "USD Value Held in Loss: ", btcProfit: "BTC Supply Held in Profit: ", btcLoss: "BTC Supply Held in Loss: ",
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Could not reach bitview.space. Check your connection and try again.",
     allSupply: "All supply (age data unavailable)", peakLabel: "Peak ", peakBtn: "Pin scale", peakBtnTitle: "Pin this day's tallest bar as a fixed scale"
@@ -347,7 +347,7 @@ var T = {
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f",
         titleUSDAge: "比特币供应分布（按美元价值）截至 ", titleBTCAge: "比特币供应分布 截至 ",
     priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4ef7\u503c [\u7f8e\u5143]", btcSupply: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4f9b\u5e94 [BTC]", pctTotal: "\u5360\u603b\u91cf\u6bd4\u4f8b [%]", pctLegend: "\u5360\u6bd4",
-    hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", hoverDate: "日期: ", usdProfit: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u5904\u4e8e\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u5904\u4e8e\u4e8f\u635f: ",
+    hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", hoverTotalUSD: "持有总价值: ", hoverTotalBTC: "持有总量: ", hoverDate: "日期: ", usdProfit: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u5904\u4e8e\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u5904\u4e8e\u4e8f\u635f: ",
     langBtn: "日本語",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
     allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", peakLabel: "峰值 ", peakBtn: "固定标尺", peakBtnTitle: "将当日最高柱固定为比较基准"
@@ -374,7 +374,7 @@ var T = {
     pctLegend: "全体比 %",
     hoverPrice: "価格: $",
     hoverPctTotal: "全体に占める割合: ",
-    hoverDate: "日付: ",
+    hoverTotalUSD: "保有総額: ", hoverTotalBTC: "保有総量: ", hoverDate: "日付: ",
     usdProfit: "含み益の USD 評価額: ",
     usdLoss: "含み損の USD 評価額: ",
     btcProfit: "含み益の BTC 供給量: ",
@@ -721,12 +721,27 @@ function renderChart(data) {
     data.aggAge.forEach(function(c){ c.agg.forEach(function(b){ ageSet.add(b.price); }); });
     chartPrices = Array.from(ageSet).sort(function(a,b){return a-b;});
     valuesForAxis = chartPrices.map(function(){ return 0; });
+    // Each cohort is its own stacked trace, so hovering a bar only told you what that
+    // one age band holds. The number people actually read a URPD for is the whole bar:
+    // how much sits at this price regardless of age. That total is valuesForAxis, which
+    // is not finished until every cohort below has been added, so the traces pushed in
+    // this loop get their total patched in afterwards, from ageTraceStart.
+    var ageTraceStart = traces.length;
     data.aggAge.forEach(function(c) {
       var cm = {}; c.agg.forEach(function(b){ cm[b.price] = b; });
       var vals = smooth(chartPrices.map(function(p){ return cm[p] ? (isCoin ? cm[p].supply : cm[p].invested) : 0; }));
       for (var vi = 0; vi < vals.length; vi++) valuesForAxis[vi] += vals[vi];
-      traces.push({x:chartPrices,y:vals,type:"bar",name:c.label,width:Array(chartPrices.length).fill(barW),marker:{color:c.color,line:{width:0}},hovertemplate:hp+"%{x:,.0f}<br>"+c.label+": "+(isCoin?"%{y:,.2f} BTC":"%{y:$,.0f}")+"<extra></extra>"});
+      traces.push({x:chartPrices,y:vals,type:"bar",name:c.label,width:Array(chartPrices.length).fill(barW),marker:{color:c.color,line:{width:0}},hovertemplate:hp+"%{x:,.0f}<br>"+c.label+": "+(isCoin?"%{y:,.2f} BTC":"%{y:$,.0f}")});
     });
+    var totLbl = isCoin ? t("hoverTotalBTC") : t("hoverTotalUSD");
+    var totFmt = isCoin ? "%{customdata:,.2f} BTC" : "%{customdata:$,.0f}";
+    for (var ti = ageTraceStart; ti < traces.length; ti++) {
+      // Plotly reads customdata positionally against x, so one array serves every
+      // cohort trace. Sharing the reference also keeps this off the memory budget
+      // that the video export has to live within.
+      traces[ti].customdata = valuesForAxis;
+      traces[ti].hovertemplate += "<br>" + totLbl + totFmt + "<extra></extra>";
+    }
     var totalA = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
     var runA = 0;
     var cumulA = valuesForAxis.map(function(v){runA+=v;return 100*runA/totalA;});
