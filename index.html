@@ -6,7 +6,7 @@
 <title>Bitcoin Supply Chart</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"
-  integrity="undefined"
+  integrity="sha384-Hl48Kq2HifOWdXEjMsKo6qxqvRLTYqIGbvlENBmkHAxZKIGCXv43H6W1jA671RzC"
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
@@ -1391,7 +1391,34 @@ function updateVideoLang() {
     var fIdx = 0;
     var tStart = 0;
 
+    // Chrome clamps setTimeout to once a second in a tab that is not visible, and
+    // MediaRecorder stamps every frame with the wall clock, so a backgrounded export
+    // writes those one-second gaps into the file as real pauses. Measured on this page:
+    // a 33 ms loop ran at a 1001 ms median while hidden, against the 33 ms it should be.
+    // A page that is playing audio is exempt from the clamp, so a 40 Hz tone at 0.0015 of
+    // full scale runs for the length of the export. It is inaudible in practice, and
+    // finish() is the single teardown path, so it always stops.
+    var wakeAudio = null;
+    function wakeOn() {
+      try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        var ac = new Ctx();
+        var osc = ac.createOscillator(), gain = ac.createGain();
+        gain.gain.value = 0.0015;
+        osc.frequency.value = 40;
+        osc.connect(gain); gain.connect(ac.destination); osc.start();
+        wakeAudio = { ac: ac, osc: osc };
+        if (ac.state === "suspended" && ac.resume) ac.resume();
+      } catch (e) { wakeAudio = null; }
+    }
+    function wakeOff() {
+      if (!wakeAudio) return;
+      try { wakeAudio.osc.stop(); wakeAudio.ac.close(); } catch (e) {}
+      wakeAudio = null;
+    }
     function finish(ok) {
+      wakeOff();
       videoRecording = false; videoCancel = false;
       recBtn.disabled = false; cancelBtn.disabled = true; btn.classList.remove("rec"); document.body.classList.remove("recording");
       syncSettingFields();
@@ -1464,36 +1491,55 @@ function updateVideoLang() {
         finish(true);
       };
       // MediaRecorder stamps each pushed frame with the wall clock, so frames are pushed on a fixed
-      // schedule (start + i / fps). The next frame is decoded while the current one waits its turn,
-      // so decode time does not stretch the playback.
+      // schedule (start + i / fps). MediaRecorder stamps every pushed frame with the wall clock,
+      // so a frame that arrives late bakes that delay into the file as a visible pause. The loop
+      // used to decode exactly one frame ahead, which left no slack at all: a blob Chrome had
+      // spilled to disk, or a garbage collection, stalled the schedule and the stall was recorded.
+      // Decoding now runs several frames ahead, and the buffer is filled before the clock starts,
+      // so ordinary hiccups are absorbed instead of reaching the encoder.
+      var total = frames.length;
       var i = 0, interval = 1000 / fps;
-      function decodeFrame(k) { return createImageBitmap(frames[k]); }
-      var pending = decodeFrame(0);
-      recorder.start(4000);  // hand the encoder output over in pieces rather than one blob at the end
-      var start = performance.now();
-      function step() {
-        pending.then(function(im) {
-          var wait = Math.max(0, start + i * interval - performance.now());
-          setTimeout(function() {
-            ctx.drawImage(im, 0, 0, W, H);
-            frames[i] = null;   // the pixels are on the canvas now, let the blob go
-            track.requestFrame();
-            i++;
-            if (videoCancel) { recorder.stop(); return; }
-            if (i < frames.length) { if (im.close) im.close(); pending = decodeFrame(i); step(); return; }
-            // Hold the final frame for a second, then let the encoder drain before stopping: frames
-            // pushed right before stop() are dropped otherwise.
-            var holdEnd = performance.now() + 1000;
-            (function hold() {
+      var AHEAD = 8;            // decoded frames held ready
+      var queue = [], nextDecode = 0;
+      function pump() {
+        while (queue.length < AHEAD && nextDecode < total) {
+          (function (k) {
+            queue.push(createImageBitmap(frames[k]).then(function (bmp) {
+              frames[k] = null;   // decoded, so the blob can go now rather than at draw time
+              return bmp;
+            }));
+          })(nextDecode++);
+        }
+      }
+      pump();
+      Promise.all(queue.slice()).then(function () {
+        wakeOn();
+        recorder.start(4000);  // hand the encoder output over in pieces rather than one blob at the end
+        var start = performance.now();
+        function step() {
+          pump();
+          queue.shift().then(function (im) {
+            var wait = Math.max(0, start + i * interval - performance.now());
+            setTimeout(function () {
               ctx.drawImage(im, 0, 0, W, H);
               track.requestFrame();
-              if (performance.now() < holdEnd) setTimeout(hold, interval);
-              else setTimeout(function(){ recorder.stop(); }, 1500);
-            })();
-          }, wait);
-        }).catch(function(e){ setStatus("Error: " + e.message); videoCancel = true; recorder.stop(); });
-      }
-      step();
+              i++;
+              if (videoCancel) { recorder.stop(); return; }
+              if (i < total) { if (im.close) im.close(); step(); return; }
+              // Hold the final frame for a second, then let the encoder drain before stopping:
+              // frames pushed right before stop() are dropped otherwise.
+              var holdEnd = performance.now() + 1000;
+              (function hold() {
+                ctx.drawImage(im, 0, 0, W, H);
+                track.requestFrame();
+                if (performance.now() < holdEnd) setTimeout(hold, interval);
+                else setTimeout(function () { recorder.stop(); }, 1500);
+              })();
+            }, wait);
+          }).catch(function (e) { setStatus("Error: " + e.message); videoCancel = true; recorder.stop(); });
+        }
+        step();
+      }).catch(function (e) { setStatus("Error: " + e.message); finish(false); });
     }
     captureFrames();
   };
