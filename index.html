@@ -96,6 +96,53 @@
   #controls #videoPanel button:disabled, #controls #videoPanel #videoStatus { color: #ffffff; }
   #videoPanel h2, #videoPanel input { color: #ff8c00; }
   #controls #videoPanel input, #controls #videoPanel button { height: 26px; }
+
+  /* ---- Terminal surface system -----------------------------------------
+     Elevation in a dark interface comes from surface lightness, not from
+     shadow: dark shadows disappear into a dark page. Each layer sits a few
+     points above the one behind it, and every divider is a hairline at low
+     white opacity rather than a solid grey, so the chart stays the loudest
+     thing on screen. Numbers are set in tabular figures so digits line up. */
+  :root {
+    --s0: #0a0a0a;            /* page and chart */
+    --s1: #121316;            /* the command bar */
+    --s2: #1c1d21;            /* a control at rest */
+    --s3: #26272c;            /* a control under the cursor */
+    --panel: #191a1d;         /* popovers above the bar */
+    --line: rgba(255,255,255,0.07);    /* dividers */
+    --edge: rgba(255,255,255,0.11);    /* control edges */
+    --edge-hi: rgba(255,255,255,0.22); /* control edges, hovered */
+    --ink: #e9e9ec;           /* things you can press */
+    --ink-dim: #8a8c92;       /* labels and units */
+    --accent: #ff8c00;
+  }
+  #controls { background: var(--s1); border-bottom: 1px solid var(--line); box-shadow: 0 1px 0 rgba(0,0,0,0.55); }
+  #controls button { background: var(--s2); color: var(--ink); border: 1px solid var(--edge); border-radius: 3px;
+    transition: background .12s, border-color .12s, color .12s; }
+  #controls button:hover { background: var(--s3); color: #ffffff; border-color: var(--edge-hi); }
+  #controls .mode-toggle button.active { background: var(--accent); color: #0a0a0a; border-color: var(--accent); }
+  #controls #intervalBar { background: var(--s0); border: 1px solid var(--edge); border-radius: 3px; }
+  #controls #intervalBar .iv { background: transparent; border-color: transparent; color: var(--ink-dim); }
+  #controls #intervalBar .iv:hover { background: var(--s3); color: #ffffff; }
+  #controls #intervalBar .iv.active { background: var(--accent); color: #0a0a0a; }
+  #controls .ctrl-sep { background: var(--line); height: 16px; }
+  #controls input, #controls select { background: var(--s0); border: 1px solid var(--edge); border-radius: 3px;
+    font-variant-numeric: tabular-nums; }
+  #controls select { color: var(--ink); }
+  #controls input::placeholder { color: #63656b; opacity: 1; }
+  #controls label, #controls #binsUnit { color: var(--ink-dim); letter-spacing: 0.3px; }
+  #controls #dateDisplay { font-variant-numeric: tabular-nums; }
+  #controls button:focus-visible, #controls input:focus-visible, #controls select:focus-visible {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,140,0,0.18); }
+  #explainPanel, #videoPanel { background: var(--panel); border: 1px solid var(--edge); border-radius: 6px;
+    box-shadow: 0 18px 44px rgba(0,0,0,0.72), 0 2px 10px rgba(0,0,0,0.5); }
+  #explainPanel h2 { border-bottom-color: var(--line); }
+  #explainPanel .formula { background: var(--s0); border: 1px solid var(--edge); border-left: 2px solid var(--accent); }
+  #explainPanel::-webkit-scrollbar-track { background: transparent; }
+  #explainPanel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 3px; }
+  #controls #videoPanel input { background: var(--s0); border: 1px solid var(--edge); font-variant-numeric: tabular-nums; }
+  #controls #videoPanel button { background: var(--s2); border: 1px solid var(--edge); }
+  #controls #videoPanel button:hover { background: var(--s3); border-color: var(--edge-hi); }
 </style>
 </head>
 <body>
