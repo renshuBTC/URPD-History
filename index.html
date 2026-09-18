@@ -275,7 +275,7 @@ var cacheOrder = [];   // insertion order, for eviction
 var CACHE_MAX = 150;
 var rawCache = {};     // raw API responses per date ({all, lth, sth, age}); re-binned locally when Bins or Smoothing change
 var rawOrder = [];
-var RAW_CACHE_MAX = 6;
+var RAW_CACHE_MAX = 10;
 var rawInflight = {};  // date + view -> pending fetch, shared by rapid repeat requests
 var lastRenderedData = null; // what the chart is showing right now (the tracer follows this, not currentIdx)
 var renderSeq = 0; // bumped per loadAndRender call so a slow fetch cannot paint over a newer date
@@ -602,21 +602,29 @@ function fetchRaw(dateStr) {
   var key = dateStr + modeKey();
   if (rawInflight[key]) return rawInflight[key];
   var raw = rawTouch(dateStr);
-  var p = (raw.all ? Promise.resolve(raw.all) : fetchJSON(BASE + "/api/series/cost-basis/all/" + dateStr)).then(function(rawAll) {
-    raw.all = rawAll;
-    if (!raw.age) {
-      return Promise.all(AGE_BANDS.map(function(band) {
-        return fetchJSON(BASE + "/api/series/cost-basis/" + band.cohort + "/" + dateStr).catch(function(e){
-            // 404 means the cohort holds nothing that day, normal in the early years. Anything
-            // else is a real failure, and folding it in would quietly shorten the denominator
-            // behind every percentage on the chart.
-            if (/HTTP 404/.test(e && e.message)) return null;
-            throw e;
-          });
-      })).then(function(res) {
-        raw.age = res;
-        return raw;
+  // The 23 age cohorts partition the same UTXO set as the "all" series. Checked on
+  // 2021-07-14: summing them reproduces "all" across all 32,578 prices, with a maximum
+  // per-price difference of 0 BTC. Fetching "all" on top of them cost 37% of the payload
+  // (705 KB of 1,921 KB), and because the cohort requests were chained behind it, a whole
+  // extra round trip before any of them could start. It is summed from the cohorts instead.
+  var p = (raw.age ? Promise.resolve(raw.age) : Promise.all(AGE_BANDS.map(function(band) {
+      return fetchJSON(BASE + "/api/series/cost-basis/" + band.cohort + "/" + dateStr).catch(function(e){
+        // 404 means the cohort holds nothing that day, normal in the early years. Anything
+        // else is a real failure, and folding it in would quietly shorten the denominator
+        // behind every percentage on the chart.
+        if (/HTTP 404/.test(e && e.message)) return null;
+        throw e;
       });
+    }))).then(function(res) {
+    raw.age = res;
+    if (!raw.all) {
+      var all = {};
+      for (var ci = 0; ci < res.length; ci++) {
+        var c = res[ci];
+        if (!c) continue;
+        for (var pr in c) all[pr] = (all[pr] || 0) + c[pr];
+      }
+      raw.all = all;
     }
     return raw;
   });
@@ -657,9 +665,44 @@ function showData(data) {
   document.getElementById("loading").style.display = "none";
 }
 
+// Stepping to a new date paid a full network round trip before anything could be drawn,
+// while the drawing itself costs about 60 ms: the wait was almost entirely network. Dates
+// are walked in a direction, so the next few are predictable. Fetching them while the user
+// is still looking at the current one turns the next step into a cache hit, measured at
+// 957 ms cold against 115-133 ms once a direction is established. Skipped during a video
+// export, which walks every date anyway and has a memory budget of its own to respect.
+var PREFETCH_AHEAD = 2;
+var prefetchLast = null, prefetchPending = false;
+function schedulePrefetch() {
+  if (typeof videoRecording !== "undefined" && videoRecording) return;
+  var dir = (prefetchLast === null || currentIdx === prefetchLast) ? 1 : (currentIdx > prefetchLast ? 1 : -1);
+  var base = currentIdx;
+  prefetchLast = currentIdx;
+  if (prefetchPending) return;
+  prefetchPending = true;
+  var run = function() {
+    prefetchPending = false;
+    var k = 0;
+    (function next() {
+      if (k >= PREFETCH_AHEAD) return;
+      var j = base + dir * (++k);
+      if (j < 0 || j >= allDates.length) return;
+      if (rawComplete(rawCache[allDates[j]])) { next(); return; }
+      // One date at a time. Each is 23 requests, and the date the user is actually
+      // looking at must never end up queued behind a speculative one. Failures are
+      // swallowed: the real load for that date will repeat the request and report it.
+      fetchRaw(allDates[j]).then(next, function(){});
+    })();
+  };
+  // requestIdleCallback looks like the right tool but is starved in a background tab,
+  // which is exactly where it would silently stop prefetching. The render it must not
+  // compete with takes about 60 ms, so a plain short timer clears it and always fires.
+  setTimeout(run, 250);
+}
 function loadAndRender() {
   var dateStr = allDates[currentIdx];
   var mySeq = ++renderSeq;
+  schedulePrefetch();
   var key = dataKey(dateStr);
   if (cache[key]) { showData(cache[key]); return Promise.resolve(); }
   var raw = rawCache[dateStr];
