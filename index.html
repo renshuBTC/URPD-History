@@ -3,6 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+// A phone gets the chart at desktop proportions rather than a reflowed one: the whole
+// figure, legend and credits included, scaled down to fit exactly as a downloaded PNG
+// would be. Portrait letterboxes it, which is the point, a landscape picture in a
+// portrait window asks to be turned; the height is matched to this device's landscape
+// aspect so that turning it fills the screen edge to edge.
+(function () {
+  // Either the device is phone-sized or the window is. The short edge matters because a
+  // phone held in landscape is over 820px wide and would otherwise be handed the desktop
+  // toolbar, and the answer must not flip when the user rotates; the window width is kept
+  // as well so a narrowed desktop window still behaves as it did before.
+  var lo = Math.min(screen.width, screen.height), hi = Math.max(screen.width, screen.height);
+  if (lo > 820 && window.innerWidth > 820) return;
+  var VW = 2000;
+  var VH = Math.round(VW * (lo / hi));
+  window.__PHONE = { w: VW, h: VH };
+  var d = document.documentElement;
+  d.classList.add("phone");
+  d.style.setProperty("--chartH", VH + "px");
+  // Nothing here is meant to be zoomed or panned: the figure is sized to fit and the only
+  // gesture is the edge tap. Locking the viewport stops a stray pinch stranding the user
+  // on a half-scrolled chart, since there is no toolbar on a phone to reset it with.
+  document.querySelector('meta[name="viewport"]').setAttribute("content",
+    "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
+  // The figure is laid out at its full 2000px and then scaled as a whole, rather than being
+  // given a narrow box to reflow into, so Plotly never learns it is on a phone and the
+  // legend, both axis titles and the credit line survive intact. Contain, not fit-to-width:
+  // whichever axis runs out first sets the scale, so the whole figure is always on screen.
+  function fit() {
+    var s = Math.min(window.innerWidth / VW, window.innerHeight / VH);
+    d.style.setProperty("--fit", s.toFixed(5));
+  }
+  fit();
+  addEventListener("resize", fit);
+  addEventListener("orientationchange", fit);
+})();
+</script>
 <title>Bitcoin Supply Chart</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"
@@ -26,11 +63,13 @@
   #chart { width: calc(100% - 8px); margin: 0 4px; flex: 1 1 auto; min-height: 0; }
   /* On a phone the toolbar is not worth the pixels: the chart takes the whole screen and
      the gestures below do the driving. */
-  @media (max-width: 820px) {
-    #controls { display: none; }
-    html, body { height: 100dvh; overflow: hidden; }
-    #chart { width: 100%; margin: 0; }
-  } /* every pixel the toolbar and status line leave; 4 px so the axis titles do not touch the window edge */
+  html.phone #controls { display: none; }
+  html.phone, html.phone body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden;
+    touch-action: none; -webkit-user-select: none; user-select: none; }
+  /* centre the figure in the window the way a photo viewer would */
+  html.phone body { display: flex; align-items: center; justify-content: center; }
+  html.phone #chart { width: 2000px; height: var(--chartH); flex: 0 0 auto; margin: 0;
+    transform-origin: 50% 50%; transform: scale(var(--fit, 1)); } /* every pixel the toolbar and status line leave; 4 px so the axis titles do not touch the window edge */
   #tracer { position: fixed; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ff8c00; border: 2px solid #ffffff; box-sizing: border-box; box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 0 6px rgba(255,140,0,0.5); cursor: grab; z-index: 50; display: none; touch-action: none; }
   #tracer.show { display: block; }
   #tracer.dragging { cursor: grabbing; }
@@ -194,9 +233,8 @@ var BASE = "https://bitview.space";
 var BRK_DAY0 = new Date(2009, 0, 1);
 var priceDates = null;
 var priceIndexByDate = null;
-var IS_MOBILE = window.matchMedia("(max-width: 820px)").matches;
-var mobRange = null;  // a pinch zoom on the price axis, kept across redraws
-var NUM_BINS = IS_MOBILE ? 180 : 625; // equal-width bins over the day's $0..max range; the Bins field in the toolbar changes it (50-1000)
+var IS_MOBILE = !!window.__PHONE;
+var NUM_BINS = 625; // equal-width bins over the day's $0..max range; the Bins field in the toolbar changes it (50-1000)
 var SMOOTH_WINDOW = 1; // smoothing now happens in aggregate() (kernel binning); 1 = pass-through
 var PROFIT_COLOR = "#00e676";   // spot label: share held in profit
 var LOSS_COLOR = "#ff1744";     // spot label: share held in loss
@@ -335,7 +373,7 @@ var T = {
     landmarks: "Landmarks",     signalLabel: "Bottom signal", signalUnit: "% of value in loss", yMaxLabel: "Y-max", yMaxUnit: "percentile", smoothLabel: "Smoothing", smoothUnit: "% of price", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Value Held in Loss",
         titleUSDAge: "Bitcoin Supply Distribution (by USD Value) as of ", titleBTCAge: "Bitcoin Supply Distribution as of ",
-    priceUSD: "Price [USD]", usdInvested: "Value Held at Last Move [USD]", btcSupply: "Supply Held at Last Move [BTC]", pctTotal: "Percent of Total [%]", pctLegend: "% of Total",
+    priceUSD: "Price [USD]", usdInvested: "USD Value Held at Last Move [USD]", btcSupply: "BTC Supply Held at Last Move [BTC]", pctTotal: "Percent of Total [%]", pctLegend: "% of Total",
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", hoverTotalUSD: "Total Value Held: ", hoverTotalBTC: "Total Supply Held: ", hoverDate: "Date: ", usdProfit: "USD Value Held in Profit: ", usdLoss: "USD Value Held in Loss: ", btcProfit: "BTC Supply Held in Profit: ", btcLoss: "BTC Supply Held in Loss: ",
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Could not reach bitview.space. Check your connection and try again.",
@@ -346,7 +384,7 @@ var T = {
     landmarks: "\u91cd\u8981\u65f6\u523b",     signalLabel: "\u5e95\u90e8\u4fe1\u53f7", signalUnit: "% 价值处于亏损", yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "百分位", smoothLabel: "\u5e73\u6ed1", smoothUnit: "% \u4ef7\u683c", binsLabel: "\u5206\u7bb1",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% \u7684\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f",
         titleUSDAge: "比特币供应分布（按美元价值）截至 ", titleBTCAge: "比特币供应分布 截至 ",
-    priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4ef7\u503c [\u7f8e\u5143]", btcSupply: "\u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4f9b\u5e94 [BTC]", pctTotal: "\u5360\u603b\u91cf\u6bd4\u4f8b [%]", pctLegend: "\u5360\u6bd4",
+    priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "USD \u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4ef7\u503c [\u7f8e\u5143]", btcSupply: "BTC \u6700\u540e\u79fb\u52a8\u65f6\u6301\u6709\u4f9b\u5e94 [BTC]", pctTotal: "\u5360\u603b\u91cf\u6bd4\u4f8b [%]", pctLegend: "\u5360\u6bd4",
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", hoverTotalUSD: "持有总价值: ", hoverTotalBTC: "持有总量: ", hoverDate: "日期: ", usdProfit: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u76c8\u5229: ", usdLoss: "\u7f8e\u5143\u4ef7\u503c\u5904\u4e8e\u4e8f\u635f: ", btcProfit: "BTC \u4f9b\u5e94\u5904\u4e8e\u76c8\u5229: ", btcLoss: "BTC \u4f9b\u5e94\u5904\u4e8e\u4e8f\u635f: ",
     langBtn: "日本語",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "\u8bf7\u786e\u4fdd BRK \u5728 localhost:3110 \u8fd0\u884c",
@@ -368,8 +406,8 @@ var T = {
     titleUSDAge: "ビットコイン供給分布（USD 評価額） 基準日 ",
     titleBTCAge: "ビットコイン供給分布 基準日 ",
     priceUSD: "価格 [USD]",
-    usdInvested: "最終移動時の評価額 [USD]",
-    btcSupply: "最終移動時の供給量 [BTC]",
+    usdInvested: "USD 最終移動時の評価額 [USD]",
+    btcSupply: "BTC 最終移動時の供給量 [BTC]",
     pctTotal: "全体に占める割合 [%]",
     pctLegend: "全体比 %",
     hoverPrice: "価格: $",
@@ -1008,27 +1046,14 @@ function renderChart(data) {
     }
   }
   if (IS_MOBILE) {
-    // One screenful of chart, no legend, bigger ticks, fewer of them.
-    var xTop = layout.xaxis.range[1] || 1;
-    layout.showlegend = false;
-    layout.title.font.size = 13;
-    layout.title.pad.t = 6;
-    layout.margin = { l: 34, r: 34, t: 26, b: 38 };
-    layout.xaxis.title.font.size = 11;
-    layout.xaxis.tickangle = 0;
-    layout.xaxis.tickfont = { family: FONT, size: 10, color: "#ffffff" };
-    layout.xaxis.dtick = Math.max(5000, Math.round(xTop / 4 / 5000) * 5000);
-    layout.yaxis.title.text = "";
-    layout.yaxis.tickfont = { family: FONT, size: 10, color: "#ffffff" };
-    layout.yaxis2.title.text = "";
-    layout.yaxis2.tickfont = { family: FONT, size: 10, color: "#ffffff" };
-    layout.yaxis2.dtick = 25;
-    layout.xaxis.automargin = false;
-    layout.yaxis.automargin = false;
-    layout.yaxis2.automargin = false;
-    if (mobRange) layout.xaxis.range = mobRange.slice();
+    // A picture, not a control surface. Drag-zoom and hover are turned off rather than
+    // left to compete with the edge tap for the same touch.
+    layout.dragmode = false;
+    layout.hovermode = false;
   }
-  Plotly.react("chart", traces, layout, {responsive:true}).catch(function(e){
+  Plotly.react("chart", traces, layout, IS_MOBILE
+    ? {responsive:true, displayModeBar:false, scrollZoom:false, doubleClick:false, showAxisDragHandles:false}
+    : {responsive:true, displayModeBar:"hover"}).catch(function(e){
     showNotice("Could not draw the chart: " + (e && e.message ? e.message : e));
   }).then(function(){
     var gdEl = document.getElementById("chart");
@@ -1698,20 +1723,20 @@ function updateExplainerLang() {
 }
 updateExplainerLang();
 
-/* ---- Touch ---------------------------------------------------------------
-   One finger dragged sideways walks the calendar, a full screen width being
-   about four months. Two fingers pinch the price axis. Two quick taps undo the
-   pinch. Renders are serialised: a drag can outrun the data, so the newest
-   target waits its turn rather than queueing up a hundred redraws. */
+// The only interaction on a phone is a tap on the left or right quarter of the screen,
+// which steps the date back or forward. Everything else is deliberately inert: the figure
+// is meant to read as a picture, so pinch-zoom, panning, Plotly hover and the modebar are
+// all switched off rather than left to compete with the tap for the same touch. Quarters
+// rather than a thin strip because this has to be hittable with a thumb without looking,
+// and the middle half stays dead so a stray tap never moves the date.
 if (IS_MOBILE) (function () {
-  var gd = document.getElementById("chart");
-  if (!gd) return;
-  var SPAN = 120;  // days crossed by a full-width drag
-  var drag = null, pinch = null, busy = false, queued = null, lastTap = 0;
-
+  var EDGE = 0.25;
+  var busy = false, queued = null;
   function go(i) {
     i = Math.max(0, Math.min(allDates.length - 1, i));
     if (i === currentIdx) return;
+    // Renders are serialised: impatient tapping must not queue up a hundred redraws, the
+    // last target simply waits its turn.
     if (busy) { queued = i; return; }
     busy = true;
     currentIdx = i;
@@ -1720,50 +1745,27 @@ if (IS_MOBILE) (function () {
       if (queued !== null) { var q = queued; queued = null; go(q); }
     });
   }
-
-  function gap(tt) {
-    var dx = tt[0].clientX - tt[1].clientX, dy = tt[0].clientY - tt[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  gd.addEventListener("touchstart", function (e) {
-    if (e.touches.length === 1) {
-      drag = { x: e.touches[0].clientX, y: e.touches[0].clientY, idx: currentIdx, moved: false };
-      pinch = null;
-    } else if (e.touches.length === 2) {
-      drag = null;
-      var r = gd._fullLayout && gd._fullLayout.xaxis ? gd._fullLayout.xaxis.range.slice() : null;
-      if (r) pinch = { d: gap(e.touches), lo: r[0], hi: r[1] };
-    }
-  }, { passive: false });
-
-  gd.addEventListener("touchmove", function (e) {
-    if (pinch && e.touches.length === 2) {
-      e.preventDefault();
-      var f = pinch.d / Math.max(20, gap(e.touches));
-      var mid = (pinch.lo + pinch.hi) / 2;
-      var half = Math.max(500, (pinch.hi - pinch.lo) / 2 * f);
-      mobRange = [Math.max(0, mid - half), mid + half];
-      Plotly.relayout(gd, { "xaxis.range": mobRange });
-      return;
-    }
-    if (drag && e.touches.length === 1) {
-      var dx = e.touches[0].clientX - drag.x, dy = e.touches[0].clientY - drag.y;
-      if (!drag.moved && Math.abs(dx) < 8) return;
-      if (!drag.moved && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }
-      drag.moved = true;
-      e.preventDefault();
-      var w = gd.getBoundingClientRect().width || 1;
-      go(drag.idx + Math.round(-dx / w * SPAN));
-    }
-  }, { passive: false });
-
-  gd.addEventListener("touchend", function () {
-    var now = Date.now(), tap = drag && !drag.moved && !pinch;
-    if (tap && now - lastTap < 320 && mobRange) { mobRange = null; loadAndRender(); lastTap = 0; }
-    else if (tap) { lastTap = now; }
-    drag = null; pinch = null;
-  });
+  var x0 = null, y0 = null, moved = false;
+  // Passive throughout: the viewport is already locked, so nothing here needs to cancel a
+  // default, and the listeners stay off the scrolling critical path.
+  document.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1) { x0 = null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; moved = false;
+  }, { passive: true });
+  document.addEventListener("touchmove", function (e) {
+    if (x0 === null || !e.touches.length) return;
+    // A drag is not a tap. Without this a smudged touch near an edge would still fire.
+    var t = e.touches[0];
+    if (Math.abs(t.clientX - x0) > 12 || Math.abs(t.clientY - y0) > 12) moved = true;
+  }, { passive: true });
+  document.addEventListener("touchend", function () {
+    if (x0 === null || moved) { x0 = null; return; }
+    var w = window.innerWidth;
+    if (x0 < w * EDGE) go(currentIdx - 1);
+    else if (x0 > w * (1 - EDGE)) go(currentIdx + 1);
+    x0 = null;
+  }, { passive: true });
+  document.addEventListener("touchcancel", function () { x0 = null; }, { passive: true });
 })();
 </script>
 </body>
