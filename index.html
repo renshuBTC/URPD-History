@@ -1321,11 +1321,15 @@ function updateVideoLang() {
     // A long export is hours of work. Say so before it starts, not after it has failed.
     if (frameIndices.length > 400) {
       var estSec = Math.round(frameIndices.length / fps), estMB = Math.round(estSec * 8000000 / 8 / 1048576);
+      var xNote = estSec > 140 ? vt(
+          " Note: X allows 140 seconds on a free account, so this one needs Premium or a shorter range.",
+          " 注意：X 免费账户限 140 秒，此视频需 Premium 或缩短区间。",
+          " 注：X の無料アカウントは 140 秒までなので、Premium か期間の短縮が必要です。") : "";
       var warn = vt(
         "This is " + frameIndices.length + " frames. Rendering takes roughly two seconds each, about " + Math.round(frameIndices.length * 2 / 60) + " minutes, and this tab has to stay open and in front for all of it. The video will run about " + estSec + " seconds and weigh around " + estMB + " MB. Start?",
         "共 " + frameIndices.length + " 帧。每帧渲染约两秒，合计约 " + Math.round(frameIndices.length * 2 / 60) + " 分钟，期间需保持本标签页打开并处于前台。视频约 " + estSec + " 秒，约 " + estMB + " MB。是否开始？",
         "合計 " + frameIndices.length + " フレーム。レンダリングは 1 フレーム約 2 秒、全体で約 " + Math.round(frameIndices.length * 2 / 60) + " 分かかり、その間このタブを開いたまま前面にしておく必要があります。動画は約 " + estSec + " 秒、約 " + estMB + " MB になります。開始しますか？");
-      if (!window.confirm(warn)) { setStatus(""); return; }
+      if (!window.confirm(warn + xNote)) { setStatus(""); return; }
     }
 
     videoRecording = true; videoCancel = false;
@@ -1336,8 +1340,9 @@ function updateVideoLang() {
     var cw = gd.offsetWidth || 1200, ch = gd.offsetHeight || 600;
     // Frames are captured at the on-screen layout, so the pixel-snapped bars and their 1 px gaps come out
     // exactly as displayed: 1x, or 2x for small windows so the video is never tiny.
-    var scale = cw < 1100 ? 2 : 1;
-    var W = cw * scale, H = ch * scale;
+    // Cap the long edge at 1920: X re-encodes anything larger, and H.264 wants even dimensions.
+      var scale = Math.min(cw < 1100 ? 2 : 1, 1920 / cw);
+    var W = Math.round(cw * scale / 2) * 2, H = Math.round(ch * scale / 2) * 2;
     var frames = [];
     var fIdx = 0;
     var tStart = 0;
@@ -1392,9 +1397,13 @@ function updateVideoLang() {
       var ctx = canvas.getContext("2d");
       var stream = canvas.captureStream(0);
       var track = stream.getVideoTracks()[0];
-      var mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9"
-        : MediaRecorder.isTypeSupported("video/webm;codecs=vp8") ? "video/webm;codecs=vp8"
-        : "video/webm";
+      // X takes MP4 with H.264 and nothing else: it rejects WebM outright. Prefer H.264, keep
+      // WebM only as a fallback for browsers that cannot record it.
+      var wanted = ["video/mp4;codecs=avc1.640028", "video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1",
+        "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+      var mimeType = "video/webm";
+      for (var mi = 0; mi < wanted.length; mi++) { if (MediaRecorder.isTypeSupported(wanted[mi])) { mimeType = wanted[mi]; break; } }
+      var fileExt = mimeType.indexOf("mp4") > -1 ? ".mp4" : ".webm";
       var recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 8000000 });
       var chunks = [];
       recorder.ondataavailable = function(e){ if (e.data.size > 0) chunks.push(e.data); };
@@ -1404,7 +1413,7 @@ function updateVideoLang() {
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.href = url;
-        a.download = "urpd_" + allDates[frameIndices[0]] + "_" + allDates[frameIndices[frameIndices.length - 1]] + "_" + (coinMode ? "btc" : "usd") + modeKey() + ".webm";
+        a.download = "urpd_" + allDates[frameIndices[0]] + "_" + allDates[frameIndices[frameIndices.length - 1]] + "_" + (coinMode ? "btc" : "usd") + modeKey() + fileExt;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
         setStatus(vt("Saved ", "\u5df2\u4fdd\u5b58 ") + frames.length + vt(" frames, ", " \u5e27\uff0c") + (blob.size / 1048576).toFixed(1) + " MB, " + (frames.length / fps).toFixed(1) + " s");
