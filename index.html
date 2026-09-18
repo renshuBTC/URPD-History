@@ -265,6 +265,10 @@ var showPriceOverlay = true;
 var coinMode = false;
 var bottomThreshold = 80;
 var yMaxPct = 100;
+// A per-mode default. In BTC the oldest cohorts pile into a couple of bins and flatten everything
+// else, so BTC starts clipped at the 99th percentile while USD shows every bar. Typing a value
+// updates the default for the mode you are in, so a deliberate choice survives switching.
+var yMaxByMode = [100, 99];
 var cache = {};        // binned chart data keyed by date + view + bins + smoothing (see dataKey)
 var cacheOrder = [];   // insertion order, for eviction
 var CACHE_MAX = 150;
@@ -578,6 +582,9 @@ function setViewMode(idx) {
   coinMode = m.coin;
   document.getElementById("btnUSD").classList.toggle("active", !coinMode);
   document.getElementById("btnBTC").classList.toggle("active", coinMode);
+  yMaxPct = yMaxByMode[idx];
+  var ymEl = document.getElementById("ymaxInput");
+  if (ymEl) ymEl.value = String(yMaxPct);
   loadAndRender();
 }
 
@@ -1038,6 +1045,7 @@ function applyThreshold(v) {
 function applyYMax(v) {
   if (isNaN(v) || v < 1 || v > 100 || v === yMaxPct) return;
   yMaxPct = v;
+  yMaxByMode[viewIdx] = v;
   rerenderCurrent();
 }
 function applyBins(v) {
