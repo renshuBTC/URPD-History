@@ -19,7 +19,12 @@
   // phone treatment permanently, because the class is added once and nothing removes it:
   // widening the window afterwards left the toolbar gone for the rest of the session.
   // A screen of 0x0 (some WebViews) is unknown, not small, so it stays on the desktop path.
+  // screen dimensions are CSS pixels, so a 1366x768 laptop reports a short edge of 768 and a
+  // 1920x1080 panel at 150% scaling reports 720. Size alone put both in phone mode, which hides
+  // the whole toolbar with nothing to bring it back. A coarse pointer is what actually
+  // distinguishes the device.
   if (!(lo > 0) || lo > 820) return;
+  if (!window.matchMedia("(pointer: coarse)").matches) return;
   var VW = 2000;
   var VH = Math.round(VW * (lo / hi));
   window.__PHONE = { w: VW, h: VH };
@@ -315,6 +320,10 @@ var yMaxPct = 100;
 // else, so BTC starts clipped at the 99th percentile while USD shows every bar. Typing a value
 // updates the default for the mode you are in, so a deliberate choice survives switching.
 var yMaxByMode = [100, 99];
+// Whether the user actually typed a Y-max, as opposed to inheriting the per-mode default.
+// Pin scale yields to an explicit clip but must not yield to a default the user never chose:
+// BTC defaults to 99, so the pin was discarded on every BTC render and the button did nothing.
+var yMaxExplicit = [false, false];
 var cache = {};        // binned chart data keyed by date + view + bins + smoothing (see dataKey)
 var cacheOrder = [];   // insertion order, for eviction
 var CACHE_MAX = 150;
@@ -356,13 +365,13 @@ function peakSave() {
 // something you read once; those moved into the explainer. What is left are the messages worth interrupting
 // for, shown briefly and then folded away so the row costs nothing the rest of the time.
 var noticeTimer = null;
-function showNotice(msg) {
+function showNotice(msg, sticky) {
   var el = document.getElementById("status");
   if (!el) return;
   el.textContent = msg;
   el.style.display = msg ? "block" : "none";
   clearTimeout(noticeTimer);
-  if (msg) noticeTimer = setTimeout(function(){ el.style.display = "none"; }, 6000);
+  if (msg && !sticky) noticeTimer = setTimeout(function(){ el.style.display = "none"; }, 6000);
 }
 function peakCompact(v) {
   var a = Math.abs(v);
@@ -759,7 +768,11 @@ function schedulePrefetch() {
   };
   setTimeout(run, 250);
 }
-function loadAndRender() {
+function loadAndRender(propagateErrors) {
+  // The toolbar is live from first paint but allDates is empty until three network calls in
+  // init() finish. Clicking BTC or the language button in that window fired 23 requests for
+  // the date "undefined" and surfaced an HTTP 400.
+  if (!allDates.length) return Promise.resolve();
   var dateStr = allDates[currentIdx];
   var mySeq = ++renderSeq;
   schedulePrefetch();
@@ -780,9 +793,18 @@ function loadAndRender() {
     cacheSet(dataKey(dateStr), data);
     showData(data);
   }).catch(function(e) {
-    if (mySeq !== renderSeq) return;
+    if (mySeq !== renderSeq) return; // superseded: a newer render already owns currentIdx
+    // Nothing was drawn, so currentIdx has to go back to the date the chart is still showing.
+    // Left on the failed date it desynchronises the next step, the (n/N) counter and
+    // rerenderCurrent(), which looks up the cache entry for allDates[currentIdx] and finds
+    // none — silently killing Pin scale, Bottom signal and Y-max until you navigate again.
+    if (lastRenderedData) {
+      var back = allDates.indexOf(lastRenderedData.dateStr);
+      if (back >= 0) currentIdx = back;
+    }
     showNotice("Error: " + e.message);
     document.getElementById("loading").style.display = "none";
+    if (propagateErrors) throw e;
   });
 }
 
@@ -813,7 +835,7 @@ function renderChart(data) {
 
   // The status bar only reports the loaded range; the bottom signal is shown in the spot-price box.
 
-  document.getElementById("dateDisplay").textContent = "(" + (currentIdx+1) + "/" + allDates.length + ")";
+  document.getElementById("dateDisplay").textContent = "(" + (allDates.indexOf(dateStr) + 1) + "/" + allDates.length + ")";
 
   var traces = [];
   var valuesForAxis, chartPrices;
@@ -888,7 +910,7 @@ function renderChart(data) {
   // following the day, so heights can be compared directly from one day to the next, and a day taller than
   // the pin runs into the top of the plot instead of quietly rescaling everything. An explicit Y-max still
   // wins, since clipping the bars by percentile is its own deliberate instruction.
-  var peakVal = (peak && !yClipped) ? peak[1] : 0;
+  var peakVal = (peak && !(yClipped && yMaxExplicit[viewIdx])) ? peak[1] : 0;
   if (peakVal > 0) maxVal = peakVal;
   var btnPeakEl = document.getElementById("btnPeak");
   if (btnPeakEl) btnPeakEl.classList.toggle("active", !!peak);
@@ -949,7 +971,7 @@ function renderChart(data) {
     // printed directly beneath it — that line tests redPct, which was always exact.
     var spotCumul = 100 - (isCoin ? data.redPctCoin : redPct);
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});
-    var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits:0}) + "<br><span style='color:" + PROFIT_COLOR + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "%</span><br><span style='color:" + LOSS_COLOR + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "%</span>";
+    var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits: spot < 10 ? 2 : 0}) + "<br><span style='color:" + PROFIT_COLOR + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "%</span><br><span style='color:" + LOSS_COLOR + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "%</span>";
     // Bottom signal: a fourth line in bright yellow (the words the old status-bar banner had), and the box border
     // turns the same yellow. Colour only, no glow anywhere.
     if (isBottom) labelText += "<br><span style='color:" + GLOW_COLOR + "'>" + t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix") + "</span>";
@@ -1012,7 +1034,7 @@ function renderChart(data) {
     var cStr=ovYmd(ovLeft-OV_DAY), rStr=ovYmd(ovRight+OV_DAY);
     for(var pi=0;pi<priceArray.length;pi++){
       if(typeof priceArray[pi]==="number"&&priceArray[pi]>0){
-        var pds=(priceDates&&priceDates[pi])||new Date(BRK_DAY0.getTime()+pi*86400000).toISOString().split("T")[0];
+        var pds=(priceDates&&priceDates[pi])||(function(ms){var q=new Date(ms);return q.getFullYear()+"-"+String(q.getMonth()+1).padStart(2,"0")+"-"+String(q.getDate()).padStart(2,"0");})(BRK_DAY0.getTime()+pi*86400000);
         if(pds<cStr)continue;
         if(pds>rStr)break;
         pD.push(pds);pP.push(priceArray[pi]);
@@ -1105,10 +1127,20 @@ function renderChart(data) {
   });
 }
 
+var navBusy = false, navQueued = null;
 function goTo(idx) {
   if (window.videoRecording) return; // the recorder drives the date while it captures frames
   idx = Math.max(0, Math.min(allDates.length - 1, idx));
-  if (idx !== currentIdx) { currentIdx = idx; loadAndRender(); }
+  if (idx === currentIdx) return;
+  // Serialised the way the phone tap handler already is: a held arrow key was starting one
+  // 23-request batch per key repeat. The last target waits its turn.
+  if (navBusy) { navQueued = idx; return; }
+  navBusy = true;
+  currentIdx = idx;
+  Promise.resolve(loadAndRender()).catch(function(){}).then(function(){
+    navBusy = false;
+    if (navQueued !== null) { var q = navQueued; navQueued = null; goTo(q); }
+  });
 }
 
 document.getElementById("btnPrev").onclick = function(){goTo(currentIdx - stepSize);};
@@ -1152,6 +1184,7 @@ function applyYMax(v) {
   if (isNaN(v) || v < 1 || v > 100 || v === yMaxPct) return;
   yMaxPct = v;
   yMaxByMode[viewIdx] = v;
+  yMaxExplicit[viewIdx] = true;   // typed, so it now outranks a pinned scale
   rerenderCurrent();
 }
 function applyBins(v) {
@@ -1286,6 +1319,10 @@ document.getElementById("landmarks").addEventListener("change", function(e){
 });
 
 var ddOpen = false;
+// toLocaleDateString costs about 135 us a call, which was 830 of the 860 ms spent rebuilding
+// this list on every focus and every keystroke. Same output, checked against
+// toLocaleDateString("en-US", {weekday:"short"}) over all 6,463 dates with zero differences.
+var DD_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function buildDateDropdown(filterQ) {
   var dd = document.getElementById("dateDropdown");
   dd.innerHTML = "";
@@ -1307,18 +1344,8 @@ function buildDateDropdown(filterQ) {
     var item = document.createElement("div");
     item.className = "dd-item";
     item.setAttribute("data-date", d);
-    var dt = new Date(d + "T00:00:00");
-    var dayName = dt.toLocaleDateString("en-US", {weekday: "short"});
-    item.textContent = d + "  " + dayName;
+    item.textContent = d + "  " + DD_WEEKDAYS[new Date(d + "T00:00:00").getDay()];
     if (d === allDates[currentIdx]) item.classList.add("dd-current");
-    (function(date) {
-      item.addEventListener("click", function() {
-        document.getElementById("dateInput").value = date;
-        closeDateDD();
-        jumpToDate();
-        document.getElementById("dateInput").blur();
-      });
-    })(d);
     dd.appendChild(item);
     count++;
   }
@@ -1347,6 +1374,16 @@ function closeDateDD() {
 }
 (function() {
   var inp = document.getElementById("dateInput");
+  // One listener for the whole list instead of 6,463 closures rebuilt on every keystroke.
+  // The row carries its own date, so rebuilding is pure node work.
+  document.getElementById("dateDropdown").addEventListener("click", function(e) {
+    var row = e.target && e.target.closest ? e.target.closest(".dd-item[data-date]") : null;
+    if (!row || !this.contains(row)) return;
+    inp.value = row.getAttribute("data-date");
+    closeDateDD();
+    jumpToDate();
+    inp.blur();
+  });
   inp.addEventListener("focus", function() { openDateDD(); });
   inp.addEventListener("input", function() {
     if (!ddOpen) openDateDD();
@@ -1384,7 +1421,7 @@ async function init() {
     loadAndRender();
   } catch (e) {
     document.getElementById("dateDisplay").textContent = "Error: " + e.message;
-    showNotice(t("errBRK"));  // #status is display:none in CSS, so this was written where nobody could read it
+    showNotice(t("errBRK"), true);  // fatal: the app is dead, this must not auto-hide after 6 s  // #status is display:none in CSS, so this was written where nobody could read it
   }
 }
 init();
@@ -1392,6 +1429,8 @@ init();
 
 <script>
 document.getElementById("explainBtn").onclick = function(e){
+  // The recording lock is CSS-only (pointer-events), which the keyboard walks straight past.
+  if (window.videoRecording) return;
   e.stopPropagation();
   var p = document.getElementById("explainPanel");
   p.style.display = p.style.display === "block" ? "none" : "block";
@@ -1538,12 +1577,16 @@ function updateVideoLang() {
       if (!ok && (document.getElementById("videoStatus").textContent || "").indexOf("Error:") !== 0) setStatus(vt("Cancelled.", "\u5df2\u53d6\u6d88\u3002"));
     }
     function renderIndex(idx) {
-      return new Promise(function(resolve) {
+      return new Promise(function(resolve, reject) {
         var done = false, timer = null;
         function fin() { if (done) return; done = true; clearTimeout(timer); gd.removeListener("plotly_afterplot", fin); setTimeout(resolve, 120); }
+        // A frame that fails to load never draws, so plotly_afterplot never fired, the 15 s
+        // fallback fired instead and toImage captured the previous day again — a duplicate
+        // frame with the wrong date printed on it, and the panel still said "Saved N frames".
+        function bail(e) { if (done) return; done = true; clearTimeout(timer); gd.removeListener("plotly_afterplot", fin); reject(e instanceof Error ? e : new Error(String(e))); }
         gd.on("plotly_afterplot", fin);
         currentIdx = idx;
-        loadAndRender();
+        loadAndRender(true).catch(bail);
         timer = setTimeout(fin, 15000);
       });
     }
@@ -1589,6 +1632,13 @@ function updateVideoLang() {
       var recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 8000000 });
       var chunks = [];
       recorder.ondataavailable = function(e){ if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onerror = function(ev){
+        // Without this a MediaRecorder failure left videoRecording true, every control disabled
+        // and the keep-alive tone running, recoverable only by reloading the page.
+        setStatus("Error: " + ((ev && ev.error && ev.error.name) || "recorder failed"));
+        videoCancel = true;
+        try { recorder.stop(); } catch (_) { finish(false); }
+      };
       recorder.onstop = function(){
         if (videoCancel) { finish(false); return; }
         var blob = new Blob(chunks, { type: mimeType });
@@ -1639,6 +1689,9 @@ function updateVideoLang() {
               if (i < total) { if (im.close) im.close(); step(); return; }
               // Hold the final frame for a second, then let the encoder drain before stopping:
               // frames pushed right before stop() are dropped otherwise.
+              // Every frame is captured by this point, so cancelling here would bin a finished
+              // video rather than save time. Take the option away instead of ignoring it.
+              cancelBtn.disabled = true;
               var holdEnd = performance.now() + 1000;
               (function hold() {
                 ctx.drawImage(im, 0, 0, W, H);
@@ -1674,8 +1727,12 @@ window.tracerDragWindow = null;
     var y = ya._offset + ya.d2p(spot);
     if (!isFinite(x) || !isFinite(y) || x < xa._offset - 8 || x > xa._offset + xa._length + 8) { el.classList.remove("show"); return; }
     var r = gd.getBoundingClientRect();
-    el.style.left = (r.left + x) + "px";
-    el.style.top = (r.top + y) + "px";
+    // getBoundingClientRect is post-transform, while x and y are in Plotly layout pixels, which
+    // on a phone is a 2000px space drawn through scale(var(--fit)). Absent on desktop, so
+    // parseFloat("") is NaN and the factor is exactly 1.
+    var fit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--fit")) || 1;
+    el.style.left = (r.left + x * fit) + "px";
+    el.style.top = (r.top + y * fit) + "px";
     el.classList.add("show");
   };
   window.addEventListener("resize", function(){ setTimeout(window.placeTracer, 80); });
@@ -1691,7 +1748,9 @@ window.tracerDragWindow = null;
   function indexAtClientX(cx) {
     var fl = axes(); if (!fl) return -1;
     var xa = fl.xaxis2, r = gd.getBoundingClientRect();
-    var px = Math.max(0, Math.min(xa._length, cx - r.left - xa._offset));
+    // Convert to layout pixels before subtracting the axis offset, which is not in client space.
+    var fit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--fit")) || 1;
+    var px = Math.max(0, Math.min(xa._length, (cx - r.left) / fit - xa._offset));
     var ds = String(xa.p2d(px)).slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(ds)) return -1;
     return nearestDateIndex(ds);
@@ -1728,6 +1787,10 @@ window.tracerDragWindow = null;
   }
   el.addEventListener("pointerup", endDrag);
   el.addEventListener("pointercancel", endDrag);
+  // If setPointerCapture threw, the release never reaches the 14px dot and the drag state,
+  // the grabbing cursor and the frozen window would stay set for good.
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", endDrag);
   el.addEventListener("dblclick", function(e){ e.preventDefault(); });
 })();
 var EXPLAINER = {
