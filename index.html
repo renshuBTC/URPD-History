@@ -17,12 +17,11 @@
   #controls button { background: #252525; color: #d4d4d4; border: 1px solid #555; padding: 3px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
   #controls button:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .mode-toggle { display: flex; gap: 2px; }
-  .mode-toggle button { padding: 4px 10px; font-size: 12px; letter-spacing: 0.5px; }
   /* #controls button sets a background with id specificity, so the active state has to outrank it;
      without the prefix the only thing that ever showed was the bold weight. */
   #controls .mode-toggle button.active { background: #ff8c00; color: #000000; border-color: #ff8c00; font-weight: bold; }
   #controls .mode-toggle button.active:hover { background: #ffaa33; }
-  #dateDisplay { font-size: 14px; font-weight: bold; color: #ff8c00; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
+  #dateDisplay { font-weight: bold; color: #ff8c00; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
   #status { display: none; text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
   #chart { width: calc(100% - 8px); margin: 0 4px; flex: 1 1 auto; min-height: 0; }
   /* On a phone the toolbar is not worth the pixels: the chart takes the whole screen and
@@ -60,8 +59,10 @@
   #dateDropdown .dd-item:hover { background: #252525; color: #ff8c00; }
   #dateDropdown .dd-item.dd-current { color: #ff8c00; font-weight: bold; }
   #dateDropdown .dd-year { padding: 3px 10px; font-size: 10px; color: #555; font-weight: bold; border-bottom: 1px solid #2a2a2a; background: #111; position: sticky; top: 0; z-index: 1; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; }
-  #explainBtn, #videoBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 2px; letter-spacing: 0.5px; transition: all 0.15s; white-space: nowrap; }
-  #explainBtn:hover, #videoBtn:hover, #videoBtn.rec { background: #3a3a3a; color: #ffffff; border-color: #888; }
+  /* background, padding and font-size live on #controls button, which outranks a bare id. */
+  #explainBtn, #videoBtn { font-weight: 700; cursor: pointer; border-radius: 2px; white-space: nowrap; }
+  #explainBtn:hover, #videoBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
+  #videoBtn.rec { background: #3a3a3a; }
   #explainWrap { position:relative; display:inline-block; }
   #videoWrap { position:relative; display:inline-block; }
   #videoBtn.rec { color: #ff8c00; border-color: #ff8c00; }
@@ -85,7 +86,7 @@
   #explainPanel h3 { color:#ff8c00; font-size:13px; font-weight:400; letter-spacing:0.5px; text-transform:uppercase; margin:12px 0 3px 0; padding:0; border:none; }
   #explainPanel .formula { background:#1e1e1e; border:1px solid #555; border-left:2px solid #ff8c00; border-radius:2px; padding:5px 8px; margin:5px 0 4px 0; font-size:13px; color:#ff8c00; white-space:pre-wrap; line-height:1.5; font-family:inherit; letter-spacing:0.5px; }
   #explainPanel .desc { color:#ffffff; margin:2px 0 4px 0; font-size:13px; line-height:1.55; font-weight:400; letter-spacing:0; }
-  #langBtn { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 2px; margin-left: 4px; letter-spacing: 0.5px; transition: all 0.15s; }
+  #langBtn { cursor: pointer; border-radius: 2px; }
   #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 3px; }
   /* one height for every control in the bar, and one gap between them */
@@ -147,25 +148,25 @@
   <div class="ctrl-sep"></div>
   <div id="thresholdWrap">
     <label for="thresholdInput">Bottom signal</label>
-    <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;text-align:center;border-radius:2px;">
     <label>% of value in loss</label>
   </div>
   <div class="ctrl-sep"></div>
   <div id="binsWrap">
     <label for="binsInput">Bins</label>
-    <input type="text" id="binsInput" value="625" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:40px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <input type="text" id="binsInput" value="625" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:40px;font-family:inherit;text-align:center;border-radius:2px;">
     <label id="binsUnit"></label>
   </div>
   <div class="ctrl-sep"></div>
   <div id="smoothWrap">
     <label for="smoothInput">Smoothing</label>
-    <input type="text" id="smoothInput" value="0.3" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <input type="text" id="smoothInput" value="0.3" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;text-align:center;border-radius:2px;">
     <label>% of price</label>
   </div>
   <div class="ctrl-sep"></div>
   <div id="ymaxWrap">
     <label for="ymaxInput">Y-max</label>
-    <input type="text" id="ymaxInput" value="100" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;font-size:11px;text-align:center;border-radius:2px;">
+    <input type="text" id="ymaxInput" value="100" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;text-align:center;border-radius:2px;">
     <label>percentile</label>
   </div>
   <div id="explainWrap" style="margin-left:auto;"><button id="explainBtn" aria-label="How to read this chart">?</button><div id="explainPanel">
@@ -660,17 +661,17 @@ function loadAndRender() {
   var dateStr = allDates[currentIdx];
   var mySeq = ++renderSeq;
   var key = dataKey(dateStr);
-  if (cache[key]) { showData(cache[key]); return; }
+  if (cache[key]) { showData(cache[key]); return Promise.resolve(); }
   var raw = rawCache[dateStr];
   if (rawComplete(raw)) {
     rawTouch(dateStr);
     var data = buildData(dateStr, raw);
     cacheSet(key, data);
     showData(data);
-    return;
+    return Promise.resolve();
   }
   document.getElementById("loading").style.display = "block";
-  fetchRaw(dateStr).then(function(raw) {
+  return fetchRaw(dateStr).then(function(raw) {
     if (mySeq !== renderSeq) return; // superseded; the raw stays cached for when this date comes back
     var data = buildData(dateStr, raw); // binned with whatever Bins / Smoothing are set now
     cacheSet(dataKey(dateStr), data);
