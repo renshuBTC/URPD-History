@@ -117,7 +117,7 @@
   #explainWrap { position:relative; display:inline-block; }
   #videoWrap { position:relative; display:inline-block; }
   #videoBtn.rec { color: #ff8c00; border-color: #ff8c00; }
-  #videoBtn.rec:hover { color: #ff8c00; }
+  #videoBtn.rec:hover { color: #ff8c00; border-color: #ff8c00; }  /* #controls button:hover was overriding the recording border */
   #videoPanel { display:none; position:absolute; top:100%; right:0; width:260px; background:#1a1a1a; border:1px solid #555; border-radius:2px; z-index:9999; padding:10px 12px 12px; margin-top:6px; font-size:11px; color:#d4d4d4; text-align:left; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
   #videoPanel h2 { color:#ff8c00; font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; margin:0 0 8px 0; padding-bottom:6px; border-bottom:1px solid #333; }
   #videoPanel .vrow { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0; }
@@ -447,6 +447,7 @@ function L3(en, zh, ja) { return lang === "zh" ? zh : (lang === "ja" ? ja : en);
 function t(key) { return T[lang][key] || T.en[key] || key; }
 
 function applyLang() {
+  document.documentElement.lang = lang;  // a screen reader was reading the translated UI with an English voice
   document.getElementById("langBtn").textContent = t("langBtn");
   if (window.updateVideoLang) updateVideoLang();
   if (window.updateExplainerLang) updateExplainerLang();
@@ -514,7 +515,9 @@ function rawComplete(raw) { return !!(raw && raw.all && raw.age); }
 // Bottom signal and Y-max only change how the current data is drawn, so they re-draw it from the cache. If a
 // fetch is in flight for this date the new setting is picked up when it lands.
 function rerenderCurrent() {
-  var d = cache[dataKey(allDates[currentIdx])];
+  // Falls back to what is actually on screen: mid-navigation currentIdx points at a date that
+  // is not in the cache yet, and Pin scale, Bottom signal and Y-max were silently no-ops.
+  var d = cache[dataKey(allDates[currentIdx])] || lastRenderedData;
   if (d) renderChart(d);
 }
 var lastPlotW = 0, reflowCount = 0, resizeTimer = null;
@@ -644,6 +647,7 @@ function setViewMode(idx) {
 }
 
 function setInterval1(idx) {
+  if (window.videoRecording) return;  // the CSS lock is pointer-events only, which the keyboard walks past
   stepSize = STEPS[idx];
   var btns = document.querySelectorAll("#intervalBar .iv");
   for (var i = 0; i < btns.length; i++) btns[i].classList.remove("active");
@@ -870,7 +874,7 @@ function renderChart(data) {
     var totalA = valuesForAxis.reduce(function(s,v){return s+v;},0) || 1;
     var runA = 0;
     var cumulA = valuesForAxis.map(function(v){runA+=v;return 100*runA/totalA;});
-    traces.push({x:chartPrices,y:cumulA,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:1.5},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+    traces.push({x:chartPrices,y:cumulA,type:"scatter",mode:"lines",meta:"pct",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:1.5},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
   } else {
     chartPrices = aggAll.map(function(b){return b.price;});
     if (isCoin) {
@@ -878,16 +882,16 @@ function renderChart(data) {
       var total2 = supplyVals.reduce(function(s,v){return s+v;},0) || 1;
       var run2 = 0;
       var cumul2 = supplyVals.map(function(v){run2+=v;return 100*run2/total2;});
-      traces.push({x:chartPrices,y:supplyVals,type:"bar",name:t("allSupply"),width:Array(chartPrices.length).fill(barW),marker:{color:FALLBACK_COLOR,line:{width:0}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:1.5},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:supplyVals,type:"bar",meta:"all",name:t("allSupply"),width:Array(chartPrices.length).fill(barW),marker:{color:FALLBACK_COLOR,line:{width:0}},customdata:cumul2.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>BTC: %{y:,.2f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul2,type:"scatter",mode:"lines",meta:"pct",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:1.5},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = supplyVals;
     } else {
       var invested = smooth(aggAll.map(function(b){return b.invested;}));
       var total3 = invested.reduce(function(s,v){return s+v;},0) || 1;
       var run3 = 0;
       var cumul3 = invested.map(function(v){run3+=v;return 100*run3/total3;});
-      traces.push({x:chartPrices,y:invested,type:"bar",name:t("allSupply"),width:Array(chartPrices.length).fill(barW),marker:{color:FALLBACK_COLOR,line:{width:0}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
-      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:1.5},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:invested,type:"bar",meta:"all",name:t("allSupply"),width:Array(chartPrices.length).fill(barW),marker:{color:FALLBACK_COLOR,line:{width:0}},customdata:cumul3.map(function(c){return [c];}),hovertemplate:hp+"%{x:,.0f}<br>USD: %{y:$,.0f}<br>"+hpt+"%{customdata[0]:.1f}%<extra></extra>"});
+      traces.push({x:chartPrices,y:cumul3,type:"scatter",mode:"lines",meta:"pct",name:t("pctLegend"),line:{color:CUMUL_COLOR,width:1.5},yaxis:"y2",hovertemplate:hp+"%{x:,.0f}<br>"+hpt+"%{y:.1f}%<extra></extra>"});
       valuesForAxis = invested;
     }
   }
@@ -936,7 +940,7 @@ function renderChart(data) {
     var xv = xi * xStep;
     if (xv === 0) { xTickvals.push(0); xTicktext.push("$0"); continue; }
     var xdig = Math.pow(10, Math.floor(Math.log10(xv)) - 2);
-    var xr = Math.ceil(xv / xdig) * xdig;
+    var xr = (xi === 25 ? Math.floor(xv / xdig) : Math.ceil(xv / xdig)) * xdig;  // rounding the last one up put it outside range, so it was never drawn
     xTickvals.push(xr);
     var xt;
     if (xr >= 1e6) { xt = (xr/1e6); xt = xt >= 100 ? Math.round(xt)+"M" : xt >= 10 ? xt.toFixed(1)+"M" : xt.toFixed(2)+"M"; }
@@ -946,7 +950,7 @@ function renderChart(data) {
   }
 
   var d = new Date(dateStr + "T00:00:00");
-  var titleDate = d.toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"});
+  var titleDate = d.toLocaleDateString(L3("en-GB","zh-CN","ja-JP"), {day:"2-digit",month:"short",year:"numeric"});
   var titleText;
   if (isCoin) {
     titleText = "<b>" + t("titleBTCAge") + titleDate + "</b>";
@@ -1061,7 +1065,7 @@ function renderChart(data) {
     for(var li=0;li<LANDMARKS.length;li++){
       var lm=LANDMARKS[li];
       if(lm.d>=cStr&&lm.d<=rStr){
-        lmD.push(lm.d);lmP.push(lm.p);lmT.push(lm.l);
+        lmD.push(lm.d);var lmy=(priceArray&&priceArray[dayIndex(lm.d)]);lmP.push(lmy>0?lmy:lm.p);lmT.push(lm.l);  // sit on the close-price line; the label keeps the intraday figure
         lmC.push("rgba(255,255,255,0.6)");
         lmS.push(lm.top?"triangle-down":"triangle-up");
       }
@@ -1080,10 +1084,10 @@ function renderChart(data) {
     var wasHidden = {};
     for (var hv = 0; hv < prevGd.data.length; hv++) {
       var pd = prevGd.data[hv];
-      if (pd && pd.name && pd.visible === "legendonly") wasHidden[pd.name] = true;
+      if (pd && pd.name && pd.visible === "legendonly") wasHidden[pd.meta || pd.name] = true;
     }
     for (var hw = 0; hw < traces.length; hw++) {
-      if (traces[hw].name && wasHidden[traces[hw].name]) traces[hw].visible = "legendonly";
+      if (traces[hw].name && wasHidden[traces[hw].meta || traces[hw].name]) traces[hw].visible = "legendonly";
     }
   }
   if (IS_MOBILE) {
@@ -1127,20 +1131,22 @@ function renderChart(data) {
   });
 }
 
-var navBusy = false, navQueued = null;
+// Coalesced, not serialised. Serialising looked right but queued an absolute target while
+// currentIdx already held the in-flight one, so every repeat inside a load computed the same
+// index and twelve arrow presses advanced four days. It could also strand the busy flag for
+// the session if a render threw synchronously, and a queued target could override a date the
+// user picked afterwards. The index now moves on every press so repeats accumulate, and only
+// the resting place is loaded. An isolated press still fires immediately.
+var navTimer = null, navLast = 0;
 function goTo(idx) {
   if (window.videoRecording) return; // the recorder drives the date while it captures frames
   idx = Math.max(0, Math.min(allDates.length - 1, idx));
   if (idx === currentIdx) return;
-  // Serialised the way the phone tap handler already is: a held arrow key was starting one
-  // 23-request batch per key repeat. The last target waits its turn.
-  if (navBusy) { navQueued = idx; return; }
-  navBusy = true;
   currentIdx = idx;
-  Promise.resolve(loadAndRender()).catch(function(){}).then(function(){
-    navBusy = false;
-    if (navQueued !== null) { var q = navQueued; navQueued = null; goTo(q); }
-  });
+  if (navTimer) clearTimeout(navTimer);
+  var now = Date.now();
+  if (now - navLast > 250) { navLast = now; navTimer = null; loadAndRender(); return; }
+  navTimer = setTimeout(function(){ navTimer = null; navLast = Date.now(); loadAndRender(); }, 110);
 }
 
 document.getElementById("btnPrev").onclick = function(){goTo(currentIdx - stepSize);};
@@ -1311,7 +1317,8 @@ function jumpToDate() {
 
 document.getElementById("landmarks").addEventListener("change", function(e){
   if (e.target.value) {
-    document.getElementById("dateInput").value = e.target.value;
+    // deliberately not written into #dateInput: openDateDD seeds its filter from that field, so a
+  // landmark left the dropdown showing a single row with nothing to say why.
     jumpToDate();
     e.target.value = "";
     e.target.blur();
@@ -1385,6 +1392,8 @@ function closeDateDD() {
     inp.blur();
   });
   inp.addEventListener("focus", function() { openDateDD(); });
+  // Tabbing away left the 6,464-row panel open over the chart. The delay lets a row click land.
+  inp.addEventListener("blur", function() { setTimeout(closeDateDD, 150); });
   inp.addEventListener("input", function() {
     if (!ddOpen) openDateDD();
     else buildDateDropdown(this.value.trim());
@@ -1439,7 +1448,7 @@ document.getElementById("explainBtn").onclick = function(e){
 document.addEventListener("click", function(e){
   var panel = document.getElementById("explainPanel");
   var wrap = document.getElementById("explainWrap");
-  if (panel.style.display === "block" && !wrap.contains(e.target)) panel.style.display = "none";
+  if (panel.style.display === "block" && !wrap.contains(e.target) && e.target.id !== "langBtn") panel.style.display = "none";
 });
 // ---- Video export: play the chart through a date range and save it as a WebM ----
 // Two passes: every frame is rendered and captured with Plotly.toImage first, then the frames are
@@ -1783,7 +1792,7 @@ window.tracerDragWindow = null;
     try { el.releasePointerCapture(e.pointerId); } catch (_) {}
     el.classList.remove("dragging"); document.body.classList.remove("tracer-dragging");
     window.tracerDragWindow = null;
-    loadAndRender(); // window re-centres on the new date
+    navLast = 0; goTo(currentIdx); // through the coalescer: a slow drag was firing 23 requests per day crossed
   }
   el.addEventListener("pointerup", endDrag);
   el.addEventListener("pointercancel", endDrag);
