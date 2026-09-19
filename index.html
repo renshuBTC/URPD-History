@@ -242,7 +242,7 @@ var BASE = "https://bitview.space";
 
 // BRK's day1 index starts at 2009-01-01, two days before genesis. Dates come from /api/series/date/day1;
 // the epoch below is only the fallback if that call fails.
-var BRK_DAY0 = new Date(2009, 0, 1);
+var BRK_DAY0 = new Date(Date.UTC(2009, 0, 1));
 var priceDates = null;
 var priceIndexByDate = null;
 var IS_MOBILE = !!window.__PHONE;
@@ -341,21 +341,24 @@ var spotCache = {};
 // and the smoothing as well as the day, so pins are held per setting combination - comparing a 625-bin
 // height against a 400-bin one would be meaningless. Stored in localStorage so a pin survives a reload.
 var lastDayPeak = 0; // tallest bar of the day last drawn
+var lastRenderedPeakKey = null; // settings that produced that peak, even while new settings are pending
 var PEAK_STORE_KEY = "bsd_peaks_v1";  // never declared before: every read and write threw into a silent catch
 var peakStore = (function() {
   try { return JSON.parse(localStorage.getItem(PEAK_STORE_KEY)) || {}; } catch (e) { return {}; }
 })();
-function peakKey() { return (coinMode ? "btc" : "usd") + "|b" + NUM_BINS + "|s" + KERNEL_PCT; }
+function peakKey(data) {
+  return (coinMode ? "btc" : "usd") + "|b" + (data ? data.numBins : NUM_BINS) + "|s" + (data ? data.kernelPct : KERNEL_PCT);
+}
 function peakBest() { return peakStore[peakKey()] || null; }
 // Pin the day on screen as the reference. Nothing is recorded automatically: scrubbing past a taller day
 // must not move a scale you chose deliberately, or the comparison you pinned it for is gone.
 function peakPin() {
   if (!(lastDayPeak > 0)) return;
-  peakStore[peakKey()] = [lastRenderedData.dateStr, lastDayPeak];  // lastDayPeak came from this, not from currentIdx
+  peakStore[lastRenderedPeakKey || peakKey()] = [lastRenderedData.dateStr, lastDayPeak];
   peakSave();
 }
 function peakClear() {
-  delete peakStore[peakKey()];
+  delete peakStore[lastRenderedPeakKey || peakKey()];
   peakSave();
 }
 function peakSave() {
@@ -518,7 +521,8 @@ function rerenderCurrent() {
   // Falls back to what is actually on screen: mid-navigation currentIdx points at a date that
   // is not in the cache yet, and Pin scale, Bottom signal and Y-max were silently no-ops.
   var d = cache[dataKey(allDates[currentIdx])] || lastRenderedData;
-  if (d) renderChart(d);
+  if (d) return renderChart(d).catch(function(e) { showNotice("Could not draw the chart: " + e.message); });
+  return Promise.resolve();
 }
 var lastPlotW = 0, reflowCount = 0, resizeTimer = null;
 var legendDims = {}, lastLegendKey = null, lastLegendDims = { h: 0 }; // measured legend height per view and width
@@ -533,21 +537,46 @@ function plotWidthPx() {
 }
 window.addEventListener("resize", function() {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(function() { if (lastRenderedData && !window.videoRecording) renderChart(lastRenderedData); }, 150);
+  resizeTimer = setTimeout(function() { if (lastRenderedData && !window.videoRecording) rerenderCurrent(); }, 150);
 });
 var viewIdx = 0; // VIEW_MODES index of the USD view (the default)
 
+var REQUEST_TIMEOUT_MS = 15000;
 function fetchJSON(url) {
-  return fetch(url).then(function(r) {
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.json();
+  // Bound both the response and body read. Even a browser without AbortController must
+  // settle this promise so a hung request cannot permanently occupy rawInflight.
+  return new Promise(function(resolve, reject) {
+    var controller = typeof AbortController === "function" ? new AbortController() : null;
+    var done = false;
+    var timer = setTimeout(function() {
+      if (done) return;
+      done = true;
+      if (controller) controller.abort();
+      reject(new Error("Request timed out after " + REQUEST_TIMEOUT_MS / 1000 + " seconds"));
+    }, REQUEST_TIMEOUT_MS);
+    Promise.resolve().then(function() {
+      return fetch(url, controller ? { signal: controller.signal } : undefined);
+    }).then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function(data) {
+      if (done) return;
+      done = true; clearTimeout(timer); resolve(data);
+    }, function(e) {
+      if (done) return;
+      done = true; clearTimeout(timer); reject(e);
+    });
   });
 }
 
 function dayIndex(dateStr) {
   if (priceIndexByDate && priceIndexByDate[dateStr] !== undefined) return priceIndexByDate[dateStr];
-  var d = new Date(dateStr + "T00:00:00");
+  var d = new Date(dateStr + "T00:00:00Z");
   return Math.round((d - BRK_DAY0) / 86400000);
+}
+
+function priceDateAt(idx) {
+  return (priceDates && priceDates[idx]) || new Date(BRK_DAY0.getTime() + idx * 86400000).toISOString().slice(0, 10);
 }
 
 function getSpotFromCache(dateStr) {
@@ -619,7 +648,7 @@ function fmtBTC(v) {
 }
 
 function computeRedPct(rawAll, spot, byCoin) {
-  if (!spot || spot <= 0) return 0;
+  if (!spot || spot <= 0) return null;
   var greenInv = 0, redInv = 0;
   var keys = Object.keys(rawAll);
   for (var k = 0; k < keys.length; k++) {
@@ -630,11 +659,13 @@ function computeRedPct(rawAll, spot, byCoin) {
     else redInv += inv;
   }
   var total = greenInv + redInv;
-  return total > 0 ? 100 * redInv / total : 0;
+  return total > 0 ? 100 * redInv / total : null;
 }
 
+var viewRenderTimer = null;
 function setViewMode(idx) {
   if (window.videoRecording) return;
+  if (idx === viewIdx) return;
   viewIdx = idx;
   var m = VIEW_MODES[idx];
   coinMode = m.coin;
@@ -643,7 +674,12 @@ function setViewMode(idx) {
   yMaxPct = yMaxByMode[idx];
   var ymEl = document.getElementById("ymaxInput");
   if (ymEl) ymEl.value = String(yMaxPct);
-  loadAndRender();
+  ++renderSeq;
+  clearTimeout(viewRenderTimer);
+  viewRenderTimer = setTimeout(function() {
+    viewRenderTimer = null;
+    if (!window.videoRecording) loadAndRender();
+  }, 100);
 }
 
 function setInterval1(idx) {
@@ -665,17 +701,16 @@ function fetchRaw(dateStr) {
   // per-price difference of 0 BTC. Fetching "all" on top of them cost 37% of the payload
   // (705 KB of 1,921 KB), and because the cohort requests were chained behind it, a whole
   // extra round trip before any of them could start. It is summed from the cohorts instead.
-  var p = (raw.age ? Promise.resolve(raw.age) : Promise.all(AGE_BANDS.map(function(band) {
-      return fetchJSON(BASE + "/api/series/cost-basis/" + band.cohort + "/" + dateStr).catch(function(e){
-        // 404 means the cohort holds nothing that day, normal in the early years. Anything
-        // else is a real failure, and folding it in would quietly shorten the denominator
-        // behind every percentage on the chart.
-        // A 404 is never "this cohort is empty": an empty cohort returns 200 with {}. It means
-        // an unknown cohort name or an out-of-range date, i.e. a real failure. Swallowing it
-        // dropped that cohort from the client-summed total too, quietly shortening the
-        // denominator behind every percentage on the chart.
-        throw e;
-      });
+  if (!raw.cohorts) raw.cohorts = [];
+  // Retain successful siblings and share pending ones when one cohort fails. A retry
+  // downloads only the missing cohorts; raw.age/all are published only when complete.
+  var p = (raw.age ? Promise.resolve(raw.age) : Promise.all(AGE_BANDS.map(function(band, ci) {
+      if (raw.cohorts[ci]) return raw.cohorts[ci];
+      var cohortPromise = fetchJSON(BASE + "/api/series/cost-basis/" + band.cohort + "/" + dateStr);
+      raw.cohorts[ci] = cohortPromise;
+      cohortPromise.then(function(value) { raw.cohorts[ci] = value; }, function() { delete raw.cohorts[ci]; });
+      // Empty cohorts return 200 with {}. A 404 is a failure, never an empty band.
+      return cohortPromise;
     }))).then(function(res) {
     raw.age = res;
     if (!raw.all) {
@@ -707,7 +742,7 @@ function buildData(dateStr, raw) {
   // dates, 11.7% of the history, behaved this way.
   var binWidth = (maxPrice > 0 ? maxPrice : Math.max(spot || 0, 1)) / NUM_BINS;
   var aggAll = aggregate(rawAll, binWidth);
-  var data = { dateStr: dateStr, spot: spot, aggAll: aggAll, binWidth: binWidth, maxPrice: maxPrice };
+  var data = { dateStr: dateStr, spot: spot, aggAll: aggAll, binWidth: binWidth, maxPrice: maxPrice, numBins: NUM_BINS, kernelPct: KERNEL_PCT };
   data.realizedCap = aggAll.reduce(function(s,b){return s+b.invested;}, 0);
   data.totalSupply = aggAll.reduce(function(s,b){return s+b.supply;}, 0);
   data.redPct = computeRedPct(rawAll, spot);
@@ -728,8 +763,10 @@ function buildData(dateStr, raw) {
 }
 
 function showData(data) {
-  renderChart(data);
-  document.getElementById("loading").style.display = "none";
+  var shownSeq = renderSeq;
+  return renderChart(data).then(function() {
+    if (shownSeq === renderSeq && lastRenderedData === data) document.getElementById("loading").style.display = "none";
+  });
 }
 
 // Stepping to a new date paid a full network round trip before anything could be drawn,
@@ -780,40 +817,64 @@ function loadAndRender(propagateErrors) {
   var dateStr = allDates[currentIdx];
   var mySeq = ++renderSeq;
   schedulePrefetch();
-  var key = dataKey(dateStr);
-  if (cache[key]) { showData(cache[key]); return Promise.resolve(); }
-  var raw = rawCache[dateStr];
-  if (rawComplete(raw)) {
-    rawTouch(dateStr);
-    var data = buildData(dateStr, raw);
-    cacheSet(key, data);
-    showData(data);
-    return Promise.resolve();
-  }
-  document.getElementById("loading").style.display = "block";
-  return fetchRaw(dateStr).then(function(raw) {
-    if (mySeq !== renderSeq) return; // superseded; the raw stays cached for when this date comes back
-    var data = buildData(dateStr, raw); // binned with whatever Bins / Smoothing are set now
-    cacheSet(dataKey(dateStr), data);
-    showData(data);
+  // Every path, including cache hits, awaits the completed Plotly render. Export must
+  // never mistake a downloaded response (or a rejected draw) for a captured date.
+  return Promise.resolve().then(function() {
+    if (mySeq !== renderSeq) return;
+    var key = dataKey(dateStr);
+    if (cache[key]) return showData(cache[key]);
+    var raw = rawCache[dateStr];
+    var ready;
+    if (rawComplete(raw)) {
+      rawTouch(dateStr);
+      ready = Promise.resolve(raw);
+    } else {
+      document.getElementById("loading").style.display = "block";
+      ready = fetchRaw(dateStr);
+    }
+    return ready.then(function(loaded) {
+      if (mySeq !== renderSeq) return;
+      var data = buildData(dateStr, loaded);
+      cacheSet(dataKey(dateStr), data);
+      return showData(data);
+    });
   }).catch(function(e) {
     if (mySeq !== renderSeq) return; // superseded: a newer render already owns currentIdx
     // Nothing was drawn, so currentIdx has to go back to the date the chart is still showing.
     // Left on the failed date it desynchronises the next step, the (n/N) counter and
     // rerenderCurrent(), which looks up the cache entry for allDates[currentIdx] and finds
     // none — silently killing Pin scale, Bottom signal and Y-max until you navigate again.
-    if (lastRenderedData) {
-      var back = allDates.indexOf(lastRenderedData.dateStr);
+    var previous = lastRenderedData;
+    if (previous) {
+      var back = allDates.indexOf(previous.dateStr);
       if (back >= 0) currentIdx = back;
     }
     showNotice("Error: " + e.message);
     document.getElementById("loading").style.display = "none";
-    if (propagateErrors) throw e;
+    // An older Plotly draw may already be running. Put the rollback behind it so the
+    // visible graph and the restored navigation date agree even after that draw finishes.
+    var restored = previous ? renderChart(previous).catch(function() {}) : Promise.resolve();
+    return restored.then(function() { if (propagateErrors) throw e; });
   });
 }
 
+var chartRenderSeq = 0, chartRenderPromise = Promise.resolve();
 function renderChart(data) {
-  lastRenderedData = data;
+  var plotSeq = ++chartRenderSeq, navigationSeq = renderSeq;
+  function draw() {
+    if (plotSeq !== chartRenderSeq || navigationSeq !== renderSeq) return;
+    reflowCount = 0;
+    return drawChart(data, plotSeq, navigationSeq);
+  }
+  // Plotly mutates one shared graph. Serialize actual draws and skip obsolete queued
+  // work so an older asynchronous render cannot overwrite the newest chart.
+  var pending = chartRenderPromise.then(draw, draw);
+  chartRenderPromise = pending.catch(function() {});
+  return pending;
+}
+
+function drawChart(data, plotSeq, navigationSeq) {
+  var renderedPeakKey = peakKey(data);
   var dateStr = data.dateStr, spot = data.spot, aggAll = data.aggAll, binWidth = data.binWidth;
   // ---- Bar separators -------------------------------------------------------------------------------
   // Plotly snaps every bar edge to a whole pixel (bargap 0). Each bar is narrowed by exactly one pixel of
@@ -831,15 +892,15 @@ function renderChart(data) {
   // the title is centred) when the plot is wide enough for the two not to meet, otherwise it goes underneath.
   var creditRow = plotW >= 1300;
   var bottomMargin = creditRow ? 44 : 64;
-  document.getElementById("binsUnit").textContent = "$" + (binWidth >= 100 ? Math.round(binWidth).toLocaleString("en-US") : binWidth >= 1 ? binWidth.toFixed(1) : binWidth.toFixed(3)) + " \u00b7 " + pitch.toFixed(1) + " px";
+  var binsText = "$" + (binWidth >= 100 ? Math.round(binWidth).toLocaleString("en-US") : binWidth >= 1 ? binWidth.toFixed(1) : binWidth.toFixed(3)) + " \u00b7 " + pitch.toFixed(1) + " px";
   var realizedCap = data.realizedCap, totalSupply = data.totalSupply, maxPrice = data.maxPrice, redPct = data.redPct;
   var isAge = !!(data.aggAge && data.aggAge.length > 0); // false only if every cohort fetch failed
   var isCoin = coinMode;
-  var isBottom = redPct >= bottomThreshold;
+  var isBottom = redPct !== null && redPct >= bottomThreshold;
 
   // The status bar only reports the loaded range; the bottom signal is shown in the spot-price box.
 
-  document.getElementById("dateDisplay").textContent = "(" + (allDates.indexOf(dateStr) + 1) + "/" + allDates.length + ")";
+  var dateText = "(" + (allDates.indexOf(dateStr) + 1) + "/" + allDates.length + ")";
 
   var traces = [];
   var valuesForAxis, chartPrices;
@@ -897,8 +958,8 @@ function renderChart(data) {
   }
 
   var maxVal = valuesForAxis.reduce(function(a,b){return a>b?a:b},0);
-  lastDayPeak = maxVal; // this day's tallest bar, offered to the Peak button
-  var peak = peakBest();
+  var dayPeak = maxVal; // publish only after the chart has actually been drawn
+  var peak = peakStore[renderedPeakKey] || null;
   var yClipped = false;
   if (yMaxPct < 100) {
     var sorted = valuesForAxis.filter(function(v){return v>0;}).slice().sort(function(a,b){return a-b;});
@@ -917,7 +978,6 @@ function renderChart(data) {
   var peakVal = (peak && !(yClipped && yMaxExplicit[viewIdx])) ? peak[1] : 0;
   if (peakVal > 0) maxVal = peakVal;
   var btnPeakEl = document.getElementById("btnPeak");
-  if (btnPeakEl) btnPeakEl.classList.toggle("active", !!peak);
 
   // Six ticks; the step is the smallest "nice" value (1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10 x a power of ten)
   // whose sixth tick clears the tallest bar with 2% headroom, so the axis can never cut the bars off
@@ -933,14 +993,17 @@ function renderChart(data) {
   }
   var yTickvals = Array.from({length:7}, function(_,i){return i*yStep;});
   var maxP = maxPrice || chartPrices.reduce(function(a,b){return a>b?a:b},0);
-  var xStep = maxP / 25;
+  // Keep labels horizontal at narrow desktop widths. Auto-rotated ticks pushed the
+  // price-axis title into the credit line below it.
+  var xTickCount = Math.max(4, Math.min(25, Math.floor(plotW / 60)));
+  var xStep = maxP / xTickCount;
   var xTickvals = [];
   var xTicktext = [];
-  for (var xi = 0; xi <= 25; xi++) {
+  for (var xi = 0; xi <= xTickCount; xi++) {
     var xv = xi * xStep;
     if (xv === 0) { xTickvals.push(0); xTicktext.push("$0"); continue; }
     var xdig = Math.pow(10, Math.floor(Math.log10(xv)) - 2);
-    var xr = (xi === 25 ? Math.floor(xv / xdig) : Math.ceil(xv / xdig)) * xdig;  // rounding the last one up put it outside range, so it was never drawn
+    var xr = (xi === xTickCount ? Math.floor(xv / xdig) : Math.ceil(xv / xdig)) * xdig;  // rounding the last one up put it outside range, so it was never drawn
     xTickvals.push(xr);
     var xt;
     if (xr >= 1e6) { xt = (xr/1e6); xt = xt >= 100 ? Math.round(xt)+"M" : xt >= 10 ? xt.toFixed(1)+"M" : xt.toFixed(2)+"M"; }
@@ -973,9 +1036,13 @@ function renderChart(data) {
     // straddles spot was counted wholly on one side and smoothing moved mass across it, which
     // shifted this number by up to 2.2 points and made it disagree with the bottom signal
     // printed directly beneath it — that line tests redPct, which was always exact.
-    var spotCumul = 100 - (isCoin ? data.redPctCoin : redPct);
+    var lossShare = isCoin ? data.redPctCoin : redPct;
+    var spotCumul = lossShare === null ? null : 100 - lossShare;
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});
-    var profitPct = spotCumul.toFixed(1); var lossPct = (100-spotCumul).toFixed(1); var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits: spot < 10 ? 2 : 0}) + "<br><span style='color:" + PROFIT_COLOR + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "%</span><br><span style='color:" + LOSS_COLOR + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "%</span>";
+    var unavailable = L3("N/A", "不适用", "該当なし");
+    var profitPct = spotCumul === null ? unavailable : spotCumul.toFixed(1) + "%";
+    var lossPct = spotCumul === null ? unavailable : lossShare.toFixed(1) + "%";
+    var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits: spot < 10 ? 2 : 0}) + "<br><span style='color:" + PROFIT_COLOR + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "</span><br><span style='color:" + LOSS_COLOR + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "</span>";
     // Bottom signal: a fourth line in bright yellow (the words the old status-bar banner had), and the box border
     // turns the same yellow. Colour only, no glow anywhere.
     if (isBottom) labelText += "<br><span style='color:" + GLOW_COLOR + "'>" + t("bottomSignal") + redPct.toFixed(1) + t("bottomSignalSuffix") + "</span>";
@@ -1016,7 +1083,7 @@ function renderChart(data) {
     paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
     barmode:isAge?"stack":"overlay",bargap:0,
     legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:"center",x:0.5,font:{family:FONT,size:isAge?9.5:12,color:"#ffffff"},traceorder:isAge?"normal":undefined},
-    xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13,color:"#ffffff"},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11,color:"#ffffff"}},
+    xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13,color:"#ffffff"},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,tickangle:0,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11,color:"#ffffff"}},
     yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:"#ffffff"},standoff:8},automargin:true,side:"left",tickprefix:yAxisPrefix,separatethousands:true,tickvals:yTickvals,range:[0,yTickvals[yTickvals.length-1]],showgrid:false,tickfont:{family:FONT,size:11,color:"#ffffff"}},
     yaxis2:{title:{text:t("pctTotal"),font:{family:FONT,size:13,color:"#ffffff"},standoff:8},automargin:true,side:"right",overlaying:"y",ticksuffix:"%",range:[0,100],tickvals:Array.from({length:21},function(_,i){return i*5;}),showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11,color:"#ffffff"}},
     annotations:annotations,shapes:shapes,
@@ -1029,16 +1096,16 @@ function renderChart(data) {
   if (priceArray && priceArray.length > 0) {
     var pD=[],pP=[];
     var OV_DAY=86400000, OV_WINDOW=365*OV_DAY, OV_FUTURE=90*OV_DAY, OV_PAD=7*OV_DAY;
-    var ovYmd=function(t){var d=new Date(t);return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);};
-    var ovSel=new Date(dateStr+"T00:00:00").getTime();
-    var ovTip=new Date(allDates[allDates.length-1]+"T00:00:00").getTime();
+    var ovYmd=function(t){return new Date(t).toISOString().slice(0,10);};
+    var ovSel=new Date(dateStr+"T00:00:00Z").getTime();
+    var ovTip=new Date(allDates[allDates.length-1]+"T00:00:00Z").getTime();
     var ovRight=Math.min(ovTip+OV_PAD, ovSel+OV_FUTURE);
     var ovLeft=ovRight-OV_WINDOW;
     if (window.tracerDragWindow) { ovLeft=window.tracerDragWindow[0]; ovRight=window.tracerDragWindow[1]; } // window stays put while the dot is dragged
     var cStr=ovYmd(ovLeft-OV_DAY), rStr=ovYmd(ovRight+OV_DAY);
     for(var pi=0;pi<priceArray.length;pi++){
       if(typeof priceArray[pi]==="number"&&priceArray[pi]>0){
-        var pds=(priceDates&&priceDates[pi])||(function(ms){var q=new Date(ms);return q.getFullYear()+"-"+String(q.getMonth()+1).padStart(2,"0")+"-"+String(q.getDate()).padStart(2,"0");})(BRK_DAY0.getTime()+pi*86400000);
+        var pds=priceDateAt(pi);
         if(pds<cStr)continue;
         if(pds>rStr)break;
         pD.push(pds);pP.push(priceArray[pi]);
@@ -1096,11 +1163,15 @@ function renderChart(data) {
     layout.dragmode = false;
     layout.hovermode = false;
   }
-  Plotly.react("chart", traces, layout, IS_MOBILE
+  return Plotly.react("chart", traces, layout, IS_MOBILE
     ? {responsive:true, displayModeBar:false, scrollZoom:false, doubleClick:false, showAxisDragHandles:false}
-    : {responsive:true, displayModeBar:"hover"}).catch(function(e){
-    showNotice("Could not draw the chart: " + (e && e.message ? e.message : e));
-  }).then(function(){
+    : {responsive:true, displayModeBar:"hover"}).then(function(){
+    lastRenderedData = data;
+    lastDayPeak = dayPeak;
+    lastRenderedPeakKey = renderedPeakKey;
+    document.getElementById("binsUnit").textContent = binsText;
+    document.getElementById("dateDisplay").textContent = dateText;
+    if (btnPeakEl) btnPeakEl.classList.toggle("active", !!peak);
     var gdEl = document.getElementById("chart");
     if (!tracerHooked && typeof gdEl.on === "function") {
       // Plotly redraws on its own too (responsive resize, zoom, autosize); the dot must follow every redraw,
@@ -1110,17 +1181,19 @@ function renderChart(data) {
       tracerHooked = true;
     }
     if (window.placeTracer) placeTracer();
+    // A completed draw really is visible, even if navigation changed while Plotly was
+    // running. Keep its metadata truthful, but leave reflow to the newer queued draw.
+    if (plotSeq !== chartRenderSeq || navigationSeq !== renderSeq) return;
     // If the plotting area came out a different width than assumed (first draw), draw once more so the
     // 1 px gaps are computed from the real pitch.
     var fl = gdEl._fullLayout;
     var legH = (fl && fl.legend && fl.legend._height) ? fl.legend._height : 0;
     if (fl && lastLegendKey) legendDims[lastLegendKey] = { h: legH };
     var off = fl && fl.xaxis && fl.xaxis._length > 0 && (Math.abs(fl.xaxis._length - lastPlotW) > 0.5 || Math.abs(legH - lastLegendDims.h) > 1);
-    if (off && reflowCount < 2 && lastRenderedData === data) { reflowCount++; renderChart(data); }
+    if (off && reflowCount < 2) { reflowCount++; return drawChart(data, plotSeq, navigationSeq); }
     else reflowCount = 0;
-  });
-  document.getElementById("chart").removeAllListeners("plotly_legendclick");
-  document.getElementById("chart").on("plotly_legendclick", function(evtData) {
+    gdEl.removeAllListeners("plotly_legendclick");
+    gdEl.on("plotly_legendclick", function(evtData) {
     // The chart stays clickable during an export and a hidden cohort is carried into every
     // later redraw, so one stray click dropped an age band from the whole rest of the video.
     if (window.videoRecording) return false;
@@ -1128,25 +1201,31 @@ function renderChart(data) {
       if (!window.videoRecording) { showPriceOverlay = !showPriceOverlay; loadAndRender(); }
       return false;
     }
+    });
   });
 }
 
-// Coalesced, not serialised. Serialising looked right but queued an absolute target while
-// currentIdx already held the in-flight one, so every repeat inside a load computed the same
-// index and twelve arrow presses advanced four days. It could also strand the busy flag for
-// the session if a render threw synchronously, and a queued target could override a date the
-// user picked afterwards. The index now moves on every press so repeats accumulate, and only
-// the resting place is loaded. An isolated press still fires immediately.
+// All navigation shares one coalescer. The logical index advances on every key press,
+// touch or drag event, while a burst only loads its latest target. Invalidate the old
+// request as soon as a new target is accepted, before its delayed load begins.
 var navTimer = null, navLast = 0;
-function goTo(idx) {
-  if (window.videoRecording) return; // the recorder drives the date while it captures frames
+function goTo(idx, immediate) {
+  if (window.videoRecording || !allDates.length || !isFinite(idx)) return;
   idx = Math.max(0, Math.min(allDates.length - 1, idx));
-  if (idx === currentIdx) return;
+  if (idx === currentIdx && !immediate) return;
   currentIdx = idx;
+  ++renderSeq;
   if (navTimer) clearTimeout(navTimer);
+  navTimer = null;
+  function loadTarget() {
+    navTimer = null;
+    if (window.videoRecording) return; // an export may have started during the debounce
+    navLast = Date.now();
+    loadAndRender();
+  }
   var now = Date.now();
-  if (now - navLast > 250) { navLast = now; navTimer = null; loadAndRender(); return; }
-  navTimer = setTimeout(function(){ navTimer = null; navLast = Date.now(); loadAndRender(); }, 110);
+  if (immediate || now - navLast > 250) { loadTarget(); return; }
+  navTimer = setTimeout(loadTarget, 110);
 }
 
 document.getElementById("btnPrev").onclick = function(){goTo(currentIdx - stepSize);};
@@ -1157,7 +1236,7 @@ document.getElementById("btnLast").onclick = function(){goTo(allDates.length - 1
 // Pin or unpin from the toolbar. Pressing it again is the only way the marker goes away.
 document.getElementById("btnPeak").onclick = function(){
   if (window.videoRecording) return;
-  if (peakBest()) { peakClear(); } else { peakPin(); }
+  if (peakStore[lastRenderedPeakKey || peakKey()]) { peakClear(); } else { peakPin(); }
   rerenderCurrent();
 };
 document.getElementById("btnUSD").onclick = function(){ setViewMode(0); };
@@ -1179,7 +1258,7 @@ document.querySelectorAll("#intervalBar .iv").forEach(function(btn) {
 
 // Toolbar settings. Bottom signal and Y-max only change how the current data is drawn, so they re-draw from
 // the cache; Bins and Smoothing change the binning, so they re-bin the cached raw series (no re-download) and
-// render. Each applies live while typing, is clamped and tidied on blur, and Enter or Escape leaves the field so
+// render. Expensive re-binning waits until typing pauses; blur commits immediately. Enter or Escape leaves the field so
 // the arrow keys go back to stepping the chart. All are locked while a video is being captured.
 function applyThreshold(v) {
   if (isNaN(v) || v < 0 || v > 100 || v === bottomThreshold) return;
@@ -1193,6 +1272,7 @@ function applyYMax(v) {
   yMaxExplicit[viewIdx] = true;   // typed, so it now outranks a pinned scale
   rerenderCurrent();
 }
+var binsInputTimer = null, smoothInputTimer = null;
 function applyBins(v) {
   if (isNaN(v) || v < 50 || v > 1000 || v === NUM_BINS) return;
   NUM_BINS = v;
@@ -1217,18 +1297,30 @@ document.getElementById("thresholdInput").addEventListener("change", function(e)
   if (!window.videoRecording) applyThreshold(v);
 });
 document.getElementById("binsInput").addEventListener("input", function(e){
-  if (!window.videoRecording) applyBins(parseInt(e.target.value, 10));
+  clearTimeout(binsInputTimer);
+  var value = e.target.value;
+  binsInputTimer = setTimeout(function() {
+    binsInputTimer = null;
+    if (!window.videoRecording) applyBins(parseInt(value, 10));
+  }, 250);
 });
 document.getElementById("binsInput").addEventListener("change", function(e){
+  clearTimeout(binsInputTimer); binsInputTimer = null;
   var v = parseInt(e.target.value, 10);
   v = isNaN(v) ? NUM_BINS : Math.max(50, Math.min(1000, v));
   e.target.value = String(v);
   if (!window.videoRecording) applyBins(v);
 });
 document.getElementById("smoothInput").addEventListener("input", function(e){
-  if (!window.videoRecording) applySmoothing(parseFloat(e.target.value));
+  clearTimeout(smoothInputTimer);
+  var value = e.target.value;
+  smoothInputTimer = setTimeout(function() {
+    smoothInputTimer = null;
+    if (!window.videoRecording) applySmoothing(parseFloat(value));
+  }, 250);
 });
 document.getElementById("smoothInput").addEventListener("change", function(e){
+  clearTimeout(smoothInputTimer); smoothInputTimer = null;
   var v = parseFloat(e.target.value);
   v = isNaN(v) || v < 0 ? KERNEL_PCT : Math.min(1, v);
   // Round before applying, not after displaying: typing 0.25 left the box reading 0.3 while
@@ -1296,30 +1388,27 @@ document.addEventListener("keydown", function(e){
   }
 });
 
-function jumpToDate() {
-  var val = document.getElementById("dateInput").value;
-  if (!val || window.videoRecording) return;
+function jumpToDate(value) {
+  var val = value === undefined ? document.getElementById("dateInput").value : value;
+  if (!val || window.videoRecording || !allDates.length) return;
   var idx = allDates.indexOf(val);
   if (idx >= 0) {
-    currentIdx = idx;
-    loadAndRender();
+    goTo(idx, true);
   } else {
     var nearest = 0;
     for (var i = 0; i < allDates.length; i++) {
       if (allDates[i] <= val) nearest = i;
       else break;
     }
-    currentIdx = nearest;
-    loadAndRender();
+    goTo(nearest, true);
     showNotice(t("notFound") + allDates[nearest]);
   }
 }
 
 document.getElementById("landmarks").addEventListener("change", function(e){
   if (e.target.value) {
-    // deliberately not written into #dateInput: openDateDD seeds its filter from that field, so a
-  // landmark left the dropdown showing a single row with nothing to say why.
-    jumpToDate();
+    // Keep the date-search filter independent of the selected landmark.
+    jumpToDate(e.target.value);
     e.target.value = "";
     e.target.blur();
   }
@@ -1411,23 +1500,23 @@ function closeDateDD() {
 async function init() {
   try {
     document.getElementById("dateDisplay").textContent = t("loadingDates");
-    allDates = await fetchJSON(BASE + "/api/series/cost-basis/all/dates");
-      currentIdx = allDates.length - 1;
-    try {
-      var priceResp = await fetchJSON(BASE + "/api/series/price_close/day1");
-      priceArray = priceResp.data || priceResp;
-        try {
-        var dateResp = await fetchJSON(BASE + "/api/series/date/day1");
-        priceDates = dateResp.data || dateResp;
-        priceIndexByDate = {};
-        for (var di = 0; di < priceDates.length; di++) priceIndexByDate[priceDates[di]] = di;
-      } catch (e2) {
-        console.warn("Price date index preload failed, using epoch fallback:", e2);
-      }
-    } catch (e) {
-      console.warn("Price array preload failed:", e);
+    var loaded = await Promise.all([
+      fetchJSON(BASE + "/api/series/cost-basis/all/dates"),
+      fetchJSON(BASE + "/api/series/price_close/day1").catch(function(e) { console.warn("Price array preload failed:", e); return null; }),
+      fetchJSON(BASE + "/api/series/date/day1").catch(function(e) { console.warn("Price date index preload failed, using UTC epoch fallback:", e); return null; })
+    ]);
+    priceArray = loaded[1] && (loaded[1].data || loaded[1]);
+    priceDates = loaded[2] && (loaded[2].data || loaded[2]);
+    if (priceDates) {
+      priceIndexByDate = {};
+      for (var di = 0; di < priceDates.length; di++) priceIndexByDate[priceDates[di]] = di;
     }
-    loadAndRender();
+    // Publish navigable dates only once price initialization has settled. Toolbar actions
+    // before this point can change settings, but cannot cache a chart with missing prices.
+    allDates = loaded[0];
+    if (!Array.isArray(allDates) || !allDates.length) throw new Error("No dates available");
+    currentIdx = allDates.length - 1;
+    await loadAndRender();
   } catch (e) {
     document.getElementById("dateDisplay").textContent = "Error: " + e.message;
     showNotice(t("errBRK"), true);  // fatal: the app is dead, this must not auto-hide after 6 s  // #status is display:none in CSS, so this was written where nobody could read it
@@ -1484,6 +1573,7 @@ function updateVideoLang() {
   var fromEl = document.getElementById("videoFrom"), toEl = document.getElementById("videoTo");
   var statusEl = document.getElementById("videoStatus");
   var recBtn = document.getElementById("videoRecBtn"), cancelBtn = document.getElementById("videoCancelBtn");
+  var cancelCurrent = null;
   function vt(en, zh, ja) { return lang === "zh" ? zh : (lang === "ja" ? (ja || en) : en); }
   function setStatus(s) { statusEl.textContent = s; }
   btn.onclick = function(e) {
@@ -1501,24 +1591,24 @@ function updateVideoLang() {
   document.addEventListener("click", function(e){
     if (panel.style.display === "block" && !wrap.contains(e.target) && !videoRecording) panel.style.display = "none";
   });
-  cancelBtn.onclick = function(){ if (videoRecording) { videoCancel = true; setStatus(vt("Stopping\u2026", "\u6b63\u5728\u505c\u6b62\u2026")); } };
+  cancelBtn.onclick = function(){ if (videoRecording && cancelCurrent) cancelCurrent(); };
   recBtn.onclick = function() {
     if (videoRecording) return;
     var from = fromEl.value, to = toEl.value;
     var fps = 30;  // one sensible speed, no dial to get wrong
-    if (!from || !to) { setStatus(vt("Pick both dates.", "\u8bf7\u9009\u62e9\u8d77\u6b62\u65e5\u671f\u3002")); return; }
+    if (!from || !to) { setStatus(vt("Pick both dates.", "\u8bf7\u9009\u62e9\u8d77\u6b62\u65e5\u671f\u3002", "開始日と終了日を選んでください。")); return; }
     if (from > to) { var tmp = from; from = to; to = tmp; fromEl.value = from; toEl.value = to; }
     var startIdx = -1, endIdx = -1;
     for (var i = 0; i < allDates.length; i++) {
       if (allDates[i] >= from && startIdx < 0) startIdx = i;
       if (allDates[i] <= to) endIdx = i;
     }
-    if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) { setStatus(vt("No data in that range.", "\u8be5\u8303\u56f4\u5185\u6ca1\u6709\u6570\u636e\u3002")); return; }
+    if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) { setStatus(vt("No data in that range.", "\u8be5\u8303\u56f4\u5185\u6ca1\u6709\u6570\u636e\u3002", "この期間にはデータがありません。")); return; }
     var frameIndices = [];
     for (var fi = startIdx; fi <= endIdx; fi += stepSize) frameIndices.push(fi);
     if (frameIndices[frameIndices.length - 1] !== endIdx) frameIndices.push(endIdx);
-    if (frameIndices.length < 2) { setStatus(vt("Needs at least two frames: widen the range or use a smaller interval.", "\u81f3\u5c11\u9700\u8981\u4e24\u5e27\uff1a\u8bf7\u6269\u5927\u8303\u56f4\u6216\u7f29\u5c0f\u95f4\u9694\u3002")); return; }
-    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { setStatus(vt("This browser cannot record video.", "\u6b64\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5f55\u5236\u89c6\u9891\u3002")); return; }
+    if (frameIndices.length < 2) { setStatus(vt("Needs at least two frames: widen the range or use a smaller interval.", "\u81f3\u5c11\u9700\u8981\u4e24\u5e27\uff1a\u8bf7\u6269\u5927\u8303\u56f4\u6216\u7f29\u5c0f\u95f4\u9694\u3002", "2 フレーム以上必要です。期間を広げるか、刻み幅を小さくしてください。")); return; }
+    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream || !window.createImageBitmap) { setStatus(vt("This browser cannot record video.", "\u6b64\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5f55\u5236\u89c6\u9891\u3002", "このブラウザーでは動画を録画できません。")); return; }
     // a handful of frames at 30 fps would flash past, so stretch a short export to about three seconds
       if (frameIndices.length / fps < 3) fps = Math.max(2, Math.round(frameIndices.length / 3));
     // A long export is hours of work. Say so before it starts, not after it has failed.
@@ -1535,9 +1625,6 @@ function updateVideoLang() {
       if (!window.confirm(warn + xNote)) { setStatus(""); return; }
     }
 
-    videoRecording = true; videoCancel = false;
-    recBtn.disabled = true; cancelBtn.disabled = false; btn.classList.add("rec"); document.body.classList.add("recording");
-    if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); // nothing keeps keyboard focus while frames are captured
     var savedIdx = currentIdx;
     var gd = document.getElementById("chart");
     var cw = gd.offsetWidth || 1200, ch = gd.offsetHeight || 600;
@@ -1549,6 +1636,10 @@ function updateVideoLang() {
     var frames = [];
     var fIdx = 0;
     var tStart = 0;
+    var started = false, finished = false, readyToSave = false, abortRender = null;
+    var timers = new Set(), bitmaps = new Set(), queue = [], chunks = [];
+    var canvas = null, ctx = null, stream = null, recorder = null, requestFrame = null;
+    var mimeType = "", fileExt = "";
 
     // Chrome clamps setTimeout to once a second in a tab that is not visible, and
     // MediaRecorder stamps every frame with the wall clock, so a backgrounded export
@@ -1563,44 +1654,90 @@ function updateVideoLang() {
         var Ctx = window.AudioContext || window.webkitAudioContext;
         if (!Ctx) return;
         var ac = new Ctx();
-        var osc = ac.createOscillator(), gain = ac.createGain();
+        wakeAudio = { ac: ac, osc: null };
+        var osc = ac.createOscillator(); wakeAudio.osc = osc;
+        var gain = ac.createGain();
         gain.gain.value = 0.0015;
         osc.frequency.value = 40;
         osc.connect(gain); gain.connect(ac.destination); osc.start();
-        wakeAudio = { ac: ac, osc: osc };
-        if (ac.state === "suspended" && ac.resume) ac.resume();
-      } catch (e) { wakeAudio = null; }
+        if (ac.state === "suspended" && ac.resume) Promise.resolve(ac.resume()).catch(function(){});
+      } catch (e) { wakeOff(); }
     }
     function wakeOff() {
       if (!wakeAudio) return;
-      try { wakeAudio.osc.stop(); wakeAudio.ac.close(); } catch (e) {}
+      try { if (wakeAudio.osc) wakeAudio.osc.stop(); } catch (e) {}
+      try { Promise.resolve(wakeAudio.ac.close()).catch(function(){}); } catch (e) {}
       wakeAudio = null;
     }
-    function finish(ok) {
+    function closeBitmap(bmp) {
+      bitmaps.delete(bmp);
+      try { if (bmp && bmp.close) bmp.close(); } catch (e) {}
+    }
+    // Timers run outside Promise error handlers. Route their failures through the same teardown,
+    // and stop queued work from a cancelled export interfering with the next one.
+    function later(fn, ms) {
+      var timer = setTimeout(function() {
+        timers.delete(timer);
+        if (finished) return;
+        try { fn(); } catch (e) { fail(e); }
+      }, ms);
+      timers.add(timer);
+      return timer;
+    }
+    function clearTimer(timer) { clearTimeout(timer); timers.delete(timer); }
+    function fail(e) { finish(false, e); }
+    function finish(ok, error) {
+      if (finished) return;
+      finished = true;
+      if (abortRender) abortRender(new Error("Cancelled"));
+      timers.forEach(clearTimeout); timers.clear();
+      if (recorder) {
+        recorder.ondataavailable = recorder.onerror = recorder.onstop = null;
+        try { if (recorder.state !== "inactive") recorder.stop(); } catch (e) {}
+      }
+      if (stream) stream.getTracks().forEach(function(track) { try { track.stop(); } catch (e) {} });
+      bitmaps.forEach(closeBitmap);
+      frames.length = queue.length = chunks.length = 0;
       wakeOff();
-      videoRecording = false; videoCancel = false;
-      recBtn.disabled = false; cancelBtn.disabled = true; btn.classList.remove("rec"); document.body.classList.remove("recording");
-      syncSettingFields();
-      currentIdx = savedIdx;
-      loadAndRender();
-      if (!ok && (document.getElementById("videoStatus").textContent || "").indexOf("Error:") !== 0) setStatus(vt("Cancelled.", "\u5df2\u53d6\u6d88\u3002"));
+      if (started) {
+        cancelCurrent = null;
+        videoRecording = false; videoCancel = false;
+        recBtn.disabled = false; cancelBtn.disabled = true; btn.classList.remove("rec"); document.body.classList.remove("recording");
+        syncSettingFields();
+        currentIdx = savedIdx;
+        // Supersede a pending export load so it cannot repaint after cancellation or timeout.
+        try { Promise.resolve(loadAndRender()).catch(function(){}); } catch (e) {}
+      }
+      if (!ok) setStatus(error
+        ? vt("Error: ", "错误：", "エラー：") + (error.message || String(error))
+        : vt("Cancelled.", "\u5df2\u53d6\u6d88\u3002", "キャンセルしました。"));
     }
     function renderIndex(idx) {
       return new Promise(function(resolve, reject) {
         var done = false, timer = null;
-        function fin() { if (done) return; done = true; clearTimeout(timer); gd.removeListener("plotly_afterplot", fin); setTimeout(resolve, 120); }
-        // A frame that fails to load never draws, so plotly_afterplot never fired, the 15 s
-        // fallback fired instead and toImage captured the previous day again — a duplicate
-        // frame with the wrong date printed on it, and the panel still said "Saved N frames".
-        function bail(e) { if (done) return; done = true; clearTimeout(timer); gd.removeListener("plotly_afterplot", fin); reject(e instanceof Error ? e : new Error(String(e))); }
-        gd.on("plotly_afterplot", fin);
+        function settle(error) {
+          if (done) return;
+          done = true; clearTimer(timer); abortRender = null;
+          if (error) reject(error); else resolve();
+        }
+        abortRender = settle;
         currentIdx = idx;
-        loadAndRender(true).catch(bail);
-        timer = setTimeout(fin, 15000);
+        timer = later(function() {
+          settle(new Error(vt("Timed out while rendering ", "渲染超时：", "描画がタイムアウトしました：") + allDates[idx]));
+        }, 15000);
+        Promise.resolve().then(function() {
+          if (finished) return;
+          return loadAndRender(true);
+        }).then(function() {
+          if (done || finished) return;
+          if (!lastRenderedData || lastRenderedData.dateStr !== allDates[idx]) {
+            settle(new Error(vt("The requested date was not rendered.", "未能绘制所请求的日期。", "指定した日付を描画できませんでした。")));
+          } else settle();
+        }).catch(settle);
       });
     }
     function captureFrames() {
-      if (videoCancel) { finish(false); return; }
+      if (finished) return;
       if (fIdx >= frameIndices.length) { encode(); return; }
       if (!tStart) tStart = performance.now();
       var etaTxt = "";
@@ -1610,56 +1747,68 @@ function updateVideoLang() {
           : secsLeft >= 60 ? Math.round(secsLeft / 60) + vt(" min left", " 分钟", " 分")
           : secsLeft + vt(" s left", " 秒", " 秒"));
       }
-      setStatus(vt("Rendering frame ", "\u6e32\u67d3\u5e27 ") + (fIdx + 1) + " / " + frameIndices.length + "  (" + allDates[frameIndices[fIdx]] + ")" + etaTxt);
+      setStatus(vt("Rendering frame ", "\u6e32\u67d3\u5e27 ", "フレームを描画中：") + (fIdx + 1) + " / " + frameIndices.length + "  (" + allDates[frameIndices[fIdx]] + ")" + etaTxt);
       renderIndex(frameIndices[fIdx]).then(function(){
+        if (finished) return;
         return Plotly.toImage(gd, { format: "png", width: cw, height: ch, scale: scale });
       }).then(function(dataUrl){
+        if (finished) return;
         // Keep each frame as a Blob, never as a data URL. A data URL is a JS string, and a few
         // thousand of them is gigabytes of heap: that is what killed long exports part-way through.
         // Blobs live outside the heap and Chrome spills them to disk.
         return fetch(dataUrl).then(function(r){ return r.blob(); });
       }).then(function(frameBlob){
+        if (finished) return;
         frames.push(frameBlob);
         fIdx++;
         captureFrames();
-      }).catch(function(e){ setStatus("Error: " + e.message); finish(false); });
+      }).catch(fail);
     }
-    function encode() {
-      setStatus(vt("Encoding ", "\u7f16\u7801 ") + frames.length + vt(" frames at ", " \u5e27\uff0c") + fps + " fps\u2026");
-      var canvas = document.createElement("canvas");
+    function prepareRecorder() {
+      canvas = document.createElement("canvas");
       canvas.width = W; canvas.height = H;
-      var ctx = canvas.getContext("2d");
-      var stream = canvas.captureStream(0);
+      ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error(vt("Canvas rendering is unavailable.", "无法使用画布渲染。", "キャンバスを描画できません。"));
+      stream = canvas.captureStream(0);
       var track = stream.getVideoTracks()[0];
+      // Firefox exposes requestFrame on the stream; Chromium and Safari expose it on the track.
+      // Validate this before rendering hundreds of images, and bind the correct receiver.
+      var frameSource = track && typeof track.requestFrame === "function" ? track : stream;
+      if (typeof frameSource.requestFrame !== "function") throw new Error(vt("This browser cannot capture video frames.", "此浏览器无法捕获视频帧。", "このブラウザーでは動画フレームを取得できません。"));
+      requestFrame = frameSource.requestFrame.bind(frameSource);
       // X takes MP4 with H.264 and nothing else: it rejects WebM outright. Prefer H.264, keep
       // WebM only as a fallback for browsers that cannot record it.
       var wanted = ["video/mp4;codecs=avc1.640028", "video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1",
         "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
-      var mimeType = "video/webm";
       for (var mi = 0; mi < wanted.length; mi++) { if (MediaRecorder.isTypeSupported(wanted[mi])) { mimeType = wanted[mi]; break; } }
-      var fileExt = mimeType.indexOf("mp4") > -1 ? ".mp4" : ".webm";
-      var recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 8000000 });
-      var chunks = [];
-      recorder.ondataavailable = function(e){ if (e.data.size > 0) chunks.push(e.data); };
+      if (!mimeType) throw new Error(vt("No supported video format is available.", "没有可用的视频格式。", "対応する動画形式がありません。"));
+      fileExt = mimeType.indexOf("mp4") > -1 ? ".mp4" : ".webm";
+      recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 8000000 });
+      recorder.ondataavailable = function(e){ if (!finished && e.data.size > 0) chunks.push(e.data); };
       recorder.onerror = function(ev){
-        // Without this a MediaRecorder failure left videoRecording true, every control disabled
-        // and the keep-alive tone running, recoverable only by reloading the page.
-        setStatus("Error: " + ((ev && ev.error && ev.error.name) || "recorder failed"));
-        videoCancel = true;
-        try { recorder.stop(); } catch (_) { finish(false); }
+        fail(new Error((ev && ev.error && ev.error.name) || vt("Recording failed.", "录制失败。", "録画に失敗しました。")));
       };
       recorder.onstop = function(){
-        if (videoCancel) { finish(false); return; }
-        var blob = new Blob(chunks, { type: mimeType });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement("a");
-        a.href = url;
-        a.download = "urpd_" + allDates[frameIndices[0]] + "_" + allDates[frameIndices[frameIndices.length - 1]] + "_" + (coinMode ? "btc" : "usd") + modeKey() + fileExt;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
-        setStatus(vt("Saved ", "\u5df2\u4fdd\u5b58 ") + frames.length + vt(" frames, ", " \u5e27\uff0c") + (blob.size / 1048576).toFixed(1) + " MB, " + (frames.length / fps).toFixed(1) + " s");
-        finish(true);
+        if (finished) return;
+        if (!readyToSave) { fail(new Error(vt("Recording stopped before completion.", "录制未完成即停止。", "録画が完了前に停止しました。"))); return; }
+        try {
+          var blob = new Blob(chunks, { type: mimeType });
+          if (!blob.size) throw new Error(vt("The recording is empty.", "录制的视频为空。", "録画データが空です。"));
+          var url = URL.createObjectURL(blob);
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "urpd_" + allDates[frameIndices[0]] + "_" + allDates[frameIndices[frameIndices.length - 1]] + "_" + (coinMode ? "btc" : "usd") + modeKey() + fileExt;
+          document.body.appendChild(a);
+          try { a.click(); } finally { document.body.removeChild(a); }
+          setStatus(vt("Saved ", "\u5df2\u4fdd\u5b58 ", "保存しました：") + frameIndices.length + vt(" frames, ", " \u5e27\uff0c", " フレーム、") + (blob.size / 1048576).toFixed(1) + " MB");
+          finish(true);
+        } catch (e) { fail(e); }
       };
+    }
+    function encode() {
+      if (finished) return;
+      setStatus(vt("Encoding ", "\u7f16\u7801 ", "エンコード中：") + frames.length + vt(" frames at ", " \u5e27\uff0c", " フレーム、") + fps + " fps\u2026");
       // MediaRecorder stamps each pushed frame with the wall clock, so frames are pushed on a fixed
       // schedule (start + i / fps). MediaRecorder stamps every pushed frame with the wall clock,
       // so a frame that arrives late bakes that delay into the file as a visible pause. The loop
@@ -1670,32 +1819,39 @@ function updateVideoLang() {
       var total = frames.length;
       var i = 0, interval = 1000 / fps;
       var AHEAD = 8;            // decoded frames held ready
-      var queue = [], nextDecode = 0;
+      var nextDecode = 0;
       function pump() {
-        while (queue.length < AHEAD && nextDecode < total) {
+        while (!finished && queue.length < AHEAD && nextDecode < total) {
           (function (k) {
-            queue.push(createImageBitmap(frames[k]).then(function (bmp) {
+            queue.push(Promise.resolve().then(function() {
+              if (finished) return null;
+              return createImageBitmap(frames[k]);
+            }).then(function (bmp) {
+              if (finished) { closeBitmap(bmp); return null; }
               frames[k] = null;   // decoded, so the blob can go now rather than at draw time
+              bitmaps.add(bmp);
               return bmp;
-            }));
+            }).catch(function(e) { fail(e); return null; }));
           })(nextDecode++);
         }
       }
       pump();
       Promise.all(queue.slice()).then(function () {
+        if (finished) return;
         wakeOn();
         recorder.start(4000);  // hand the encoder output over in pieces rather than one blob at the end
         var start = performance.now();
         function step() {
+          if (finished) return;
           pump();
           queue.shift().then(function (im) {
+            if (finished || !im) return;
             var wait = Math.max(0, start + i * interval - performance.now());
-            setTimeout(function () {
+            later(function () {
               ctx.drawImage(im, 0, 0, W, H);
-              track.requestFrame();
+              requestFrame();
               i++;
-              if (videoCancel) { recorder.stop(); return; }
-              if (i < total) { if (im.close) im.close(); step(); return; }
+              if (i < total) { closeBitmap(im); step(); return; }
               // Hold the final frame for a second, then let the encoder drain before stopping:
               // frames pushed right before stop() are dropped otherwise.
               // Every frame is captured by this point, so cancelling here would bin a finished
@@ -1704,16 +1860,26 @@ function updateVideoLang() {
               var holdEnd = performance.now() + 1000;
               (function hold() {
                 ctx.drawImage(im, 0, 0, W, H);
-                track.requestFrame();
-                if (performance.now() < holdEnd) setTimeout(hold, interval);
-                else setTimeout(function () { recorder.stop(); }, 1500);
+                requestFrame();
+                if (performance.now() < holdEnd) later(hold, interval);
+                else later(function () { readyToSave = true; recorder.stop(); }, 1500);
               })();
             }, wait);
-          }).catch(function (e) { setStatus("Error: " + e.message); videoCancel = true; recorder.stop(); });
+          }).catch(fail);
         }
         step();
-      }).catch(function (e) { setStatus("Error: " + e.message); finish(false); });
+      }).catch(fail);
     }
+    try { prepareRecorder(); } catch (e) { fail(e); return; }
+    started = true;
+    videoRecording = true; videoCancel = false;
+    if (typeof navTimer !== "undefined") { clearTimeout(navTimer); navTimer = null; }
+    if (typeof viewRenderTimer !== "undefined") { clearTimeout(viewRenderTimer); viewRenderTimer = null; }
+    if (typeof binsInputTimer !== "undefined") { clearTimeout(binsInputTimer); binsInputTimer = null; }
+    if (typeof smoothInputTimer !== "undefined") { clearTimeout(smoothInputTimer); smoothInputTimer = null; }
+    cancelCurrent = function() { videoCancel = true; finish(false); };
+    recBtn.disabled = true; cancelBtn.disabled = false; btn.classList.add("rec"); document.body.classList.add("recording");
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     captureFrames();
   };
 })();
@@ -1749,8 +1915,8 @@ window.tracerDragWindow = null;
     var lo = 0, hi = allDates.length - 1;
     while (lo < hi) { var mid = (lo + hi) >> 1; if (allDates[mid] < ds) lo = mid + 1; else hi = mid; }
     if (lo > 0) {
-      var t = new Date(ds + "T00:00:00").getTime();
-      if (Math.abs(new Date(allDates[lo - 1] + "T00:00:00").getTime() - t) < Math.abs(new Date(allDates[lo] + "T00:00:00").getTime() - t)) lo--;
+      var t = new Date(ds + "T00:00:00Z").getTime();
+      if (Math.abs(new Date(allDates[lo - 1] + "T00:00:00Z").getTime() - t) < Math.abs(new Date(allDates[lo] + "T00:00:00Z").getTime() - t)) lo--;
     }
     return lo;
   }
@@ -1764,27 +1930,22 @@ window.tracerDragWindow = null;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(ds)) return -1;
     return nearestDateIndex(ds);
   }
-  var dragging = false, pending = false, lastX = 0, lastDate = null;
+  var dragging = false;
   el.addEventListener("pointerdown", function(e){
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (window.videoRecording) return;
     e.preventDefault(); e.stopPropagation();
-    dragging = true; lastDate = allDates[currentIdx];
+    dragging = true;
     try { el.setPointerCapture(e.pointerId); } catch (_) {}
     el.classList.add("dragging"); document.body.classList.add("tracer-dragging");
     var rng = gd.layout && gd.layout.xaxis2 && gd.layout.xaxis2.range;
-    window.tracerDragWindow = rng ? [new Date(String(rng[0]).slice(0, 10) + "T00:00:00").getTime(), new Date(String(rng[1]).slice(0, 10) + "T00:00:00").getTime()] : null;
+    window.tracerDragWindow = rng ? [new Date(String(rng[0]).slice(0, 10) + "T00:00:00Z").getTime(), new Date(String(rng[1]).slice(0, 10) + "T00:00:00Z").getTime()] : null;
   });
   el.addEventListener("pointermove", function(e){
     if (!dragging) return;
-    e.preventDefault(); lastX = e.clientX;
-    if (pending) return; pending = true;
-    setTimeout(function(){
-      pending = false; if (!dragging) return;
-      var idx = indexAtClientX(lastX);
-      if (idx < 0 || idx >= allDates.length || allDates[idx] === lastDate) return;
-      lastDate = allDates[idx]; currentIdx = idx; loadAndRender();
-    }, 16);
+    e.preventDefault();
+    var idx = indexAtClientX(e.clientX);
+    if (idx >= 0 && idx < allDates.length) goTo(idx);
   });
   function endDrag(e) {
     if (!dragging) return;
@@ -1792,7 +1953,9 @@ window.tracerDragWindow = null;
     try { el.releasePointerCapture(e.pointerId); } catch (_) {}
     el.classList.remove("dragging"); document.body.classList.remove("tracer-dragging");
     window.tracerDragWindow = null;
-    navLast = 0; goTo(currentIdx); // through the coalescer: a slow drag was firing 23 requests per day crossed
+    // Flush the last target and redraw even when its date is already displayed: its
+    // previous render used the frozen drag window, which must now re-centre.
+    goTo(currentIdx, true);
   }
   el.addEventListener("pointerup", endDrag);
   el.addEventListener("pointercancel", endDrag);
@@ -1831,20 +1994,6 @@ updateExplainerLang();
 // and the middle half stays dead so a stray tap never moves the date.
 if (IS_MOBILE) (function () {
   var EDGE = 0.25;
-  var busy = false, queued = null;
-  function go(i) {
-    i = Math.max(0, Math.min(allDates.length - 1, i));
-    if (i === currentIdx) return;
-    // Renders are serialised: impatient tapping must not queue up a hundred redraws, the
-    // last target simply waits its turn.
-    if (busy) { queued = i; return; }
-    busy = true;
-    currentIdx = i;
-    Promise.resolve(loadAndRender()).catch(function () {}).then(function () {
-      busy = false;
-      if (queued !== null) { var q = queued; queued = null; go(q); }
-    });
-  }
   var x0 = null, y0 = null, moved = false;
   // Passive throughout: the viewport is already locked, so nothing here needs to cancel a
   // default, and the listeners stay off the scrolling critical path.
@@ -1861,8 +2010,8 @@ if (IS_MOBILE) (function () {
   document.addEventListener("touchend", function () {
     if (x0 === null || moved) { x0 = null; return; }
     var w = window.innerWidth;
-    if (x0 < w * EDGE) go(currentIdx - 1);
-    else if (x0 > w * (1 - EDGE)) go(currentIdx + 1);
+    if (x0 < w * EDGE) goTo(currentIdx - 1);
+    else if (x0 > w * (1 - EDGE)) goTo(currentIdx + 1);
     x0 = null;
   }, { passive: true });
   document.addEventListener("touchcancel", function () { x0 = null; }, { passive: true });
