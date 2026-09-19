@@ -31,7 +31,7 @@ function snapshot(c) {
   }));
 }
 
-const fixedControls = ['btnPeak', 'thresholdInput', 'binsInput', 'smoothInput', 'ymaxInput'];
+const fixedControls = ['thresholdInput', 'binsInput', 'smoothInput', 'ymaxInput'];
 
 function assertPreset(h, coin = true) {
   const { c, element } = h;
@@ -47,7 +47,7 @@ function assertPreset(h, coin = true) {
   assert.equal(element('ymaxInput').value, coin ? '99.8' : '100');
   assert.equal(element('btnRaw').attributes['aria-pressed'], 'true');
   for (const id of fixedControls) assert.equal(element(id).disabled, true, `${id} must be locked in RAW`);
-  for (const id of ['btnUSD', 'btnBTC']) assert.notEqual(element(id).disabled, true, `${id} must remain usable in RAW`);
+  for (const id of ['btnUSD', 'btnBTC', 'btnPeak']) assert.notEqual(element(id).disabled, true, `${id} must remain usable in RAW`);
 }
 
 for (const coin of [false, true]) {
@@ -99,7 +99,7 @@ test('leaving RAW restores the ordinary BTC default of 99.5', async () => {
 });
 
 for (const age of [true, false]) {
-  test(`RAW renders unsmoothed BTC bars without percentage, historical price, bottom signal or stored scale (${age ? 'age cohorts' : 'all-supply fallback'})`, async () => {
+  test(`RAW renders unsmoothed BTC bars with a remembered pin and without percentage, historical price or bottom signal (${age ? 'age cohorts' : 'all-supply fallback'})`, async () => {
     const h = fixture(age);
     const { c, element } = h;
     c.peakStore = { 'btc|b625|s0': ['2026-09-17', 1e9] };
@@ -112,9 +112,11 @@ for (const age of [true, false]) {
     assert.match(graph.layout.yaxis.title.text, /BTC/);
     assert.equal(graph.data.some(trace => trace.meta === 'pct' || trace.yaxis === 'y2' || trace.name === 'BTC/USD' || trace.xaxis === 'x2'), false);
     assert.ok(!graph.layout.yaxis2 || graph.layout.yaxis2.visible === false);
-    assert.ok(graph.layout.yaxis.range[1] < 1000, 'an existing billion-BTC pin must not dictate RAW scale');
+    assert.ok(graph.layout.yaxis.range[1] >= 1e9, 'a remembered RAW pin fixes the scale');
+    assert.equal(graph.layout.shapes.find(shape => shape.xref === 'paper' && shape.yref === 'y').y0, 1e9);
     const annotations = graph.layout.annotations.map(annotation => annotation.text).join(' ');
-    assert.doesNotMatch(annotations, /Price:|Held in Profit|Held in Loss|BOTTOM SIGNAL|Peak /);
+    assert.doesNotMatch(annotations, /Price:|Held in Profit|Held in Loss|BOTTOM SIGNAL/);
+    assert.match(annotations, /Peak /);
     assert.equal(graph.layout.shapes.find(shape => shape.type === 'line' && shape.xref === 'x').line.color, '#ffffff');
     assert.equal(graph.layout.shapes.some(shape => shape.line && shape.line.color === c.GLOW_COLOR), false);
     assert.equal(c.lastRenderedData.numBins, 625);
@@ -122,7 +124,7 @@ for (const age of [true, false]) {
   });
 }
 
-test('RAW rejects setting and pin mutations and clears pending edits', async () => {
+test('RAW rejects fixed-setting mutations and clears pending edits', async () => {
   const h = fixture();
   const { c, element, timers, runTimer } = h;
   element('binsInput').emit('input', { target: { value: '400' } });
@@ -135,7 +137,6 @@ test('RAW rejects setting and pin mutations and clears pending edits', async () 
   c.applyBins(100);
   c.applySmoothing(0.9);
   c.applyYMax(50);
-  element('btnPeak').onclick();
   // Any timer already armed before entering RAW must either be canceled or inert.
   for (const id of [...timers.keys()]) if (timers.has(id)) runTimer(id);
   await flush();
@@ -430,3 +431,106 @@ for (const entering of [true, false]) for (const previousRawAvailable of [true, 
     if (c.rawMode) assertPreset(h);
   });
 }
+
+test('RAW pins the displayed peak across dates, keeps USD and BTC pins independent, and unpins on the next press', async () => {
+  const h = fixture();
+  const { c, element, runTimer } = h;
+  const larger = { 50: 5, 1000: 500 };
+  c.rawCache[c.allDates[1]] = { all: larger, age: [larger] };
+  const persisted = [];
+  c.localStorage.setItem = (key, value) => persisted.push({ key, value: JSON.parse(value) });
+  c.peakStore = { 'usd|b400|s0.6': ['2026-09-17', 123456] };
+  await c.setRawMode(true);
+  assertPreset(h);
+  const graph = element('chart');
+  const pinLine = () => graph.layout.shapes.find(shape => shape.xref === 'paper' && shape.yref === 'y');
+
+  element('btnPeak').onclick();
+  await c.chartRenderPromise;
+  assert.deepEqual(Array.from(c.peakStore['btc|b625|s0']), ['2026-09-18', 99]);
+  assert.equal(pinLine().y0, 99);
+  const btcRange = Array.from(graph.layout.yaxis.range);
+  c.goTo(1, true);
+  await flush();
+  await c.chartRenderPromise;
+  assert.equal(c.lastDayPeak, 500, 'the new displayed peak does not overwrite the chosen pin');
+  assert.deepEqual(Array.from(graph.layout.yaxis.range), btcRange);
+  assert.equal(pinLine().y0, 99);
+
+  async function switchTo(id) {
+    element(id).onclick();
+    runTimer(c.viewRenderTimer);
+    await flush();
+    await c.chartRenderPromise;
+  }
+  await switchTo('btnUSD');
+  assertPreset(h, false);
+  assert.equal(pinLine(), undefined, 'BTC pin cannot fix the USD scale');
+  element('btnPeak').onclick();
+  await c.chartRenderPromise;
+  assert.deepEqual(Array.from(c.peakStore['usd|b625|s0']), ['2026-09-19', 500000]);
+  assert.equal(pinLine().y0, 500000);
+  const usdRange = Array.from(graph.layout.yaxis.range);
+
+  await switchTo('btnBTC');
+  assert.equal(pinLine().y0, 99, 'the BTC pin is remembered when its mode returns');
+  assert.deepEqual(Array.from(graph.layout.yaxis.range), btcRange);
+  element('btnPeak').onclick();
+  await c.chartRenderPromise;
+  assert.equal(c.peakStore['btc|b625|s0'], undefined);
+  assert.equal(pinLine(), undefined);
+  assert.ok(graph.layout.yaxis.range[1] > btcRange[1], 'unpinning fits the current taller day again');
+
+  await switchTo('btnUSD');
+  assert.equal(pinLine().y0, 500000);
+  assert.deepEqual(Array.from(graph.layout.yaxis.range), usdRange);
+  assert.deepEqual(Array.from(c.peakStore['usd|b400|s0.6']), ['2026-09-17', 123456]);
+  assert.deepEqual(persisted.at(-1).value, JSON.parse(JSON.stringify(c.peakStore)));
+});
+
+test('an intentional RAW pin overrides its default percentile despite an explicit normal-mode Y-max', async () => {
+  const h = fixture();
+  const { c, element } = h;
+  const dense = {};
+  for (let price = 0; price < 625; price++) dense[price] = price === 624 ? 10000 : 1;
+  c.rawCache[c.allDates[0]] = { all: dense, age: [dense] };
+  c.NUM_BINS = 400;
+  c.KERNEL_PCT = 0.6;
+  c.yMaxByMode = [97, 88];
+  c.yMaxExplicit = [true, true];
+  c.yMaxPct = 97;
+  await c.loadAndRender();
+  const before = snapshot(c);
+  await c.setRawMode(true);
+  const graph = element('chart');
+  assert.equal(c.lastDayPeak, 10000);
+  assert.ok(graph.layout.yaxis.range[1] < 100, 'RAW initially clips the outlier at its default percentile');
+
+  element('btnPeak').onclick();
+  await c.chartRenderPromise;
+  assert.deepEqual(Array.from(c.peakStore['btc|b625|s0']), ['2026-09-18', 10000]);
+  assert.ok(graph.layout.yaxis.range[1] >= 10000, 'choosing a pin must override RAW percentile clipping');
+  assert.equal(graph.layout.shapes.find(shape => shape.xref === 'paper' && shape.yref === 'y').y0, 10000);
+  assertPreset(h);
+  assert.deepEqual(Array.from(c.yMaxByMode), before.modeYmax);
+  assert.deepEqual(Array.from(c.yMaxExplicit), before.explicitYmax);
+  before.pins = snapshot(c).pins;
+  await c.setRawMode(false);
+  assert.deepEqual(snapshot(c), before);
+});
+
+test('recording blocks RAW pin creation and removal', async () => {
+  const h = fixture();
+  const { c, element } = h;
+  await c.setRawMode(true);
+  c.videoRecording = true;
+  element('btnPeak').onclick();
+  assert.equal(c.peakStore['btc|b625|s0'], undefined);
+  c.videoRecording = false;
+  element('btnPeak').onclick();
+  await c.chartRenderPromise;
+  const chosen = Array.from(c.peakStore['btc|b625|s0']);
+  c.videoRecording = true;
+  element('btnPeak').onclick();
+  assert.deepEqual(Array.from(c.peakStore['btc|b625|s0']), chosen);
+});
