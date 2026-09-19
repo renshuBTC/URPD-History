@@ -60,6 +60,20 @@ the browser supports H.264, WebM otherwise.
 To deploy: push to GitHub and enable Pages on `main` at the repository root. That is
 the whole deployment.
 
+## Development checks
+
+The site still deploys directly from the single HTML file with no build step.
+Run the regression tests with Node.js 24 or newer:
+
+```sh
+node --test tests/*.test.cjs
+```
+
+The tests execute the application source with controlled network, rendering, and
+recording interfaces. They cover navigation races, date and value calculations,
+render completion, and export failures and cleanup. GitHub Actions runs the same
+checks on pushes and pull requests.
+
 ## Credits
 
 - **URPD** — introduced by [Renato Shirakashi](https://x.com/renato_shira) in April 2020, popularised and extended by [James Check](https://x.com/_checkmatey_)
