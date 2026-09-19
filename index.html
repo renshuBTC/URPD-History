@@ -327,12 +327,12 @@ var coinMode = false;
 var bottomThreshold = 80;
 var yMaxPct = 100;
 // A per-mode default. In BTC the oldest cohorts pile into a couple of bins and flatten everything
-// else, so BTC starts clipped at the 99.8th percentile while USD shows every bar. Typing a value
+// else, so BTC starts clipped at the 99.5th percentile while USD shows every bar. Typing a value
 // updates the default for the mode you are in, so a deliberate choice survives switching.
-var yMaxByMode = [100, 99.8];
+var yMaxByMode = [100, 99.5];
 // Whether the user actually typed a Y-max, as opposed to inheriting the per-mode default.
 // Pin scale yields to an explicit clip but must not yield to a default the user never chose:
-// BTC defaults to 99.8, so the pin was discarded on every BTC render and the button did nothing.
+// BTC defaults to 99.5, so the pin was discarded on every BTC render and the button did nothing.
 var yMaxExplicit = [false, false];
 var cache = {};        // binned chart data keyed by date + view + bins + smoothing (see dataKey)
 var cacheOrder = [];   // insertion order, for eviction
