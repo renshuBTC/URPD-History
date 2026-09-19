@@ -33,7 +33,7 @@ function snapshot(c) {
 
 const fixedControls = ['thresholdInput', 'binsInput', 'smoothInput', 'ymaxInput'];
 
-function assertPreset(h, coin = true) {
+function assertPreset(h, coin) {
   const { c, element } = h;
   assert.equal(c.rawMode, true);
   assert.equal(c.coinMode, coin);
@@ -51,7 +51,7 @@ function assertPreset(h, coin = true) {
 }
 
 for (const coin of [false, true]) {
-  test(`RAW restores customized ${coin ? 'BTC' : 'USD'} settings without changing per-mode preferences`, async () => {
+  test(`RAW preserves ${coin ? 'BTC' : 'USD'} on entry and restores customized settings on exit`, async () => {
     const h = fixture();
     const { c, element } = h;
     c.coinMode = coin;
@@ -68,10 +68,15 @@ for (const coin of [false, true]) {
     const before = snapshot(c);
 
     await c.setRawMode(true);
-    assertPreset(h);
+    assertPreset(h, coin);
     // Clicking the active preset again programmatically must not overwrite the
     // saved settings with its own fixed settings.
     await c.setRawMode(true);
+    c.setViewMode(coin ? 0 : 1);
+    h.runTimer(c.viewRenderTimer);
+    await flush();
+    await c.chartRenderPromise;
+    assertPreset(h, !coin);
     await c.setRawMode(false);
 
     assert.equal(c.rawMode, false);
@@ -90,6 +95,7 @@ test('leaving RAW restores the ordinary BTC default of 99.5', async () => {
   const h = fixture();
   h.c.setViewMode(1);
   await h.c.setRawMode(true);
+  assertPreset(h, true);
   await h.c.setRawMode(false);
   assert.equal(h.c.coinMode, true);
   assert.equal(h.c.yMaxPct, 99.5);
@@ -102,6 +108,7 @@ for (const age of [true, false]) {
   test(`RAW renders unsmoothed BTC bars with a remembered pin and without percentage, historical price or bottom signal (${age ? 'age cohorts' : 'all-supply fallback'})`, async () => {
     const h = fixture(age);
     const { c, element } = h;
+    c.setViewMode(1);
     c.peakStore = { 'btc|b625|s0': ['2026-09-17', 1e9] };
     await c.setRawMode(true);
     const graph = element('chart');
@@ -142,7 +149,7 @@ test('RAW rejects fixed-setting mutations and clears pending edits', async () =>
   await flush();
 
   assert.deepEqual(snapshot(c), before);
-  assertPreset(h);
+  assertPreset(h, true);
 });
 
 test('rapid RAW toggles and date navigation render the latest preset and date', async () => {
@@ -158,7 +165,7 @@ test('rapid RAW toggles and date navigation render the latest preset and date', 
   await flush();
   await c.chartRenderPromise;
 
-  assertPreset(h);
+  assertPreset(h, false);
   assert.equal(c.currentIdx, 1);
   assert.equal(c.lastRenderedData.dateStr, '2026-09-19');
   assert.equal(c.lastRenderedData.numBins, 625);
@@ -184,8 +191,8 @@ test('recording locks RAW changes without losing the settings to restore later',
   await c.setRawMode(true);
   c.videoRecording = true;
   await c.setRawMode(false);
-  c.setViewMode(0);
-  assertPreset(h);
+  c.setViewMode(1);
+  assertPreset(h, false);
   c.videoRecording = false;
   await c.setRawMode(false);
   assert.deepEqual(snapshot(c), initial);
@@ -205,7 +212,7 @@ for (const age of [true, false]) {
     await c.loadAndRender();
     const original = snapshot(c);
     await c.setRawMode(true);
-    assertPreset(h);
+    assertPreset(h, true);
 
     async function finishModeChange() {
       runTimer(c.viewRenderTimer);
@@ -230,7 +237,7 @@ for (const age of [true, false]) {
 
     element('btnBTC').onclick();
     await finishModeChange();
-    assertPreset(h);
+    assertPreset(h, true);
     bars = graph.data.filter(trace => trace.type === 'bar');
     assert.equal(bars[0].y.reduce((a, b) => a + b, 0), 100);
     assert.match(graph.layout.yaxis.title.text, /BTC/);
@@ -278,7 +285,7 @@ for (const entering of [true, false]) {
 
     await c.setRawMode(entering);
     if (entering) {
-      assertPreset(h);
+      assertPreset(h, false);
       await c.setRawMode(false);
     }
     assert.equal(c.rawMode, false);
@@ -327,7 +334,7 @@ test('a pending RAW load never redraws older smoothed data under RAW settings', 
 
   download.resolve(raw);
   await switching;
-  assertPreset(h);
+  assertPreset(h, false);
   assert.equal(c.lastRenderedData.numBins, 625);
   assert.equal(c.lastRenderedData.kernelPct, 0);
   assert.notEqual(element('chart').data, oldTraces);
@@ -335,7 +342,7 @@ test('a pending RAW load never redraws older smoothed data under RAW settings', 
 
 for (const coin of [true, false]) test(`RAW ${coin ? 'BTC' : 'USD'} keeps the white spot line while navigating, hides its box and restores the box on exit`, async () => {
   const h = fixture();
-  const { c, element, runTimer } = h;
+  const { c, element } = h;
   c.bottomThreshold = 100;
   c.coinMode = coin;
   c.viewIdx = coin ? 1 : 0;
@@ -345,12 +352,6 @@ for (const coin of [true, false]) test(`RAW ${coin ? 'BTC' : 'USD'} keeps the wh
   await c.loadAndRender();
   const original = snapshot(c);
   await c.setRawMode(true);
-  if (!coin) {
-    element('btnUSD').onclick();
-    runTimer(c.viewRenderTimer);
-    await flush();
-    await c.chartRenderPromise;
-  }
 
   function spotParts() {
     const layout = element('chart').layout;
@@ -428,7 +429,7 @@ for (const entering of [true, false]) for (const previousRawAvailable of [true, 
     assert.equal(graph.data.some(trace => trace.meta === 'pct'), !c.rawMode);
     assert.equal(graph.data.some(trace => trace.name === 'BTC/USD'), !c.rawMode);
     if (!previousRawAvailable) assert.deepEqual(snapshot(c), before);
-    if (c.rawMode) assertPreset(h);
+    if (c.rawMode) assertPreset(h, false);
   });
 }
 
@@ -440,8 +441,9 @@ test('RAW pins the displayed peak across dates, keeps USD and BTC pins independe
   const persisted = [];
   c.localStorage.setItem = (key, value) => persisted.push({ key, value: JSON.parse(value) });
   c.peakStore = { 'usd|b400|s0.6': ['2026-09-17', 123456] };
+  c.setViewMode(1);
   await c.setRawMode(true);
-  assertPreset(h);
+  assertPreset(h, true);
   const graph = element('chart');
   const pinLine = () => graph.layout.shapes.find(shape => shape.xref === 'paper' && shape.yref === 'y');
 
@@ -499,6 +501,7 @@ test('an intentional RAW pin overrides its default percentile despite an explici
   c.yMaxByMode = [97, 88];
   c.yMaxExplicit = [true, true];
   c.yMaxPct = 97;
+  c.setViewMode(1);
   await c.loadAndRender();
   const before = snapshot(c);
   await c.setRawMode(true);
@@ -511,7 +514,7 @@ test('an intentional RAW pin overrides its default percentile despite an explici
   assert.deepEqual(Array.from(c.peakStore['btc|b625|s0']), ['2026-09-18', 10000]);
   assert.ok(graph.layout.yaxis.range[1] >= 10000, 'choosing a pin must override RAW percentile clipping');
   assert.equal(graph.layout.shapes.find(shape => shape.xref === 'paper' && shape.yref === 'y').y0, 10000);
-  assertPreset(h);
+  assertPreset(h, true);
   assert.deepEqual(Array.from(c.yMaxByMode), before.modeYmax);
   assert.deepEqual(Array.from(c.yMaxExplicit), before.explicitYmax);
   before.pins = snapshot(c).pins;
@@ -522,6 +525,7 @@ test('an intentional RAW pin overrides its default percentile despite an explici
 test('recording blocks RAW pin creation and removal', async () => {
   const h = fixture();
   const { c, element } = h;
+  c.setViewMode(1);
   await c.setRawMode(true);
   c.videoRecording = true;
   element('btnPeak').onclick();
