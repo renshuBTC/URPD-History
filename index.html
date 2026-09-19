@@ -122,11 +122,11 @@
   #videoBtn.rec { color: #ff8c00; border-color: #ff8c00; }
   #videoBtn.rec:hover { color: #ff8c00; border-color: #ff8c00; }  /* #controls button:hover was overriding the recording border */
   #videoPanel { display:none; position:absolute; top:100%; right:0; width:260px; background:#1a1a1a; border:1px solid #555; border-radius:2px; z-index:9999; padding:10px 12px 12px; margin-top:6px; font-size:11px; color:#d4d4d4; text-align:left; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
-  #videoPanel h2 { color:#ff8c00; font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; margin:0 0 8px 0; padding-bottom:6px; border-bottom:1px solid #333; }
+  #videoPanel h2 { color:#ffffff; font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; margin:0 0 8px 0; padding-bottom:6px; border-bottom:1px solid #333; }
   #videoPanel .vrow { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0; }
   #videoPanel label { color:#999; white-space:nowrap; }
-  #videoPanel input { background:#1e1e1e; color:#ff8c00; border:1px solid #555; padding:3px 5px; font-family:inherit; font-size:11px; border-radius:2px; width:140px; box-sizing:border-box; color-scheme:dark; }
-  #videoPanel input:focus { border-color:#ff8c00; outline:none; }
+  #videoPanel input { background:#1e1e1e; color:#ffffff; border:1px solid #555; padding:3px 5px; font-family:inherit; font-size:11px; border-radius:2px; width:140px; box-sizing:border-box; color-scheme:dark; }
+  #videoPanel input:focus { border-color:#ffffff; outline:none; }
   #videoStatus { color:#999; min-height:14px; margin-top:8px; line-height:1.5; }
   #videoPanel .vbtns { display:flex; gap:6px; margin-top:10px; }
   #videoPanel .vbtns button { flex:1; background:#252525; color:#d4d4d4; border:1px solid #555; padding:4px 8px; font-family:inherit; font-size:11px; cursor:pointer; border-radius:2px; text-transform:uppercase; letter-spacing:0.5px; transition:all 0.15s; }
@@ -152,13 +152,14 @@
   #controls label, #controls #binsUnit, #controls #thresholdInput, #controls #binsInput,
   #controls #smoothInput, #controls #ymaxInput, #controls #dateDisplay { font-size: 12px; }
   #controls label, #controls #binsUnit { color: #8a8a8a; }
-  /* the export panel reads like the explainer: one size, one weight, white or orange */
+  /* the export panel uses one size, one weight, and pure white text */
   #videoPanel { width: 300px; }
   #videoPanel, #videoPanel h2, #videoPanel label, #videoPanel input,
   #controls #videoPanel button, #controls #videoPanel #videoStatus { font-size: 13px; font-weight: 400; font-family: inherit; }
   #videoPanel, #videoPanel label, #controls #videoPanel button,
   #controls #videoPanel button:disabled, #controls #videoPanel #videoStatus { color: #ffffff; }
-  #videoPanel h2, #videoPanel input { color: #ff8c00; }
+  #videoPanel h2, #videoPanel input { color: #ffffff; }
+  #controls #videoPanel button:disabled { opacity: 1; cursor: not-allowed; }
   #controls #videoPanel input, #controls #videoPanel button { height: 26px; }
 </style>
 </head>
