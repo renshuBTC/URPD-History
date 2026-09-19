@@ -114,8 +114,8 @@ for (const age of [true, false]) {
     assert.ok(!graph.layout.yaxis2 || graph.layout.yaxis2.visible === false);
     assert.ok(graph.layout.yaxis.range[1] < 1000, 'an existing billion-BTC pin must not dictate RAW scale');
     const annotations = graph.layout.annotations.map(annotation => annotation.text).join(' ');
-    assert.match(annotations, /BTC Supply Held in Loss: 99\.0%/);
-    assert.doesNotMatch(annotations, /BOTTOM SIGNAL|Peak /);
+    assert.doesNotMatch(annotations, /Price:|Held in Profit|Held in Loss|BOTTOM SIGNAL|Peak /);
+    assert.equal(graph.layout.shapes.some(shape => shape.type === 'line' && shape.xref === 'x'), false);
     assert.equal(graph.layout.shapes.some(shape => shape.line && shape.line.color === c.GLOW_COLOR), false);
     assert.equal(c.lastRenderedData.numBins, 625);
     assert.equal(c.lastRenderedData.kernelPct, 0);
@@ -221,11 +221,9 @@ for (const age of [true, false]) {
     assert.deepEqual(Array.from(bars[0].y.filter(value => value > 0)).sort((a, b) => a - b), [50, 99000]);
     assert.match(graph.layout.yaxis.title.text, /USD/);
     const annotations = graph.layout.annotations.map(annotation => annotation.text).join(' ');
-    assert.match(annotations, /USD Value Held in Profit: 0\.1%/);
-    assert.match(annotations, /USD Value Held in Loss: 99\.9%/);
-    assert.doesNotMatch(annotations, /BOTTOM SIGNAL|Peak /);
+    assert.doesNotMatch(annotations, /Price:|Held in Profit|Held in Loss|BOTTOM SIGNAL|Peak /);
     assert.equal(graph.data.some(trace => trace.meta === 'pct' || trace.name === 'BTC/USD'), false);
-    assert.equal(graph.layout.shapes.find(shape => shape.xref === 'x').line.color, 'rgba(255,255,255,0)');
+    assert.equal(graph.layout.shapes.some(shape => shape.type === 'line' && shape.xref === 'x'), false);
     assert.deepEqual(Array.from(c.yMaxByMode), original.modeYmax);
     assert.deepEqual(Array.from(c.yMaxExplicit), original.explicitYmax);
 
@@ -334,13 +332,24 @@ test('a pending RAW load never redraws older smoothed data under RAW settings', 
   assert.notEqual(element('chart').data, oldTraces);
 });
 
-test('RAW keeps the invisible spot line and visible price box aligned while navigating, then restores the line', async () => {
+for (const coin of [true, false]) test(`RAW ${coin ? 'BTC' : 'USD'} omits the spot line and price box while navigating, then restores them on exit`, async () => {
   const h = fixture();
-  const { c, element } = h;
+  const { c, element, runTimer } = h;
   c.bottomThreshold = 100;
+  c.coinMode = coin;
+  c.viewIdx = coin ? 1 : 0;
+  c.yMaxPct = c.yMaxByMode[c.viewIdx];
   const secondDay = { 50: 10, 105: 10, 1000: 80 };
   c.rawCache[c.allDates[1]] = { all: secondDay, age: [secondDay] };
+  await c.loadAndRender();
+  const original = snapshot(c);
   await c.setRawMode(true);
+  if (!coin) {
+    element('btnUSD').onclick();
+    runTimer(c.viewRenderTimer);
+    await flush();
+    await c.chartRenderPromise;
+  }
 
   function spotParts() {
     const layout = element('chart').layout;
@@ -349,33 +358,34 @@ test('RAW keeps the invisible spot line and visible price box aligned while navi
       box: layout.annotations.find(annotation => annotation.xref === 'x' && annotation.yref === 'paper')
     };
   }
-  function assertRawSpot(spot, profit, loss) {
+  function assertNoSpot() {
     const { line, box } = spotParts();
-    assert.ok(line, 'the spot shape remains available');
-    assert.equal(line.x0, spot);
-    assert.equal(line.x1, spot);
-    assert.equal(line.line.dash, 'dash');
-    assert.equal(line.line.color, 'rgba(255,255,255,0)');
-    assert.equal(box.x, spot);
-    assert.equal(box.font.color, '#ffffff');
-    assert.match(box.text, new RegExp(`Price: \\$${spot}`));
-    assert.ok(box.text.includes(`BTC Supply Held in Profit: ${profit.toFixed(1)}%`));
-    assert.ok(box.text.includes(`BTC Supply Held in Loss: ${loss.toFixed(1)}%`));
+    assert.equal(line, undefined, 'the spot shape is absent, not merely transparent');
+    assert.equal(box, undefined, 'the spot price/profit/loss annotation is absent');
+    assert.doesNotMatch(element('chart').layout.annotations.map(annotation => annotation.text).join(' '), /Price:|Held in Profit|Held in Loss/);
   }
 
-  assertRawSpot(100, 1, 99);
+  assertPreset(h, coin);
+  assertNoSpot();
   c.goTo(1, true);
   await flush();
   await c.chartRenderPromise;
-  assertRawSpot(110, 20, 80);
+  assert.equal(c.lastRenderedData.dateStr, c.allDates[1]);
+  assert.equal(c.lastRenderedData.spot, 110);
+  assertNoSpot();
 
   await c.setRawMode(false);
+  assert.deepEqual(snapshot(c), original);
   const restored = spotParts();
   assert.equal(restored.line.x0, 110);
   assert.equal(restored.line.x1, 110);
+  assert.equal(restored.line.line.dash, 'dash');
   assert.equal(restored.line.line.color, '#ffffff');
   assert.equal(restored.box.x, 110);
-  assert.match(restored.box.text, /USD Value Held in Profit/);
+  assert.equal(restored.box.font.color, '#ffffff');
+  assert.match(restored.box.text, /Price: \$110/);
+  assert.match(restored.box.text, coin ? /BTC Supply Held in Profit: 20\.0%/ : /USD Value Held in Profit: 1\.9%/);
+  assert.match(restored.box.text, coin ? /BTC Supply Held in Loss: 80\.0%/ : /USD Value Held in Loss: 98\.1%/);
 });
 
 for (const entering of [true, false]) for (const previousRawAvailable of [true, false]) {
