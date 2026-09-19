@@ -38,7 +38,9 @@ Toolbar, left to right:
 - **PIN SCALE** — freeze the y-axis on the day you are viewing so other days can be compared against it
 - **Bottom signal** — fires when the share of value held at a loss passes your threshold
 - **Bins**, **Smoothing**, **Y-max** — bucket count, a Gaussian spread that hides source quantisation, and a percentile cap on the axis (100 by default in USD mode, 99.8 in BTC mode)
-- **Open source** GitHub link, **?** explainer, **▶** video export, and a language toggle
+- **GitHub** icon linking to the source, **?** explainer, **▶** video export, and a language toggle
+
+The toolbar stays on one row. Scroll it horizontally when the controls do not fit the window.
 
 On a phone the toolbar is hidden to give the chart the whole screen. Drag sideways
 with one finger to move through the calendar, pinch with two to zoom the price axis,
