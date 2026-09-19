@@ -60,10 +60,11 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; display: flex; flex-direction: column; }
-  #controls { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: wrap; }
+  #controls { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 6px; padding: 3px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #555 #1a1a1a; }
+  #controls > * { flex-shrink: 0; }
   #controls button, #controls #githubLink { background: #252525; color: #d4d4d4; border: 1px solid #555; padding: 3px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
   #controls button:hover, #controls #githubLink:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
-  #githubLink { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; border-radius: 2px; white-space: nowrap; text-decoration: none; }
+  #githubLink { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; border-radius: 2px; text-decoration: none; }
   #githubLink:focus-visible { outline: 2px solid #ff8c00; outline-offset: 2px; }
   #githubLink svg { flex-shrink: 0; }
   .mode-toggle { display: flex; gap: 2px; }
@@ -161,6 +162,8 @@
   #videoPanel h2, #videoPanel input { color: #ffffff; }
   #controls #videoPanel button:disabled { opacity: 1; cursor: not-allowed; }
   #controls #videoPanel input, #controls #videoPanel button { height: 26px; }
+  /* Fixed panels escape the toolbar's horizontal scroll area. */
+  #explainPanel, #videoPanel, #dateDropdown { position: fixed; right: auto; margin-top: 0; max-width: calc(100vw - 20px); overflow-y: auto; }
 </style>
 </head>
 <body>
@@ -181,7 +184,7 @@
   <div id="dateDropdownWrap" style="position:relative;display:inline-block;">
     <input type="text" id="dateInput" aria-label="Go to date" placeholder="YYYY-MM-DD" autocomplete="off"
       style="background:#1e1e1e;color:#d4d4d4;border:1px solid #555;padding:4px 8px;font-family:inherit;font-size:12px;width:140px;cursor:pointer;border-radius:2px;">
-    <div id="dateDropdown" style="display:none;position:absolute;top:100%;left:0;width:200px;max-height:320px;overflow-y:auto;background:#141414;border:1px solid #555;z-index:500;scrollbar-width:thin;scrollbar-color:#555 #141414;border-radius:2px;"></div>
+    <div id="dateDropdown" style="display:none;width:200px;max-height:320px;overflow-y:auto;background:#141414;border:1px solid #555;z-index:500;scrollbar-width:thin;scrollbar-color:#555 #141414;border-radius:2px;"></div>
   </div>
   <select id="landmarks" aria-label="Jump to a cycle top or bottom">
     <option value="">CYCLE TOP/BTM</option>
@@ -224,9 +227,8 @@
     <input type="text" id="ymaxInput" value="100" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:58px;font-family:inherit;text-align:center;border-radius:2px;">
     <label>percentile</label>
   </div>
-  <a id="githubLink" href="https://github.com/renshuBTC/URPD-History" target="_blank" rel="noopener noreferrer" aria-label="Open source: view code on GitHub (opens in a new tab)" title="Open source: view code on GitHub (opens in a new tab)">
+  <a id="githubLink" href="https://github.com/renshuBTC/URPD-History" target="_blank" rel="noopener noreferrer" aria-label="View code on GitHub (opens in a new tab)" title="View code on GitHub (opens in a new tab)">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
-    <span id="githubLabel">Open source</span>
   </a>
   <div id="explainWrap"><button id="explainBtn" aria-label="How to read this chart">?</button><div id="explainPanel">
 <h2 id="explainTitle"></h2>
@@ -325,12 +327,12 @@ var coinMode = false;
 var bottomThreshold = 80;
 var yMaxPct = 100;
 // A per-mode default. In BTC the oldest cohorts pile into a couple of bins and flatten everything
-// else, so BTC starts clipped at the 99.8th percentile while USD shows every bar. Typing a value
+// else, so BTC starts clipped at the 99.5th percentile while USD shows every bar. Typing a value
 // updates the default for the mode you are in, so a deliberate choice survives switching.
-var yMaxByMode = [100, 99.8];
+var yMaxByMode = [100, 99.5];
 // Whether the user actually typed a Y-max, as opposed to inheriting the per-mode default.
 // Pin scale yields to an explicit clip but must not yield to a default the user never chose:
-// BTC defaults to 99.8, so the pin was discarded on every BTC render and the button did nothing.
+// BTC defaults to 99.5, so the pin was discarded on every BTC render and the button did nothing.
 var yMaxExplicit = [false, false];
 var cache = {};        // binned chart data keyed by date + view + bins + smoothing (see dataKey)
 var cacheOrder = [];   // insertion order, for eviction
@@ -460,8 +462,7 @@ function t(key) { return T[lang][key] || T.en[key] || key; }
 function applyLang() {
   document.documentElement.lang = lang;  // a screen reader was reading the translated UI with an English voice
   document.getElementById("langBtn").textContent = t("langBtn");
-  document.getElementById("githubLabel").textContent = L3("Open source", "开源代码", "ソースコード");
-  var githubLabel = L3("Open source: view code on GitHub (opens in a new tab)", "开源项目：在 GitHub 查看代码（在新标签页中打开）", "オープンソース：GitHub でコードを見る（新しいタブで開きます）");
+  var githubLabel = L3("View code on GitHub (opens in a new tab)", "在 GitHub 查看代码（在新标签页中打开）", "GitHub でコードを見る（新しいタブで開きます）");
   document.getElementById("githubLink").title = githubLabel;
   document.getElementById("githubLink").setAttribute("aria-label", githubLabel);
   if (window.updateVideoLang) updateVideoLang();
@@ -501,8 +502,26 @@ function applyLang() {
   if (slabels[1]) slabels[1].textContent = t("smoothUnit");
   var blabels = document.querySelectorAll("#binsWrap label");
   if (blabels[0]) blabels[0].textContent = t("binsLabel");
+  positionToolbarPanels();
   loadAndRender();
 }
+
+function positionToolbarPanels() {
+  var panels = [["dateDropdown", "dateInput", true], ["explainPanel", "explainBtn", false], ["videoPanel", "videoBtn", false]];
+  panels.forEach(function(item) {
+    var panel = document.getElementById(item[0]);
+    if (panel.style.display !== "block") return;
+    var anchor = document.getElementById(item[1]).getBoundingClientRect();
+    var top = document.getElementById("controls").getBoundingClientRect().bottom + 6;
+    var left = item[2] ? anchor.left : anchor.right - panel.offsetWidth;
+    panel.style.left = Math.max(10, Math.min(left, window.innerWidth - panel.offsetWidth - 10)) + "px";
+    panel.style.top = top + "px";
+    var cap = item[0] === "dateDropdown" ? 320 : item[0] === "explainPanel" ? window.innerHeight * 0.75 : window.innerHeight;
+    panel.style.maxHeight = Math.max(0, Math.min(cap, window.innerHeight - top - 10)) + "px";
+  });
+}
+document.getElementById("controls").addEventListener("scroll", positionToolbarPanels);
+window.addEventListener("resize", positionToolbarPanels);
 
 // Interval navigation
 var stepSize = 1;
@@ -1471,9 +1490,10 @@ function openDateDD() {
   var dd = document.getElementById("dateDropdown");
   buildDateDropdown(document.getElementById("dateInput").value.trim());
   dd.style.display = "block";
+  positionToolbarPanels();
   setTimeout(function() {
     var cur = dd.querySelector(".dd-current");
-    if (cur) cur.scrollIntoView({block: "center"});
+    if (cur) dd.scrollTop = cur.offsetTop - (dd.clientHeight - cur.offsetHeight) / 2;
   }, 30);
 }
 function closeDateDD() {
@@ -1545,6 +1565,7 @@ document.getElementById("explainBtn").onclick = function(e){
   var p = document.getElementById("explainPanel");
   p.style.display = p.style.display === "block" ? "none" : "block";
   updateExplainerLang();
+  positionToolbarPanels();
 };
 document.addEventListener("click", function(e){
   var panel = document.getElementById("explainPanel");
@@ -1599,6 +1620,7 @@ function updateVideoLang() {
       if (!toEl.value) toEl.value = allDates[currentIdx];
       updateVideoLang();
     }
+    positionToolbarPanels();
   };
   document.addEventListener("click", function(e){
     if (panel.style.display === "block" && !wrap.contains(e.target) && !videoRecording) panel.style.display = "none";
