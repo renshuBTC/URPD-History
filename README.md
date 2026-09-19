@@ -33,12 +33,12 @@ Keyboard:
 
 Toolbar, left to right:
 
-- Interval, date navigation, a **YYYY-MM-DD** box, and a **Landmarks** dropdown for cycle tops and bottoms
+- Interval, date navigation, a **YYYY-MM-DD** box, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
 - **PIN SCALE** — freeze the y-axis on the day you are viewing so other days can be compared against it
 - **Bottom signal** — fires when the share of value held at a loss passes your threshold
-- **Bins**, **Smoothing**, **Y-max** — bucket count, a Gaussian spread that hides source quantisation, and a percentile cap on the axis
-- **?** explainer, **▶** video export, and a language toggle
+- **Bins**, **Smoothing**, **Y-max** — bucket count, a Gaussian spread that hides source quantisation, and a percentile cap on the axis (100 by default in USD mode, 99.8 in BTC mode)
+- **Open source** GitHub link, **?** explainer, **▶** video export, and a language toggle
 
 On a phone the toolbar is hidden to give the chart the whole screen. Drag sideways
 with one finger to move through the calendar, pinch with two to zoom the price axis,
