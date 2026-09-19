@@ -80,7 +80,7 @@ checks on pushes and pull requests.
 ## Credits
 
 - **URPD** — introduced by [Renato Shirakashi](https://x.com/renato_shira) in April 2020, popularised and extended by [James Check](https://x.com/_checkmatey_)
-- **Data** — [Bitcoin Research Kit](https://github.com/bitcoinresearchkit/mono) by [Antoine Le Calvez / @_nym21_](https://x.com/_nym21_), served via [bitview.space](https://bitview.space), built on [Bitcoin Core](https://bitcoin.org)
+- **Data** — [Bitcoin Research Kit](https://github.com/bitcoinresearchkit/mono) by [@_nym21_](https://x.com/_nym21_), served via [bitview.space](https://bitview.space), built on [Bitcoin Core](https://bitcoin.org)
 - **Charting** — [Plotly.js](https://plotly.com/javascript/) (MIT)
 
 ## Licence
