@@ -43,7 +43,7 @@ function assertPreset(h, coin) {
   assert.equal(c.yMaxPct, coin ? 99.8 : 100);
   assert.equal(c.showPriceOverlay, false);
   assert.equal(element('binsInput').value, '625');
-  assert.equal(element('smoothInput').value, '0.0');
+  assert.equal(element('smoothInput').value, '0.00');
   assert.equal(element('ymaxInput').value, coin ? '99.8' : '100');
   assert.equal(element('btnRaw').attributes['aria-pressed'], 'true');
   for (const id of fixedControls) assert.equal(element(id).disabled, true, `${id} must be locked in RAW`);
@@ -84,23 +84,23 @@ for (const coin of [false, true]) {
     assert.equal(element('btnRaw').attributes['aria-pressed'], 'false');
     for (const id of fixedControls) assert.equal(element(id).disabled, false, `${id} must unlock after RAW`);
     assert.equal(element('binsInput').value, '450');
-    assert.equal(element('smoothInput').value, '0.7');
+    assert.equal(element('smoothInput').value, '0.70');
     assert.equal(element('ymaxInput').value, String(before.ymax));
     assert.equal(c.lastRenderedData.numBins, 450);
     assert.equal(c.lastRenderedData.kernelPct, 0.7);
   });
 }
 
-test('leaving RAW restores the ordinary BTC default of 99.5', async () => {
+test('leaving RAW restores the ordinary BTC default of 100', async () => {
   const h = fixture();
   h.c.setViewMode(1);
   await h.c.setRawMode(true);
   assertPreset(h, true);
   await h.c.setRawMode(false);
   assert.equal(h.c.coinMode, true);
-  assert.equal(h.c.yMaxPct, 99.5);
-  assert.equal(h.element('ymaxInput').value, '99.5');
-  assert.deepEqual(Array.from(h.c.yMaxByMode), [100, 99.5]);
+  assert.equal(h.c.yMaxPct, 100);
+  assert.equal(h.element('ymaxInput').value, '100');
+  assert.deepEqual(Array.from(h.c.yMaxByMode), [100, 100]);
   assert.deepEqual(Array.from(h.c.yMaxExplicit), [false, false]);
 });
 
@@ -293,25 +293,26 @@ for (const entering of [true, false]) {
   });
 }
 
-test('a cumulative line hidden through the legend stays hidden after a RAW round trip', async () => {
+test('an age band hidden through the legend stays hidden after a RAW round trip', async () => {
   const h = fixture();
   const { c, element } = h;
   await c.loadAndRender();
   const graph = element('chart');
-  const cumulative = graph.data.find(trace => trace.meta === 'pct');
-  assert.ok(cumulative);
+  const band = graph.data.find(trace => trace.type === 'bar');
+  assert.ok(band);
   // This is the visibility change Plotly applies for a legend click.
-  cumulative.visible = 'legendonly';
+  band.visible = 'legendonly';
   await c.setRawMode(true);
-  assert.equal(graph.data.some(trace => trace.meta === 'pct'), false);
+  assert.equal(graph.data.find(trace => trace.name === band.name).visible, 'legendonly');
   c.goTo(1, true);
   await flush();
   await c.chartRenderPromise;
   await c.setRawMode(false);
-  const restored = graph.data.find(trace => trace.meta === 'pct');
-  assert.ok(restored);
-  assert.equal(restored.visible, 'legendonly');
+  assert.equal(graph.data.find(trace => trace.name === band.name).visible, 'legendonly');
   assert.equal(graph.data.find(trace => trace.name === 'BTC/USD').visible, true);
+  // The running share is in the hover now, never a line or an axis of its own.
+  assert.equal(graph.data.some(trace => trace.meta === 'pct' || trace.yaxis === 'y2'), false);
+  assert.equal(graph.layout.yaxis2, undefined);
 });
 
 test('a pending RAW load never redraws older smoothed data under RAW settings', async () => {
@@ -426,7 +427,7 @@ for (const entering of [true, false]) for (const previousRawAvailable of [true, 
     assert.equal(element('btnRaw').attributes['aria-pressed'], String(c.rawMode));
     const graph = element('chart');
     assert.equal(graph.layout.yaxis.title.text.includes('[BTC]'), c.coinMode);
-    assert.equal(graph.data.some(trace => trace.meta === 'pct'), !c.rawMode);
+    assert.equal(graph.data.some(trace => trace.meta === 'pct'), false);
     assert.equal(graph.data.some(trace => trace.name === 'BTC/USD'), !c.rawMode);
     if (!previousRawAvailable) assert.deepEqual(snapshot(c), before);
     if (c.rawMode) assertPreset(h, false);
