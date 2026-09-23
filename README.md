@@ -61,7 +61,8 @@ The **▶** button downloads the whole history as one video: every day from 2009
 the latest, 5:00 at 60 fps in 4K (3840×2160, about 250 MB), drawn with the page’s default
 settings. The **Daily video** workflow rebuilds it every day on GitHub’s runners and
 publishes it on the `video` release, so the day that just ended is in it by about 04:00 UTC.
-A new file takes the old one’s place only once it is fully uploaded, so the link never breaks.
+A new file takes the old one’s place only once it is fully uploaded, so the link never breaks,
+and only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
 It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there), from a
 store of every day’s bars kept on the `video-data` release: past days never change, so each
 run adds the new day and draws the 18,000 frames again. Free for a public repository.
@@ -77,6 +78,12 @@ file’s last day still draw, carrying on from its last values with their own da
 To deploy: push to GitHub and enable Pages on `main` at the repository root. That is
 the whole deployment.
 
+## Security
+
+The site never asks you to install anything, connect a wallet or enter a seed phrase, and the only file it offers is
+the `.mp4` video from this repository's `video` release. [SECURITY.md](SECURITY.md) explains how to check a download
+is genuine, how the page and the build are protected, and how to report a problem.
+
 ## Development checks
 
 The site still deploys directly from the single HTML file with no build step.
@@ -88,8 +95,10 @@ node --test tests/*.test.cjs
 
 The tests execute the application source with controlled network and rendering
 interfaces. They cover navigation races, date and value calculations, binning and the
-axes, render completion, the axis-history builder and the video’s store. GitHub
-Actions runs the same checks on pushes and pull requests.
+axes, render completion, the axis-history builder, the video’s store and the security
+rules (`tests/security.test.cjs`). GitHub Actions runs the same checks on pushes and
+pull requests. After editing an inline script in `index.html`, run
+`node tools/update-csp.cjs` so the Content-Security-Policy allows the new version.
 
 ## Credits
 
