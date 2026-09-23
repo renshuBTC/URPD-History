@@ -190,7 +190,7 @@ test('releasing an already rendered tracer date redraws the normal price window'
   assert.equal(h.loads[1].window, null);
 });
 
-test('navigation is inert before dates load and while export owns the chart', () => {
+test('navigation is inert before dates load, and a burst loads only its first and last steps', () => {
   const h = harness();
   h.context.allDates = [];
   h.context.goTo(0);
@@ -198,9 +198,7 @@ test('navigation is inert before dates load and while export owns the chart', ()
   h.context.allDates = h.dates;
   h.context.goTo(4);
   h.context.goTo(3);
-  h.context.window.videoRecording = true;
-  h.context.goTo(2);
   h.advance(500);
   assert.equal(h.context.currentIdx, 3);
-  assert.equal(h.loads.length, 1);
+  assert.deepEqual(h.loads.map(l => l.date), [h.dates[4], h.dates[3]], 'the first step loads at once, the burst after it once it settles');
 });

@@ -40,7 +40,7 @@ Toolbar, left to right:
 - **RAW** — keeps the selected USD or BTC mode, with switching still available. Both use 625 bins and smoothing 0.00; Y-max is 99.8 for BTC and 100 for USD, and the left axis fits each day on its own (unsmoothed needles would hold a growing axis up for years). Hides the historical price line, removes the price/profit/loss box, and disables the bottom signal. The white dashed spot line remains and follows the selected date. PIN SCALE works in RAW, saving separate BTC and USD pins; unpinning returns to the preset percentile. Bins, smoothing, and the Y-max input stay locked until RAW is turned off, which restores the previous settings.
 - **Bottom signal** — fires when the share of value held at a loss passes your threshold
 - **Bins**, **Smoothing**, **Y-max** — bucket count; smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view
-- **GitHub** icon linking to the source, **?** explainer, **▶** video export, and a language toggle
+- **GitHub** icon linking to the source, **?** explainer, **▶** download of the full-history 4K video, and a language toggle
 
 The toolbar stays on one row. Scroll it horizontally when the controls do not fit the window.
 
@@ -57,17 +57,22 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-Video export renders each frame offscreen, holds them as blobs rather than data URLs
-(a few thousand data URLs is gigabytes of heap), and records at 30 fps to MP4 where
-the browser supports H.264, WebM otherwise.
+The **▶** button downloads the whole history as one video: every day from 2009-01-03 to
+the latest, 5:00 at 60 fps in 4K (3840×2160, about 250 MB), drawn with the page’s default
+settings. The **Daily video** workflow rebuilds it every day on GitHub’s runners and
+publishes it on the `video` release, so the day that just ended is in it by about 04:00 UTC.
+A new file takes the old one’s place only once it is fully uploaded, so the link never breaks.
+It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there), from a
+store of every day’s bars kept on the `video-data` release: past days never change, so each
+run adds the new day and draws the 18,000 frames again. Free for a public repository.
 
 The axes need the whole history to be a function of the date alone, which no single
 day’s download contains, so `data/scales.json` (about 10 KB) carries it: for every day
 since 2009-01-03, the right end of the price axis and the tallest bar so far in each
 mode, as steps. `tools/build-scales.cjs` builds it with the page’s own binning code;
 run again, it extends the file by each finished day (23 requests to bitview.space per
-day). Days after the file’s last day still draw, carrying on from its last values with
-their own data.
+day). The Daily video workflow does that every day and commits the result. Days after the
+file’s last day still draw, carrying on from its last values with their own data.
 
 To deploy: push to GitHub and enable Pages on `main` at the repository root. That is
 the whole deployment.
@@ -81,10 +86,10 @@ Run the regression tests with Node.js 24 or newer:
 node --test tests/*.test.cjs
 ```
 
-The tests execute the application source with controlled network, rendering, and
-recording interfaces. They cover navigation races, date and value calculations,
-render completion, and export failures and cleanup. GitHub Actions runs the same
-checks on pushes and pull requests.
+The tests execute the application source with controlled network and rendering
+interfaces. They cover navigation races, date and value calculations, binning and the
+axes, render completion, the axis-history builder and the video’s store. GitHub
+Actions runs the same checks on pushes and pull requests.
 
 ## Credits
 
