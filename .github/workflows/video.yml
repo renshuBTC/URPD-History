@@ -5,10 +5,10 @@ name: Daily video
 #   2. adds it to the video's store (the files on the "video-data" release)
 #   3. renders the full-history 4K video with tools/video and publishes it on the "video" release,
 #      which is the file the ▶ button downloads
-# Standard GitHub-hosted runners are free for public repositories; the whole job takes about an hour.
+# Standard GitHub-hosted runners are free for public repositories; the whole job takes about an hour and a half.
 on:
   schedule:
-    - cron: "40 1 * * *"   # 01:40 UTC: yesterday has closed; the new video is out by about 04:00 UTC
+    - cron: "0 1 * * *"    # 01:00 UTC, an hour after yesterday closed; the new video is out by about 04:00 UTC
   workflow_dispatch:
 
 permissions:
