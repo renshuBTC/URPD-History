@@ -137,7 +137,7 @@ test('bins and mode toggles coalesce rapid changes', async () => {
   runTimer([...timers.keys()][0]); assert.equal(draws, 2); assert.equal(c.coinMode, true);
 });
 
-test('BTC/USD overlay keeps one log scale: always two decades tall, top only rises as time moves forward', async () => {
+test('BTC/USD overlay is linear from $0 to the highest close shown so far, and only grows moving forward', async () => {
   const { c, element } = app();
   const dates = [], prices = [];
   for (let i = 0; i < 800; i++) {
@@ -149,11 +149,10 @@ test('BTC/USD overlay keeps one log scale: always two decades tall, top only ris
   for (const i of [100, 300, 500, 700]) {
     await c.renderChart(c.buildData(dates[i], { all: { 1000: 1 }, age: [{ 1000: 1 }] }));
     const y3 = element('chart').layout.yaxis3;
-    assert.equal(y3.autorange, false);
-    assert.ok(Math.abs(y3.range[1] - y3.range[0] - c.OV_DECADES) < 1e-12, 'the same % move is always the same height');
+    assert.equal(y3.type, 'linear'); assert.equal(y3.autorange, false); assert.equal(y3.range[0], 0);
     const right = Math.min(dates.length - 1, i + 91);                          // window edge (+90 days) plus one day
-    assert.ok(Math.abs(y3.range[1] - (Math.log10(Math.max(...prices.slice(0, right + 1))) + c.OV_TOPPAD)) < 1e-9);
+    assert.equal(y3.range[1], Math.max(...prices.slice(0, right + 1)), 'top = highest close shown so far');
     tops.push(y3.range[1]);
   }
-  for (let k = 1; k < tops.length; k++) assert.ok(tops[k] >= tops[k - 1] - 1e-12, 'the scale never drops back when moving forward');
+  for (let k = 1; k < tops.length; k++) assert.ok(tops[k] >= tops[k - 1], 'the axis never shrinks when moving forward');
 });
