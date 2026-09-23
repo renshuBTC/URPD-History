@@ -14,7 +14,7 @@ cohorts.
 ## Reading it
 
 - **Bottom axis** is the price each coin last moved at, not today’s price.
-- **Left axis** is how much supply sits in each bucket: dollars in USD mode, coins in BTC mode, labelled in about twenty round steps.
+- **Left axis** is how much supply sits in each bucket: dollars in USD mode, coins in BTC mode. Both axes are marked at twenty equal steps from zero to their very end, labels rounded to two significant figures.
 - **Both axes only grow.** Each ends at the furthest the data had reached by the day you are viewing (the highest price and the tallest bar so far), moves only when the data goes past it, and never shrinks, so scrubbing back shows every day exactly as it looked at the time. In BTC mode the first bar, the coins last moved for less than one bar’s width, is left out of this and runs off the top with its height printed.
 - **Hover a bar** for its price, its age band, the whole bar’s total (Total USD Value Last Moved, or Total BTC Supply Last Moved) and Percent of Total, the running share of the day at or below that price.
 - **White line** is bitcoin’s own price on its own hidden axes: a year of time around the selected day, and linear from $0 to the highest close shown so far, so the line fills the chart and only rescales on a new high.
