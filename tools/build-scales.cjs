@@ -37,11 +37,14 @@ function loadSite() {
     return {
       BASE: BASE, AGE_BANDS: AGE_BANDS, BINS_DEFAULT: BINS_DEFAULT, KERNEL_DEFAULT: KERNEL_DEFAULT,
       aggregate: aggregate, buildData: buildData, setScales: setScales, xAxisEnd: xAxisEnd, axisLevel: axisLevel,
-      barValues: barValues,
+      barValues: barValues, cleanDates: cleanDates, cleanCohort: cleanCohort,
+      // The API's checks as the page makes them (see "What the API may send"): gaps for anything unexpected.
       setPrices: function (close, dates) {
-        priceArray = close; priceDates = dates; priceIndexByDate = {};
-        for (var i = 0; i < dates.length; i++) priceIndexByDate[dates[i]] = i;
+        priceArray = cleanSeries(close, function (v) { return isAmount(v) && v > 0; });
+        priceDates = cleanSeries(dates, isDateString); priceIndexByDate = {};
+        for (var i = 0; i < priceDates.length; i++) if (priceDates[i]) priceIndexByDate[priceDates[i]] = i;
         spotCache = {};
+        return { close: priceArray, dates: priceDates };
       },
       setBinning: function (bins, pct) { NUM_BINS = bins; KERNEL_PCT = pct; }
     };`;
@@ -91,24 +94,23 @@ async function main(argv = process.argv.slice(2)) {
     getJSON(site.BASE + '/api/series/price_close/day1'),
     getJSON(site.BASE + '/api/series/date/day1')
   ]);
-  const closes = close.data || close, closeDates = priceDates.data || priceDates, closeIndex = {};
-  closeDates.forEach((d, i) => { closeIndex[d] = i; });
-  site.setPrices(closes, closeDates);
+  const { close: closes, dates: closeDates } = site.setPrices(close.data || close, priceDates.data || priceDates), closeIndex = {};
+  closeDates.forEach((d, i) => { if (d) closeIndex[d] = i; });
   site.setBinning(site.BINS_DEFAULT, site.KERNEL_DEFAULT);
 
   let file = null;
   if (!opt.rebuild && fs.existsSync(OUT)) file = JSON.parse(fs.readFileSync(OUT, 'utf8'));
   if (!file) file = { start: START, end: null, bins: site.BINS_DEFAULT, smoothing: site.KERNEL_DEFAULT, x: [], usd: [], btc: [] };
   if (file.bins !== site.BINS_DEFAULT || file.smoothing !== site.KERNEL_DEFAULT) throw new Error('data/scales.json was built with other defaults: use --rebuild');
-  const todo = dates.filter(d => d >= START && d <= until && (!file.end || d > file.end)).sort();
+  const todo = site.cleanDates(dates).filter(d => d >= START && d <= until && (!file.end || d > file.end));
 
   async function day(date) {
     const cached = opt.cache && path.join(opt.cache, date + '.json.gz');
-    if (cached && fs.existsSync(cached)) return JSON.parse(zlib.gunzipSync(fs.readFileSync(cached)));
+    if (cached && fs.existsSync(cached)) return JSON.parse(zlib.gunzipSync(fs.readFileSync(cached))).map(site.cleanCohort);
     const res = [];
     for (let i = 0; i < site.AGE_BANDS.length; i += 6) {   // six requests at a time, gently
       const part = await Promise.all(site.AGE_BANDS.slice(i, i + 6).map(b => getJSON(site.BASE + '/api/series/cost-basis/' + b.cohort + '/' + date)));
-      res.push(...part);
+      res.push(...part.map(site.cleanCohort));
     }
     if (cached) { fs.mkdirSync(opt.cache, { recursive: true }); fs.writeFileSync(cached, zlib.gzipSync(JSON.stringify(res))); }
     return res;
