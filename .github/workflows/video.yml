@@ -1,13 +1,20 @@
 name: Daily video
 
 # Every day, for the site's ▶ button and for scrubbing through history:
-#   1. adds the day that just ended to the axis history (data/scales.json) and commits it to main
-#   2. adds it to the video's store (the files on the "video-data" release)
-#   3. renders the full-history 4K video with tools/video and publishes it on the "video" release,
-#      which is the file the ▶ button downloads
-# New release files replace the old ones only once they are fully uploaded (tools/video/replace-asset.sh), so the
-# button never meets a missing file. Standard GitHub-hosted runners are free for public repositories; the whole job
-# takes about an hour and a half.
+#   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
+#               video's store (the files on the "video-data" release)
+#   2. render:  draws the full-history 4K video with tools/video
+#   3. publish: checks it, attests where it was built and publishes it on the "video" release, the file the ▶ button
+#               downloads
+#
+# The jobs are split by trust. Only this repository's own code runs with a token that can write (update, publish).
+# The renderer runs third-party code (Playwright, Chromium, ffmpeg and their npm packages), so it gets a read-only
+# token and no credentials, and can only hand its file over as a workflow artifact. The publish job accepts that file
+# only if it is exactly the expected video, rewrites its container with Ubuntu's own ffmpeg (keeping only the picture),
+# and signs a build attestation for the result, which anyone can check with `gh attestation verify` (see SECURITY.md).
+# New release files replace the old ones only once fully uploaded (tools/video/replace-asset.sh), so the button never
+# meets a missing file. Actions are pinned to full commit hashes. Standard GitHub-hosted runners are free for public
+# repositories; the whole run takes about an hour and a half.
 on:
   schedule:
     # 01:23 UTC, well after yesterday closed and off the top of the hour, when GitHub delays or drops the most
@@ -17,24 +24,30 @@ on:
     - cron: "23 5 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: write   # the axis-history commit and the release files
-  pages: write      # asking Pages to rebuild after that commit
+permissions: {}   # each job asks for exactly what it needs
 
 concurrency:
   group: daily-video
   cancel-in-progress: false
 
+env:
+  VIDEO: URPD_daily_full_history_4K60.mp4
+
 jobs:
-  video:
+  update:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 60
+    permissions:
+      contents: write   # the axis-history commit and the video-data release files
+      pages: write      # asking Pages to rebuild after that commit
+    outputs:
+      render: ${{ steps.store.outputs.render }}
+      end: ${{ steps.store.outputs.end }}
     env:
       GH_TOKEN: ${{ github.token }}
-      VIDEO: URPD_daily_full_history_4K60.mp4
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
 
@@ -64,7 +77,8 @@ jobs:
           node tools/video/store.mjs "$RUNNER_TEMP/store" --cache "$RUNNER_TEMP/raw" > "$RUNNER_TEMP/changed.txt"
           # The year files first and meta.json last (store.mjs lists them in that order), so a run stopped part way
           # leaves a store the next run can still read.
-          [ ! -s "$RUNNER_TEMP/changed.txt" ] || bash tools/video/replace-asset.sh video-data $(cat "$RUNNER_TEMP/changed.txt")
+          mapfile -t CHANGED < "$RUNNER_TEMP/changed.txt"
+          [ "${#CHANGED[@]}" = 0 ] || bash tools/video/replace-asset.sh video-data "${CHANGED[@]}"
           END=$(node -p "require(process.env.RUNNER_TEMP + '/store/meta.json').days.at(-1)[0]")
           echo "end=$END" >> "$GITHUB_OUTPUT"
           # The published video's last day, from its release notes (none before the first video).
@@ -75,25 +89,102 @@ jobs:
             echo "The published video already runs to $END."
           fi
 
-      - name: Install the renderer
+      - name: Hand the store to the renderer
         if: steps.store.outputs.render == 'yes'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: store
+          path: ${{ runner.temp }}/store
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0   # already gzipped
+
+  render:
+    needs: update
+    if: needs.update.outputs.render == 'yes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: read    # nothing else: this job runs third-party code
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: store
+          path: ${{ runner.temp }}/store
+
+      - name: Install the renderer
         working-directory: tools/video
         run: |
-          npm ci
-          npx playwright install --with-deps chromium
+          # Exactly the versions in package-lock.json, checked against its hashes, and no install scripts run.
+          npm ci --ignore-scripts
+          node_modules/.bin/playwright install --with-deps chromium
           command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
 
       - name: Render the video
-        if: steps.store.outputs.render == 'yes'
         run: node tools/video/render.mjs "$RUNNER_TEMP/store" "$RUNNER_TEMP/$VIDEO"
 
-      - name: Publish the video
-        if: steps.store.outputs.render == 'yes'
-        env:
-          END: ${{ steps.store.outputs.end }}
+      - name: Check the video
+        run: bash tools/video/check-video.sh "$RUNNER_TEMP/$VIDEO"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: video
+          path: ${{ runner.temp }}/${{ env.VIDEO }}
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0   # already compressed
+
+  publish:
+    needs: [update, render]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write           # the video release
+      id-token: write           # signing the build attestation (Sigstore)
+      attestations: write       # storing it
+      artifact-metadata: write  # its storage record
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: video
+          path: ${{ runner.temp }}/rendered
+
+      - name: Accept only the expected video, rewritten by Ubuntu's ffmpeg
         run: |
+          command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
+          bash tools/video/check-video.sh "$RUNNER_TEMP/rendered/$VIDEO"
+          # A fresh container holding only the picture: no metadata, chapters or other boxes, and no SEI units, where
+          # an H.264 stream can carry free-form data.
+          ffmpeg -nostdin -v error -i "$RUNNER_TEMP/rendered/$VIDEO" -map 0:v:0 -c copy -bsf:v filter_units=remove_types=6 \
+            -map_metadata -1 -map_chapters -1 -movflags +faststart -f mp4 "$RUNNER_TEMP/$VIDEO"
+          bash tools/video/check-video.sh "$RUNNER_TEMP/$VIDEO" --decode
+
+      - name: Attest where the video was built
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/${{ env.VIDEO }}
+
+      - name: Publish the video
+        env:
+          END: ${{ needs.update.outputs.end }}
+        run: |
+          SHA=$(sha256sum "$RUNNER_TEMP/$VIDEO" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published video reaches.
-          NOTES="Every day from 2009-01-03 to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the ▶ button on https://bitcoinsupplychart.com downloads it."
+          NOTES="Every day from 2009-01-03 to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the ▶ button on https://bitcoinsupplychart.com downloads it.
+
+          SHA-256: $SHA
+          Check it: gh attestation verify $VIDEO --repo $GITHUB_REPOSITORY (see SECURITY.md)"
           gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history video (4K)" --notes "$NOTES"
           bash tools/video/replace-asset.sh video "$RUNNER_TEMP/$VIDEO"
           gh release edit video --notes "$NOTES"

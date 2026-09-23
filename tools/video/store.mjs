@@ -79,14 +79,14 @@ async function main() {
     getJSON(site.BASE + "/api/series/price_close/day1"),
     getJSON(site.BASE + "/api/series/date/day1")
   ]);
-  site.setPrices(close.data || close, priceDates.data || priceDates);
+  site.setPrices(close.data || close, priceDates.data || priceDates);   // checked as the page checks them
   site.setBinning(site.BINS_DEFAULT, site.KERNEL_DEFAULT);
   site.setScales(scales);
 
   const { meta, chunks } = readStore(opt.dir);
   const last = meta.days.length ? meta.days[meta.days.length - 1][0] : "";
   // Only days the axis history already covers, so every bar sits on the axis the site draws for that day.
-  const todo = dates.filter((d) => d > last && d <= until && d <= scales.end).sort();
+  const todo = site.cleanDates(dates).filter((d) => d > last && d <= until && d <= scales.end);
   const changed = new Set();
   const added = {}, deadline = opt.seconds ? Date.now() + opt.seconds * 1000 : Infinity;
   let n = 0;
@@ -95,11 +95,11 @@ async function main() {
     n++;
     const cached = opt.cache && path.join(opt.cache, date + ".json.gz");
     let res;
-    if (cached && fs.existsSync(cached)) res = JSON.parse(zlib.gunzipSync(fs.readFileSync(cached)));
+    if (cached && fs.existsSync(cached)) res = JSON.parse(zlib.gunzipSync(fs.readFileSync(cached))).map(site.cleanCohort);
     else {
       res = [];
       for (let i = 0; i < site.AGE_BANDS.length; i += 6) {
-        res.push(...await Promise.all(site.AGE_BANDS.slice(i, i + 6).map((b) => getJSON(site.BASE + "/api/series/cost-basis/" + b.cohort + "/" + date))));
+        res.push(...(await Promise.all(site.AGE_BANDS.slice(i, i + 6).map((b) => getJSON(site.BASE + "/api/series/cost-basis/" + b.cohort + "/" + date)))).map(site.cleanCohort));
       }
       if (cached) { fs.mkdirSync(opt.cache, { recursive: true }); fs.writeFileSync(cached, zlib.gzipSync(JSON.stringify(res))); }
     }
