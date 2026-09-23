@@ -100,24 +100,32 @@ test('the left axis ends at the tallest bar so far, is the same on every visit, 
   assert.equal(c.yAxisSoFar(dates[6], false), file.usd.at(-1)[1] / 2);
 });
 
-test('the left axis is labelled in round steps of at most two significant figures, about twenty of them', async () => {
+test('both axes are labelled at twenty equal steps from 0 to their very end, to two significant figures', async () => {
   const { c, element } = app();
-  for (let e = -2; e < 13; e += 0.137) {
-    const top = Math.pow(10, e), ticks = c.axisTicks(top, 20), n = ticks.length - 1, step = ticks[1];
-    assert.ok(n >= 11 && n <= 27, `${top}: ${n} intervals`);
-    assert.ok(ticks[n] <= top * (1 + 1e-12) && ticks[n] >= 0.87 * top, `${top}: labels reach near the top`);
-    ticks.forEach((v, j) => {
-      assert.ok(Math.abs(v - j * step) <= 1e-9 * top, 'a constant step');
-      assert.ok(sigFigs(c.axisNumber(v, false)) <= 2, `${c.axisNumber(v, false)} has at most two significant figures`);
+  let threes = 0, n = 0;
+  for (let e = -2; e < 13; e += 0.0137) {
+    const end = Math.pow(10, e), ticks = c.axisTicks(end), labels = c.axisLabels(ticks, false);
+    assert.equal(ticks.length, 21); assert.equal(ticks[0], 0); assert.ok(Math.abs(ticks[20] - end) <= end * 1e-12, 'the end itself is a tick');
+    assert.equal(labels[0], '$0');
+    labels.forEach((l, k) => { if (k) assert.notEqual(l, labels[k - 1], `${end}: neighbouring labels differ`); });
+    const top = Math.pow(10, Math.floor(Math.log10(end)));
+    labels.slice(1).forEach((l, k) => {
+      const v = ticks[k + 1], sf = sigFigs(l);
+      if (sf > 2) { assert.ok(sf === 3 && end / top < 2 && v >= top * (1 - 1e-9), `${l}: a third figure only in the top power of ten of an end between 1 and 2 of it (${labels.join(' ')})`); threes++; }
+      n++;
     });
+    labels.forEach((l, k) => { const v = ticks[k]; if (v) { const shown = Number(l.replace('$', '').replace(/K$/, 'e3').replace(/M$/, 'e6').replace(/B$/, 'e9').replace(/T$/, 'e12')); assert.ok(Math.abs(shown - v) <= v * 0.05 + 1e-12, `${l} is within rounding of ${v}`); } });
   }
+  assert.ok(threes / n < 0.1, 'nearly every label has two figures');
   const { dates, raws } = market(c, { cohorts: () => [{ 950: 3, 1005: 1 }] });
   await c.renderChart(c.buildData(dates[2], raws[2]));
-  const y = element('chart').layout.yaxis;
-  assert.deepEqual(Array.from(y.tickvals), Array.from(c.axisTicks(y.range[1], 20)));
-  assert.equal(y.ticktext[1], c.axisNumber(y.tickvals[1], false));
+  const L = element('chart').layout, y = L.yaxis, x = L.xaxis;
+  assert.equal(y.tickvals.length, 21); assert.equal(y.tickvals[20], y.range[1], 'the top of the left axis is labelled');
+  assert.equal(x.tickvals.length, 21); assert.equal(x.tickvals[20], x.range[1], 'the right end of the price axis is labelled');
+  assert.deepEqual(Array.from(y.ticktext), Array.from(c.axisLabels(y.tickvals, false)));
+  assert.equal(x.ticktext[0].trim(), '$0'); assert.ok(x.ticktext[0].length > 2, 'the price axis $0 is nudged off the corner');
   assert.equal(y.showgrid, true, 'each label has its own gridline');
-  assert.equal(element('chart').layout.yaxis2, undefined, 'no % of Total axis');
+  assert.equal(L.yaxis2, undefined, 'no % of Total axis');
 });
 
 test('hovering a bar gives the whole bar\'s total and its running share of the day, with no separate line', async () => {
