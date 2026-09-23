@@ -64,10 +64,10 @@ the browser supports H.264, WebM otherwise.
 The axes need the whole history to be a function of the date alone, which no single
 day’s download contains, so `data/scales.json` (about 10 KB) carries it: for every day
 since 2009-01-03, the right end of the price axis and the tallest bar so far in each
-mode, as steps. `tools/build-scales.cjs` builds it with the page’s own binning code, and
-the **Axis history** workflow extends it by each finished day (23 requests to
-bitview.space) and commits the change. Days after the file’s last day still draw,
-carrying on from its last values with their own data.
+mode, as steps. `tools/build-scales.cjs` builds it with the page’s own binning code;
+run again, it extends the file by each finished day (23 requests to bitview.space per
+day). Days after the file’s last day still draw, carrying on from its last values with
+their own data.
 
 To deploy: push to GitHub and enable Pages on `main` at the repository root. That is
 the whole deployment.
