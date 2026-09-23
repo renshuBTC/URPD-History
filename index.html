@@ -618,8 +618,7 @@ function priceDateAt(idx) {
   return (priceDates && priceDates[idx]) || new Date(BRK_DAY0.getTime() + idx * 86400000).toISOString().slice(0, 10);
 }
 
-// BTC/USD overlay scale (see drawChart): 2 decades per plot height, top = highest close so far + headroom for labels
-var OV_DECADES = 2, OV_TOPPAD = 0.08;
+// BTC/USD overlay scale (see drawChart): linear, $0 to the highest close shown so far
 var priceMaxPrefix = null, priceMaxPrefixFor = null;
 function priceRunMax(idx) {
   if (!priceArray || !priceArray.length) return 0;
@@ -1264,15 +1263,15 @@ function drawChart(data, plotSeq, navigationSeq) {
       }
     }
     if(showPriceOverlay&&lmD.length>0){
-      traces.push({x:lmD,y:lmP,type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:lmC,size:10,symbol:lmS,line:{color:PRICE_LINE_COLOR,width:1}},text:lmT,textposition:lmD.map(function(_,i){return lmS[i]==="triangle-down"?"top center":"bottom center";}),textfont:{color:lmC,size:9,family:"Source Code Pro, Consolas, monospace"},hoverinfo:"skip",showlegend:false});
+      traces.push({x:lmD,y:lmP,type:"scatter",mode:"markers+text",xaxis:"x2",yaxis:"y3",marker:{color:lmC,size:10,symbol:lmS,line:{color:PRICE_LINE_COLOR,width:1}},text:lmT,textposition:lmD.map(function(_,i){return lmS[i]==="triangle-down"?"middle left":"bottom center";}),cliponaxis:false,textfont:{color:lmC,size:9,family:"Source Code Pro, Consolas, monospace"},hoverinfo:"skip",showlegend:false});
     }
     layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false,autorange:false,range:[ovYmd(ovLeft),ovYmd(ovRight)]};
-    // A fixed log scale: the plot's height is always OV_DECADES (100x in price), so the same % move is always the
-    // same height, and its top is the highest close up to the window's right edge, so the scale only pans upward as
-    // time moves forward (a new high entering from the right lifts it; nothing ever pulls it down or squeezes it).
-    layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"log",visible:false};
+    // Linear, from $0 to the highest close the line has shown so far (up to the window's right edge): the line
+    // fills the height, the same dollar move keeps the same height, and moving forward the axis only grows, and
+    // only when the line goes above it.
+    layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"linear",visible:false};
     var ovTop=priceRunMax(dayIndex(rStr));
-    if(ovTop>0){var ovLt=Math.log10(ovTop)+OV_TOPPAD;layout.yaxis3.autorange=false;layout.yaxis3.range=[ovLt-OV_DECADES,ovLt];}
+    if(ovTop>0){layout.yaxis3.autorange=false;layout.yaxis3.range=[0,ovTop];}
   }
   // Legend toggles live on the trace objects and every draw builds those objects afresh, so anything hidden
   // would reappear the moment the chart redrew - changing date, or clicking BTC/USD, which is intercepted
