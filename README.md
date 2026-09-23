@@ -14,11 +14,12 @@ cohorts.
 ## Reading it
 
 - **Bottom axis** is the price each coin last moved at, not today’s price.
-- **Left axis** is how much supply sits in each bucket: dollars in USD mode, coins in BTC mode.
-- **Right axis** belongs to the cyan line, a running share of the day’s supply at or below each price.
-- **White line** is bitcoin’s own price on its own hidden time axis, 275 days either side of the selected day.
+- **Left axis** is how much supply sits in each bucket: dollars in USD mode, coins in BTC mode, labelled in about twenty round steps.
+- **Both axes only grow.** Each ends at the furthest the data had reached by the day you are viewing (the highest price and the tallest bar so far), moves only when the data goes past it, and never shrinks, so scrubbing back shows every day exactly as it looked at the time. In BTC mode the first bar, the coins last moved for less than one bar’s width, is left out of this and runs off the top with its height printed.
+- **Hover a bar** for its price, its age band, the whole bar’s total (Total USD Value Last Moved, or Total BTC Supply Last Moved) and Percent of Total, the running share of the day at or below that price.
+- **White line** is bitcoin’s own price on its own hidden axes: a year of time around the selected day, and linear from $0 to the highest close shown so far, so the line fills the chart and only rescales on a new high.
 - **Dashed vertical** is the spot price. Supply to its left is held at a paper profit.
-- **Colour** is age: yellow is fresh, deep blue is ancient, logarithmic in between. Lightness alone carries the order, and the ramp never passes through green, so it survives greyscale and red-green colour blindness.
+- **Colour** is age: yellow is fresh, deep blue is ancient, logarithmic in between. The 23 colours lie on one path through OKLCH, evenly spaced to the eye, with lightness falling from young to old so the order survives greyscale, and every band at least 3:1 against the background.
 
 Press **?** in the toolbar for the full explainer, in English, Chinese or Japanese.
 
@@ -36,9 +37,9 @@ Toolbar, left to right:
 - Interval, date navigation, a **YYYY-MM-DD** box, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
 - **PIN SCALE** — freeze the y-axis on the day you are viewing so other days can be compared against it
-- **RAW** — keeps the selected USD or BTC mode, with switching still available. Both use 625 bins and smoothing 0.0; Y-max is 99.8 for BTC and 100 for USD. Hides the cumulative and historical price lines, removes the price/profit/loss box, and disables the bottom signal. The white dashed spot line remains and follows the selected date. PIN SCALE works in RAW, saving separate BTC and USD pins; unpinning returns to the preset percentile. Bins, smoothing, and the Y-max input stay locked until RAW is turned off, which restores the previous settings.
+- **RAW** — keeps the selected USD or BTC mode, with switching still available. Both use 625 bins and smoothing 0.00; Y-max is 99.8 for BTC and 100 for USD, and the left axis fits each day on its own (unsmoothed needles would hold a growing axis up for years). Hides the historical price line, removes the price/profit/loss box, and disables the bottom signal. The white dashed spot line remains and follows the selected date. PIN SCALE works in RAW, saving separate BTC and USD pins; unpinning returns to the preset percentile. Bins, smoothing, and the Y-max input stay locked until RAW is turned off, which restores the previous settings.
 - **Bottom signal** — fires when the share of value held at a loss passes your threshold
-- **Bins**, **Smoothing**, **Y-max** — bucket count, a Gaussian spread that hides source quantisation, and a percentile cap on the axis (100 by default in USD mode, 99.5 in BTC mode)
+- **Bins**, **Smoothing**, **Y-max** — bucket count; smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view
 - **GitHub** icon linking to the source, **?** explainer, **▶** video export, and a language toggle
 
 The toolbar stays on one row. Scroll it horizontally when the controls do not fit the window.
@@ -59,6 +60,14 @@ scrubbing backwards is instant.
 Video export renders each frame offscreen, holds them as blobs rather than data URLs
 (a few thousand data URLs is gigabytes of heap), and records at 30 fps to MP4 where
 the browser supports H.264, WebM otherwise.
+
+The axes need the whole history to be a function of the date alone, which no single
+day’s download contains, so `data/scales.json` (about 10 KB) carries it: for every day
+since 2009-01-03, the right end of the price axis and the tallest bar so far in each
+mode, as steps. `tools/build-scales.cjs` builds it with the page’s own binning code;
+run again, it extends the file by each finished day (23 requests to bitview.space per
+day). Days after the file’s last day still draw, carrying on from its last values with
+their own data.
 
 To deploy: push to GitHub and enable Pages on `main` at the repository root. That is
 the whole deployment.
