@@ -61,6 +61,7 @@ The **▶** button downloads the whole history as one video: every day from 2009
 the latest, 5:00 at 60 fps in 4K (3840×2160, about 250 MB), drawn with the page’s default
 settings. The **Daily video** workflow rebuilds it every day on GitHub’s runners and
 publishes it on the `video` release, so the day that just ended is in it by about 04:00 UTC.
+A new file takes the old one’s place only once it is fully uploaded, so the link never breaks.
 It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there), from a
 store of every day’s bars kept on the `video-data` release: past days never change, so each
 run adds the new day and draws the 18,000 frames again. Free for a public repository.
@@ -87,8 +88,8 @@ node --test tests/*.test.cjs
 
 The tests execute the application source with controlled network and rendering
 interfaces. They cover navigation races, date and value calculations, binning and the
-axes, render completion, and the axis-history builder. GitHub Actions runs the same
-checks on pushes and pull requests.
+axes, render completion, the axis-history builder and the video’s store. GitHub
+Actions runs the same checks on pushes and pull requests.
 
 ## Credits
 
