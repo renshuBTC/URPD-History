@@ -104,7 +104,7 @@ test('a failed cohort preserves successful and in-flight siblings for retry', as
   }
 });
 
-test('cached loads await drawing and propagate draw errors to export', async () => {
+test('cached loads await drawing and propagate draw errors to the caller', async () => {
   const { c } = app(); const render = deferred();
   c.allDates = ['2026-09-19']; c.currentIdx = 0;
   c.cache[c.dataKey(c.allDates[0])] = { dateStr: c.allDates[0] };

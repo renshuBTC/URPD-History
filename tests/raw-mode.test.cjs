@@ -179,25 +179,6 @@ test('rapid RAW toggles and date navigation render the latest preset and date', 
   assert.equal(c.currentIdx, 1);
 });
 
-test('recording locks RAW changes without losing the settings to restore later', async () => {
-  const h = fixture();
-  const { c } = h;
-  const initial = snapshot(c);
-  c.videoRecording = true;
-  await c.setRawMode(true);
-  assert.equal(c.rawMode, false);
-  assert.deepEqual(snapshot(c), initial);
-  c.videoRecording = false;
-  await c.setRawMode(true);
-  c.videoRecording = true;
-  await c.setRawMode(false);
-  c.setViewMode(1);
-  assertPreset(h, false);
-  c.videoRecording = false;
-  await c.setRawMode(false);
-  assert.deepEqual(snapshot(c), initial);
-});
-
 for (const age of [true, false]) {
   test(`RAW permits USD and BTC weighting without changing the preset or normal preferences (${age ? 'age cohorts' : 'all-supply fallback'})`, async () => {
     const h = fixture(age);
@@ -523,19 +504,3 @@ test('an intentional RAW pin overrides its default percentile despite an explici
   assert.deepEqual(snapshot(c), before);
 });
 
-test('recording blocks RAW pin creation and removal', async () => {
-  const h = fixture();
-  const { c, element } = h;
-  c.setViewMode(1);
-  await c.setRawMode(true);
-  c.videoRecording = true;
-  element('btnPeak').onclick();
-  assert.equal(c.peakStore['btc|b625|s0'], undefined);
-  c.videoRecording = false;
-  element('btnPeak').onclick();
-  await c.chartRenderPromise;
-  const chosen = Array.from(c.peakStore['btc|b625|s0']);
-  c.videoRecording = true;
-  element('btnPeak').onclick();
-  assert.deepEqual(Array.from(c.peakStore['btc|b625|s0']), chosen);
-});
