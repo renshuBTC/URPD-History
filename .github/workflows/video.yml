@@ -1,0 +1,87 @@
+name: Daily video
+
+# Every day, for the site's ▶ button and for scrubbing through history:
+#   1. adds the day that just ended to the axis history (data/scales.json) and commits it to main
+#   2. adds it to the video's store (the files on the "video-data" release)
+#   3. renders the full-history 4K video with tools/video and publishes it on the "video" release,
+#      which is the file the ▶ button downloads
+# Standard GitHub-hosted runners are free for public repositories; the whole job takes about an hour.
+on:
+  schedule:
+    - cron: "40 1 * * *"   # 01:40 UTC: yesterday has closed; the new video is out by about 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write   # the axis-history commit and the release files
+  pages: write      # asking Pages to rebuild after that commit
+
+concurrency:
+  group: daily-video
+  cancel-in-progress: false
+
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VIDEO: URPD_daily_full_history_4K60.mp4
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Add the finished days to the axis history
+        run: node tools/build-scales.cjs --cache "$RUNNER_TEMP/raw" --seconds 1800
+
+      - name: Test the site
+        run: node --test tests/*.test.cjs
+
+      - name: Commit the axis history
+        run: |
+          if git diff --quiet -- data/scales.json; then echo "No new days."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/scales.json
+          git commit -m "Axis history through $(node -p "require('./data/scales.json').end")"
+          git pull --rebase --quiet
+          git push
+          # A push made with this workflow's own token does not start the Pages build by itself.
+          gh api -X POST "repos/$GITHUB_REPOSITORY/pages/builds" > /dev/null || echo "Could not request a Pages build; the next push publishes it."
+
+      - name: Add the finished days to the video's store
+        id: store
+        run: |
+          mkdir -p "$RUNNER_TEMP/store"
+          gh release download video-data --dir "$RUNNER_TEMP/store"
+          node tools/video/store.mjs "$RUNNER_TEMP/store" --cache "$RUNNER_TEMP/raw" > "$RUNNER_TEMP/changed.txt"
+          if [ -s "$RUNNER_TEMP/changed.txt" ]; then
+            gh release upload video-data $(cat "$RUNNER_TEMP/changed.txt") --clobber
+            echo "render=yes" >> "$GITHUB_OUTPUT"
+          elif ! gh release view video > /dev/null 2>&1 || [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "render=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "No new day yet: the published video is already up to date."
+          fi
+
+      - name: Install the renderer
+        if: steps.store.outputs.render == 'yes'
+        working-directory: tools/video
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
+
+      - name: Render the video
+        if: steps.store.outputs.render == 'yes'
+        run: node tools/video/render.mjs "$RUNNER_TEMP/store" "$RUNNER_TEMP/$VIDEO"
+
+      - name: Publish the video
+        if: steps.store.outputs.render == 'yes'
+        run: |
+          END=$(node -p "require(process.env.RUNNER_TEMP + '/store/meta.json').days.at(-1)[0]")
+          NOTES="Every day from 2009-01-03 to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the ▶ button on https://bitcoinsupplychart.com downloads it."
+          gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history video (4K)" --notes "$NOTES"
+          gh release upload video "$RUNNER_TEMP/$VIDEO" --clobber
+          gh release edit video --notes "$NOTES"
