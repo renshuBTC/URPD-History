@@ -29,12 +29,12 @@ test('zero USD denominator is unavailable while BTC ratio remains valid', async 
   assert.equal(data.redPct, null); assert.equal(data.redPctCoin, 0);
   await c.renderChart(data);
   let text = element('chart').layout.annotations.map(a => a.text).join(' ');
-  assert.match(text, /USD Value Held in Profit: N\/A/);
+  assert.match(text, /USD Value Last Moved In Profit: N\/A/);
   assert.doesNotMatch(text, /BOTTOM SIGNAL|NaN/);
   c.coinMode = true;
   await c.renderChart(data);
   text = element('chart').layout.annotations.map(a => a.text).join(' ');
-  assert.match(text, /BTC Supply Held in Profit: 100\.0%/);
+  assert.match(text, /BTC Supply Last Moved In Profit: 100\.0%/);
   assert.equal(c.computeRedPct({ 10: 1 }, null), null);
 });
 
