@@ -607,8 +607,8 @@ function priceRunMax(idx) {
 // ends exactly at the largest extent the data had reached by then: moving forward an axis grows only when the
 // data runs past it and never comes back down, and moving back you see it as it stood on that day, whatever
 // route you took to get there. That takes the whole history, which no single day's download contains, so
-// data/scales.json carries it, built by tools/build-scales.cjs with this file's own binning and extended every
-// day by a scheduled GitHub Action. Each series is a list of [day, value] steps, day 0 being "start":
+// data/scales.json carries it, built by tools/build-scales.cjs with this file's own binning (run again, it adds
+// each finished day). Each series is a list of [day, value] steps, day 0 being "start":
 //   x    the right end of the price axis: the highest stamp so far, plus half its rounding step, plus two kernel
 //        sigmas so that its smoothed edge is not cut off, or 0.1% past the price if that is higher. The bins
 //        divide this span, so bar widths change only when the axis grows.
