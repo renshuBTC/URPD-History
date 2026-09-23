@@ -29,12 +29,12 @@ test('zero USD denominator is unavailable while BTC ratio remains valid', async 
   assert.equal(data.redPct, null); assert.equal(data.redPctCoin, 0);
   await c.renderChart(data);
   let text = element('chart').layout.annotations.map(a => a.text).join(' ');
-  assert.match(text, /USD Value Held in Profit: N\/A/);
+  assert.match(text, /USD Value Last Moved In Profit: N\/A/);
   assert.doesNotMatch(text, /BOTTOM SIGNAL|NaN/);
   c.coinMode = true;
   await c.renderChart(data);
   text = element('chart').layout.annotations.map(a => a.text).join(' ');
-  assert.match(text, /BTC Supply Held in Profit: 100\.0%/);
+  assert.match(text, /BTC Supply Last Moved In Profit: 100\.0%/);
   assert.equal(c.computeRedPct({ 10: 1 }, null), null);
 });
 
@@ -135,4 +135,25 @@ test('bins and mode toggles coalesce rapid changes', async () => {
   c.setViewMode(1); c.setViewMode(0); c.setViewMode(1);
   assert.equal(draws, 1); assert.equal(timers.size, 1);
   runTimer([...timers.keys()][0]); assert.equal(draws, 2); assert.equal(c.coinMode, true);
+});
+
+test('BTC/USD overlay keeps one log scale: always two decades tall, top only rises as time moves forward', async () => {
+  const { c, element } = app();
+  const dates = [], prices = [];
+  for (let i = 0; i < 800; i++) {
+    dates.push(new Date(Date.UTC(2020, 0, 1) + i * 864e5).toISOString().slice(0, 10));
+    prices.push(i < 400 ? 1000 * (1 + i / 100) : 5000 - (i - 400) * 5);   // rally to 5000, then a long decline
+  }
+  c.allDates = dates; c.priceArray = prices; c.priceIndexByDate = Object.fromEntries(dates.map((d, i) => [d, i]));
+  const tops = [];
+  for (const i of [100, 300, 500, 700]) {
+    await c.renderChart(c.buildData(dates[i], { all: { 1000: 1 }, age: [{ 1000: 1 }] }));
+    const y3 = element('chart').layout.yaxis3;
+    assert.equal(y3.autorange, false);
+    assert.ok(Math.abs(y3.range[1] - y3.range[0] - c.OV_DECADES) < 1e-12, 'the same % move is always the same height');
+    const right = Math.min(dates.length - 1, i + 91);                          // window edge (+90 days) plus one day
+    assert.ok(Math.abs(y3.range[1] - (Math.log10(Math.max(...prices.slice(0, right + 1))) + c.OV_TOPPAD)) < 1e-9);
+    tops.push(y3.range[1]);
+  }
+  for (let k = 1; k < tops.length; k++) assert.ok(tops[k] >= tops[k - 1] - 1e-12, 'the scale never drops back when moving forward');
 });

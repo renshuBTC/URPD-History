@@ -122,7 +122,7 @@ for (const age of [true, false]) {
     assert.ok(graph.layout.yaxis.range[1] >= 1e9, 'a remembered RAW pin fixes the scale');
     assert.equal(graph.layout.shapes.find(shape => shape.xref === 'paper' && shape.yref === 'y').y0, 1e9);
     const annotations = graph.layout.annotations.map(annotation => annotation.text).join(' ');
-    assert.doesNotMatch(annotations, /Price:|Held in Profit|Held in Loss|BOTTOM SIGNAL/);
+    assert.doesNotMatch(annotations, /Price:|Last Moved In Profit|Last Moved In Loss|BOTTOM SIGNAL/);
     assert.match(annotations, /Peak /);
     assert.equal(graph.layout.shapes.find(shape => shape.type === 'line' && shape.xref === 'x').line.color, '#ffffff');
     assert.equal(graph.layout.shapes.some(shape => shape.line && shape.line.color === c.GLOW_COLOR), false);
@@ -229,7 +229,7 @@ for (const age of [true, false]) {
     assert.deepEqual(Array.from(bars[0].y.filter(value => value > 0)).sort((a, b) => a - b), [50, 99000]);
     assert.match(graph.layout.yaxis.title.text, /USD/);
     const annotations = graph.layout.annotations.map(annotation => annotation.text).join(' ');
-    assert.doesNotMatch(annotations, /Price:|Held in Profit|Held in Loss|BOTTOM SIGNAL|Peak /);
+    assert.doesNotMatch(annotations, /Price:|Last Moved In Profit|Last Moved In Loss|BOTTOM SIGNAL|Peak /);
     assert.equal(graph.data.some(trace => trace.meta === 'pct' || trace.name === 'BTC/USD'), false);
     assert.equal(graph.layout.shapes.find(shape => shape.type === 'line' && shape.xref === 'x').line.color, '#ffffff');
     assert.deepEqual(Array.from(c.yMaxByMode), original.modeYmax);
@@ -371,7 +371,7 @@ for (const coin of [true, false]) test(`RAW ${coin ? 'BTC' : 'USD'} keeps the wh
     assert.equal(line.line.dash, 'dash');
     assert.ok(line.line.width > 0);
     assert.equal(box, undefined, 'the spot price/profit/loss annotation is absent');
-    assert.doesNotMatch(element('chart').layout.annotations.map(annotation => annotation.text).join(' '), /Price:|Held in Profit|Held in Loss/);
+    assert.doesNotMatch(element('chart').layout.annotations.map(annotation => annotation.text).join(' '), /Price:|Last Moved In Profit|Last Moved In Loss/);
   }
 
   assertPreset(h, coin);
@@ -393,8 +393,8 @@ for (const coin of [true, false]) test(`RAW ${coin ? 'BTC' : 'USD'} keeps the wh
   assert.equal(restored.box.x, 110);
   assert.equal(restored.box.font.color, '#ffffff');
   assert.match(restored.box.text, /Price: \$110/);
-  assert.match(restored.box.text, coin ? /BTC Supply Held in Profit: 20\.0%/ : /USD Value Held in Profit: 1\.9%/);
-  assert.match(restored.box.text, coin ? /BTC Supply Held in Loss: 80\.0%/ : /USD Value Held in Loss: 98\.1%/);
+  assert.match(restored.box.text, coin ? /BTC Supply Last Moved In Profit: 20\.0%/ : /USD Value Last Moved In Profit: 1\.9%/);
+  assert.match(restored.box.text, coin ? /BTC Supply Last Moved In Loss: 80\.0%/ : /USD Value Last Moved In Loss: 98\.1%/);
 });
 
 for (const entering of [true, false]) for (const previousRawAvailable of [true, false]) {
