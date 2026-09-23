@@ -33,6 +33,11 @@ export async function getJSON(url, tries = 5) {
 
 export function readStore(dir) {
   const metaFile = path.join(dir, "meta.json");
+  // Year files without meta.json are a store that lost its index, not a new one: starting again from 2009 would mean
+  // about 150,000 requests to bitview.space.
+  if (!fs.existsSync(metaFile) && fs.existsSync(dir) && fs.readdirSync(dir).some((f) => /^bars-\d{4}\.f32\.gz$/.test(f))) {
+    throw new Error(dir + " has year files but no meta.json: put meta.json back rather than starting again");
+  }
   const meta = fs.existsSync(metaFile) ? JSON.parse(fs.readFileSync(metaFile, "utf8"))
     : { about: "Per-day bars for the full-history video (tools/video). days: [date, axis end X, price, % of value at a loss].", version: 1, bands: BANDS, bins: BINS, days: [] };
   const years = {};
@@ -41,8 +46,10 @@ export function readStore(dir) {
   for (const y of Object.keys(years)) {
     const b = zlib.gunzipSync(fs.readFileSync(path.join(dir, `bars-${y}.f32.gz`)));
     const f = new Float32Array(b.buffer, b.byteOffset, b.length / 4);
-    if (f.length !== years[y] * PER_DAY) throw new Error(`bars-${y}.f32.gz holds ${f.length / PER_DAY} days, meta.json lists ${years[y]}`);
-    chunks[y] = f;
+    if (f.length < years[y] * PER_DAY) throw new Error(`bars-${y}.f32.gz holds ${f.length / PER_DAY} days, meta.json lists ${years[y]}`);
+    // A longer year file is one whose meta.json never followed it onto the release (the workflow uploads the year
+    // files first and meta.json last): its extra days are left out here and simply added again.
+    chunks[y] = f.subarray(0, years[y] * PER_DAY);
   }
   // bars(i): the i-th day's 23 x 626 values, band-major
   const offsets = []; const seen = {};
