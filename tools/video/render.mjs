@@ -26,8 +26,8 @@ const TEST = process.env.TEST_DATES ? process.env.TEST_DATES.split(",") : null;
 const NB = 626, A = 23, DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1), BASE = "https://bitview.space";
 const dayIdx = (d) => Math.round((Date.parse(d + "T00:00:00Z") - DAY0) / DAY);
 const idxDay = (i) => new Date(DAY0 + i * DAY).toISOString().slice(0, 10);
-const PALETTE = ["#a1970a", "#d04e05", "#c50674", "#9b05b0", "#7a05ce", "#6705d9", "#5a06df", "#5006e3", "#4806e5", "#3a06e9", "#2606ed", "#0f20e4",
-  "#0131d5", "#013bc5", "#0143b6", "#0247ab", "#024aa2", "#024b9a", "#024d93", "#024e8b", "#024e82", "#024f78", "#024e6e"];   // index.html AGE_BAND_COLORS
+const PALETTE = ["#f8f919", "#ffbc86", "#fe60a4", "#f20bdb", "#cc0ffc", "#b430fe", "#a43afe", "#983ffe", "#8e42fe", "#8046fe", "#6e48fe", "#5a49fe",
+  "#434afe", "#224bfd", "#0353ed", "#0258e0", "#035bd5", "#035dcc", "#035fc5", "#0360bb", "#0361b0", "#0361a5", "#03619a"];
 const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0], ["2013-11-29", "Cycle 2 Top", 1], ["2015-01-14", "Cycle 2 Bottom", 0],
   ["2017-12-17", "Cycle 3 Top", 1], ["2018-12-15", "Cycle 3 Bottom", 0], ["2021-11-10", "Cycle 4 Top", 1], ["2022-11-21", "Cycle 4 Bottom", 0], ["2025-10-06", "Cycle 5 Top", 1]];
 
