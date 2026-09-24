@@ -42,13 +42,12 @@ test('the video store refuses a year file shorter than meta.json, and year files
   assert.deepEqual(readStore(empty).meta.days, []);
 });
 
-test('the video starts on the first day with anything on the chart: the first close coming into view, or a bar', async () => {
-  const { firstShownIndex, PRICE_AHEAD } = await import('../tools/video/store.mjs');
-  assert.equal(PRICE_AHEAD, 90, 'the price line\'s window reaches 90 days ahead, as on the site');
+test('the video starts on the first day with bars on the chart, not when the first price comes into view', async () => {
+  const { firstShownIndex } = await import('../tools/video/store.mjs');
   const day = (i) => new Date(Date.UTC(2010, 0, 1) + i * 864e5).toISOString().slice(0, 10);
   const days = Array.from({ length: 400 }, (_, i) => [day(i), 1, i >= 227 ? 0.06 : null, null]);   // the first close: 2010-08-16
   const empty = new Float32Array(PER_DAY), some = Float32Array.from({ length: PER_DAY }, (_, j) => (j === 5 ? 1 : 0));
-  assert.equal(day(firstShownIndex({ days }, () => empty)), '2010-05-18', '90 days before the first close');
-  assert.equal(day(firstShownIndex({ days }, (i) => (i >= 100 ? some : empty))), day(100), 'a bar before that');
-  assert.equal(firstShownIndex({ days: days.map((d) => [d[0], 1, null, null]) }, () => empty), 0, 'nothing anywhere: every day');
+  assert.equal(firstShownIndex({ days }, (i) => (i >= 395 ? some : empty)), 395, 'the first bar, long after the first price');
+  assert.equal(firstShownIndex({ days }, (i) => (i >= 100 ? some : empty)), 100, 'or before it');
+  assert.equal(firstShownIndex({ days }, () => empty), 0, 'no bars anywhere: every day');
 });

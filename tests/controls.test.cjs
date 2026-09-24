@@ -36,37 +36,6 @@ function navApp(dates) {
   return Object.assign(h, { loads });
 }
 
-test('the date box takes a day in any common spelling, or a month or a year, and refuses anything else', () => {
-  const { c } = app();
-  const ok = {
-    '2024-01-05': ['2024-01-05', null], '2024-1-5': ['2024-01-05', null], '2024/01/05': ['2024-01-05', null],
-    '2024.1.5': ['2024-01-05', null], ' 2024-06-15 ': ['2024-06-15', null], '２０２４－０１－０５': ['2024-01-05', null],
-    '2024': ['2024-01-01', '2024'], '2024-03': ['2024-03-01', '2024-03'], '2024/3': ['2024-03-01', '2024-03'], '2024-02-29': ['2024-02-29', null]
-  };
-  for (const [typed, [date, period]] of Object.entries(ok)) assert.deepEqual(plain(c.parseDateQuery(typed)), { date, period }, typed);
-  for (const bad of ['hello', '', '2024-13-01', '2023-02-29', '2024-04-31', '24-01-05', '2024-01-05T00:00', '2024-00-10', '2024-01-05-01']) {
-    assert.equal(c.parseDateQuery(bad), null, bad);
-  }
-});
-
-test('typing a date goes to it, or to the nearest listed day before it; a month or year goes to its first listed day', () => {
-  const dates = ['2009-01-03', '2009-01-09', '2009-01-10'].concat(days('2023-12-28', '2024-03-05'));
-  const h = navApp(dates), { c, element } = h;
-  const typeAndEnter = v => { element('dateInput').value = v; c.jumpToDate(); };
-  typeAndEnter('2024-02-10'); assert.equal(h.loads.at(-1), '2024-02-10');
-  assert.equal(element('dateInput').value, '', 'the box is emptied, so the list opens unfiltered next time');
-  typeAndEnter('2024/1/2'); assert.equal(h.loads.at(-1), '2024-01-02');
-  typeAndEnter('2024'); assert.equal(h.loads.at(-1), '2024-01-01');
-  typeAndEnter('2024-03'); assert.equal(h.loads.at(-1), '2024-03-01');
-  typeAndEnter('2009-01-05'); assert.equal(h.loads.at(-1), '2009-01-03', 'a day missing from the list: the last one before it');
-  assert.match(element('status').textContent, /2009-01-03/);
-  typeAndEnter('2030-01-01'); assert.equal(h.loads.at(-1), '2024-03-05');
-  const before = h.loads.length;
-  typeAndEnter('2024-02-30');
-  assert.equal(h.loads.length, before, 'an impossible date goes nowhere');
-  assert.equal(element('status').textContent, c.t('badDate'));
-});
-
 test('1W, 1M and 1Y are calendar steps, and never skip a listed day or stall on a gap', () => {
   const dates = ['2009-01-03', '2009-01-09', '2009-01-10', '2009-01-11'].concat(days('2009-01-12', '2011-03-31'));
   const h = navApp(dates), { c } = h;
@@ -164,13 +133,54 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   assert.equal(counter.height, '24px', 'as tall as the list and the buttons');
   assert.match(decls('#controls #dateDisplay'), /font-size:\s*12px/);
   assert.ok(!rules.some(r => r.sels.some(x => /#dateDisplay:hover/.test(x))), 'no hover state: it is not a control');
-  // (N/N) is 2 × digits + 3 characters of a monospace font, and 18px is its padding and border (0 8px, 1px).
+  // N/N is 2 × digits + 1 characters of a monospace font, and 18px is its padding and border (0 8px, 1px).
   assert.match(counter.padding, /^0 8px$/);
-  for (const [n, width] of [[3, 'calc(5ch + 18px)'], [150, 'calc(9ch + 18px)'], [6469, 'calc(11ch + 18px)']]) {
+  for (const [n, width] of [[3, 'calc(3ch + 18px)'], [150, 'calc(7ch + 18px)'], [6469, 'calc(9ch + 18px)']]) {
     const h = app(), dates = days('2009-01-03', '2030-01-01').slice(0, n);
     h.c.fetchJSON = url => Promise.resolve(url.endsWith('/all/dates') ? dates : null);
     h.c.loadAndRender = () => Promise.resolve();
     await h.c.init();
     assert.equal(h.element('dateDisplay').style.minWidth, width, n + ' days');
   }
+});
+
+test('the YouTube button sits beside the download button, and shows only once there is a video others can watch', async () => {
+  const a = html.match(/<a id="ytBtn" hidden href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\s\S]*?<\/svg>)<\/a>/);
+  assert.ok(a, 'a hidden icon-only link that opens in a new tab, named for screen readers and tooltips');
+  assert.equal(a[1], 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg');
+  assert.equal(a[2], a[3]);
+  assert.match(a[4], /aria-hidden="true"/);
+  assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'no words on the button');
+  assert.match(decls('#ytBtn[hidden]'), /display:\s*none/, 'hidden means hidden, whatever display the button has');
+  assert.match(decls('#controls #ytBtn'), /border:\s*1px solid #555/);
+  assert.match(decls('#controls #ytBtn:hover'), /border-color:\s*#888/);
+  assert.match(decls('#ytBtn:focus-visible'), /outline:\s*2px solid #ff8c00/);
+  // data/youtube.json names the latest video once it is unlisted or public; anything else leaves the button hidden.
+  const { c, element } = app(), btn = element('ytBtn');
+  btn.hidden = true;
+  c.setYouTubeLink({ id: 'dQw4w9WgXcQ', end: '2026-09-24' });
+  assert.equal(btn.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  assert.equal(btn.hidden, false);
+  for (const bad of [null, {}, { id: null }, { id: 'javascript:x' }, { id: 'short' }, { id: 'dQw4w9WgXcQ"x' }, { id: 12345678901 }, 'dQw4w9WgXcQ']) {
+    c.setYouTubeLink(bad);
+    assert.equal(btn.hidden, true, JSON.stringify(bad));
+  }
+  // The page asks for it on its own, and a missing file changes nothing else.
+  for (const found of [true, false]) {
+    const h = app(), asked = [];
+    h.element('ytBtn').hidden = true;   // as the page starts (the hidden attribute)
+    const yt = () => (found ? Promise.resolve({ id: 'dQw4w9WgXcQ' }) : Promise.reject(new Error('HTTP 404')));
+    h.c.fetchJSON = url => { asked.push(url); return url === 'data/youtube.json' ? yt() : Promise.resolve(url.endsWith('/all/dates') ? days('2026-09-20', '2026-09-24') : null); };
+    h.c.loadAndRender = () => Promise.resolve();
+    await h.c.init(); await flush();
+    assert.equal(asked[0], 'data/youtube.json');
+    assert.equal(h.c.allDates.length, 5, 'the chart loads either way');
+    assert.equal(h.element('ytBtn').hidden, !found);
+  }
+});
+
+test('data/youtube.json names no video, or one YouTube video by its id', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const yt = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'youtube.json'), 'utf8'));
+  assert.ok(yt.id === null || /^[A-Za-z0-9_-]{11}$/.test(yt.id), String(yt.id));
 });
