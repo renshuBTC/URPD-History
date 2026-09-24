@@ -57,10 +57,10 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-The **download** button (the arrow icon in the toolbar) downloads the whole history as one video: every day from 2009-01-03 to
-the latest, 5:00 at 60 fps in 4K (3840×2160, about 250 MB), drawn with the page’s default
-settings. The **Daily video** workflow rebuilds it every day on GitHub’s runners and
-publishes it on the `video` release, so the day that just ended is in it by about 04:00 UTC.
+The **download** button (the arrow icon in the toolbar) downloads the whole history as one video: every day from 2010-05-18,
+when the first price comes onto the chart (it is empty before that), to the latest, 5:00 at 60 fps in 4K (3840×2160, about
+250 MB), drawn with the page’s default settings. The **Daily video** workflow rebuilds it every day on GitHub’s runners and
+publishes it on the `video` release, so the day that just ended is usually in it by about 04:00 UTC.
 A new file takes the old one’s place only once it is fully uploaded, so the link never breaks,
 and only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
 It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there), from a
