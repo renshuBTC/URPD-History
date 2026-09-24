@@ -146,3 +146,25 @@ test('fallback redraw keeps the displayed data binning in its peak key', async (
   assert.equal(h.c.peakStore[newKey], undefined);
   assert.ok(h.c.peakStore[displayedKey]);
 });
+
+test('a new smoothing that cannot be drawn, with no raw series left to re-bin, is rolled back in the chart and the field', async () => {
+  const h = app(), { c, element } = h;
+  c.allDates = ['2026-09-18', '2026-09-19']; c.currentIdx = 0;
+  c.priceArray = [100, 110]; c.priceDates = [...c.allDates]; c.priceIndexByDate = { '2026-09-18': 0, '2026-09-19': 1 };
+  for (const date of c.allDates) { const all = { 50: 1, 1000: 99 }; c.rawCache[date] = { all, age: [all] }; }
+  c.NUM_BINS = 400; c.KERNEL_PCT = 0.6;
+  await c.loadAndRender();
+  assert.equal(c.lastRenderedData.kernelPct, 0.6);
+  delete c.rawCache['2026-09-18']; delete c.rawCache['2026-09-19'];
+  c.fetchRaw = () => Promise.reject(new Error('unavailable'));
+  // A new smoothing, overtaken by a step to the next day before it draws; both requests fail.
+  c.KERNEL_PCT = 0.3;
+  const change = c.loadAndRender();
+  c.goTo(1, true);
+  await change; await flush(); await c.chartRenderPromise;
+  assert.equal(c.currentIdx, 0, 'back on the day the chart shows');
+  assert.equal(c.lastRenderedData.dateStr, '2026-09-18');
+  assert.equal(c.KERNEL_PCT, 0.6, 'the smoothing goes back to what the chart was drawn with');
+  assert.equal(element('smoothInput').value, '0.60', 'and the field says so');
+  assert.equal(element('binsInput').value, '400');
+});
