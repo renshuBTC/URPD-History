@@ -2,7 +2,7 @@ name: Site check
 
 # Checks, four times a day, that visitors get exactly what this repository publishes, so tampering anywhere in between
 # (the domain, GitHub Pages or the video release) turns this workflow red and GitHub emails the owner:
-#   - https://www.bitcoinsupplycharts.com/ serves this repository's index.html, byte for byte, and plain http redirects there
+#   - https://bitcoinsupplychart.com/ serves this repository's index.html, byte for byte, and plain http redirects there
 #   - the file the page's download button links to is on this repository's "video" release, carries
 #     a valid build attestation from its Daily video workflow on main, and is the one whose SHA-256 the notes give
 # The times fall after the daily video is usually out (by about 04:00 UTC); a video met in the middle of its swap is
@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 30
     env:
       GH_TOKEN: ${{ github.token }}
-      SITE: https://www.bitcoinsupplycharts.com/
+      SITE: https://bitcoinsupplychart.com/
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,9 +44,9 @@ jobs:
       - name: Plain http is sent to https
         run: |
           # Over plain http anyone on the network path could rewrite the page.
-          loc=$(curl -sS --retry 3 --retry-all-errors --max-time 30 -o /dev/null -w '%{redirect_url}' http://www.bitcoinsupplycharts.com/ || true)
+          loc=$(curl -sS --retry 3 --retry-all-errors --max-time 30 -o /dev/null -w '%{redirect_url}' http://bitcoinsupplychart.com/ || true)
           if [ "$loc" = "$SITE" ]; then echo "http redirects to https."
-          else echo "::error::http://www.bitcoinsupplycharts.com/ is served without a redirect to https: tick Enforce HTTPS in Settings -> Pages"; exit 1; fi
+          else echo "::error::http://bitcoinsupplychart.com/ is served without a redirect to https: tick Enforce HTTPS in Settings -> Pages"; exit 1; fi
 
       - name: The video is the one the Daily video workflow built
         run: |
