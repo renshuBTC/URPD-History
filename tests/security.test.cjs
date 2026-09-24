@@ -102,7 +102,7 @@ test('startup keeps only real dates and prices from the API', async () => {
   assert.equal(c.priceDateAt(1), '2009-01-02');   // a gap falls back to the calendar
 });
 
-test('the repository holds no file that bitcoinsupplychart.com could serve as a program, and nothing large', t => {
+test('the repository holds no file that the site could serve as a program, and nothing large', t => {
   // GitHub Pages publishes every file in the repository, so an executable committed anywhere would be downloadable
   // from the site's own address. Only these kinds of file may be committed.
   let files;
