@@ -19,11 +19,21 @@ for file in "$@"; do
   new=$(awk -v n="$part" '$2 == n { print $1 }' <<< "$assets")
   old=$(awk -v n="$name" '$2 == n { print $1 }' <<< "$assets")
   [ -n "$new" ] || { echo "$part is not on the $tag release after its upload" >&2; exit 1; }
-  if [ -n "$old" ] && ! retry gh api -X DELETE "$api/assets/$old"; then
-    # A delete that went through but reported an error leaves nothing for the retries to delete: carry on if the
-    # old file is gone, stop if it is still there.
-    if gh api "$api/assets/$old" > /dev/null 2>&1; then echo "could not delete the old $name from $tag" >&2; exit 1; fi
+  # From here until the rename the name is missing, so this part is kept short: a delete that failed is only tried
+  # again while the old file is still there (one that went through but reported an error has nothing left to
+  # delete), and once it is gone the rename is tried for up to about two minutes rather than giving up.
+  if [ -n "$old" ]; then
+    for k in 1 2 3 4 5; do
+      gh api -X DELETE "$api/assets/$old" && break
+      gh api "$api/assets/$old" > /dev/null 2>&1 || break
+      [ "$k" = 5 ] && { echo "could not delete the old $name from $tag" >&2; exit 1; }
+      sleep 2
+    done
   fi
-  retry gh api -X PATCH "$api/assets/$new" -f name="$name" --silent
+  for k in $(seq 1 12); do
+    gh api -X PATCH "$api/assets/$new" -f name="$name" --silent && break
+    [ "$k" = 12 ] && { echo "could not rename $part to $name on $tag" >&2; exit 1; }
+    sleep 10
+  done
   echo "$tag: $name replaced"
 done

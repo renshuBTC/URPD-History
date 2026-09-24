@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-UHis92SwR3jdw8jqISKdIQRMW2PJZad31w7vND3zcHA=' 'sha256-FlX/NBFXYtiLoowRucN3XOhXwcD6AB60Z1GwRI6Lc9U=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-/7UGxCbSFF+tC7RcKGZ/UQS+4MWjf1IM3wqdcwm94x8=' 'sha256-bJcbACBVhRO/9HCWmOus36qAdIcNLbUzZk97qmKaHrY=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -67,26 +67,32 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; display: flex; flex-direction: column; }
-  #controls { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 6px; padding: 3px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #555 #1a1a1a; }
-  #controls > * { flex-shrink: 0; }
-  /* No outline on any button in the bar, in any state: the border is kept transparent (so every button keeps its
-     size) and focus is shown by the same lighter fill as hover instead of a ring. */
-  #controls button, #controls #githubLink, #controls #videoBtn { background: #252525; color: #d4d4d4; border: 1px solid transparent; padding: 3px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
-  #controls button:hover, #controls #githubLink:hover, #controls #videoBtn:hover { background: #3a3a3a; color: #ffffff; border-color: transparent; }
-  #controls button:focus, #controls a:focus, #controls select:focus { outline: none; }
-  #controls button:focus-visible, #controls #githubLink:focus-visible, #controls #videoBtn:focus-visible { background: #3a3a3a; color: #ffffff; }
-  #githubLink { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; border-radius: 2px; text-decoration: none; }
+  /* Where the bar does not fit on one line it wraps onto another rather than scrolling sideways, which hid the
+     right-hand buttons behind a scrollbar on every screen up to 1920 px. The chart takes whatever height is left. */
+  #controls { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 4px 6px; padding: 3px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: wrap; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #555 #1a1a1a; }
+  #controls > *, #toolbarEnd > * { flex-shrink: 0; }
+  /* GitHub, ?, download and language wrap as one group and keep to the right-hand end of their line. */
+  #toolbarEnd { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  #controls button, #controls #githubLink, #controls #videoBtn { background: #252525; color: #d4d4d4; border: 1px solid #555; padding: 3px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
+  #controls button:hover, #controls #githubLink:hover, #controls #videoBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
+  #githubLink { display: inline-flex; align-items: center; justify-content: center; border-radius: 2px; text-decoration: none; }
+  #githubLink:focus-visible { outline: 2px solid #ff8c00; outline-offset: 2px; }
   #githubLink svg { flex-shrink: 0; }
   #videoBtn { display: inline-flex; align-items: center; justify-content: center; border-radius: 2px; text-decoration: none; box-sizing: border-box; }
+  #videoBtn:focus-visible { outline: 2px solid #ff8c00; outline-offset: 2px; }
   .mode-toggle { display: flex; gap: 2px; }
   /* #controls button sets a background with id specificity, so the active state has to outrank it;
      without the prefix the only thing that ever showed was the bold weight. */
-  #controls .mode-toggle button.active { background: #ff8c00; color: #000000; border-color: transparent; font-weight: bold; }
-  #controls .mode-toggle button.active:hover, #controls .mode-toggle button.active:focus-visible { background: #ffaa33; color: #000000; }
+  #controls .mode-toggle button.active { background: #ff8c00; color: #000000; border-color: #ff8c00; font-weight: bold; }
+  #controls .mode-toggle button.active:hover { background: #ffaa33; }
   #controls #btnRaw.active { outline: none; }
   #controls button:disabled, #controls input:disabled { opacity: 0.45; cursor: not-allowed; }
   #dateDisplay { font-weight: bold; color: #ff8c00; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
-  #status { display: none; text-align: center; padding: 3px; font-size: 11px; color: #666; background: #111; border-bottom: 1px solid #222; }
+  /* Messages float over the chart near the bottom of the window instead of taking a row of the layout: the row
+     pushed the chart down without resizing it, and on a phone it sat above the top of the screen. Clicks and taps
+     pass through it. */
+  #status { display: none; position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 1000; max-width: calc(100vw - 24px); width: max-content; text-align: center; padding: 4px 10px; font-size: 11px; line-height: 1.4; color: #d4d4d4; background: #111; border: 1px solid #333; border-radius: 2px; box-shadow: 0 2px 8px rgba(0,0,0,0.6); pointer-events: none; }
+  html.phone #status { font-size: 13px; }
   #chart { width: calc(100% - 8px); margin: 0 4px; flex: 1 1 auto; min-height: 0; }
   /* On a phone the toolbar is not worth the pixels: the chart takes the whole screen and
      the gestures below do the driving. */
@@ -105,15 +111,15 @@
   #thresholdWrap, #ymaxWrap, #smoothWrap, #binsWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
   #thresholdWrap label, #ymaxWrap label, #smoothWrap label, #binsWrap label { color: #999; white-space: nowrap; }
   #thresholdInput, #ymaxInput, #smoothInput, #binsInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
-  #thresholdInput:focus, #ymaxInput:focus, #smoothInput:focus, #binsInput:focus { border-color: #ff8c00; outline: none; }
-  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 0; border: 1px solid transparent; border-radius: 2px; margin-right: 2px; }
+  /* !important because the border is set inline on each box, which a plain rule cannot outrank (as for #dateInput). */
+  #thresholdInput:focus, #ymaxInput:focus, #smoothInput:focus, #binsInput:focus { border-color: #ff8c00 !important; outline: none; }
+  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 0; border: 1px solid #555; border-radius: 2px; margin-right: 2px; }
   #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
-  #intervalBar .iv:hover, #intervalBar .iv:focus-visible { color: #ffffff; background: #3a3a3a; }
+  #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
   #intervalBar .iv.active { background: #ff8c00; color: #000; font-weight: bold; }
-  #intervalBar .iv.active:hover, #intervalBar .iv.active:focus-visible { background: #ffaa33; color: #000; }
-  #landmarks { background: #252525; color: #d4d4d4; border: 1px solid transparent; padding: 4px 8px; font-family: inherit; font-size: 12px; border-radius: 2px; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23999'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 22px; }
-  #landmarks:hover, #landmarks:focus-visible { background-color: #3a3a3a; color: #ffffff; }
-  #landmarks:focus { outline: none; }
+  #landmarks { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 12px; border-radius: 2px; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23999'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 22px; }
+  #landmarks:hover { border-color: #888; color: #ffffff; }
+  #landmarks:focus { border-color: #ff8c00; outline: none; }
   #dateInput { transition: border-color 0.15s; }
   #dateInput:hover { border-color: #888 !important; }
   #dateInput:focus { border-color: #ff8c00 !important; outline: none; }
@@ -126,7 +132,7 @@
   #dateDropdown .dd-year { padding: 3px 10px; font-size: 10px; color: #555; font-weight: bold; border-bottom: 1px solid #2a2a2a; background: #111; position: sticky; top: 0; z-index: 1; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; }
   /* background, padding and font-size live on #controls button, which outranks a bare id. */
   #explainBtn, #videoBtn { font-weight: 700; cursor: pointer; border-radius: 2px; white-space: nowrap; }
-  #explainBtn:hover, #videoBtn:hover { background: #3a3a3a; color: #ffffff; border-color: transparent; }
+  #explainBtn:hover, #videoBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   #explainWrap { position:relative; display:inline-block; }
   #explainPanel { display:none; position:absolute; top:100%; right:0; width:460px; max-height:75vh; overflow-y:auto; background:#1a1a1a; border:1px solid #555; border-radius:2px; z-index:9999; padding:12px 16px 14px; margin-top:6px; font-size:13px; color:#ffffff; text-align:left; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
   #explainPanel::-webkit-scrollbar { width:6px; }
@@ -137,7 +143,7 @@
   #explainPanel .formula { background:#1e1e1e; border:1px solid #555; border-left:2px solid #ff8c00; border-radius:2px; padding:5px 8px; margin:5px 0 4px 0; font-size:13px; color:#ff8c00; white-space:pre-wrap; line-height:1.5; font-family:inherit; letter-spacing:0.5px; }
   #explainPanel .desc { color:#ffffff; margin:2px 0 4px 0; font-size:13px; line-height:1.55; font-weight:400; letter-spacing:0; }
   #langBtn { cursor: pointer; border-radius: 2px; }
-  #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: transparent; }
+  #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
   .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 3px; }
   /* one height for every control in the bar, and one gap between them */
   #controls button, #controls #githubLink, #controls #videoBtn, #controls input, #controls select, #controls #intervalBar { height: 24px; line-height: 1; }
@@ -150,6 +156,7 @@
   #controls label, #controls #binsUnit { color: #8a8a8a; }
   /* Fixed panels escape the toolbar's horizontal scroll area. */
   #explainPanel, #dateDropdown { position: fixed; right: auto; margin-top: 0; max-width: calc(100vw - 20px); overflow-y: auto; }
+  #explainPanel:focus { outline: none; }
 </style>
 </head>
 <body>
@@ -214,15 +221,17 @@
     <input type="text" id="ymaxInput" value="100" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:58px;font-family:inherit;text-align:center;border-radius:2px;">
     <label>percentile</label>
   </div>
+  <div id="toolbarEnd">
   <a id="githubLink" href="https://github.com/renshuBTC/URPD-History" target="_blank" rel="noopener noreferrer" aria-label="View code on GitHub (opens in a new tab)" title="View code on GitHub (opens in a new tab)">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
   </a>
-  <div id="explainWrap"><button id="explainBtn" aria-label="How to read this chart" aria-expanded="false">?</button><div id="explainPanel">
+  <div id="explainWrap"><button id="explainBtn" aria-label="How to read this chart" aria-expanded="false">?</button><div id="explainPanel" tabindex="-1">
 <h2 id="explainTitle"></h2>
 <div id="explainBody"></div>
 </div></div>
   <a id="videoBtn" href="https://github.com/renshuBTC/URPD-History/releases/download/video/BitcoinSupplyChart.com.mp4" download aria-label="Download the full-history video"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"/></svg></a>
-  <button id="langBtn" aria-label="Change language">中文</button>
+  <button id="langBtn" aria-label="中文 — Change language">中文</button>
+  </div>
 </div>
 <div id="status" role="status" aria-live="polite"></div>
 <div id="chart"></div>
@@ -314,6 +323,18 @@ var PEAK_STORE_KEY = "bsd_peaks_v2";  // v2: bars are now binned on the growing 
 var peakStore = (function() {
   try { return JSON.parse(localStorage.getItem(PEAK_STORE_KEY)) || {}; } catch (e) { return {}; }
 })();
+// Pins saved in RAW before it had keys of its own ("btc|b625|s0": RAW is always 625 bins, smoothing 0) would now
+// fix the normal axis at those settings to the RAW $0 bar's height. They are dropped once; every other pin stays.
+var PEAK_RAW_SPLIT_KEY = "bsd_peaks_raw_split";
+(function() {
+  try {
+    if (localStorage.getItem(PEAK_RAW_SPLIT_KEY)) return;
+    var dropped = 0;
+    for (var k in peakStore) if (/\|b625\|s0$/.test(k)) { delete peakStore[k]; dropped++; }
+    if (dropped) peakSave();
+    localStorage.setItem(PEAK_RAW_SPLIT_KEY, "1");
+  } catch (e) {}
+})();
 function peakKey(data) {
   // RAW has its own: in BTC its axis counts the first bar, which the normal axis leaves out, so a RAW pin at
   // 625 bins and no smoothing used to force the normal axis up to the $0 bar's 1.85M BTC.
@@ -336,16 +357,32 @@ function peakSave() {
 }
 // The status row under the toolbar restated the shortcuts on every screen, costing a row of chart for
 // something you read once; those moved into the explainer. What is left are the messages worth interrupting
-// for, shown briefly and then folded away so the row costs nothing the rest of the time.
-var noticeTimer = null;
+// for, shown briefly over the chart (see #status). A sticky one stays until a chart is drawn.
+// msg is the text, or a function that words it in the current language: a message given that way follows a
+// language change, any other is dropped then, so an English message never sits over a Chinese page.
+var noticeTimer = null, noticeSticky = false, noticeWords = null;
 function showNotice(msg, sticky) {
   var el = document.getElementById("status");
   if (!el) return;
-  el.textContent = msg;
-  el.style.display = msg ? "block" : "none";
+  noticeWords = typeof msg === "function" ? msg : null;
+  var text = noticeWords ? noticeWords() : (msg || "");
+  el.textContent = text;
+  el.style.display = text ? "block" : "none";
+  noticeSticky = !!(text && sticky);
   clearTimeout(noticeTimer);
-  if (msg && !sticky) noticeTimer = setTimeout(function(){ el.style.display = "none"; }, 6000);
+  if (text && !sticky) noticeTimer = setTimeout(function(){ el.style.display = "none"; noticeWords = null; }, 6000);
 }
+function rewordNotice() {
+  var el = document.getElementById("status");
+  if (!el || el.style.display !== "block") return;
+  if (noticeWords) el.textContent = noticeWords(); else showNotice("");
+}
+// An error in the page's own words. It keeps the way to word it, so its message can follow a language change.
+function pageError(words) { var e = new Error(words()); e.words = words; return e; }
+function errorText(e) { return e && e.words ? e.words() : String(e && e.message || e); }
+// The retry is the >> button or End; a phone has neither, but a tap on the right edge steps to the next day,
+// which on the newest day is the same retry.
+function retryHint() { return t(IS_MOBILE ? "retryHintPhone" : "retryHint"); }
 function peakCompact(v) {
   var a = Math.abs(v);
   if (a >= 1e12) return (v / 1e12).toFixed(2) + "T";
@@ -367,7 +404,10 @@ var T = {
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Could not reach bitview.space. Check your connection and try again.",
     allSupply: "All supply (age data unavailable)", peakLabel: "Peak ", peakBtn: "Pin scale", peakBtnTitle: "Pin this day's tallest bar as a fixed scale",
-    errPrefix: "Error: ", errDraw: "Could not draw the chart: ", retryHint: "Press \u00bb or End to try again.",
+    errPrefix: "Error: ", errDraw: "Could not draw the chart: ", retryHint: "Press >> or End to try again.",
+    retryHintPhone: "Tap the right edge of the screen to try again.",
+    errTimeout: "Request timed out after ", errTimeoutUnit: " seconds", errDates: "Unexpected date list from the API",
+    errCostBasis: "Unexpected cost-basis data from the API", errNotDate: "Not a date: ", errNoDates: "No dates available",
     badDate: "Not a date. Type YYYY-MM-DD, YYYY-MM or YYYY.", noMatch: "No matching dates",
     ariaFirst: "First day", ariaPrev: "Previous", ariaNext: "Next", ariaLast: "Latest day", ariaDate: "Go to date",
     ariaLandmarks: "Jump to a cycle top or bottom", ariaExplain: "How to read this chart", ariaLang: "Change language",
@@ -383,7 +423,10 @@ var T = {
     langBtn: "日本語",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "无法连接 bitview.space。请检查网络后重试。",
     allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", peakLabel: "峰值 ", peakBtn: "固定标尺", peakBtnTitle: "将当日最高柱固定为比较基准",
-    errPrefix: "错误：", errDraw: "无法绘制图表：", retryHint: "按 \u00bb 或 End 键重试。",
+    errPrefix: "错误：", errDraw: "无法绘制图表：", retryHint: "按 >> 或 End 键重试。",
+    retryHintPhone: "轻触屏幕右侧边缘即可重试。",
+    errTimeout: "请求超时（", errTimeoutUnit: " 秒）", errDates: "API 返回的日期列表格式异常",
+    errCostBasis: "API 返回的成本基础数据格式异常", errNotDate: "不是日期：", errNoDates: "没有可用的日期",
     badDate: "不是有效日期。请输入 YYYY-MM-DD、YYYY-MM 或 YYYY。", noMatch: "没有匹配的日期",
     ariaFirst: "第一天", ariaPrev: "上一步", ariaNext: "下一步", ariaLast: "最新一天", ariaDate: "跳转到日期",
     ariaLandmarks: "跳转到周期顶部或底部", ariaExplain: "如何看懂这张图", ariaLang: "切换语言",
@@ -421,7 +464,10 @@ var T = {
     peakLabel: "ピーク ",
     peakBtn: "スケール固定",
     peakBtnTitle: "この日の最大バーを基準スケールとして固定",
-    errPrefix: "エラー：", errDraw: "チャートを描画できません：", retryHint: "\u00bb または End キーで再試行できます。",
+    errPrefix: "エラー：", errDraw: "チャートを描画できません：", retryHint: ">> または End キーで再試行できます。",
+    retryHintPhone: "画面の右端をタップすると再試行できます。",
+    errTimeout: "リクエストがタイムアウトしました（", errTimeoutUnit: " 秒）", errDates: "API から予期しない形式の日付リストが返されました",
+    errCostBasis: "API から予期しない形式のコストベーシスデータが返されました", errNotDate: "日付ではありません：", errNoDates: "利用できる日付がありません",
     badDate: "日付として読めません。YYYY-MM-DD、YYYY-MM、YYYY のいずれかで入力してください。", noMatch: "該当する日付はありません",
     ariaFirst: "最初の日", ariaPrev: "前へ", ariaNext: "次へ", ariaLast: "最新の日", ariaDate: "日付へ移動",
     ariaLandmarks: "サイクルの天井・大底へ移動", ariaExplain: "このチャートの読み方", ariaLang: "言語を切り替える",
@@ -434,10 +480,17 @@ function t(key) { return T[lang][key] || T.en[key] || key; }
 
 // ---- The download button: the full-history video ---------------------------------------------------------
 // A plain link to the video the "Daily video" workflow renders every day (tools/video) and publishes on the "video"
-// release: every day from 2009-01-03 to the latest, 5:00 at 60 fps in 4K, drawn with this page's default settings.
-// The workflow starts at 01:23 UTC and takes about an hour and a half, so the day that just ended is in it by about 04:00 UTC;
+// release: every day from 2010-05-18 (the first with anything on the chart) to the latest, 5:00 at 60 fps in 4K, drawn
+// with this page's default settings.
+// The workflow starts at 01:23 UTC and takes about an hour and a half, so the day that just ended is usually in it by
+// about 04:00 UTC (GitHub sometimes starts scheduled runs hours late, hence "usually");
 // the tooltip gives that time in UTC and in the reader's own time zone.
 var VIDEO_READY_UTC_HOUR = 4;
+// The credit line's names and their X accounts. Each is drawn as a link (renderChart); Plotly gives a link in a chart
+// a new tab of its own, and a plain click opens it without a handle on this page (the chart's click listener).
+var CREDIT_X = { "Bitview.space": "_bitview_", "Bitcoin Core": "bitcoincoreorg", "Antoine Le Calvez": "khannib",
+  "Renato Shirakashi": "renato_shira", "James Check": "_Checkmatey_", "@_nym21_": "_nym21_" };
+function creditLink(name) { return '<a href="https://x.com/' + CREDIT_X[name] + '">' + name + "</a>"; }
 function setVideoTitle() {
   var el = document.getElementById("videoBtn");
   if (!el) return;
@@ -445,9 +498,9 @@ function setVideoTitle() {
   var hh = (VIDEO_READY_UTC_HOUR < 10 ? "0" : "") + VIDEO_READY_UTC_HOUR + ":00";
   var mine = ready.getTimezoneOffset() ? ready.toLocaleTimeString(L3("en-GB", "zh-CN", "ja-JP"), { hour: "2-digit", minute: "2-digit" }) : "";
   var text = L3(
-    "Download the full-history video (an .mp4 file from GitHub): every day from 3 Jan 2009 to the latest, 4K, 60 fps, 5 minutes (about 250 MB). Updated daily: the day that just ended is added by about " + hh + " UTC" + (mine ? " (" + mine + " your time)" : "") + ".",
-    "下载完整历史视频（来自 GitHub 的 .mp4 文件）：从 2009 年 1 月 3 日到最新一天，4K、60 帧、5 分钟（约 250 MB）。每天更新：刚结束的一天约在 UTC " + hh + (mine ? "（你的时间 " + mine + "）" : " ") + "前加入。",
-    "全期間の動画をダウンロード（GitHub の .mp4 ファイル）：2009年1月3日から最新日まで、4K・60fps・5分（約250MB）。毎日更新：終わったばかりの日は UTC " + hh + (mine ? "（あなたの時刻で " + mine + "）" : " ") + "頃までに追加されます。");
+    "Download the full-history video (an .mp4 file from GitHub): every day from 18 May 2010, when the first price comes into view, to the latest, 4K, 60 fps, 5 minutes (about 250 MB). Updated daily: the day that just ended is usually added by about " + hh + " UTC" + (mine ? " (" + mine + " your time)" : "") + ".",
+    "下载完整历史视频（来自 GitHub 的 .mp4 文件）：从 2010 年 5 月 18 日（第一个价格出现在图上）到最新一天，4K、60 帧、5 分钟（约 250 MB）。每天更新：刚结束的一天通常约在 UTC " + hh + (mine ? "（你的时间 " + mine + "）" : " ") + "前加入。",
+    "全期間の動画をダウンロード（GitHub の .mp4 ファイル）：最初の価格がチャートに現れる2010年5月18日から最新日まで、4K・60fps・5分（約250MB）。毎日更新：終わったばかりの日は通常 UTC " + hh + (mine ? "（あなたの時刻で " + mine + "）" : " ") + "頃までに追加されます。");
   // An icon only: a screen reader gets a short name for it, and the tooltip gives the details.
   el.setAttribute("aria-label", L3("Download the full-history video", "下载完整历史视频", "全期間の動画をダウンロード"));
   el.title = text;
@@ -461,9 +514,12 @@ function applyLang() {
   document.getElementById("githubLink").setAttribute("aria-label", githubLabel);
   // What a screen reader announces for the icon-only controls, in the page's language too.
   [["btnFirst", "ariaFirst"], ["btnPrev", "ariaPrev"], ["btnNext", "ariaNext"], ["btnLast", "ariaLast"], ["dateInput", "ariaDate"],
-   ["landmarks", "ariaLandmarks"], ["explainBtn", "ariaExplain"], ["langBtn", "ariaLang"]].forEach(function(a) {
+   ["landmarks", "ariaLandmarks"], ["explainBtn", "ariaExplain"]].forEach(function(a) {
     var el = document.getElementById(a[0]); if (el) el.setAttribute("aria-label", t(a[1]));
   });
+  // The name starts with what the button shows, so "click 日本語" works for voice control (WCAG 2.5.3).
+  document.getElementById("langBtn").setAttribute("aria-label", t("langBtn") + " \u2014 " + t("ariaLang"));
+  rewordNotice();
   var tracerEl = document.getElementById("tracer"); if (tracerEl) tracerEl.title = t("tracerTitle");
   setVideoTitle();
   if (window.updateExplainerLang) updateExplainerLang();
@@ -584,10 +640,23 @@ function plotWidthPx() {
   if (fl && fl.xaxis && fl.xaxis._length > 0 && fl.width && Math.abs(fl.width - gd.clientWidth) < 1) return fl.xaxis._length;
   return Math.max(200, (gd.clientWidth || 1200) - 160);
 }
-window.addEventListener("resize", function() {
+function scheduleRerender() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(function() { if (lastRenderedData) rerenderCurrent(); }, 150);
-});
+}
+window.addEventListener("resize", scheduleRerender);
+// The chart takes the height the toolbar leaves, but Plotly only follows the window: when the bar wraps onto
+// another row for a reason of its own (a language change, the web font arriving) the figure kept its old size
+// and its bottom was cut off. Only a size Plotly has not drawn at counts, so its own redraws and a window
+// resize, which Plotly and the timer above already handle, pass through; both paths share the one timer.
+if (!IS_MOBILE && typeof ResizeObserver === "function") new ResizeObserver(function(entries) {
+  var gd = document.getElementById("chart"), fl = gd._fullLayout, box = entries[entries.length - 1].contentRect;
+  if (!lastRenderedData || !fl || !(box.width > 0 && box.height > 0)) return;
+  if (Math.abs(box.width - fl.width) <= 1 && Math.abs(box.height - fl.height) <= 1) return;
+  var resized = Plotly.Plots.resize(gd);
+  if (resized && resized.catch) resized.catch(function() {});
+  scheduleRerender();
+}).observe(document.getElementById("chart"));
 var viewIdx = 0; // VIEW_MODES index of the USD view (the default)
 
 var REQUEST_TIMEOUT_MS = 15000;
@@ -601,7 +670,7 @@ function fetchJSON(url) {
       if (done) return;
       done = true;
       if (controller) controller.abort();
-      reject(new Error("Request timed out after " + REQUEST_TIMEOUT_MS / 1000 + " seconds"));
+      reject(pageError(function() { return t("errTimeout") + REQUEST_TIMEOUT_MS / 1000 + t("errTimeoutUnit"); }));
     }, REQUEST_TIMEOUT_MS);
     Promise.resolve().then(function() {
       return fetch(url, controller ? { signal: controller.signal } : undefined);
@@ -627,7 +696,7 @@ function isDateString(v) { return typeof v === "string" && DATE_RE.test(v); }
 function isAmount(v) { return typeof v === "number" && isFinite(v) && v >= 0; }
 // The navigable dates: valid ones only, in order, without repeats.
 function cleanDates(list) {
-  if (!Array.isArray(list)) throw new Error("Unexpected date list from the API");
+  if (!Array.isArray(list)) throw pageError(function() { return t("errDates"); });
   var out = [];
   for (var i = 0; i < list.length; i++) if (isDateString(list[i]) && (!out.length || list[i] > out[out.length - 1])) out.push(list[i]);
   return out;
@@ -642,7 +711,7 @@ function cleanSeries(list, ok) {
 // One cohort's cost basis: price -> amount. Every entry of the real history passes (242,754,632 of them, checked on
 // 2026-09-23); anything else is dropped.
 function cleanCohort(obj) {
-  if (!obj || typeof obj !== "object" || Array.isArray(obj)) throw new Error("Unexpected cost-basis data from the API");
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) throw pageError(function() { return t("errCostBasis"); });
   var out = {}, dropped = 0;
   for (var k in obj) {
     if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
@@ -986,7 +1055,7 @@ function fetchRaw(dateStr) {
   // downloads only the missing cohorts; raw.age/all are published only when complete.
   var p = (raw.age ? Promise.resolve(raw.age) : Promise.all(AGE_BANDS.map(function(band, ci) {
       if (raw.cohorts[ci]) return raw.cohorts[ci];
-      if (!isDateString(dateStr)) return Promise.reject(new Error("Not a date: " + dateStr));
+      if (!isDateString(dateStr)) return Promise.reject(pageError(function() { return t("errNotDate") + dateStr; }));
       var cohortPromise = fetchJSON(BASE + "/api/series/cost-basis/" + band.cohort + "/" + dateStr).then(cleanCohort);
       raw.cohorts[ci] = cohortPromise;
       cohortPromise.then(function(value) { raw.cohorts[ci] = value; }, function() { delete raw.cohorts[ci]; });
@@ -1134,7 +1203,10 @@ function loadAndRender(propagateErrors) {
       if (back >= 0) currentIdx = back;
     }
     // With nothing on screen yet there is no chart to fall back to: keep the message up and say which day failed.
-    showNotice(t("errPrefix") + e.message + (previous ? "" : " " + t("retryHint")), !previous);
+    showNotice(function() {
+      var msg = t("errPrefix") + errorText(e);
+      return previous ? msg : msg.replace(/[.\u3002]?$/, L3(". ", "\u3002", "\u3002")) + retryHint();
+    }, !previous);
     if (!previous) document.getElementById("dateDisplay").textContent = allDates[currentIdx] + " (" + (currentIdx + 1) + "/" + allDates.length + ")";
     document.getElementById("loading").style.display = "none";
     // An older Plotly draw may already be running. Put the rollback behind it so the
@@ -1193,12 +1265,24 @@ function drawChart(data, plotSeq, navigationSeq) {
   // the title is centred) when the plot is wide enough for the two not to meet, otherwise it goes underneath.
   // Measured from the text (monospace: 0.6 em a character, a full em for CJK), since a fixed width stopped
   // being enough the day the credit line grew and the two overlapped at 1600 px.
-  var creditText = L3("Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_", "由 Bitview.space 和 Bitcoin Core 提供支持。鸣谢：Antoine Le Calvez、Renato Shirakashi、James Check、@_nym21_", "Bitview.space と Bitcoin Core を利用。クレジット：Antoine Le Calvez、Renato Shirakashi、James Check、@_nym21_");
+  // Every name in it links to its X account (creditLink: Plotly draws an <a> in an annotation as a link).
+  var BV = creditLink("Bitview.space"), BC = creditLink("Bitcoin Core");
+  var creditNames = ["Antoine Le Calvez", "Renato Shirakashi", "James Check", "@_nym21_"].map(creditLink);
+  var creditLinked = [L3("Powered by " + BV + " & " + BC + ".", "由 " + BV + " 和 " + BC + " 提供支持。", BV + " と " + BC + " を利用。"),
+    L3("Credits: " + creditNames.join(", "), "鸣谢：" + creditNames.join("、"), "クレジット：" + creditNames.join("、"))];
+  var creditParts = creditLinked.map(function(part) { return part.replace(/<[^>]*>/g, ""); });   // what is measured
+  var creditText = creditParts.join(L3(" ", "", ""));
   var textPx = function(str, size) { var w = 0; for (var ci = 0; ci < str.length; ci++) w += str.charCodeAt(ci) > 0x2e7f ? size : 0.6 * size; return w; };
   // 7% of slack: Chrome on Linux rounds 11 px Source Code Pro up to 7 px a character, and at 1680 px the credit
   // then ran into the axis title.
   var creditRow = textPx(creditText, 11) * 1.07 + 16 <= plotW / 2 - textPx(t("priceUSD"), 13) / 2;
-  var bottomMargin = creditRow ? 44 : 64;
+  // Underneath, it has from the plot's left edge to just inside the figure's right one. On a plot too narrow even
+  // for that (a portrait tablet) it takes two lines, and only if a line is still too long does its type shrink.
+  var creditRoom = plotW + 20, creditWrap = !creditRow && textPx(creditText, 11) * 1.07 > creditRoom;
+  var creditShown = creditLinked.join(creditWrap ? "<br>" : L3(" ", "", ""));
+  var creditWidest = (creditWrap ? Math.max(textPx(creditParts[0], 11), textPx(creditParts[1], 11)) : textPx(creditText, 11)) * 1.07;
+  var creditSize = creditWidest > creditRoom ? Math.max(8, Math.floor(110 * creditRoom / creditWidest) / 10) : 11;
+  var bottomMargin = creditRow ? 44 : creditWrap ? 78 : 64;
   var binsText = "$" + (binWidth >= 100 ? Math.round(binWidth).toLocaleString("en-US") : binWidth >= 1 ? binWidth.toFixed(1) : binWidth.toFixed(3)); // a bar's width in dollars
   var realizedCap = data.realizedCap, totalSupply = data.totalSupply, maxPrice = data.maxPrice, redPct = data.redPct;
   var isAge = !!(data.aggAge && data.aggAge.length > 0); // false only if every cohort fetch failed
@@ -1272,6 +1356,11 @@ function drawChart(data, plotSeq, navigationSeq) {
   // the axis title into the credit line). Its $0 is nudged right of the corner, where it ran into the left axis's.
   var xTickvals = axisTicks(xSpan), xTicktext = axisLabels(xTickvals, false);
   xTicktext[0] = "\u00a0\u00a0" + xTicktext[0];
+  // A plot too narrow for twenty-one labels side by side (a portrait tablet, a narrow window) labels every other
+  // step, or fewer still, rather than running them together; all twenty-one gridlines stay.
+  var xLabelW = xTicktext.reduce(function(m, s) { return Math.max(m, textPx(s, 11) * 1.07); }, 0);
+  var xEvery = [1, 2, 4, 5, 10, 20].filter(function(n) { return xLabelW + 8 <= n * plotW / AXIS_STEPS; })[0] || AXIS_STEPS;
+  if (xEvery > 1) xTicktext = xTicktext.map(function(s, k) { return k % xEvery ? "" : s; });
 
   var d = new Date(dateStr + "T00:00:00");
   var titleDate = d.toLocaleDateString(L3("en-GB","zh-CN","ja-JP"), {day:"2-digit",month:"short",year:"numeric"});
@@ -1281,11 +1370,14 @@ function drawChart(data, plotSeq, navigationSeq) {
   } else {
     titleText = "<b>" + t("titleUSDAge") + titleDate + "</b>";
   }
+  // 20 px unless that is wider than the plot it is centred over, where it was cut off at both ends; then as large
+  // as fits, down to 12 px.
+  var titleSize = Math.max(12, Math.min(20, Math.floor(20 * (plotW - 8) / (textPx(titleText.replace(/<[^>]+>/g, ""), 20) * 1.03))));
 
   var shapes = [];
   var annotations = [
     {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>",showarrow:false,font:{family:FONT}},
-    {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:creditRow?-38:-62,text:creditText,showarrow:false,font:{size:11,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left"}
+    {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:creditRow?-38:creditWrap?-76:-62,text:creditShown,showarrow:false,font:{size:creditSize,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left",align:"left"}
   ];
 
   // Spot line and its label are drawn above everything else so they stay readable while navigating. The line
@@ -1333,6 +1425,19 @@ function drawChart(data, plotSeq, navigationSeq) {
   if (skipFirst && valuesForAxis[0] > maxVal) {
     annotations.push({x:0,xref:"x",xanchor:"left",y:1,yref:"paper",yanchor:"top",yshift:peakVal>0?-23:-2,text:"▲ " + peakCompact(valuesForAxis[0]) + " BTC",showarrow:false,font:{color:"#ffffff",size:11,family:FONT},bgcolor:"rgba(0,0,0,0.75)",borderpad:2});
   }
+  // The pin's label and the ▲ figure sit at the top of the plot against its left edge, as the spot price box sits
+  // at the top beside its line. With the line near that edge (BTC in late 2011, say) the box covered them, so it
+  // drops to just below them. Plot fractions across, pixels down from the top, as for spotBox; the widths allow for a
+  // fallback font a little wider than the estimate, which left the box a few pixels over the pin's label.
+  var topLeftW = Math.max(200, plotWidthPx()), topLeft = [];
+  if (peakVal > 0) topLeft.push({x1: (textPx(peakText, 11) * 1.08 + 16) / topLeftW, y1: 21});
+  if (skipFirst && valuesForAxis[0] > maxVal) topLeft.push({x1: (textPx("\u25b2 " + peakCompact(valuesForAxis[0]) + " BTC", 11) * 1.08 + 12) / topLeftW, y1: peakVal > 0 ? 44 : 23});
+  var clearOfTopLeft = function(b) {
+    var y0 = b.y0 || 0;
+    topLeft.forEach(function(k) { if (b.x0 < k.x1 && y0 < k.y1) y0 = k.y1 + 4; });
+    return {x0: b.x0, x1: b.x1, h: b.h, y0: y0};
+  };
+  if (spotBox) { spotBox = clearOfTopLeft(spotBox); if (spotBox.y0) spotAnn.yshift = -spotBox.y0; }
 
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
 
@@ -1343,12 +1448,13 @@ function drawChart(data, plotSeq, navigationSeq) {
   // above the bars.
   var legendKey = (rawMode ? "raw|" : "age|") + Math.round(plotW);
   var ld = legendDims[legendKey] || { h: 29 };
-  var topMargin = 13 + 26 + ld.h; // the 13 is the title's clearance below the toolbar and must match title.pad.t,
-  // otherwise the title slides down into the legend instead of the whole block moving together
+  var topMargin = 13 + Math.round(26 * titleSize / 20) + ld.h; // the 13 is the title's clearance below the toolbar and must
+  // match title.pad.t, otherwise the title slides down into the legend instead of the whole block moving together;
+  // the 26 is the title's line at 20 px
   lastLegendKey = legendKey; lastLegendDims = ld;
 
   var layout = {
-    title:{text:titleText,xref:"paper",x:0.5,xanchor:"center",y:1,yanchor:"top",pad:{t:13},font:{size:20,family:FONT,color:"#ffffff"}},
+    title:{text:titleText,xref:"paper",x:0.5,xanchor:"center",y:1,yanchor:"top",pad:{t:13},font:{size:titleSize,family:FONT,color:"#ffffff"}},
     font:{family:FONT,color:"#ffffff"}, // inherited by the legend, the axis titles and every tick label
     paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
     barmode:isAge?"stack":"overlay",bargap:0,
@@ -1401,8 +1507,8 @@ function drawChart(data, plotSeq, navigationSeq) {
         var sbHits=function(b){return sbDotF+sbR/sbW>b.x0&&sbDotF-sbR/sbW<b.x1&&sbDotY-sbR<(b.y0||0)+b.h&&sbDotY+sbR>(b.y0||0);};
         if(sbHits(spotBox)){
           var sbWF=spotBox.x1-spotBox.x0, sbX=spot/xSpan, sbGap=6/sbW;
-          var sbOther=spotAnn.xanchor==="left"?{x0:sbX-sbGap-sbWF,x1:sbX-sbGap,h:spotBox.h}:{x0:sbX+sbGap,x1:sbX+sbGap+sbWF,h:spotBox.h};
-          if(sbOther.x0>=0&&sbOther.x1<=1&&!sbHits(sbOther)){spotAnn.xanchor=spotAnn.xanchor==="left"?"right":"left";spotAnn.xshift=-spotAnn.xshift;spotBox=sbOther;}
+          var sbOther=clearOfTopLeft(spotAnn.xanchor==="left"?{x0:sbX-sbGap-sbWF,x1:sbX-sbGap,h:spotBox.h}:{x0:sbX+sbGap,x1:sbX+sbGap+sbWF,h:spotBox.h});
+          if(sbOther.x0>=0&&sbOther.x1<=1&&!sbHits(sbOther)){spotAnn.xanchor=spotAnn.xanchor==="left"?"right":"left";spotAnn.xshift=-spotAnn.xshift;spotAnn.yshift=sbOther.y0?-sbOther.y0:0;spotBox=sbOther;}
           else{var sbDown=Math.ceil(sbDotY+sbR+4);spotAnn.yshift=-sbDown;spotBox={x0:spotBox.x0,x1:spotBox.x1,h:spotBox.h,y0:sbDown};}
         }
       }
@@ -1506,6 +1612,8 @@ function drawChart(data, plotSeq, navigationSeq) {
     ? {responsive:true, displayModeBar:false, scrollZoom:false, doubleClick:false, showAxisDragHandles:false}
     : {responsive:true, displayModeBar:"hover"}).then(function(){
     lastRenderedData = data;
+    // A chart is on screen, so a message that was waiting for one (a failed first load) has done its job.
+    if (noticeSticky) showNotice("");
     // Fallback data can retain different binning while a settings change is pending.
     drawnSettings.bins = data.numBins; drawnSettings.smoothing = data.kernelPct;
     lastRenderedSettings = drawnSettings; lastRenderedRawMode = drawnRawMode; lastRenderedRawPrevious = drawnRawPrevious;
@@ -1650,11 +1758,12 @@ document.getElementById("thresholdInput").addEventListener("input", function(e){
   applyThreshold(fieldNumber(e.target.value));
 });
 // A number and nothing else: parseInt/parseFloat read "1,000" as 1, "1e3" as 1 and "400abc" as 400. Full-width
-// digits from a Chinese or Japanese input method count; anything that is not wholly a number is NaN.
+// digits from a Chinese or Japanese input method count, and so does its 。 for the . key; anything that is not
+// wholly a number is NaN.
 function fieldNumber(value) {
   var s = String(value == null ? "" : value);
   if (s.normalize) s = s.normalize("NFKC");
-  s = s.trim();
+  s = s.replace(/\u3002/g, ".").trim();
   return s === "" ? NaN : Number(s);
 }
 document.getElementById("thresholdInput").addEventListener("change", function(e){
@@ -1712,8 +1821,11 @@ function syncSettingFields() {
   document.getElementById("smoothInput").value = KERNEL_PCT.toFixed(2);
   document.getElementById("ymaxInput").value = String(yMaxPct);
 }
+// The Enter that confirms an input method's composition (and the Escape that cancels one) belongs to it.
+function composing(e) { return !!(e.isComposing || e.keyCode === 229); }
 ["thresholdInput", "binsInput", "smoothInput", "ymaxInput"].forEach(function(id) {
   document.getElementById(id).addEventListener("keydown", function(e) {
+    if (composing(e)) return;
     if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); this.blur(); }
   });
 });
@@ -1725,6 +1837,29 @@ document.getElementById("chart").addEventListener("pointerdown", function() {
   var a = document.activeElement;
   if (a && a.blur && (a.tagName === "INPUT" || a.tagName === "SELECT")) a.blur();
 }, true);
+
+// The credit line's links open x.com in a new tab that cannot reach back into this one. Plotly draws them as SVG
+// links, which not every browser opens without a handle on this page, so a plain click opens them here instead
+// (with a modifier key or another button the browser does as it always does).
+document.getElementById("chart").addEventListener("click", function(e) {
+  var a = e.target && e.target.closest ? e.target.closest("a") : null;
+  if (!a || e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+  var url = a.href && typeof a.href === "object" ? a.href.baseVal : a.getAttribute("href");
+  if (!/^https:\/\/x\.com\/[A-Za-z0-9_]{1,15}$/.test(url || "")) return;
+  e.preventDefault();
+  window.open(url, "_blank", "noopener");
+}, true);
+
+// A button or link in the toolbar that is clicked with the mouse lets go of focus at once. Kept, it had the browser
+// draw its keyboard focus ring around the button (BTC, say) as soon as an arrow key was pressed, and Space or
+// Enter pressed it again. Reached from the keyboard (Tab, then Enter or Space) it keeps focus, ring and all.
+document.getElementById("controls").addEventListener("click", function(e) {
+  if (!e.detail) return;   // Enter or Space
+  var el = e.target && e.target.closest ? e.target.closest("button, a") : null;
+  if (el && el === document.activeElement) el.blur();
+}, true);
+// Whether the explainer was opened from the keyboard, which Escape then hands focus back to ? for.
+var explainOpenedByKeys = false;
 
 document.addEventListener("keydown", function(e){
   if (e.target.tagName === "INPUT") return;
@@ -1748,11 +1883,14 @@ document.addEventListener("keydown", function(e){
   else if (e.key === "3") { e.preventDefault(); setInterval1(2); }
   else if (e.key === "4") { e.preventDefault(); setInterval1(3); }
   else if (e.key === "Escape") {
-    // Close whatever is open and drop focus so the next key goes to the chart.
+    // Close whatever is open and drop focus so the next key goes to the chart. An explainer opened from the
+    // keyboard hands focus back to its ? button instead, where the arrow keys drive the chart just the same.
     closeDateDD();
-    document.getElementById("explainPanel").style.display = "none";
+    var panelEl = document.getElementById("explainPanel"), wasOpen = panelEl.style.display === "block";
+    panelEl.style.display = "none";
     document.getElementById("explainBtn").setAttribute("aria-expanded", "false");
-    if (e.target && e.target.blur) e.target.blur();
+    if (wasOpen && explainOpenedByKeys) document.getElementById("explainBtn").focus({ preventScroll: true });
+    else if (e.target && e.target.blur) e.target.blur();
   }
 });
 
@@ -1781,10 +1919,15 @@ function jumpToDate(value) {
 // What the date box takes: a day as YYYY-MM-DD, with -, / or . between the parts and one-digit months and days
 // allowed, or just YYYY-MM or YYYY for the first listed day of that month or year. Full-width digits (typed with a
 // Chinese or Japanese input method) and stray spaces are fine. Anything else is refused rather than guessed at.
-function parseDateQuery(value) {
+// An input method types its own characters for the -, / and . keys: ー or a dash such as − or – for -, ・ or 、
+// for /, and 。 for . (the full-width －／． are already plain after NFKC). They count as the keys they stand for.
+function dateText(value) {
   var s = String(value == null ? "" : value);
   if (s.normalize) s = s.normalize("NFKC");
-  var m = /^(\d{4})(?:[-\/.](\d{1,2})(?:[-\/.](\d{1,2}))?)?$/.exec(s.trim());
+  return s.replace(/[\u2010-\u2015\u2212\u30fc]/g, "-").replace(/[\u30fb\u3001]/g, "/").replace(/\u3002/g, ".");
+}
+function parseDateQuery(value) {
+  var m = /^(\d{4})(?:[-\/.](\d{1,2})(?:[-\/.](\d{1,2}))?)?$/.exec(dateText(value).trim());
   if (!m) return null;
   var y = +m[1], mo = m[2] ? +m[2] : 1, d = m[3] ? +m[3] : 1;
   if (mo < 1 || mo > 12 || d < 1 || d > new Date(Date.UTC(y, mo, 0)).getUTCDate()) return null;
@@ -1807,6 +1950,15 @@ document.getElementById("landmarks").addEventListener("change", function(e){
 });
 
 var ddOpen = false;
+// Which listed dates the typed text shows. Once it reads as a date, a month or a year, the list is exactly what
+// Enter goes to ("2024/1" is January, not October to December, and "2024-1-5" is that day); until then it is
+// filtered by the text as typed, with the same leeway as the box itself.
+function dateMatcher(typed) {
+  var parsed = parseDateQuery(typed);
+  if (parsed) { var prefix = parsed.period || parsed.date; return function(d) { return d.indexOf(prefix) === 0; }; }
+  var q = dateText(typed).trim().toLowerCase().replace(/[\/.]/g, "-");
+  return function(d) { return !q || d.indexOf(q) >= 0; };
+}
 // toLocaleDateString costs about 135 us a call, which was 830 of the 860 ms spent rebuilding
 // this list on every focus and every keystroke. Same output, checked against
 // toLocaleDateString("en-US", {weekday:"short"}) over all 6,463 dates with zero differences.
@@ -1817,15 +1969,12 @@ function buildDateDropdown(filterQ) {
   var ddWeekdays = DD_WEEKDAYS[lang] || DD_WEEKDAYS.en;
   dd.innerHTML = "";
   var reversed = allDates.slice().reverse();
-  // Filtered as typed, with the same leeway as the box itself: full-width digits, and / or . for -.
-  var q = String(filterQ || "");
-  if (q.normalize) q = q.normalize("NFKC");
-  q = q.trim().toLowerCase().replace(/[\/.]/g, "-");
+  var matches = dateMatcher(filterQ);
   var lastYear = "";
   var count = 0;
   for (var i = 0; i < reversed.length; i++) {
     var d = reversed[i];
-    if (q && d.indexOf(q) < 0) continue;
+    if (!matches(d)) continue;
     var year = d.substring(0, 4);
     if (year !== lastYear) {
       lastYear = year;
@@ -1889,6 +2038,7 @@ function closeDateDD() {
     else buildDateDropdown(this.value.trim());
   });
   inp.addEventListener("keydown", function(e) {
+    if (composing(e)) return;
     if (e.key === "Enter") { e.preventDefault(); closeDateDD(); jumpToDate(); this.blur(); }
     else if (e.key === "Escape") { closeDateDD(); this.blur(); }
   });
@@ -1918,12 +2068,12 @@ async function init() {
     // Publish navigable dates only once price initialization has settled. Toolbar actions
     // before this point can change settings, but cannot cache a chart with missing prices.
     allDates = cleanDates(loaded[0]);
-    if (!allDates.length) throw new Error("No dates available");
+    if (!allDates.length) throw pageError(function() { return t("errNoDates"); });
     currentIdx = allDates.length - 1;
     await loadAndRender();
   } catch (e) {
-    document.getElementById("dateDisplay").textContent = t("errPrefix") + e.message;
-    showNotice(t("errBRK"), true);  // fatal: the app is dead, this must not auto-hide after 6 s  // #status is display:none in CSS, so this was written where nobody could read it
+    document.getElementById("dateDisplay").textContent = t("errPrefix") + errorText(e);
+    showNotice(function() { return t("errBRK"); }, true);  // fatal: the app is dead, this must not auto-hide after 6 s
   }
 }
 init();
@@ -1937,6 +2087,10 @@ document.getElementById("explainBtn").onclick = function(e){
   this.setAttribute("aria-expanded", String(p.style.display === "block"));
   updateExplainerLang();
   positionToolbarPanels();
+  // Focus goes into the panel, so the arrow and page keys scroll it straight away (the chart's own shortcuts
+  // stand aside while it is open); Escape brings it back to this button if the panel was opened from the keyboard.
+  explainOpenedByKeys = !e.detail;
+  if (p.style.display === "block") p.focus({ preventScroll: true });
 };
 document.addEventListener("click", function(e){
   var panel = document.getElementById("explainPanel");
@@ -2028,9 +2182,9 @@ window.tracerDragWindow = null;
   el.addEventListener("dblclick", function(e){ e.preventDefault(); });
 })();
 var EXPLAINER = {
-  en: {"title": "How to read this chart", "sections": [["Start here", "Ask every bitcoin in existence one question: what was bitcoin worth the last time you moved? Sort the answers into price buckets and add up the supply in each. That is this chart. A tall bar is a price where a lot of supply last changed position. A gap is a price where almost none did. The formal name for it is URPD, the UTXO Realised Price Distribution."], ["What a UTXO is", "Bitcoin has no account balances. It works like cash in a pocket: you hold separate notes, and to pay 12 dollars with a 20 you hand over the whole note and take 8 back as change. Each note is a UTXO, an Unspent Transaction Output. Your wallet balance is only the sum of the notes you happen to hold, and every bar on this chart is built out of them."], ["Why every coin carries a price", "A UTXO is created inside a block, that block has a timestamp, and that moment has a bitcoin price. So every coin alive today has a price attached to it: the price on the day it last moved. Nothing is surveyed or estimated, the chain records it. That attached price is the coin's realised price, also called its cost basis. It is the closest thing on-chain to what the current holder paid."], ["Reading the axes", "Along the bottom is that attached price in dollars, not today's price. Up the left is how much supply sits in each price bucket. Both axes are marked at twenty equal steps from zero to their very end, with the labels rounded to two significant figures. Neither axis is refitted to each day. Each ends at the furthest the data had reached by the day you are viewing, the highest price and the tallest bar so far, grows only when the data goes past it, and never shrinks. Moving forward you watch the market outgrow the old scale; moving back you see every day exactly as it looked at the time, however you got there. In BTC mode the first bar is left out of this: it holds every coin last moved for less than one bar's width, about 1.85M BTC of it from before bitcoin traded above 50 cents, so it runs off the top with its height printed there."], ["The colours: how old the coins are", "Every bar is stacked out of 23 age bands, set by how long the coin has sat unmoved: under an hour at one end, over fifteen years at the other. Yellow is fresh, deep blue is ancient, and the steps between are logarithmic, so equal colour distance is equal multiples of age. The colours follow one path through a perceptual colour space (OKLCH), spaced so that every step looks the same size, with brightness falling steadily from young to old, so the order still reads in greyscale, and every band keeps at least 3:1 contrast against the dark background. A tall bar in one colour is a single cohort. A tall bar in many colours is a price that generations of holders share."], ["The white line: bitcoin's price", "Bitcoin's own price, as daily closes. It has its own hidden axes: left to right is time here rather than price, running from 275 days before the selected day to 90 days after it, and the height runs linearly from $0 to the highest close shown so far, so the line fills the chart and the same dollar move is always the same height. That scale grows only when the price makes a new high. The orange dot sits on the selected day and past cycle tops and bottoms are marked. Drag the dot to move through history. Click BTC/USD in the legend to hide the line."], ["Hovering a bar", "Hover over a bar to read its price, what its age band holds there, the whole bar's total (Total USD Value Last Moved, or Total BTC Supply Last Moved in BTC mode) and Percent of Total. That last one is a running share: of all the day's supply, or value in USD mode, the part that last moved at or below this price. Where it climbs quickly from bar to bar, supply is dense.", "Percent of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["The dashed line: today's price", "The spot price on the selected day. Supply to its left last moved cheaper than today, so it is held at a paper profit. Supply to its right is held at a paper loss. The box gives the price and both shares.", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["What people look for", "A thick cluster of bars marks a price where a lot of supply settled. Above today's price such a cluster is often read as overhead resistance, on the reasoning that holders who last moved coins there may sell near break-even. Below today's price the same cluster is read as support. A wide gap is a stretch with little supply to slow a move through it. Treat all of it as a map of where supply sits, not a forecast of where price goes."], ["What this chart cannot tell you", "A coin moving on-chain is not always a sale. Exchanges shuffle their own coins, people consolidate their own UTXOs, custodians rotate wallets, and each of those restamps coins at that day's price with no buyer and no seller. The reverse is also true: a trade matched inside an exchange never touches the chain, so both sides keep their old stamp. Coins whose keys are lost keep theirs forever. Read a bar as supply that last moved here, not as proof that someone paid this."], ["Moving through time", "Published versions of this chart usually show only today. This one steps through the whole history, day by day, back to 2009-01-03. 1D/1W/1M/1Y sets the step size and the arrow buttons move one step; Left and Right or A and D do the same from the keyboard. 1 to 4 pick the step size, Home and End jump to the first and last day, and Up and Down or W and S switch between USD and BTC. You can also type a date, or pick a cycle top or bottom from CYCLE TOP/BTM. If the keys stop responding, click the chart once to take focus off a toolbar field."], ["USD mode and BTC mode", "BTC counts each coin by how much bitcoin it is. USD counts it by what it was worth in dollars at the moment it last moved, so one coin last moved at 100,000 dollars outweighs the same coin last moved at 100. BTC shows where the coins are. USD shows where the money went in.", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nUSD Value at Last Move(P) = P · S(P)"], ["Pin scale", "The left axis only ever grows, so nearby days usually share a scale already. PIN SCALE freezes it outright at the tallest bar of the day you are viewing, marked with a dashed line, so every other day is drawn against that one height, and taller bars run off the top instead of moving the axis. Press it again to release. Pins are kept separately for each weighting, bin count and smoothing, because a height only means the same thing under the same settings, and they survive a reload."], ["RAW", "RAW keeps your selected USD or BTC mode, and you can still switch between them. Both use 625 bins and no smoothing (0.00). Y-max is 99.8 in BTC and 100 in USD, and in RAW the left axis fits each day on its own, as it always has: unsmoothed needles would otherwise hold a growing axis up for years. The price axis still only grows. RAW hides the historical BTC price line, removes the price/profit/loss box, and disables the bottom signal. The white dashed spot line remains and follows the selected date. PIN SCALE remains available: press it to fix the axis at the selected day's tallest bar, or press it again to return to the preset percentile. BTC and USD pins are saved separately. Bins, smoothing, and the Y-max input stay locked while RAW is selected. Press RAW again to restore your previous settings."], ["Bottom signal", "When the share of value held at a loss reaches the threshold set in the toolbar, 80 percent by default, a fourth line appears in the spot-price box and the spot line turns yellow. Readings that extreme have historically clustered near cycle lows. That is a pattern in the past, not a rule about the future.", "Signal when Loss% ≥ Threshold"], ["Bins", "The price axis is cut into equal-width buckets from zero to its right-hand end, which is the highest cost basis so far plus a sliver for the smoothing (see Reading the axes). 625 buckets across a 126,000 dollar axis is about 200 dollars each; the dollar width is shown beside the field. Bucket widths change only when the axis grows. Bars are drawn on whole pixels with a one-pixel gap so neighbours stay distinct, and are drawn solid once they would be thinner than two pixels.", "ΔP = price axis end / bins"], ["Smoothing", "The source data is rounded: every coin carries its block's price to the nearest dollar below 100,000 dollars and the nearest ten dollars above, so each recorded price really stands for a small range, and a single large transfer can pile onto one exact figure and throw up a spike that is an artefact of the rounding. Smoothing spreads each recorded price evenly back over the range it was rounded from, then blurs it with a bell curve, the Gaussian, the one blur that never invents a peak or a gap. Its width is a percentage of the price and never less than about four tenths of a bar, and each bar receives exactly its share. 0.24, the default, is how far bitcoin's price typically moves in the few minutes a recorded price can hide, measured over the whole history. 0 gives the raw buckets. Total supply and total value are preserved exactly.", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y-max", "At 100, the default, the left axis ends at the tallest bar so far and only grows (see Reading the axes). A lower value zooms into the day in view instead: the axis ends at that percentile of the day's bar heights, follows the day as you move, and clips what pokes above. An explicit Y-max overrides a pinned scale.", "y-max = tallest bar so far             (at 100)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["Download the video", "The download button (the arrow at the right of the toolbar) downloads the whole history as one video: every day from 3 January 2009 to the latest, with neighbouring days blended so it runs smoothly, 5 minutes at 60 frames a second in 4K (3840 × 2160), about 250 MB. It is drawn in USD with this page's default settings. A GitHub workflow rebuilds it every day, and the day that just ended is in it by about 04:00 UTC. The file is always an .mp4 video from github.com/renshuBTC/URPD-History, and GitHub keeps a signed record of the build that made it, so anyone can check it is genuine. This site never asks you to install anything, connect a wallet or type a seed phrase; anything that does is not this site."], ["Where the data comes from", "Distributions and prices come from the Bitcoin Research Kit, which derives them from a full Bitcoin Core node, served through bitview.space. URPD was introduced by Renato Shirakashi in April 2020. This version adds the daily history and the age colouring."]]},
-  zh: {"title": "如何看懂这张图", "sections": [["先看这里", "向现存的每一枚比特币问同一个问题：你上一次移动时，比特币值多少钱？把答案按价格区间归类，再把各区间的供应量加总，就得到这张图。柱子越高，说明有越多供应最后一次移动发生在那个价位；出现空档，说明几乎没有。它的正式名称是 URPD，即 UTXO 已实现价格分布。"], ["什么是 UTXO", "比特币没有账户余额，它更像口袋里的现金：你手上是一张张钞票，用 20 元付 12 元时，要把整张递出去，再收回 8 元找零。每一张这样的钞票就是一个 UTXO，即未花费交易输出。钱包余额只是你手上这些钞票的总和，而这张图里的每一根柱子都由它们堆叠而成。"], ["为什么每枚币都带着一个价格", "UTXO 诞生在某个区块里，区块带有时间戳，那一刻又对应一个比特币价格。所以今天存在的每一枚币身上都贴着一个价格：它最后一次移动那天的价格。这不是问卷调查，也不是估算，而是链上如实记录的。这个价格就是该币的已实现价格，也叫成本基础，是链上最接近“当前持有者付出了多少”的量。"], ["坐标轴怎么读", "横轴是上面那个贴在币上的价格（美元），不是今天的价格。纵轴是每个价格区间里有多少供应量。两条轴都从零到末端分成二十等份标注，标签取两位有效数字。两条轴都不会按每一天重新缩放：它们停在截至所看那天、数据到达过的最远处，也就是迄今最高的价格和最高的柱子；只有数据越过时才会扩大，而且永远不会缩小。向后推进时，你会看到市场撑大原来的刻度；往回看时，每一天都和当时的样子完全相同，不论你是怎么走到那一天的。BTC 模式下的第一根柱子不参与定轴：它装着所有最后移动价格低于一根柱宽的币，其中约 185 万枚来自比特币价格还不到 0.5 美元的年代，因此会冲出顶部，并在顶端标出它的高度。"], ["颜色：币有多老", "每根柱子由 23 个币龄分层堆成，依据是这枚币静止了多久，一端不到一小时，另一端超过十五年。黄色最新，深蓝最老，中间按对数分级，所以相同的颜色距离对应相同的年龄倍数。颜色沿感知均匀色彩空间（OKLCH）中的一条路径排列，每一级看起来一样大，亮度从新到旧稳定下降，因此在灰度下也能读出顺序；每个分层与深色背景的对比度都不低于 3:1。整根柱子只有一种颜色，说明是单一群体；颜色斑驳，说明这个价位上聚集着好几代持有者。"], ["白线：比特币价格", "比特币自身的价格，按日收盘价绘制。它用的是另一套隐藏坐标：这里的左右方向是时间而不是价格，范围是所选日期之前 275 天到之后 90 天；高度按线性刻度从 0 美元到迄今显示过的最高收盘价，所以这条线填满图表，同样的美元涨跌始终是同样的高度。只有价格创新高时，这个刻度才会扩大。橙色圆点标出所选当天，历史上的周期顶部与底部也已标注。拖动圆点即可在历史中移动。点击图例中的 BTC/USD 可以隐藏这条线。"], ["悬停查看柱子", "把鼠标停在柱子上，可以看到它的价格、该币龄层在那里的数量、整根柱子的合计（最后移动的美元总价值；BTC 模式下为最后移动的 BTC 总供应），以及占总量百分比。最后这一项是累计占比：当天全部供应（USD 模式下为全部价值）中，最后一次在该价格或更低价格移动的部分。相邻柱子之间它上升得越快，那里的供应越密集。", "Percent of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["虚线：当天价格", "所选当天的现价。它左边的供应最后一次移动时比今天便宜，因此处于账面盈利；右边的供应处于账面亏损。方框中给出价格以及这两个比例。", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["大家在看什么", "密集成团的柱子代表大量供应沉淀在那个价位。若它位于今天价格之上，常被解读为上方阻力，理由是当初在那里移动过币的持有者可能在回本附近卖出；若位于下方，同一团柱子则被解读为支撑。宽阔的空档意味着这一段几乎没有供应去减缓价格穿越。这些都应当视为供应分布的地图，而不是价格走向的预测。"], ["这张图不能告诉你什么", "链上的一次移动并不等于一次成交。交易所在内部调拨自有币，用户合并自己的 UTXO，托管方轮换钱包，这些都会以当天价格重新打上标记，却没有买方也没有卖方。反过来同样成立：在交易所内部撮合的成交根本不上链，买卖双方身上的旧标记原封不动。私钥丢失的币则会永远保留它们的标记。请把一根柱子读作“供应最后一次在此移动”，而不是“有人以此价成交”。"], ["在历史中移动", "公开发布的同类图表通常只显示当天。这张图可以逐日回溯整段历史，一直回到 2009-01-03。1D/1W/1M/1Y 设定步长，箭头按钮移动一步，键盘上的左右方向键或 A/D 同样可用。1 到 4 选择步长，Home/End 跳到最早与最新一天，上下方向键或 W/S 在 USD 与 BTC 之间切换。你也可以直接输入日期，或从“周期顶部/底部”中选择某个周期顶部或底部。若按键失灵，在图表上点一下，把焦点从工具栏输入框移开即可。"], ["美元模式与 BTC 模式", "BTC 模式按币的数量计量。USD 模式按它最后一次移动那一刻的美元价值计量，因此一枚在 10 万美元处最后移动的币，远重于同样一枚在 100 美元处移动的币。BTC 模式显示币在哪里，USD 模式显示钱投在哪里。", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nUSD Value at Last Move(P) = P · S(P)"], ["固定刻度 (PIN SCALE)", "左轴只会扩大、不会缩小，所以相近日子的柱子通常已经处在同一刻度上。PIN SCALE 则把左轴直接锁定在当前这一天最高的那根柱子，并用虚线标出，之后其他日期都按这一高度绘制，更高的柱子会冲出顶部，而不会改变刻度。再按一次即可解除。固定值按加权方式、分箱数与平滑度分别保存，因为只有在相同设置下柱高才具有相同含义；刷新页面后依然保留。"], ["RAW", "RAW 保留当前选择的 USD 或 BTC 模式，仍可在两者之间切换。两种模式均固定为 625 分箱和平滑 0.00。Y 轴上限在 BTC 中为 99.8，在 USD 中为 100；在 RAW 中，左轴仍按每一天单独适配，因为未经平滑的尖峰会把只增不减的刻度撑高好几年。价格轴依然只增不减。BTC 历史价格线不显示，价格及盈亏占比框也不显示，底部信号停用。白色当前价格虚线保留，并随所选日期移动。PIN SCALE 仍可使用：点击可将纵轴固定在所选日期最高柱的高度，再次点击恢复预设百分位。BTC 和 USD 的固定刻度分别保存。RAW 开启时分箱、平滑和 Y 轴上限输入框不可修改，再次点击 RAW 即可恢复之前的设置。"], ["底部信号", "当处于亏损的价值占比达到工具栏中设定的阈值（默认 80%）时，现价方框中会多出第四行，现价线也转为黄色。历史上如此极端的读数往往集中出现在周期低点附近。这是过去的规律，不是对未来的保证。", "Signal when Loss% ≥ Threshold"], ["分箱 (Bins)", "价格轴被切成等宽区间，从 0 一直到轴的右端，也就是迄今最高的成本基础，再加上平滑所需的一小段（见“坐标轴怎么读”）。在约 12.6 万美元的轴上分成 625 个区间，每格约 200 美元；每格的美元宽度显示在输入框旁边。只有轴扩大时，区间宽度才会改变。柱子对齐到整像素，相邻之间留出一像素间隙以便区分；当柱宽不足两像素时则实心绘制。", "ΔP = price axis end / bins"], ["平滑 (Smoothing)", "源数据经过取整：每枚币记录的是其区块的价格，10 万美元以下取整到 1 美元，以上取整到 10 美元，所以每个记录的价格其实代表一小段价格；一笔大额转账可能全部压在同一个精确数字上，形成一根由取整造成的假尖峰。平滑先把每个记录的价格均匀摊回它被取整之前的那一小段，再用钟形曲线加以模糊。这条曲线是高斯曲线，唯一不会凭空制造峰或缺口的模糊方式；它的宽度是价格的一个百分比，且不小于约十分之四根柱宽，每根柱子精确地分得属于自己的那一份。默认值 0.24，是在整段历史中，比特币价格在一个记录价格所能掩盖的几分钟内通常移动的幅度。设为 0 则显示原始分箱。总供应量与总价值完全保持不变。", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y 轴上限 (Y-max)", "默认值 100 时，左轴停在迄今最高的柱子，只增不减（见“坐标轴怎么读”）。调低则改为放大当前这一天：轴的上限取当天柱高的该百分位数，随日期变化，超出的部分会被截断。显式设定的 Y-max 优先于已固定的刻度。", "y-max = tallest bar so far             (at 100)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["下载视频", "工具栏右侧的下载按钮（向下的箭头）会把整段历史下载为一个视频：从 2009 年 1 月 3 日到最新一天，相邻日期平滑过渡，时长 5 分钟，每秒 60 帧，4K（3840 × 2160），约 250 MB。视频以美元模式和本页的默认设置绘制，由 GitHub 工作流每天重新生成，刚结束的一天约在 UTC 04:00 前加入。文件始终是来自 github.com/renshuBTC/URPD-History 的 .mp4 视频，GitHub 保存着生成它的那次构建的签名记录，任何人都可以核实它是否为正版。本站从不要求你安装任何软件、连接钱包或输入助记词；凡是这样要求的，都不是本站。"], ["数据来源", "分布与价格数据来自 Bitcoin Research Kit，由完整的 Bitcoin Core 节点推导而来，经 bitview.space 提供。URPD 由 Renato Shirakashi 于 2020 年 4 月提出，本版本在其基础上加入了逐日历史与币龄着色。"]]},
-  ja: {"title": "このチャートの読み方", "sections": [["まずはここから", "いま存在するすべてのビットコインに同じ質問をします。「最後に動いたとき、ビットコインはいくらでしたか」。その答えを価格帯ごとにまとめ、各帯の供給量を合計したものがこのチャートです。棒が高い価格帯は、多くの供給が最後に動いた場所。空白の価格帯は、ほとんど動かなかった場所です。正式には URPD（UTXO 実現価格分布）と呼ばれます。"], ["UTXO とは", "ビットコインに口座残高はありません。仕組みはポケットの中の現金に近く、手元にあるのは一枚ずつの紙幣です。20 ドル札で 12 ドル払うには札ごと渡し、8 ドルをお釣りとして受け取ります。この一枚一枚が UTXO、すなわち未使用トランザクションアウトプットです。ウォレットの残高は手元にある札の合計にすぎず、このチャートの棒はすべてそれを積み上げたものです。"], ["すべてのコインが価格を持つ理由", "UTXO はあるブロックの中で生まれ、そのブロックにはタイムスタンプがあり、その時点にはビットコイン価格があります。つまり今日存在するすべてのコインには価格が刻まれています。最後に動いた日の価格です。アンケートでも推計でもなく、チェーンがそのまま記録しています。この刻まれた価格がそのコインの実現価格、別名コストベーシスで、「現在の保有者がいくら払ったか」にオンチェーンで最も近い値です。"], ["軸の読み方", "横軸はいま説明した「コインに刻まれた価格」（ドル）で、今日の価格ではありません。縦軸は各価格帯にどれだけの供給があるかです。どちらの軸も 0 から端までを 20 等分して目盛りを付け、ラベルは有効数字 2 桁に丸めています。どちらの軸も日ごとに合わせ直すことはしません。表示中の日までにデータが到達した最も遠いところ、つまりそれまでの最高価格と最も高い棒で止まり、データがそこを越えたときだけ広がり、決して縮みません。先へ進めば市場が古い目盛りからはみ出していく様子が見え、戻れば、どうたどり着いても各日が当時とまったく同じ姿で表示されます。BTC モードの最初の棒はこの決定に加えません。最後に動いた価格が棒 1 本分の幅に満たないコインがすべて入っており、そのうち約 185 万 BTC はビットコインが 50 セントを超える前のものです。上端を突き抜けるため、その高さを上端に表示します。"], ["色：コインの古さ", "どの棒も 23 段階の年齢帯を積み重ねたものです。基準はそのコインが動かずにいた期間で、片端は 1 時間未満、もう片端は 15 年超。黄色が新しく、濃い青が古く、その間は対数で刻まれているため、同じ色の隔たりは同じ年齢の倍率にあたります。色は知覚的に均等な色空間（OKLCH）の一本の経路に沿って並び、どの段差も同じ大きさに見えるよう配置され、明るさは新しいものから古いものへ一様に下がるので、グレースケールでも順序が読み取れます。どの帯も暗い背景に対して 3:1 以上のコントラストを保ちます。単色の高い棒は単一の層、色とりどりの高い棒は世代の異なる保有者が重なっている価格です。"], ["白い線：ビットコイン価格", "ビットコイン自身の価格を日足終値で描いたものです。この線だけは別の（非表示の）軸を使っており、左右方向は価格ではなく時間で、選択日の 275 日前から 90 日後までを表します。高さは 0 ドルからそれまでに表示された最高終値までの線形目盛りなので、線はチャートいっぱいに広がり、同じドル幅の値動きは常に同じ高さになります。この目盛りが広がるのは価格が高値を更新したときだけです。オレンジの点が選択日で、過去のサイクル天井と大底も示してあります。点をドラッグすれば履歴をたどれます。凡例の BTC/USD をクリックすると線を隠せます。"], ["棒にカーソルを合わせる", "棒にカーソルを合わせると、その価格、その年齢帯がそこに持つ量、棒全体の合計（最終移動 USD 評価額の合計。BTC モードでは最終移動 BTC 供給量の合計）、そして全体に占める割合が表示されます。最後の値は累計の割合で、その日の供給全体（USD モードでは価値全体）のうち、その価格以下で最後に動いた部分です。棒から棒へ急に増えるところは供給が密集しています。", "Percent of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["破線：その日の価格", "選択した日の現在値です。その左側の供給は今日より安く最後に動いたので含み益、右側は含み損の状態です。ボックスに価格と両方の割合が出ます。", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["何を読み取るのか", "棒が厚く固まっている価格は、多くの供給が滞留した場所です。今日の価格より上にあれば、そこで最後に動かした保有者が損益分岐付近で売るかもしれない、という理由から上値抵抗と読まれることが多く、下にあれば同じ塊が支持と読まれます。広い空白は、値動きを鈍らせる供給が乏しい区間です。いずれも供給の分布図であって、価格の予測ではありません。"], ["このチャートで分からないこと", "オンチェーンの移動が必ず売買とは限りません。取引所が自社のコインを動かし、利用者が自分の UTXO をまとめ、カストディアンがウォレットを入れ替える。そのたびにコインはその日の価格で刻み直されますが、買い手も売り手もいません。逆もまた同じで、取引所の内部で約定した取引はチェーンに触れないため、双方とも古い刻印のままです。鍵を失ったコインは永遠にその刻印を保ちます。棒は「供給が最後にここで動いた」ことを示すもので、「誰かがこの値段で買った」証拠ではありません。"], ["履歴をたどる", "公開されている同種のチャートは通常その日だけを表示します。これは 2009-01-03 まで一日ずつさかのぼれます。1D/1W/1M/1Y が刻み幅、矢印ボタンが 1 刻みの移動で、キーボードの左右または A/D でも同じ操作ができます。1〜4 で刻み幅を選び、Home/End で最初と最後の日へ飛び、上下または W/S で USD と BTC を切り替えます。日付を直接入力するか、天井/大底からサイクルの天井・大底を選ぶこともできます。キーが効かなくなったら、チャートを一度クリックしてツールバーの入力欄からフォーカスを外してください。"], ["USD モードと BTC モード", "BTC はコインをビットコインの量で数えます。USD は最後に動いた時点のドル価値で数えるため、10 万ドルで最後に動いた 1 枚は、同じ 1 枚でも 100 ドルで動いたものよりはるかに重くなります。BTC はコインの在処を、USD は資金の入った場所を示します。", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nUSD Value at Last Move(P) = P · S(P)"], ["スケール固定 (PIN SCALE)", "左軸は広がるだけで縮まないため、近い日どうしはたいてい同じ目盛りで比べられます。PIN SCALE はさらに、表示中の日の最も高い棒で左軸をそのまま固定し、破線で示します。以後どの日もその高さを基準に描かれ、それより高い棒は軸を動かさずに上端を突き抜けます。もう一度押せば解除されます。固定値は重み付け・ビン数・スムージングごとに別々に保存されます。高さが同じ意味を持つのは設定が同じときだけだからです。再読み込みしても残ります。"], ["RAW", "RAW は選択中の USD または BTC モードを維持し、両者は引き続き切り替えられます。どちらも 625 ビン、平滑化 0.00 に固定されます。Y軸上限は BTC が 99.8、USD が 100 で、RAW では左軸を従来どおり日ごとに合わせます。平滑化しない針のような棒が、広がるだけの軸を何年も押し上げてしまうためです。価格軸は RAW でも広がるだけです。BTC の過去価格線、価格と含み益・含み損のボックスを非表示にし、ボトムシグナルを無効にします。白い破線の現在価格線は残り、選択した日付に合わせて移動します。PIN SCALE は使用できます。押すと選択日の最も高い棒で軸を固定し、もう一度押すと既定のパーセンタイルに戻ります。BTC と USD の固定値は別々に保存されます。RAW の間はビン数・平滑化・Y軸上限の入力を変更できません。もう一度 RAW を押すと以前の設定に戻ります。"], ["ボトムシグナル", "含み損の価値の割合がツールバーで設定したしきい値（既定 80%）に達すると、現在値ボックスに 4 行目が現れ、現在値の線が黄色に変わります。これほど極端な値は、歴史的にはサイクルの底の近くに集まってきました。過去の傾向であって、将来の法則ではありません。", "Signal when Loss% ≥ Threshold"], ["ビン (Bins)", "価格軸は 0 から右端まで等幅に区切られます。右端はそれまでの最高コストベーシスに、スムージングの分をわずかに足したところです（「軸の読み方」を参照）。約 12.6 万ドルの軸を 625 分割すれば 1 区間は約 200 ドル。ドル幅は入力欄の横に表示されます。区間の幅が変わるのは軸が広がったときだけです。棒はピクセル単位に揃え、隣とは 1 ピクセル空けて描き分けますが、幅が 2 ピクセルを切る場合は塗りつぶしで描きます。", "ΔP = price axis end / bins"], ["スムージング (Smoothing)", "元データは丸められています。各コインにはブロックの価格が、10 万ドル未満は 1 ドル単位、以上は 10 ドル単位で記録されているため、記録された一つの価格は実際には小さな価格幅を表します。大口の送金ひとつが同じ数字に集中すると、丸めが生んだだけの尖りが現れます。スムージングは記録された各価格を、丸められる前の幅に均等に戻したうえで、ベル型の曲線でぼかします。これはガウス曲線で、山や谷を新たに作り出さない唯一のぼかし方です。幅は価格に対する割合で、棒の幅のおよそ 10 分の 4 を下回らず、各棒には自分の取り分が正確に配分されます。既定値の 0.24 は、記録された一つの価格に隠れうる数分の間にビットコイン価格が通常動く幅を、全履歴にわたって測ったものです。0 にすると生のビンになります。総供給量と総額は厳密に保たれます。", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y軸上限 (Y-max)", "既定の 100 では、左軸はそれまでで最も高い棒で止まり、広がるだけです（「軸の読み方」を参照）。値を下げると、表示中の日を拡大する表示に切り替わります。軸の上限はその日の棒の高さのそのパーセンタイルになり、日付に合わせて変わり、はみ出した分は切り取られます。明示した Y-max は固定スケールより優先されます。", "y-max = tallest bar so far             (at 100)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["動画のダウンロード", "ツールバー右側のダウンロードボタン（下向きの矢印）で全期間を 1 本の動画としてダウンロードできます。2009年1月3日から最新日まで、隣り合う日をなめらかにつなぎ、5分・毎秒60フレーム・4K（3840 × 2160）、約250MB です。USD モードと本ページの既定の設定で描かれ、GitHub のワークフローが毎日作り直します。終わったばかりの日は UTC 04:00 頃までに追加されます。ファイルは常に github.com/renshuBTC/URPD-History から配信される .mp4 動画で、それを作ったビルドの署名付き記録を GitHub が保管しているため、誰でも本物かどうかを確認できます。このサイトがソフトのインストール、ウォレットの接続、シードフレーズの入力を求めることは決してありません。求めてくるものは、このサイトではありません。"], ["データの出所", "分布と価格は Bitcoin Research Kit によるもので、フルの Bitcoin Core ノードから導出され、bitview.space 経由で提供されています。URPD は 2020 年 4 月に Renato Shirakashi 氏が考案しました。本版はそこに日次の履歴と年齢による配色を加えたものです。"]]}
+  en: {"title": "How to read this chart", "sections": [["Start here", "Ask every bitcoin in existence one question: what was bitcoin worth the last time you moved? Sort the answers into price buckets and add up the supply in each. That is this chart. A tall bar is a price where a lot of supply last changed position. A gap is a price where almost none did. The formal name for it is URPD, the UTXO Realised Price Distribution."], ["What a UTXO is", "Bitcoin has no account balances. It works like cash in a pocket: you hold separate notes, and to pay 12 dollars with a 20 you hand over the whole note and take 8 back as change. Each note is a UTXO, an Unspent Transaction Output. Your wallet balance is only the sum of the notes you happen to hold, and every bar on this chart is built out of them."], ["Why every coin carries a price", "A UTXO is created inside a block, that block has a timestamp, and that moment has a bitcoin price. So every coin alive today has a price attached to it: the price on the day it last moved. Nothing is surveyed or estimated, the chain records it. That attached price is the coin's realised price, also called its cost basis. It is the closest thing on-chain to what the current holder paid."], ["Reading the axes", "Along the bottom is that attached price in dollars, not today's price. Up the left is how much supply sits in each price bucket. Both axes are marked at twenty equal steps from zero to their very end, with the labels rounded to two significant figures. Neither axis is refitted to each day. Each ends at the furthest the data had reached by the day you are viewing, the highest price and the tallest bar so far, grows only when the data goes past it, and never shrinks. Moving forward you watch the market outgrow the old scale; moving back you see every day exactly as it looked at the time, however you got there. In BTC mode the first bar is left out of this: it holds every coin last moved for less than one bar's width, about 1.85M BTC of it from before bitcoin traded above 50 cents, so it runs off the top with its height printed there."], ["The colours: how old the coins are", "Every bar is stacked out of 23 age bands, set by how long the coin has sat unmoved: under an hour at one end, over fifteen years at the other. Yellow is fresh, deep blue is ancient, and the steps between are logarithmic, so equal colour distance is equal multiples of age. The colours follow one path through a perceptual colour space (OKLCH), spaced so that every step looks the same size, with brightness falling steadily from young to old, so the order still reads in greyscale, and every band keeps at least 3:1 contrast against the dark background. A tall bar in one colour is a single cohort. A tall bar in many colours is a price that generations of holders share."], ["The white line: bitcoin's price", "Bitcoin's own price, as daily closes. It has its own hidden axes: left to right is time here rather than price, running from 275 days before the selected day to 90 days after it, and the height runs linearly from $0 to the highest close shown so far, so the line fills the chart and the same dollar move is always the same height. That scale grows only when the price makes a new high. The orange dot sits on the selected day and past cycle tops and bottoms are marked. Drag the dot to move through history. Click BTC/USD in the legend to hide the line."], ["Hovering a bar", "Hover over a bar to read its price, what its age band holds there, the whole bar's total (Total USD Value Last Moved, or Total BTC Supply Last Moved in BTC mode) and Percent of Total. That last one is a running share: of all the day's supply, or value in USD mode, the part that last moved at or below this price. Where it climbs quickly from bar to bar, supply is dense.", "Percent of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["The dashed line: today's price", "The spot price on the selected day. Supply to its left last moved cheaper than today, so it is held at a paper profit. Supply to its right is held at a paper loss. The box gives the price and both shares.", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["What people look for", "A thick cluster of bars marks a price where a lot of supply settled. Above today's price such a cluster is often read as overhead resistance, on the reasoning that holders who last moved coins there may sell near break-even. Below today's price the same cluster is read as support. A wide gap is a stretch with little supply to slow a move through it. Treat all of it as a map of where supply sits, not a forecast of where price goes."], ["What this chart cannot tell you", "A coin moving on-chain is not always a sale. Exchanges shuffle their own coins, people consolidate their own UTXOs, custodians rotate wallets, and each of those restamps coins at that day's price with no buyer and no seller. The reverse is also true: a trade matched inside an exchange never touches the chain, so both sides keep their old stamp. Coins whose keys are lost keep theirs forever. Read a bar as supply that last moved here, not as proof that someone paid this."], ["Moving through time", "Published versions of this chart usually show only today. This one steps through the whole history, day by day, back to 2009-01-03. 1D/1W/1M/1Y sets the step size and the arrow buttons move one step; Left and Right or A and D do the same from the keyboard. 1 to 4 pick the step size, Home and End jump to the first and last day, and Up and Down or W and S switch between USD and BTC. You can also type a date, or pick a cycle top or bottom from CYCLE TOP/BTM. If the keys stop responding, click the chart once to take focus off a toolbar field."], ["USD mode and BTC mode", "BTC counts each coin by how much bitcoin it is. USD counts it by what it was worth in dollars at the moment it last moved, so one coin last moved at 100,000 dollars outweighs the same coin last moved at 100. BTC shows where the coins are. USD shows where the money went in.", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nUSD Value at Last Move(P) = P · S(P)"], ["Pin scale", "The left axis only ever grows, so nearby days usually share a scale already. PIN SCALE freezes it outright at the tallest bar of the day you are viewing, marked with a dashed line, so every other day is drawn against that one height, and taller bars run off the top instead of moving the axis. Press it again to release. Pins are kept separately for each weighting, bin count and smoothing, because a height only means the same thing under the same settings, and they survive a reload."], ["RAW", "RAW keeps your selected USD or BTC mode, and you can still switch between them. Both use 625 bins and no smoothing (0.00). Y-max is 99.8 in BTC and 100 in USD, and in RAW the left axis fits each day on its own, as it always has: unsmoothed needles would otherwise hold a growing axis up for years. The price axis still only grows. RAW hides the historical BTC price line, removes the price/profit/loss box, and disables the bottom signal. The white dashed spot line remains and follows the selected date. PIN SCALE remains available: press it to fix the axis at the selected day's tallest bar, or press it again to return to the preset percentile. BTC and USD pins are saved separately. Bins, smoothing, and the Y-max input stay locked while RAW is selected. Press RAW again to restore your previous settings."], ["Bottom signal", "When the share of value held at a loss reaches the threshold set in the toolbar, 80 percent by default, a fourth line appears in the spot-price box and the spot line turns yellow. Readings that extreme have historically clustered near cycle lows. That is a pattern in the past, not a rule about the future.", "Signal when Loss% ≥ Threshold"], ["Bins", "The price axis is cut into equal-width buckets from zero to its right-hand end, which is the highest cost basis so far plus a sliver for the smoothing (see Reading the axes). 625 buckets across a 126,000 dollar axis is about 200 dollars each; the dollar width is shown beside the field. Bucket widths change only when the axis grows. Bars are drawn on whole pixels with a one-pixel gap so neighbours stay distinct, and are drawn solid once they would be thinner than two pixels.", "ΔP = price axis end / bins"], ["Smoothing", "The source data is rounded: every coin carries its block's price to the nearest dollar below 100,000 dollars and the nearest ten dollars above, so each recorded price really stands for a small range, and a single large transfer can pile onto one exact figure and throw up a spike that is an artefact of the rounding. Smoothing spreads each recorded price evenly back over the range it was rounded from, then blurs it with a bell curve, the Gaussian, the one blur that never invents a peak or a gap. Its width is a percentage of the price and never less than about four tenths of a bar, and each bar receives exactly its share. 0.24, the default, is how far bitcoin's price typically moves in the few minutes a recorded price can hide, measured over the whole history. 0 gives the raw buckets. Total supply and total value are preserved exactly.", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y-max", "At 100, the default, the left axis ends at the tallest bar so far and only grows (see Reading the axes). A lower value zooms into the day in view instead: the axis ends at that percentile of the day's bar heights, follows the day as you move, and clips what pokes above. An explicit Y-max overrides a pinned scale.", "y-max = tallest bar so far             (at 100)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["Download the video", "The download button (the arrow at the right of the toolbar) downloads the whole history as one video: every day from 18 May 2010, when the first bitcoin price comes onto the chart (it is empty before that), to the latest, with neighbouring days blended so it runs smoothly, 5 minutes at 60 frames a second in 4K (3840 × 2160), about 250 MB. It is drawn in USD with this page's default settings. A GitHub workflow rebuilds it every day, and the day that just ended is usually in it by about 04:00 UTC. The file is always an .mp4 video from github.com/renshuBTC/URPD-History, and GitHub keeps a signed record of the build that made it, so anyone can check it is genuine. This site never asks you to install anything, connect a wallet or type a seed phrase; anything that does is not this site."], ["Where the data comes from", "Distributions and prices come from the Bitcoin Research Kit, which derives them from a full Bitcoin Core node, served through bitview.space. URPD was introduced by Renato Shirakashi in April 2020. This version adds the daily history and the age colouring."]]},
+  zh: {"title": "如何看懂这张图", "sections": [["先看这里", "向现存的每一枚比特币问同一个问题：你上一次移动时，比特币值多少钱？把答案按价格区间归类，再把各区间的供应量加总，就得到这张图。柱子越高，说明有越多供应最后一次移动发生在那个价位；出现空档，说明几乎没有。它的正式名称是 URPD，即 UTXO 已实现价格分布。"], ["什么是 UTXO", "比特币没有账户余额，它更像口袋里的现金：你手上是一张张钞票，用 20 元付 12 元时，要把整张递出去，再收回 8 元找零。每一张这样的钞票就是一个 UTXO，即未花费交易输出。钱包余额只是你手上这些钞票的总和，而这张图里的每一根柱子都由它们堆叠而成。"], ["为什么每枚币都带着一个价格", "UTXO 诞生在某个区块里，区块带有时间戳，那一刻又对应一个比特币价格。所以今天存在的每一枚币身上都贴着一个价格：它最后一次移动那天的价格。这不是问卷调查，也不是估算，而是链上如实记录的。这个价格就是该币的已实现价格，也叫成本基础，是链上最接近“当前持有者付出了多少”的量。"], ["坐标轴怎么读", "横轴是上面那个贴在币上的价格（美元），不是今天的价格。纵轴是每个价格区间里有多少供应量。两条轴都从零到末端分成二十等份标注，标签取两位有效数字。两条轴都不会按每一天重新缩放：它们停在截至所看那天、数据到达过的最远处，也就是迄今最高的价格和最高的柱子；只有数据越过时才会扩大，而且永远不会缩小。向后推进时，你会看到市场撑大原来的刻度；往回看时，每一天都和当时的样子完全相同，不论你是怎么走到那一天的。BTC 模式下的第一根柱子不参与定轴：它装着所有最后移动价格低于一根柱宽的币，其中约 185 万枚来自比特币价格还不到 0.5 美元的年代，因此会冲出顶部，并在顶端标出它的高度。"], ["颜色：币有多老", "每根柱子由 23 个币龄分层堆成，依据是这枚币静止了多久，一端不到一小时，另一端超过十五年。黄色最新，深蓝最老，中间按对数分级，所以相同的颜色距离对应相同的年龄倍数。颜色沿感知均匀色彩空间（OKLCH）中的一条路径排列，每一级看起来一样大，亮度从新到旧稳定下降，因此在灰度下也能读出顺序；每个分层与深色背景的对比度都不低于 3:1。整根柱子只有一种颜色，说明是单一群体；颜色斑驳，说明这个价位上聚集着好几代持有者。"], ["白线：比特币价格", "比特币自身的价格，按日收盘价绘制。它用的是另一套隐藏坐标：这里的左右方向是时间而不是价格，范围是所选日期之前 275 天到之后 90 天；高度按线性刻度从 0 美元到迄今显示过的最高收盘价，所以这条线填满图表，同样的美元涨跌始终是同样的高度。只有价格创新高时，这个刻度才会扩大。橙色圆点标出所选当天，历史上的周期顶部与底部也已标注。拖动圆点即可在历史中移动。点击图例中的 BTC/USD 可以隐藏这条线。"], ["悬停查看柱子", "把鼠标停在柱子上，可以看到它的价格、该币龄层在那里的数量、整根柱子的合计（最后移动的美元总价值；BTC 模式下为最后移动的 BTC 总供应），以及占总量百分比。最后这一项是累计占比：当天全部供应（USD 模式下为全部价值）中，最后一次在该价格或更低价格移动的部分。相邻柱子之间它上升得越快，那里的供应越密集。", "Percent of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["虚线：当天价格", "所选当天的现价。它左边的供应最后一次移动时比今天便宜，因此处于账面盈利；右边的供应处于账面亏损。方框中给出价格以及这两个比例。", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["大家在看什么", "密集成团的柱子代表大量供应沉淀在那个价位。若它位于今天价格之上，常被解读为上方阻力，理由是当初在那里移动过币的持有者可能在回本附近卖出；若位于下方，同一团柱子则被解读为支撑。宽阔的空档意味着这一段几乎没有供应去减缓价格穿越。这些都应当视为供应分布的地图，而不是价格走向的预测。"], ["这张图不能告诉你什么", "链上的一次移动并不等于一次成交。交易所在内部调拨自有币，用户合并自己的 UTXO，托管方轮换钱包，这些都会以当天价格重新打上标记，却没有买方也没有卖方。反过来同样成立：在交易所内部撮合的成交根本不上链，买卖双方身上的旧标记原封不动。私钥丢失的币则会永远保留它们的标记。请把一根柱子读作“供应最后一次在此移动”，而不是“有人以此价成交”。"], ["在历史中移动", "公开发布的同类图表通常只显示当天。这张图可以逐日回溯整段历史，一直回到 2009-01-03。1D/1W/1M/1Y 设定步长，箭头按钮移动一步，键盘上的左右方向键或 A/D 同样可用。1 到 4 选择步长，Home/End 跳到最早与最新一天，上下方向键或 W/S 在 USD 与 BTC 之间切换。你也可以直接输入日期，或从“周期顶部/底部”中选择某个周期顶部或底部。若按键失灵，在图表上点一下，把焦点从工具栏输入框移开即可。"], ["美元模式与 BTC 模式", "BTC 模式按币的数量计量。USD 模式按它最后一次移动那一刻的美元价值计量，因此一枚在 10 万美元处最后移动的币，远重于同样一枚在 100 美元处移动的币。BTC 模式显示币在哪里，USD 模式显示钱投在哪里。", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nUSD Value at Last Move(P) = P · S(P)"], ["固定刻度 (PIN SCALE)", "左轴只会扩大、不会缩小，所以相近日子的柱子通常已经处在同一刻度上。PIN SCALE 则把左轴直接锁定在当前这一天最高的那根柱子，并用虚线标出，之后其他日期都按这一高度绘制，更高的柱子会冲出顶部，而不会改变刻度。再按一次即可解除。固定值按加权方式、分箱数与平滑度分别保存，因为只有在相同设置下柱高才具有相同含义；刷新页面后依然保留。"], ["RAW", "RAW 保留当前选择的 USD 或 BTC 模式，仍可在两者之间切换。两种模式均固定为 625 分箱和平滑 0.00。Y 轴上限在 BTC 中为 99.8，在 USD 中为 100；在 RAW 中，左轴仍按每一天单独适配，因为未经平滑的尖峰会把只增不减的刻度撑高好几年。价格轴依然只增不减。BTC 历史价格线不显示，价格及盈亏占比框也不显示，底部信号停用。白色当前价格虚线保留，并随所选日期移动。PIN SCALE 仍可使用：点击可将纵轴固定在所选日期最高柱的高度，再次点击恢复预设百分位。BTC 和 USD 的固定刻度分别保存。RAW 开启时分箱、平滑和 Y 轴上限输入框不可修改，再次点击 RAW 即可恢复之前的设置。"], ["底部信号", "当处于亏损的价值占比达到工具栏中设定的阈值（默认 80%）时，现价方框中会多出第四行，现价线也转为黄色。历史上如此极端的读数往往集中出现在周期低点附近。这是过去的规律，不是对未来的保证。", "Signal when Loss% ≥ Threshold"], ["分箱 (Bins)", "价格轴被切成等宽区间，从 0 一直到轴的右端，也就是迄今最高的成本基础，再加上平滑所需的一小段（见“坐标轴怎么读”）。在约 12.6 万美元的轴上分成 625 个区间，每格约 200 美元；每格的美元宽度显示在输入框旁边。只有轴扩大时，区间宽度才会改变。柱子对齐到整像素，相邻之间留出一像素间隙以便区分；当柱宽不足两像素时则实心绘制。", "ΔP = price axis end / bins"], ["平滑 (Smoothing)", "源数据经过取整：每枚币记录的是其区块的价格，10 万美元以下取整到 1 美元，以上取整到 10 美元，所以每个记录的价格其实代表一小段价格；一笔大额转账可能全部压在同一个精确数字上，形成一根由取整造成的假尖峰。平滑先把每个记录的价格均匀摊回它被取整之前的那一小段，再用钟形曲线加以模糊。这条曲线是高斯曲线，唯一不会凭空制造峰或缺口的模糊方式；它的宽度是价格的一个百分比，且不小于约十分之四根柱宽，每根柱子精确地分得属于自己的那一份。默认值 0.24，是在整段历史中，比特币价格在一个记录价格所能掩盖的几分钟内通常移动的幅度。设为 0 则显示原始分箱。总供应量与总价值完全保持不变。", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y 轴上限 (Y-max)", "默认值 100 时，左轴停在迄今最高的柱子，只增不减（见“坐标轴怎么读”）。调低则改为放大当前这一天：轴的上限取当天柱高的该百分位数，随日期变化，超出的部分会被截断。显式设定的 Y-max 优先于已固定的刻度。", "y-max = tallest bar so far             (at 100)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["下载视频", "工具栏右侧的下载按钮（向下的箭头）会把整段历史下载为一个视频：从 2010 年 5 月 18 日（第一个比特币价格出现在图上，此前图表是空的）到最新一天，相邻日期平滑过渡，时长 5 分钟，每秒 60 帧，4K（3840 × 2160），约 250 MB。视频以美元模式和本页的默认设置绘制，由 GitHub 工作流每天重新生成，刚结束的一天通常约在 UTC 04:00 前加入。文件始终是来自 github.com/renshuBTC/URPD-History 的 .mp4 视频，GitHub 保存着生成它的那次构建的签名记录，任何人都可以核实它是否为正版。本站从不要求你安装任何软件、连接钱包或输入助记词；凡是这样要求的，都不是本站。"], ["数据来源", "分布与价格数据来自 Bitcoin Research Kit，由完整的 Bitcoin Core 节点推导而来，经 bitview.space 提供。URPD 由 Renato Shirakashi 于 2020 年 4 月提出，本版本在其基础上加入了逐日历史与币龄着色。"]]},
+  ja: {"title": "このチャートの読み方", "sections": [["まずはここから", "いま存在するすべてのビットコインに同じ質問をします。「最後に動いたとき、ビットコインはいくらでしたか」。その答えを価格帯ごとにまとめ、各帯の供給量を合計したものがこのチャートです。棒が高い価格帯は、多くの供給が最後に動いた場所。空白の価格帯は、ほとんど動かなかった場所です。正式には URPD（UTXO 実現価格分布）と呼ばれます。"], ["UTXO とは", "ビットコインに口座残高はありません。仕組みはポケットの中の現金に近く、手元にあるのは一枚ずつの紙幣です。20 ドル札で 12 ドル払うには札ごと渡し、8 ドルをお釣りとして受け取ります。この一枚一枚が UTXO、すなわち未使用トランザクションアウトプットです。ウォレットの残高は手元にある札の合計にすぎず、このチャートの棒はすべてそれを積み上げたものです。"], ["すべてのコインが価格を持つ理由", "UTXO はあるブロックの中で生まれ、そのブロックにはタイムスタンプがあり、その時点にはビットコイン価格があります。つまり今日存在するすべてのコインには価格が刻まれています。最後に動いた日の価格です。アンケートでも推計でもなく、チェーンがそのまま記録しています。この刻まれた価格がそのコインの実現価格、別名コストベーシスで、「現在の保有者がいくら払ったか」にオンチェーンで最も近い値です。"], ["軸の読み方", "横軸はいま説明した「コインに刻まれた価格」（ドル）で、今日の価格ではありません。縦軸は各価格帯にどれだけの供給があるかです。どちらの軸も 0 から端までを 20 等分して目盛りを付け、ラベルは有効数字 2 桁に丸めています。どちらの軸も日ごとに合わせ直すことはしません。表示中の日までにデータが到達した最も遠いところ、つまりそれまでの最高価格と最も高い棒で止まり、データがそこを越えたときだけ広がり、決して縮みません。先へ進めば市場が古い目盛りからはみ出していく様子が見え、戻れば、どうたどり着いても各日が当時とまったく同じ姿で表示されます。BTC モードの最初の棒はこの決定に加えません。最後に動いた価格が棒 1 本分の幅に満たないコインがすべて入っており、そのうち約 185 万 BTC はビットコインが 50 セントを超える前のものです。上端を突き抜けるため、その高さを上端に表示します。"], ["色：コインの古さ", "どの棒も 23 段階の年齢帯を積み重ねたものです。基準はそのコインが動かずにいた期間で、片端は 1 時間未満、もう片端は 15 年超。黄色が新しく、濃い青が古く、その間は対数で刻まれているため、同じ色の隔たりは同じ年齢の倍率にあたります。色は知覚的に均等な色空間（OKLCH）の一本の経路に沿って並び、どの段差も同じ大きさに見えるよう配置され、明るさは新しいものから古いものへ一様に下がるので、グレースケールでも順序が読み取れます。どの帯も暗い背景に対して 3:1 以上のコントラストを保ちます。単色の高い棒は単一の層、色とりどりの高い棒は世代の異なる保有者が重なっている価格です。"], ["白い線：ビットコイン価格", "ビットコイン自身の価格を日足終値で描いたものです。この線だけは別の（非表示の）軸を使っており、左右方向は価格ではなく時間で、選択日の 275 日前から 90 日後までを表します。高さは 0 ドルからそれまでに表示された最高終値までの線形目盛りなので、線はチャートいっぱいに広がり、同じドル幅の値動きは常に同じ高さになります。この目盛りが広がるのは価格が高値を更新したときだけです。オレンジの点が選択日で、過去のサイクル天井と大底も示してあります。点をドラッグすれば履歴をたどれます。凡例の BTC/USD をクリックすると線を隠せます。"], ["棒にカーソルを合わせる", "棒にカーソルを合わせると、その価格、その年齢帯がそこに持つ量、棒全体の合計（最終移動 USD 評価額の合計。BTC モードでは最終移動 BTC 供給量の合計）、そして全体に占める割合が表示されます。最後の値は累計の割合で、その日の供給全体（USD モードでは価値全体）のうち、その価格以下で最後に動いた部分です。棒から棒へ急に増えるところは供給が密集しています。", "Percent of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["破線：その日の価格", "選択した日の現在値です。その左側の供給は今日より安く最後に動いたので含み益、右側は含み損の状態です。ボックスに価格と両方の割合が出ます。", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["何を読み取るのか", "棒が厚く固まっている価格は、多くの供給が滞留した場所です。今日の価格より上にあれば、そこで最後に動かした保有者が損益分岐付近で売るかもしれない、という理由から上値抵抗と読まれることが多く、下にあれば同じ塊が支持と読まれます。広い空白は、値動きを鈍らせる供給が乏しい区間です。いずれも供給の分布図であって、価格の予測ではありません。"], ["このチャートで分からないこと", "オンチェーンの移動が必ず売買とは限りません。取引所が自社のコインを動かし、利用者が自分の UTXO をまとめ、カストディアンがウォレットを入れ替える。そのたびにコインはその日の価格で刻み直されますが、買い手も売り手もいません。逆もまた同じで、取引所の内部で約定した取引はチェーンに触れないため、双方とも古い刻印のままです。鍵を失ったコインは永遠にその刻印を保ちます。棒は「供給が最後にここで動いた」ことを示すもので、「誰かがこの値段で買った」証拠ではありません。"], ["履歴をたどる", "公開されている同種のチャートは通常その日だけを表示します。これは 2009-01-03 まで一日ずつさかのぼれます。1D/1W/1M/1Y が刻み幅、矢印ボタンが 1 刻みの移動で、キーボードの左右または A/D でも同じ操作ができます。1〜4 で刻み幅を選び、Home/End で最初と最後の日へ飛び、上下または W/S で USD と BTC を切り替えます。日付を直接入力するか、天井/大底からサイクルの天井・大底を選ぶこともできます。キーが効かなくなったら、チャートを一度クリックしてツールバーの入力欄からフォーカスを外してください。"], ["USD モードと BTC モード", "BTC はコインをビットコインの量で数えます。USD は最後に動いた時点のドル価値で数えるため、10 万ドルで最後に動いた 1 枚は、同じ 1 枚でも 100 ドルで動いたものよりはるかに重くなります。BTC はコインの在処を、USD は資金の入った場所を示します。", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nUSD Value at Last Move(P) = P · S(P)"], ["スケール固定 (PIN SCALE)", "左軸は広がるだけで縮まないため、近い日どうしはたいてい同じ目盛りで比べられます。PIN SCALE はさらに、表示中の日の最も高い棒で左軸をそのまま固定し、破線で示します。以後どの日もその高さを基準に描かれ、それより高い棒は軸を動かさずに上端を突き抜けます。もう一度押せば解除されます。固定値は重み付け・ビン数・スムージングごとに別々に保存されます。高さが同じ意味を持つのは設定が同じときだけだからです。再読み込みしても残ります。"], ["RAW", "RAW は選択中の USD または BTC モードを維持し、両者は引き続き切り替えられます。どちらも 625 ビン、平滑化 0.00 に固定されます。Y軸上限は BTC が 99.8、USD が 100 で、RAW では左軸を従来どおり日ごとに合わせます。平滑化しない針のような棒が、広がるだけの軸を何年も押し上げてしまうためです。価格軸は RAW でも広がるだけです。BTC の過去価格線、価格と含み益・含み損のボックスを非表示にし、ボトムシグナルを無効にします。白い破線の現在価格線は残り、選択した日付に合わせて移動します。PIN SCALE は使用できます。押すと選択日の最も高い棒で軸を固定し、もう一度押すと既定のパーセンタイルに戻ります。BTC と USD の固定値は別々に保存されます。RAW の間はビン数・平滑化・Y軸上限の入力を変更できません。もう一度 RAW を押すと以前の設定に戻ります。"], ["ボトムシグナル", "含み損の価値の割合がツールバーで設定したしきい値（既定 80%）に達すると、現在値ボックスに 4 行目が現れ、現在値の線が黄色に変わります。これほど極端な値は、歴史的にはサイクルの底の近くに集まってきました。過去の傾向であって、将来の法則ではありません。", "Signal when Loss% ≥ Threshold"], ["ビン (Bins)", "価格軸は 0 から右端まで等幅に区切られます。右端はそれまでの最高コストベーシスに、スムージングの分をわずかに足したところです（「軸の読み方」を参照）。約 12.6 万ドルの軸を 625 分割すれば 1 区間は約 200 ドル。ドル幅は入力欄の横に表示されます。区間の幅が変わるのは軸が広がったときだけです。棒はピクセル単位に揃え、隣とは 1 ピクセル空けて描き分けますが、幅が 2 ピクセルを切る場合は塗りつぶしで描きます。", "ΔP = price axis end / bins"], ["スムージング (Smoothing)", "元データは丸められています。各コインにはブロックの価格が、10 万ドル未満は 1 ドル単位、以上は 10 ドル単位で記録されているため、記録された一つの価格は実際には小さな価格幅を表します。大口の送金ひとつが同じ数字に集中すると、丸めが生んだだけの尖りが現れます。スムージングは記録された各価格を、丸められる前の幅に均等に戻したうえで、ベル型の曲線でぼかします。これはガウス曲線で、山や谷を新たに作り出さない唯一のぼかし方です。幅は価格に対する割合で、棒の幅のおよそ 10 分の 4 を下回らず、各棒には自分の取り分が正確に配分されます。既定値の 0.24 は、記録された一つの価格に隠れうる数分の間にビットコイン価格が通常動く幅を、全履歴にわたって測ったものです。0 にすると生のビンになります。総供給量と総額は厳密に保たれます。", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y軸上限 (Y-max)", "既定の 100 では、左軸はそれまでで最も高い棒で止まり、広がるだけです（「軸の読み方」を参照）。値を下げると、表示中の日を拡大する表示に切り替わります。軸の上限はその日の棒の高さのそのパーセンタイルになり、日付に合わせて変わり、はみ出した分は切り取られます。明示した Y-max は固定スケールより優先されます。", "y-max = tallest bar so far             (at 100)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["動画のダウンロード", "ツールバー右側のダウンロードボタン（下向きの矢印）で全期間を 1 本の動画としてダウンロードできます。最初のビットコイン価格がチャートに現れる2010年5月18日（それ以前のチャートは空です）から最新日まで、隣り合う日をなめらかにつなぎ、5分・毎秒60フレーム・4K（3840 × 2160）、約250MB です。USD モードと本ページの既定の設定で描かれ、GitHub のワークフローが毎日作り直します。終わったばかりの日は通常 UTC 04:00 頃までに追加されます。ファイルは常に github.com/renshuBTC/URPD-History から配信される .mp4 動画で、それを作ったビルドの署名付き記録を GitHub が保管しているため、誰でも本物かどうかを確認できます。このサイトがソフトのインストール、ウォレットの接続、シードフレーズの入力を求めることは決してありません。求めてくるものは、このサイトではありません。"], ["データの出所", "分布と価格は Bitcoin Research Kit によるもので、フルの Bitcoin Core ノードから導出され、bitview.space 経由で提供されています。URPD は 2020 年 4 月に Renato Shirakashi 氏が考案しました。本版はそこに日次の履歴と年齢による配色を加えたものです。"]]}
 };
 function updateExplainerLang() {
   var ex = EXPLAINER[lang] || EXPLAINER.en;
@@ -2061,6 +2215,10 @@ if (IS_MOBILE) (function () {
   // default, and the listeners stay off the scrolling critical path.
   document.addEventListener("touchstart", function (e) {
     if (e.touches.length !== 1) { x0 = null; return; }
+    // The orange dot, the legend, the mode bar and the credit line's links have their own use for a tap; one of
+    // them near an edge must not step the date as well.
+    var on = e.target && e.target.closest ? e.target.closest("#tracer, .legend, .modebar, a") : null;
+    if (on) { x0 = null; return; }
     x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; moved = false;
   }, { passive: true });
   document.addEventListener("touchmove", function (e) {

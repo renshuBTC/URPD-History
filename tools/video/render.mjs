@@ -1,6 +1,7 @@
-// Renders the full-history video the site's download button serves: every day in the store (store.mjs) from
-// 2009-01-03 to the latest, in 5:00 at 60 fps (18,000 frames), 3840x2160, H.264. Neighbouring days are blended so
-// the picture moves continuously however many days there are; the chart is the site's, drawn by page.html.
+// Renders the full-history video the site's download button serves: every day in the store (store.mjs) from the first
+// with anything on the chart (2010-05-18, when the first price comes into view) to the latest, in 5:00 at 60 fps
+// (18,000 frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days
+// there are; the chart is the site's, drawn by page.html.
 //
 //   node tools/video/render.mjs STORE_DIR OUT.mp4
 //   env: FRAMES (18000), WORKERS (browser pages drawing at once: 2 with 12 GB or more, else 1), SEG (frames per segment, 180),
@@ -11,7 +12,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { readStore, getJSON } from "./store.mjs";
+import { readStore, getJSON, firstShownIndex } from "./store.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -31,8 +32,10 @@ const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0
   ["2017-12-17", "Cycle 3 Top", 1], ["2018-12-15", "Cycle 3 Bottom", 0], ["2021-11-10", "Cycle 4 Top", 1], ["2022-11-21", "Cycle 4 Bottom", 0], ["2025-10-06", "Cycle 5 Top", 1]];
 
 // ---- the days, their prices and their price-line windows ----------------------------------------------------
-const { meta, bars } = readStore(STORE);
-const days = meta.days.map(([date, X, spot, redPct]) => ({ date, w: X / (NB - 1), spot, redPct })), N = days.length;
+const { meta, bars: storeBars } = readStore(STORE);
+// Days before the first with anything on the chart are left out: an empty chart with only the date moving.
+const S = firstShownIndex(meta, storeBars), bars = (i) => storeBars(i + S);
+const days = meta.days.slice(S).map(([date, X, spot, redPct]) => ({ date, w: X / (NB - 1), spot, redPct })), N = days.length;
 if (N < 2) throw new Error("the store needs at least two days");
 const [closeRes, datesRes] = await Promise.all([getJSON(BASE + "/api/series/price_close/day1"), getJSON(BASE + "/api/series/date/day1")]);
 const closes = closeRes.data || closeRes, closeDates = datesRes.data || datesRes;

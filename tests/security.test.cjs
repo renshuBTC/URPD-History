@@ -45,15 +45,18 @@ test('the only download the page offers is the official .mp4 video, and its code
   for (const a of links.filter(a => /target="_blank"/.test(a))) assert.match(a, /\brel="[^"]*\bnoopener\b/);
   // A programmatic download or redirect would bypass the link above; any new one has to be added here on purpose.
   const code = scripts.join('\n');
-  for (const pattern of [/\.click\(\s*\)/, /window\.open\s*\(/, /location\.(href|assign|replace)\b/, /createObjectURL/, /\.download\s*=/, /setAttribute\(\s*["']download/]) {
+  for (const pattern of [/\.click\(\s*\)/, /location\.(href|assign|replace)\b/, /createObjectURL/, /\.download\s*=/, /setAttribute\(\s*["']download/]) {
     assert.doesNotMatch(code, pattern);
   }
+  // One window.open, on purpose: the credit line's links, and only to an account on x.com.
+  assert.equal(code.match(/window\.open\s*\(/g).length, 1);
+  assert.match(code, /if \(!\/\^https:\\\/\\\/x\\\.com\\\/\[A-Za-z0-9_\]\{1,15\}\$\/\.test\(url \|\| ""\)\) return;\s*e\.preventDefault\(\);\s*window\.open\(url, "_blank", "noopener"\);/);
 });
 
 test('every address in the page is one of the few it is meant to use', () => {
   const allowed = new Set([VIDEO_URL, PLOTLY, 'https://github.com/renshuBTC/URPD-History', 'https://bitview.space',
     'https://fonts.googleapis.com', 'https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap',
-    'https://fonts.gstatic.com', 'http://www.w3.org/2000/svg']);
+    'https://fonts.gstatic.com', 'http://www.w3.org/2000/svg', 'https://x.com/']);
   const found = [...html.matchAll(/https?:\/\/[^\s"'<>`)]+/g)].map(m => m[0].replace(/[;,.]+$/, ''));
   assert.ok(found.length >= allowed.size);
   for (const u of found) assert.ok(allowed.has(u), 'unexpected address in index.html: ' + u);
