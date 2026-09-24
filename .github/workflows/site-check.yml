@@ -5,7 +5,8 @@ name: Site check
 #   - https://bitcoinsupplychart.com/ serves this repository's index.html, byte for byte, and plain http redirects there
 #   - the file the page's download button links to is on this repository's "video" release, carries
 #     a valid build attestation from its Daily video workflow on main, and is the one whose SHA-256 the notes give
-# The times fall after the daily video is normally out (about 03:00 UTC, or 07:00 after the catch-up run).
+# The times fall after the daily video is usually out (by about 04:00 UTC); a video met in the middle of its swap is
+# tried again a few minutes later.
 on:
   schedule:
     - cron: "41 4,10,16,22 * * *"
@@ -17,7 +18,7 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       GH_TOKEN: ${{ github.token }}
@@ -31,7 +32,7 @@ jobs:
         run: |
           # A merge takes a few minutes to go live, so only a difference that lasts counts.
           for _ in $(seq 1 8); do
-            if curl -fsS --proto '=https' --tlsv1.2 -o "$RUNNER_TEMP/live.html" "${SITE}?check=$(date +%s)" && cmp -s "$RUNNER_TEMP/live.html" index.html; then
+            if curl -fsS --proto '=https' --tlsv1.2 --max-time 60 -o "$RUNNER_TEMP/live.html" "${SITE}?check=$(date +%s)" && cmp -s "$RUNNER_TEMP/live.html" index.html; then
               echo "The live page is index.html as of $(git rev-parse --short HEAD)."; exit 0
             fi
             sleep 90
@@ -43,7 +44,7 @@ jobs:
       - name: Plain http is sent to https
         run: |
           # Over plain http anyone on the network path could rewrite the page.
-          loc=$(curl -sS -o /dev/null -w '%{redirect_url}' http://bitcoinsupplychart.com/ || true)
+          loc=$(curl -sS --retry 3 --retry-all-errors --max-time 30 -o /dev/null -w '%{redirect_url}' http://bitcoinsupplychart.com/ || true)
           if [ "$loc" = "$SITE" ]; then echo "http redirects to https."
           else echo "::error::http://bitcoinsupplychart.com/ is served without a redirect to https: tick Enforce HTTPS in Settings -> Pages"; exit 1; fi
 
@@ -56,7 +57,7 @@ jobs:
           # A new video takes a moment to swap in, and a download can fail on its own, so a mismatch or a failed
           # download is tried twice more, two minutes apart, before it counts.
           for k in 1 2 3; do
-            if curl -fsSL --proto '=https' -o "$RUNNER_TEMP/video.mp4" "$url"; then
+            if curl -fsSL --proto '=https' --max-time 900 -o "$RUNNER_TEMP/video.mp4" "$url"; then
               SHA=$(sha256sum "$RUNNER_TEMP/video.mp4" | cut -d' ' -f1)
               if gh release view video --json body --jq .body | grep -qF "SHA-256: $SHA"; then echo "SHA-256 $SHA, as in the release notes."; break; fi
               problem="its SHA-256 ($SHA) is not the one in the release notes"
