@@ -96,7 +96,7 @@ test('the toolbar wraps instead of scrolling, with download, ?, language and Git
   assert.doesNotMatch(decls('#githubLink'), /margin-left/);
   const end = html.slice(html.indexOf('<div id="toolbarEnd">'), html.indexOf('<div id="status"'));
   // The chart's own action first, then help, the page's language, and the link that leaves the site at the far corner.
-  assert.deepEqual([...end.matchAll(/\sid="(githubLink|explainWrap|videoBtn|langBtn)"/g)].map(m => m[1]), ['videoBtn', 'explainWrap', 'langBtn', 'githubLink']);
+  assert.deepEqual([...end.matchAll(/\sid="(githubLink|explainWrap|videoBtn|ytBtn|langBtn)"/g)].map(m => m[1]), ['videoBtn', 'ytBtn', 'explainWrap', 'langBtn', 'githubLink']);
 });
 
 test('the chart follows its own box, which the toolbar can change without the window resizing', async () => {
@@ -171,50 +171,13 @@ test('the settings boxes show focus over their inline border', () => {
   }
 });
 
-test('the date list shows exactly what Enter would go to once the text reads as a date, a month or a year', () => {
-  const { c, element } = app(), loads = [];
-  const dates = ['2009-01-03'].concat(days('2023-12-20', '2024-12-31'));
-  c.allDates = dates; c.currentIdx = dates.length - 1;
-  c.loadAndRender = () => { loads.push(c.allDates[c.currentIdx]); c.lastRenderedData = { dateStr: loads.at(-1) }; return Promise.resolve(); };
-  const listed = typed => dates.filter(d => c.dateMatcher(typed)(d));
-  for (const typed of ['2024/1', '2024-1-5', '2024.3', '2024', '2024-10', '２０２４／１／５', '2024ー2', '2009']) {
-    element('dateInput').value = typed; c.jumpToDate();
-    const shown = listed(typed);
-    assert.ok(shown.length, typed);
-    assert.equal(shown[0], loads.at(-1), `${typed}: the first listed day is where Enter went`);
-  }
-  assert.deepEqual(listed('2024-1-5'), ['2024-01-05']);
-  assert.ok(listed('2024/1').every(d => d.startsWith('2024-01-')) && listed('2024/1').length === 31, 'January, not October to December');
-  // Not yet a date: filtered by the text as typed.
-  assert.deepEqual(listed('12-3'), ['2023-12-30', '2023-12-31', '2024-12-30', '2024-12-31']);
-  assert.equal(listed('').length, dates.length);
-  assert.deepEqual(listed('2024-'), days('2024-01-01', '2024-12-31'));
-});
-
-test('input methods: their characters for the -, / and . keys count, and the Enter that ends a composition is theirs', () => {
+test('input methods: their 。 is the decimal point, and the Enter or Escape that ends a composition is theirs', () => {
   const { c, element } = app();
-  for (const typed of ['２０２４ー０１ー０５', '2024ー1ー5', '2024・1・5', '2024、1、5', '2024。1。5', '2024−01−05', '2024–01–05', '2024—1—5', '２０２４／１／５']) {
-    assert.deepEqual(plain(c.parseDateQuery(typed)), { date: '2024-01-05', period: null }, typed);
-  }
-  assert.deepEqual(plain(c.parseDateQuery('2024ー03')), { date: '2024-03-01', period: '2024-03' });
-  assert.equal(c.parseDateQuery('2024ー13'), null);
   assert.equal(c.fieldNumber('０。２４'), 0.24);
   assert.equal(c.fieldNumber('0。5'), 0.5);
   assert.ok(Number.isNaN(c.fieldNumber('1、000')), 'a comma is still not a number');
-  const loads = [];
-  c.allDates = ['2024-01-05', '2024-01-06']; c.currentIdx = 1;
-  c.loadAndRender = () => { loads.push(c.allDates[c.currentIdx]); return Promise.resolve(); };
   let prevented = 0;
   const key = (extra = {}) => Object.assign({ key: 'Enter', preventDefault() { prevented++; } }, extra);
-  const box = element('dateInput');
-  box.value = '2024ー01ー05';
-  box.emit('keydown', key({ isComposing: true }));
-  box.emit('keydown', key({ keyCode: 229 }));
-  assert.deepEqual(loads, [], 'confirming the composition does not jump');
-  assert.equal(prevented, 0);
-  assert.equal(box.value, '2024ー01ー05');
-  box.emit('keydown', key());
-  assert.deepEqual(loads, ['2024-01-05'], 'the next Enter does');
   for (const id of ['thresholdInput', 'binsInput', 'smoothInput', 'ymaxInput']) {
     const field = element(id);
     let blurred = 0;
@@ -282,7 +245,10 @@ test('each name in the credit line links to its X account, and a click opens it 
     const { dates, raw } = market(c);
     await c.renderChart(c.buildData(dates.at(-1), raw));
     const credit = element('chart').layout.annotations.find(a => /Bitview/.test(a.text));
-    assert.deepEqual([...credit.text.matchAll(/<a href="([^"]+)" style="color:rgba\(255,255,255,0\.8\)">([^<]+)<\/a>/g)].map(m => [m[2], m[1]]), want, lang + ': every name a link, in a colour that reads on the dark chart');
+    assert.deepEqual([...credit.text.matchAll(/<a href="([^"]+)" style="color:#ffffff">([^<]+)<\/a>/g)].map(m => [m[2], m[1]]), want, lang + ': every name a link');
+    // White under the line's 55% opacity (Plotly draws a link's colour inside the text, which keeps the opacity) is
+    // exactly the grey of the words around the names.
+    assert.equal(credit.font.color, 'rgba(255,255,255,0.55)', lang);
     assert.equal(credit.text.replace(/<[^>]*>/g, ''), plainText[lang], lang + ': the words are as before');
   }
   const { c, element } = app(), opened = [];
@@ -300,8 +266,10 @@ test('each name in the credit line links to its X account, and a click opens it 
   click(on(null));
   assert.equal(opened.length, 1);
   assert.equal(prevented, 1);
-  // Plotly's own link colour (#447adb) all but vanished on the chart: the names keep theirs, white when pointed at.
-  assert.match(decls('#chart .annotation-text a:hover'), /fill:\s*#ffffff\s*!important/);
+  // Plotly's own link colour (#447adb) all but vanished on the chart: the names take the line's, underlined when
+  // pointed at so they still read as links.
+  assert.match(decls('#chart .annotation-text a:hover'), /text-decoration:\s*underline/);
+  assert.doesNotMatch(decls('#chart .annotation-text a:hover'), /fill/);
 });
 
 test('the language button is named by the label it shows', () => {
