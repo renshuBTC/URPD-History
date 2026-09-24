@@ -6,7 +6,7 @@ full-history video. Anything that asks for more is not this site.
 
 ## The video
 
-The DOWNLOAD FULL HISTORY VIDEO button downloads one file, always from this address:
+The download button (the arrow icon in the toolbar) downloads one file, always from this address:
 
 <https://github.com/renshuBTC/URPD-History/releases/download/video/BitcoinSupplyChart.com.mp4>
 
