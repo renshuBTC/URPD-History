@@ -43,7 +43,7 @@ record of the run that built it (a build provenance attestation, logged by Sigst
   axis history refuses values from the data API far outside anything in the real history rather than commit them.
   Actions are pinned to full commit hashes and npm packages to exact versions and hashes, with install scripts off.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that
-  bitcoinsupplychart.com serves this repository's `index.html` byte for byte, and that the video behind the button
+  www.bitcoinsupplycharts.com serves this repository's `index.html` byte for byte, and that the video behind the button
   verifies as above. If anything differs it fails, and GitHub emails the owner.
 
 ## Reporting a problem
