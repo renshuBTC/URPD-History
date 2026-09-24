@@ -124,7 +124,7 @@ for (const age of [true, false]) {
     const annotations = graph.layout.annotations.map(annotation => annotation.text).join(' ');
     assert.doesNotMatch(annotations, /Price:|Last Moved In Profit|Last Moved In Loss|BOTTOM SIGNAL/);
     assert.match(annotations, /Peak /);
-    assert.equal(graph.layout.shapes.find(shape => shape.type === 'line' && shape.xref === 'x').line.color, '#000000');
+    assert.equal(graph.layout.shapes.find(shape => shape.type === 'line' && shape.xref === 'x').line.color, '#ffffff');
     assert.equal(graph.layout.shapes.some(shape => shape.line && shape.line.color === c.GLOW_COLOR), false);
     assert.equal(c.lastRenderedData.numBins, 625);
     assert.equal(c.lastRenderedData.kernelPct, 0);
@@ -212,7 +212,7 @@ for (const age of [true, false]) {
     const annotations = graph.layout.annotations.map(annotation => annotation.text).join(' ');
     assert.doesNotMatch(annotations, /Price:|Last Moved In Profit|Last Moved In Loss|BOTTOM SIGNAL|Peak /);
     assert.equal(graph.data.some(trace => trace.meta === 'pct' || trace.name === 'BTC/USD'), false);
-    assert.equal(graph.layout.shapes.find(shape => shape.type === 'line' && shape.xref === 'x').line.color, '#000000');
+    assert.equal(graph.layout.shapes.find(shape => shape.type === 'line' && shape.xref === 'x').line.color, '#ffffff');
     assert.deepEqual(Array.from(c.yMaxByMode), original.modeYmax);
     assert.deepEqual(Array.from(c.yMaxExplicit), original.explicitYmax);
 
@@ -322,7 +322,7 @@ test('a pending RAW load never redraws older smoothed data under RAW settings', 
   assert.notEqual(element('chart').data, oldTraces);
 });
 
-for (const coin of [true, false]) test(`RAW ${coin ? 'BTC' : 'USD'} keeps the black spot line while navigating, hides its box and restores the box on exit`, async () => {
+for (const coin of [true, false]) test(`RAW ${coin ? 'BTC' : 'USD'} keeps the white spot line while navigating, hides its box and restores the box on exit`, async () => {
   const h = fixture();
   const { c, element } = h;
   c.bottomThreshold = 100;
@@ -349,7 +349,7 @@ for (const coin of [true, false]) test(`RAW ${coin ? 'BTC' : 'USD'} keeps the bl
     assert.equal(line.x1, spot);
     assert.equal(line.y0, 0);
     assert.equal(line.y1, 1);
-    assert.equal(line.line.color, '#000000');
+    assert.equal(line.line.color, '#ffffff');
     assert.equal(line.line.dash, 'dash');
     assert.ok(line.line.width > 0);
     assert.equal(box, undefined, 'the spot price/profit/loss annotation is absent');
@@ -371,9 +371,9 @@ for (const coin of [true, false]) test(`RAW ${coin ? 'BTC' : 'USD'} keeps the bl
   assert.equal(restored.line.x0, 110);
   assert.equal(restored.line.x1, 110);
   assert.equal(restored.line.line.dash, 'dash');
-  assert.equal(restored.line.line.color, '#000000');
+  assert.equal(restored.line.line.color, '#ffffff');
   assert.equal(restored.box.x, 110);
-  assert.equal(restored.box.font.color, '#000000');
+  assert.equal(restored.box.font.color, '#ffffff');
   assert.match(restored.box.text, /Price: \$110/);
   assert.match(restored.box.text, coin ? /BTC Supply Last Moved In Profit: 20\.0%/ : /USD Value Last Moved In Profit: 1\.9%/);
   assert.match(restored.box.text, coin ? /BTC Supply Last Moved In Loss: 80\.0%/ : /USD Value Last Moved In Loss: 98\.1%/);
