@@ -19,7 +19,11 @@ for file in "$@"; do
   new=$(awk -v n="$part" '$2 == n { print $1 }' <<< "$assets")
   old=$(awk -v n="$name" '$2 == n { print $1 }' <<< "$assets")
   [ -n "$new" ] || { echo "$part is not on the $tag release after its upload" >&2; exit 1; }
-  [ -z "$old" ] || retry gh api -X DELETE "$api/assets/$old"
+  if [ -n "$old" ] && ! retry gh api -X DELETE "$api/assets/$old"; then
+    # A delete that went through but reported an error leaves nothing for the retries to delete: carry on if the
+    # old file is gone, stop if it is still there.
+    if gh api "$api/assets/$old" > /dev/null 2>&1; then echo "could not delete the old $name from $tag" >&2; exit 1; fi
+  fi
   retry gh api -X PATCH "$api/assets/$new" -f name="$name" --silent
   echo "$tag: $name replaced"
 done

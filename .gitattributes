@@ -1,0 +1,2 @@
+# LF everywhere, whatever the platform: the CSP in index.html hashes the inline scripts' exact text.
+* text=auto eol=lf

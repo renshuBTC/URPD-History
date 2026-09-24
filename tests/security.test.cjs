@@ -136,18 +136,25 @@ test('every action a workflow uses is pinned to a full commit hash, and nothing 
   }
 });
 
-test('the job that runs third-party code can read the repository and nothing else', () => {
+test('the jobs that run third-party code or parse its output can read the repository and nothing else', () => {
   const video = workflows.find(w => w.f === 'video.yml').text;
   assert.match(video, /^permissions: \{\}/m);
-  const render = job(video, 'render');
-  assert.match(render, /permissions:\n\s+contents: read\s*(#.*)?\n\s+steps:/);
-  assert.doesNotMatch(render, /GH_TOKEN|secrets\.|github\.token/);
-  assert.match(render, /persist-credentials: false/);
-  assert.match(render, /npm ci --ignore-scripts/);
-  // What it hands on is checked, rewritten and attested by the publish job before anyone can download it.
+  for (const name of ['render', 'vet']) {
+    const block = job(video, name);
+    assert.match(block, /permissions:\n\s+contents: read\s*(#.*)?\n\s+steps:/, name);
+    assert.doesNotMatch(block, /GH_TOKEN|secrets\.|github\.token/, name);
+    assert.match(block, /persist-credentials: false/, name);
+  }
+  assert.match(job(video, 'render'), /npm ci --ignore-scripts/);
+  // The vet job checks the rendered file, rewrites it keeping only the picture, and decodes every frame.
+  const vet = job(video, 'vet');
+  assert.match(vet, /check-video\.sh "\$RUNNER_TEMP\/rendered\/\$VIDEO"/);
+  assert.match(vet, /filter_units=pass_types=/);
+  assert.match(vet, /check-video\.sh "\$RUNNER_TEMP\/vetted\/\$VIDEO" --decode/);
+  // The jobs that can write never parse the video, and the publish job attests before it publishes.
+  for (const name of ['update', 'publish']) assert.doesNotMatch(job(video, name), /ffmpeg|ffprobe|check-video/, name);
   const publish = job(video, 'publish');
-  assert.match(publish, /check-video\.sh "\$RUNNER_TEMP\/rendered\/\$VIDEO"/);
-  assert.match(publish, /check-video\.sh "\$RUNNER_TEMP\/\$VIDEO" --decode/);
+  assert.match(publish, /needs: \[update, vet\]/);
   assert.match(publish, /uses: actions\/attest@/);
   assert.ok(publish.indexOf('actions/attest@') < publish.indexOf('replace-asset.sh video'), 'attest before publishing');
 });

@@ -96,13 +96,18 @@ async function main(argv = process.argv.slice(2)) {
   ]);
   const { close: closes, dates: closeDates } = site.setPrices(close.data || close, priceDates.data || priceDates), closeIndex = {};
   closeDates.forEach((d, i) => { if (d) closeIndex[d] = i; });
+  // The highest close up to each day, for the sanity check below.
+  const closeMax = []; closes.forEach((v, i) => { closeMax[i] = Math.max(i ? closeMax[i - 1] : 0, v > 0 ? v : 0); });
   site.setBinning(site.BINS_DEFAULT, site.KERNEL_DEFAULT);
 
   let file = null;
   if (!opt.rebuild && fs.existsSync(OUT)) file = JSON.parse(fs.readFileSync(OUT, 'utf8'));
   if (!file) file = { start: START, end: null, bins: site.BINS_DEFAULT, smoothing: site.KERNEL_DEFAULT, x: [], usd: [], btc: [] };
   if (file.bins !== site.BINS_DEFAULT || file.smoothing !== site.KERNEL_DEFAULT) throw new Error('data/scales.json was built with other defaults: use --rebuild');
-  const todo = site.cleanDates(dates).filter(d => d >= START && d <= until && (!file.end || d > file.end));
+  // Only days the API has moved past: it lists today from its first minutes, and a day it is still indexing (if
+  // it has fallen behind) would be frozen here half-finished, since past days are never recomputed.
+  const listed = site.cleanDates(dates), lastListed = listed[listed.length - 1];
+  const todo = listed.filter(d => d >= START && d <= until && d < lastListed && (!file.end || d > file.end));
 
   async function day(date) {
     const cached = opt.cache && path.join(opt.cache, date + '.json.gz');
@@ -133,6 +138,12 @@ async function main(argv = process.argv.slice(2)) {
     // The day's axis end first, stored as the page will read it, then the day binned on exactly that axis.
     let maxStamp = 0;
     for (const k in all) { const p = parseFloat(k); if (p > maxStamp && all[k] > 0) maxStamp = p; }
+    // A guard against a broken or hostile API. The axes only grow and past days are never recomputed, so one absurd
+    // value would stretch every later day's axis for good, and this file is committed without review. No real day
+    // comes near these bounds: the highest stamp ever was 1.96 times the highest close so far (2011-01-31), and the
+    // largest rise of an axis from one step to the next 1.82 times.
+    const ci = closeIndex[date] !== undefined ? closeIndex[date] : closes.length - 1;
+    if (maxStamp > 3 * (closeMax[ci] || 0) + 10) throw new Error(`${date}: a cost basis of $${maxStamp} is over three times the highest close so far; not recording it`);
     site.setScales(file.end ? file : null);
     const spot = closes[closeIndex[date]];
     const X = ceilSig(site.xAxisEnd(date, maxStamp, typeof spot === 'number' && spot > 0 ? spot : null), 6);
@@ -144,6 +155,7 @@ async function main(argv = process.argv.slice(2)) {
     for (const coin of [false, true]) {
       const level = ceilSig(site.axisLevel(site.barValues(data, coin), coin, 100), 4);
       const steps = coin ? file.btc : file.usd;
+      if (lastValue(steps) > 0 && level > 10 * lastValue(steps)) throw new Error(`${date}: the ${coin ? 'BTC' : 'USD'} axis would jump from ${lastValue(steps)} to ${level} in a day; not recording it`);
       if (level > lastValue(steps)) steps.push([d, level]);
     }
     if (++done % 50 === 0) save();

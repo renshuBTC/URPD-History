@@ -51,9 +51,11 @@ function harness() {
     },
     clearTimeout: id => timers.delete(id),
     showNotice: message => notices.push(message), t: key => `${key}:`,
+    lastRenderedData: null,
     loadAndRender: () => {
       ++context.renderSeq;
       loads.push({ date: dates[context.currentIdx], window: context.window.tracerDragWindow });
+      context.lastRenderedData = { dateStr: dates[context.currentIdx] };   // every load here draws at once
       return Promise.resolve();
     }
   });

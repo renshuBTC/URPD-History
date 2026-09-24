@@ -37,7 +37,9 @@ if (N < 2) throw new Error("the store needs at least two days");
 const [closeRes, datesRes] = await Promise.all([getJSON(BASE + "/api/series/price_close/day1"), getJSON(BASE + "/api/series/date/day1")]);
 const closes = closeRes.data || closeRes, closeDates = datesRes.data || datesRes;
 if (closeDates[0] !== idxDay(0)) throw new Error("price series no longer starts at " + idxDay(0));
-const close = closes.map((v) => (typeof v === "number" && v > 0 ? v : 0));
+// Closes up to the store's last day only: the API also lists the day in progress, whose partial close drew the line
+// on past the video's last day and could raise the price axis. Anything but a positive finite number is a gap.
+const close = closes.slice(0, dayIdx(days[N - 1].date) + 1).map((v) => (Number.isFinite(v) && v > 0 ? v : 0));
 // As on the site: a one-year window whose right edge is 90 days after the day, but never more than 7 past the tip.
 const tip = Date.parse(days[N - 1].date + "T00:00:00Z");
 days.forEach((d) => { const sel = Date.parse(d.date + "T00:00:00Z"); d.wr = Math.min(tip + 7 * DAY, sel + 90 * DAY); d.wl = d.wr - 365 * DAY; });
@@ -51,7 +53,8 @@ const priceAt = (ms) => { const x = (ms - DAY0) / DAY, k = Math.floor(x), fr = x
   if (!(a > 0)) return b > 0 && fr > 0.999 ? b : 0; if (!(b > 0)) return a; return a + (b - a) * fr; };
 const Y = new Float64Array(F), M = new Float64Array(F);
 {
-  let yRun = 6, mRun = 0, pk = 0, pmax = 0, c0 = null, c1 = null, loaded = -1;
+  // Before any bar has a height (all of 2009 in USD) the axis reads $0 to $1, as on the site.
+  let yRun = 1, mRun = 0, pk = 0, pmax = 0, c0 = null, c1 = null, loaded = -1;
   for (let k = Math.floor((days[0].wl - DAY0) / DAY); k <= Math.ceil((days[0].wr - DAY0) / DAY); k++) if (close[k] > mRun) mRun = close[k];
   for (let t = 0; t < F; t++) {
     const [i0, i1, f] = frameDay(t);

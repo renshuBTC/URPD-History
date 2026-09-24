@@ -204,14 +204,14 @@ test('build-scales writes the history the page reads back, one day at a time', a
   const { main } = require('../tools/build-scales.cjs');
   const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'scales-')), 'scales.json');
   const priceDates = [], closes = [];
-  for (let t = Date.UTC(2009, 0, 1); t <= Date.UTC(2009, 0, 12); t += DAY) { priceDates.push(iso(t)); closes.push(0); }
+  for (let t = Date.UTC(2009, 0, 1); t <= Date.UTC(2009, 0, 13); t += DAY) { priceDates.push(iso(t)); closes.push(0); }
   const dates = ['2009-01-03', '2009-01-09', '2009-01-10', '2009-01-11', '2009-01-12'];
-  const stamps = { '2009-01-03': { 0: 50 }, '2009-01-09': { 0: 50, 3: 2000 }, '2009-01-10': { 0: 50, 3: 2000, 7: 9000 }, '2009-01-11': { 0: 50, 3: 1000 }, '2009-01-12': { 0: 51, 12: 4000 } };
+  const stamps = { '2009-01-03': { 0: 50 }, '2009-01-09': { 0: 50, 3: 2000 }, '2009-01-10': { 0: 50, 3: 2000, 7: 1500 }, '2009-01-11': { 0: 50, 3: 1000 }, '2009-01-12': { 0: 51, 12: 4000 } };
   closes[priceDates.indexOf('2009-01-10')] = 6;
   const realFetch = global.fetch;
   global.fetch = async url => {
     const u = String(url), body =
-      u.endsWith('/cost-basis/all/dates') ? dates :
+      u.endsWith('/cost-basis/all/dates') ? dates.concat('2009-01-13') :   // the API lists the day in progress too
       u.endsWith('/price_close/day1') ? { data: closes } :
       u.endsWith('/date/day1') ? { data: priceDates } :
       /utxos_under_1h_old\/(\d{4}-\d\d-\d\d)$/.test(u) ? stamps[u.slice(-10)] : {};

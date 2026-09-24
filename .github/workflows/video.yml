@@ -1,20 +1,22 @@
 name: Daily video
 
-# Every day, for the site's ▶ button and for scrubbing through history:
+# Every day, for the site's DOWNLOAD FULL HISTORY VIDEO button and for scrubbing through history:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
 #               video's store (the files on the "video-data" release)
 #   2. render:  draws the full-history 4K video with tools/video
-#   3. publish: checks it, attests where it was built and publishes it on the "video" release, the file the ▶ button
+#   3. vet:     accepts the file only if it is exactly the expected video, and rewrites its container keeping only
+#               the picture
+#   4. publish: attests where the video was built and publishes it on the "video" release, the file the button
 #               downloads
 #
-# The jobs are split by trust. Only this repository's own code runs with a token that can write (update, publish).
-# The renderer runs third-party code (Playwright, Chromium, ffmpeg and their npm packages), so it gets a read-only
-# token and no credentials, and can only hand its file over as a workflow artifact. The publish job accepts that file
-# only if it is exactly the expected video, rewrites its container with Ubuntu's own ffmpeg (keeping only the picture),
-# and signs a build attestation for the result, which anyone can check with `gh attestation verify` (see SECURITY.md).
-# New release files replace the old ones only once fully uploaded (tools/video/replace-asset.sh), so the button never
-# meets a missing file. Actions are pinned to full commit hashes. Standard GitHub-hosted runners are free for public
-# repositories; the whole run takes about an hour and a half.
+# The jobs are split by trust. Only this repository's own code runs with a token that can write (update, publish),
+# and neither of them ever parses the video. The renderer runs third-party code (Playwright, Chromium, ffmpeg and
+# their npm packages), and the vet job parses the rendered file with ffmpeg, so both get only a read-only token and
+# no credentials. Each hands its file on as a workflow artifact. The publish job
+# signs a build attestation for the vetted file, which anyone can check with `gh attestation verify` (see
+# SECURITY.md). New release files replace the old ones only once fully uploaded (tools/video/replace-asset.sh), so
+# the button never meets a missing file. Actions are pinned to full commit hashes. Standard GitHub-hosted runners are
+# free for public repositories; the whole run takes about an hour and a half.
 on:
   schedule:
     # 01:23 UTC, well after yesterday closed and off the top of the hour, when GitHub delays or drops the most
@@ -31,14 +33,17 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VIDEO: URPD_daily_full_history_4K60.mp4
+  # The name the download gets on people's computers (it has to end in .mp4: a file ending in .com is a program on
+  # Windows). It was URPD_daily_full_history_4K60.mp4 until 2026-09-24.
+  VIDEO: BitcoinSupplyChart.com.mp4
+  OLD_VIDEO: URPD_daily_full_history_4K60.mp4
 
 jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
-      contents: write   # the axis-history commit and the video-data release files
+      contents: write   # the axis-history commit and the release files
       pages: write      # asking Pages to rebuild after that commit
     outputs:
       render: ${{ steps.store.outputs.render }}
@@ -50,6 +55,20 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
+
+      - name: Give the published video its new name
+        run: |
+          # One-off, for the change of name: until a run publishes the new name, the current file is copied to it
+          # (the same bytes, so its SHA-256 and attestation still hold) and the site can link the new name at once.
+          # First in the run, so the copy is there within a minute or two of starting one by hand.
+          names=$(gh release view video --json assets --jq '.assets[].name' 2> /dev/null || true)
+          if grep -qxF "$OLD_VIDEO" <<< "$names" && ! grep -qxF "$VIDEO" <<< "$names"; then
+            mkdir -p "$RUNNER_TEMP/rename"
+            gh release download video --pattern "$OLD_VIDEO" --dir "$RUNNER_TEMP/rename"
+            mv "$RUNNER_TEMP/rename/$OLD_VIDEO" "$RUNNER_TEMP/rename/$VIDEO"
+            bash tools/video/replace-asset.sh video "$RUNNER_TEMP/rename/$VIDEO"
+            rm -rf "$RUNNER_TEMP/rename"
+          fi
 
       - name: Add the finished days to the axis history
         run: node tools/build-scales.cjs --cache "$RUNNER_TEMP/raw" --seconds 1800
@@ -74,7 +93,16 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/store"
           gh release download video-data --dir "$RUNNER_TEMP/store"
-          node tools/video/store.mjs "$RUNNER_TEMP/store" --cache "$RUNNER_TEMP/raw" > "$RUNNER_TEMP/changed.txt"
+          # A run stopped between the two halves of a swap (replace-asset.sh) can leave a file only under its
+          # temporary name. Take it back under its real name rather than stall every run after it; a year file that
+          # has run ahead of meta.json is read only as far as meta.json goes (store.mjs).
+          for part in "$RUNNER_TEMP"/store/*.part.*; do
+            [ -e "$part" ] || continue
+            final="${part/.part./.}"
+            if [ -e "$final" ]; then rm -f "$part"; else mv "$part" "$final"; fi
+          done
+          # --seconds: a lost store rebuilds over several runs, keeping what each one adds.
+          node tools/video/store.mjs "$RUNNER_TEMP/store" --cache "$RUNNER_TEMP/raw" --seconds 1500 > "$RUNNER_TEMP/changed.txt"
           # The year files first and meta.json last (store.mjs lists them in that order), so a run stopped part way
           # leaves a store the next run can still read.
           mapfile -t CHANGED < "$RUNNER_TEMP/changed.txt"
@@ -140,17 +168,12 @@ jobs:
           retention-days: 1
           compression-level: 0   # already compressed
 
-  publish:
-    needs: [update, render]
+  vet:
+    needs: render
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
-      contents: write           # the video release
-      id-token: write           # signing the build attestation (Sigstore)
-      attestations: write       # storing it
-      artifact-metadata: write  # its storage record
-    env:
-      GH_TOKEN: ${{ github.token }}
+      contents: read    # nothing else: this job parses a file that third-party code produced
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -164,27 +187,65 @@ jobs:
         run: |
           command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
           bash tools/video/check-video.sh "$RUNNER_TEMP/rendered/$VIDEO"
-          # A fresh container holding only the picture: no metadata, chapters or other boxes, and no SEI units, where
-          # an H.264 stream can carry free-form data.
-          ffmpeg -nostdin -v error -i "$RUNNER_TEMP/rendered/$VIDEO" -map 0:v:0 -c copy -bsf:v filter_units=remove_types=6 \
-            -map_metadata -1 -map_chapters -1 -movflags +faststart -f mp4 "$RUNNER_TEMP/$VIDEO"
-          bash tools/video/check-video.sh "$RUNNER_TEMP/$VIDEO" --decode
+          # A fresh container holding only the picture: no metadata, chapters or other boxes, and of the H.264 stream
+          # only the units a picture needs (slices 1-5, SPS, PPS and delimiters 7-9), so no SEI or filler, where
+          # free-form data could ride along. Then every frame is decoded.
+          mkdir -p "$RUNNER_TEMP/vetted"
+          ffmpeg -nostdin -v error -i "$RUNNER_TEMP/rendered/$VIDEO" -map 0:v:0 -c copy -bsf:v 'filter_units=pass_types=1-5|7-9' \
+            -map_metadata -1 -map_chapters -1 -movflags +faststart -f mp4 "$RUNNER_TEMP/vetted/$VIDEO"
+          bash tools/video/check-video.sh "$RUNNER_TEMP/vetted/$VIDEO" --decode
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: video-vetted
+          path: ${{ runner.temp }}/vetted/${{ env.VIDEO }}
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish:
+    needs: [update, vet]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write           # the video release
+      id-token: write           # signing the build attestation (Sigstore)
+      attestations: write       # storing it
+      artifact-metadata: write  # its storage record
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: video-vetted
+          path: ${{ runner.temp }}/vetted
+
+      - name: Look at the file without parsing it
+        run: |
+          # The vet job did the real checks. Here only the bytes are looked at, never decoded: an MP4 begins with an
+          # ftyp box, and this one is under GitHub's 2 GiB limit for a release file.
+          f="$RUNNER_TEMP/vetted/$VIDEO"
+          [ "$(head -c 8 "$f" | tail -c 4)" = ftyp ] || { echo "not an MP4" >&2; exit 1; }
+          size=$(stat -c %s "$f"); [ "$size" -gt 18000000 ] && [ "$size" -lt 2000000000 ] || { echo "$size bytes" >&2; exit 1; }
 
       - name: Attest where the video was built
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: ${{ runner.temp }}/${{ env.VIDEO }}
+          subject-path: ${{ runner.temp }}/vetted/${{ env.VIDEO }}
 
       - name: Publish the video
         env:
           END: ${{ needs.update.outputs.end }}
         run: |
-          SHA=$(sha256sum "$RUNNER_TEMP/$VIDEO" | cut -d' ' -f1)
+          SHA=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published video reaches.
-          NOTES="Every day from 2009-01-03 to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the ▶ button on https://bitcoinsupplychart.com downloads it.
+          NOTES="Every day from 2009-01-03 to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the DOWNLOAD FULL HISTORY VIDEO button on https://bitcoinsupplychart.com downloads it.
 
           SHA-256: $SHA
           Check it: gh attestation verify $VIDEO --repo $GITHUB_REPOSITORY (see SECURITY.md)"
           gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history video (4K)" --notes "$NOTES"
-          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/$VIDEO"
+          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO"
           gh release edit video --notes "$NOTES"
