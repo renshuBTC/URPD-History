@@ -40,7 +40,7 @@ Toolbar, left to right:
 - **RAW** — keeps the selected USD or BTC mode, with switching still available. Both use 625 bins and smoothing 0.00; Y-max is 99.8 for BTC and 100 for USD, and the left axis fits each day on its own (unsmoothed needles would hold a growing axis up for years). Hides the historical price line, removes the price/profit/loss box, and disables the bottom signal. The white dashed spot line remains and follows the selected date. PIN SCALE works in RAW, saving separate BTC and USD pins; unpinning returns to the preset percentile. Bins, smoothing, and the Y-max input stay locked until RAW is turned off, which restores the previous settings.
 - **Bottom signal** — fires when the share of value held at a loss passes your threshold
 - **Bins**, **Smoothing**, **Y-max** — bucket count; smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view
-- **GitHub** icon linking to the source, **?** explainer, **DOWNLOAD FULL HISTORY VIDEO** button for the 4K video, and a language toggle
+- **GitHub** icon linking to the source, **?** explainer, **download** button (an arrow) for the 4K video, and a language toggle
 
 The toolbar stays on one row. Scroll it horizontally when the controls do not fit the window.
 
@@ -57,7 +57,7 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-The **DOWNLOAD FULL HISTORY VIDEO** button downloads the whole history as one video: every day from 2009-01-03 to
+The **download** button (the arrow icon in the toolbar) downloads the whole history as one video: every day from 2009-01-03 to
 the latest, 5:00 at 60 fps in 4K (3840×2160, about 250 MB), drawn with the page’s default
 settings. The **Daily video** workflow rebuilds it every day on GitHub’s runners and
 publishes it on the `video` release, so the day that just ended is in it by about 04:00 UTC.
