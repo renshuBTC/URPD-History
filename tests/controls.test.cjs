@@ -122,20 +122,34 @@ test('every text has all three languages', () => {
   for (const l of langs) for (const k of keys) assert.ok(typeof c.T[l][k] === 'string' && c.T[l][k].length, `${l}.${k}`);
 });
 
-test('the download button is an icon with a name, and no button in the bar has an outline', () => {
+test('the download button is a small icon with a name, and the bar keeps the grey-bordered look it had before 2026-09-24', () => {
   const button = html.match(/<a id="videoBtn" href="[^"]+" download aria-label="Download the full-history video">(<svg[\s\S]*?<\/svg>)<\/a>/);
   assert.ok(button, 'an icon-only link with an accessible name');
   assert.match(button[1], /aria-hidden="true"/);
+  assert.match(button[1], /width="14" height="14"/);
   assert.equal(button[1].replace(/<[^>]*>/g, '').trim(), '', 'no words on the button');
-  const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
-  // Buttons, the GitHub and download links, the step bar and the cycle select: borders transparent, no focus ring.
-  let seen = 0;
-  for (const rule of css.split('}')) {
-    const [selector, decls = ''] = rule.split('{');
-    if (!/#controls button|#controls a\b|#githubLink|#videoBtn|\.mode-toggle|#intervalBar|#landmarks|#explainBtn|#langBtn/.test(selector)) continue;
-    seen++;
-    assert.doesNotMatch(decls, /border(-color)?:\s*(1px solid )?#[0-9a-f]{3,6}/i, selector.trim());
-    assert.doesNotMatch(decls, /outline:(?!\s*none)/i, selector.trim());
+  const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules = css.split('}').map(r => r.split('{')).filter(r => r.length === 2)
+    .map(([sel, body]) => ({ sels: sel.split(',').map(x => x.trim().replace(/\s+/g, ' ')), body: body.trim() }));
+  const decls = sel => {
+    const found = rules.filter(r => r.sels.includes(sel));
+    assert.ok(found.length, 'no rule for ' + sel);
+    return found.map(r => r.body).join('; ');
+  };
+  // Every button and link: a #555 border, #888 under the mouse, orange when on.
+  for (const sel of ['#controls button', '#controls #githubLink', '#controls #videoBtn']) assert.match(decls(sel), /border:\s*1px solid #555/, sel);
+  for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls #videoBtn:hover', '#explainBtn:hover', '#langBtn:hover']) {
+    assert.match(decls(sel), /border-color:\s*#888/, sel);
   }
-  assert.ok(seen > 10);
+  assert.match(decls('#controls .mode-toggle button.active'), /background:\s*#ff8c00;.*border-color:\s*#ff8c00/);
+  // The step bar and the cycle list are framed the same way; the list turns orange while it has focus.
+  assert.match(decls('#intervalBar'), /border:\s*1px solid #555/);
+  assert.match(decls('#landmarks'), /background:\s*#1e1e1e;.*border:\s*1px solid #555/);
+  assert.match(decls('#landmarks:hover'), /border-color:\s*#888/);
+  assert.match(decls('#landmarks:focus'), /border-color:\s*#ff8c00/);
+  // Keyboard focus shows as before: the browser's ring on buttons, an orange ring on the two links. (A mouse click
+  // lets go of focus, so none of this is ever drawn for the mouse; see ui.test.cjs.)
+  assert.ok(!rules.some(r => r.sels.some(x => /^#controls (button|a|select):focus$/.test(x))), 'focus rings are not switched off');
+  for (const sel of ['#githubLink:focus-visible', '#videoBtn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #ff8c00/, sel);
+  assert.equal(rules.filter(r => /background-color:\s*#(4a4a4a|ffc266)/.test(r.body)).length, 0, 'no focus fills');
 });

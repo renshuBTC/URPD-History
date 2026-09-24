@@ -244,3 +244,25 @@ test('build-scales writes the history the page reads back, one day at a time', a
     assert.ok(top >= prevTop); prevTop = top;
   }
 });
+
+test('the spot price box keeps clear of the pin\'s label and the ▲ figure at the top left', async () => {
+  // BTC on a $0-1,100 axis, with a $0 pile above the axis (so ▲ is printed), the price at $50 or $1,000.
+  async function draw(price, pinned) {
+    const { c, element } = app();
+    const { dates, raws } = market(c, { close: () => price, cohorts: () => [{ 0: 5000, 40: 20, 50: 30 }] });
+    c.setScales({ start: dates[0], end: dates.at(-1), bins: 625, smoothing: 0.24, x: [[0, 1100]], usd: [[0, 1e9]], btc: [[0, 60]] });
+    c.coinMode = true; c.viewIdx = 1;
+    const data = c.buildData(dates[5], raws[5]);
+    if (pinned) c.peakStore[c.peakKey(data)] = [dates[1], 40];
+    await c.renderChart(data);
+    const notes = element('chart').layout.annotations;
+    assert.ok(notes.some(a => /^▲/.test(a.text)));
+    assert.equal(notes.some(a => /^Peak/.test(a.text)), pinned);
+    return notes.find(a => a.xref === 'x' && a.yref === 'paper' && /<br>/.test(a.text));
+  }
+  assert.equal((await draw(50, false)).yshift, -27, '▲ alone: just below it (its label ends 23 px down)');
+  assert.equal((await draw(50, true)).yshift, -48, 'pinned: below the pin\'s label and the ▲ under it');
+  const right = await draw(1000, true);
+  assert.equal(right.xanchor, 'right');
+  assert.ok(!right.yshift, 'with the price over at the right the box is nowhere near them, and stays at the top');
+});
