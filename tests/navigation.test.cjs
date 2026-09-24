@@ -80,28 +80,33 @@ async function settle() {
   for (let i = 0; i < 12; i++) await Promise.resolve();
 }
 
-test('a selected landmark uses its own date without replacing the date-search filter', () => {
-  for (const filter of ['', '2026-09-15']) {
-    const h = harness();
-    h.run('function jumpToDate(', 'var ddOpen = false;');
-    h.dateInput.value = filter;
-    const target = { value: '2026-09-17', blur() {} };
-    h.listeners['landmarks:change']({ target });
-    assert.equal(h.context.currentIdx, 2);
-    assert.equal(h.loads.at(-1).date, '2026-09-17');
-    assert.equal(h.dateInput.value, filter);
-    assert.equal(target.value, '');
-  }
+test('a cycle top or bottom picked from the list goes to its day, or to the last listed day before it', () => {
+  const h = harness();
+  h.run('// First position whose date is on or after d', 'async function init() {');
+  const pick = value => { const target = { value, blurred: 0, blur() { this.blurred++; } }; h.listeners['landmarks:change']({ target }); return target; };
+  const target = pick('2026-09-17');
+  assert.equal(h.context.currentIdx, 2);
+  assert.equal(h.loads.at(-1).date, '2026-09-17');
+  assert.equal(target.value, '', 'the list goes back to its heading');
+  assert.equal(target.blurred, 1, 'and lets go of focus, so the arrow keys step the chart');
+  assert.deepEqual(h.notices, []);
+  pick('2026-09-25');
+  assert.equal(h.loads.at(-1).date, '2026-09-20', 'after the last listed day: that day');
+  assert.deepEqual(h.notices, ['notFound:2026-09-20'], 'and the page says so');
+  pick('2026-09-01');
+  assert.equal(h.loads.at(-1).date, '2026-09-15', 'before the first listed day: the first');
+  const loads = h.loads.length;
+  pick('');
+  assert.equal(h.loads.length, loads, 'the heading itself goes nowhere');
 });
 
-test('a typed date replaces a pending navigation target and cancels its timer', () => {
+test('a cycle top or bottom picked from the list replaces a pending navigation target and cancels its timer', () => {
   const h = harness();
-  h.run('function jumpToDate(', 'var ddOpen = false;');
+  h.run('// First position whose date is on or after d', 'async function init() {');
   h.context.goTo(4);
   h.advance(50);
   h.context.goTo(3);
-  h.dateInput.value = '2026-09-15';
-  h.context.jumpToDate();
+  h.listeners['landmarks:change']({ target: { value: '2026-09-15', blur() {} } });
   h.advance(500);
   assert.equal(h.context.currentIdx, 0);
   assert.deepEqual(h.loads.map(load => load.date), ['2026-09-19', '2026-09-15']);

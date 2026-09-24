@@ -170,7 +170,7 @@ test('rapid RAW toggles and date navigation render the latest preset and date', 
   assert.equal(c.lastRenderedData.dateStr, '2026-09-19');
   assert.equal(c.lastRenderedData.numBins, 625);
   assert.equal(c.lastRenderedData.kernelPct, 0);
-  assert.equal(element('dateDisplay').textContent, '(2/2)');
+  assert.equal(element('dateDisplay').textContent, '2/2');
   assert.equal(element('chart').data.some(trace => trace.meta === 'pct' || trace.name === 'BTC/USD'), false);
   await c.setRawMode(false);
   assert.equal(c.NUM_BINS, 400);

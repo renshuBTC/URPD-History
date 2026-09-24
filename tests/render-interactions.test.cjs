@@ -69,7 +69,7 @@ for (const failBeforeDraw of [false, true]) {
     assert.equal(h.c.currentIdx, expectedIndex);
     assert.equal(h.c.lastRenderedData.dateStr, h.c.allDates[expectedIndex]);
     assert.match(h.element('chart').layout.title.text, new RegExp(`${18 + expectedIndex} Sept 2026`));
-    assert.equal(h.element('dateDisplay').textContent, `(${expectedIndex + 1}/3)`);
+    assert.equal(h.element('dateDisplay').textContent, `${expectedIndex + 1}/3`);
   });
 }
 
