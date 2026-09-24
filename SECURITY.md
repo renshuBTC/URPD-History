@@ -6,7 +6,7 @@ full-history video. Anything that asks for more is not this site.
 
 ## The video
 
-The ▶ button downloads one file, always from this address:
+The DOWNLOAD FULL HISTORY VIDEO button downloads one file, always from this address:
 
 <https://github.com/renshuBTC/URPD-History/releases/download/video/URPD_daily_full_history_4K60.mp4>
 
@@ -35,12 +35,13 @@ record of the run that built it (a build provenance attestation, logged by Sigst
   plugin, form and connection. It writes text, never markup, and everything from the data API is checked before use,
   so the API can at worst put wrong numbers on the chart. Its one download link is fixed, and the tests fail if any
   other download, redirect or outside address appears (`tests/security.test.cjs`).
-- **The build** is split by trust. Only this repository's own code runs with a token that can write. The renderer,
-  which runs third-party code (Playwright, Chromium, ffmpeg), gets a read-only token and no credentials. Its file is
-  published only if it is exactly the expected video (`tools/video/check-video.sh`: an MP4 with a single 3840×2160,
-  60 fps H.264 stream of 18,000 frames, every frame decoded), after its container is rewritten to hold nothing but
-  the picture, and with an attestation. Actions are pinned to full commit hashes and npm packages to exact versions
-  and hashes, with install scripts off.
+- **The build** is split by trust. Only this repository's own code runs with a token that can write, and that code
+  never parses the video. The renderer, which runs third-party code (Playwright, Chromium, ffmpeg), and the job that
+  vets its file get a read-only token and no credentials. The file is published only if it is exactly the expected
+  video (`tools/video/check-video.sh`: an MP4 with a single 3840×2160, 60 fps H.264 stream of 18,000 frames, every
+  frame decoded), after its container is rewritten to hold nothing but the picture, and with an attestation. The
+  axis history refuses values from the data API far outside anything in the real history rather than commit them.
+  Actions are pinned to full commit hashes and npm packages to exact versions and hashes, with install scripts off.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that
   bitcoinsupplychart.com serves this repository's `index.html` byte for byte, and that the video behind the button
   verifies as above. If anything differs it fails, and GitHub emails the owner.
