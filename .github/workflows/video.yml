@@ -1,6 +1,6 @@
 name: Daily video
 
-# Every day, for the site's DOWNLOAD FULL HISTORY VIDEO button and for scrubbing through history:
+# Every day, for the site's download button and for scrubbing through history:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
 #               video's store (the files on the "video-data" release)
 #   2. render:  draws the full-history 4K video with tools/video
@@ -244,7 +244,7 @@ jobs:
         run: |
           SHA=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published video reaches.
-          NOTES="Every day from 2009-01-03 to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the DOWNLOAD FULL HISTORY VIDEO button on https://bitcoinsupplychart.com downloads it.
+          NOTES="Every day from 2009-01-03 to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the download button on https://bitcoinsupplychart.com downloads it.
 
           SHA-256: $SHA
           Check it: gh attestation verify $VIDEO --repo $GITHUB_REPOSITORY (see SECURITY.md)"
