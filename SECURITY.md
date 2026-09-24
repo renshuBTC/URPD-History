@@ -14,6 +14,10 @@ It is always an `.mp4` video served by GitHub from this repository's
 [`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video). A copy from anywhere else, or a
 file of any other kind (`.exe`, `.dmg`, `.zip`, `.scr`, `.apk`, …), did not come from here.
 
+The YouTube button (a play symbol beside it) opens the same video on YouTube, posted unlisted by the same workflow to
+the [renshuBTC](https://www.youtube.com/@renshuBTC) channel. It only ever goes to `https://www.youtube.com/watch?v=`
+and the video's id, which the page checks before using.
+
 Every day's file is built by the [Daily video](.github/workflows/video.yml) workflow, and GitHub keeps a signed
 record of the run that built it (a build provenance attestation, logged by Sigstore). To check a downloaded copy:
 
@@ -42,6 +46,8 @@ record of the run that built it (a build provenance attestation, logged by Sigst
   frame decoded), after its container is rewritten to hold nothing but the picture, and with an attestation. The
   axis history refuses values from the data API far outside anything in the real history rather than commit them.
   Actions are pinned to full commit hashes and npm packages to exact versions and hashes, with install scripts off.
+  The channel's YouTube credentials are repository secrets seen only by the two steps of the youtube job that use
+  them, which run this repository's own code (`tools/video/youtube.mjs`, with Node's own http) and nothing installed.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that
   bitcoinsupplychart.com serves this repository's `index.html` byte for byte, and that the video behind the button
   verifies as above. If anything differs it fails, and GitHub emails the owner.
