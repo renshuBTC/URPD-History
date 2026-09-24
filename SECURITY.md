@@ -8,7 +8,7 @@ full-history video. Anything that asks for more is not this site.
 
 The DOWNLOAD FULL HISTORY VIDEO button downloads one file, always from this address:
 
-<https://github.com/renshuBTC/URPD-History/releases/download/video/URPD_daily_full_history_4K60.mp4>
+<https://github.com/renshuBTC/URPD-History/releases/download/video/BitcoinSupplyChart.com.mp4>
 
 It is always an `.mp4` video served by GitHub from this repository's
 [`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video). A copy from anywhere else, or a
@@ -22,7 +22,7 @@ record of the run that built it (a build provenance attestation, logged by Sigst
 - **Attestation**, with the [GitHub CLI](https://cli.github.com):
 
   ```sh
-  gh attestation verify URPD_daily_full_history_4K60.mp4 --repo renshuBTC/URPD-History \
+  gh attestation verify BitcoinSupplyChart.com.mp4 --repo renshuBTC/URPD-History \
     --signer-workflow renshuBTC/URPD-History/.github/workflows/video.yml --source-ref refs/heads/main
   ```
 
