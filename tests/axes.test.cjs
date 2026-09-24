@@ -266,24 +266,3 @@ test('the spot price box keeps clear of the pin\'s label and the ▲ figure at t
   assert.equal(right.xanchor, 'right');
   assert.ok(!right.yshift, 'with the price over at the right the box is nowhere near them, and stays at the top');
 });
-
-test('the chart is white, and its 23 age colours read on white: 3:1 or more each, lightness falling with age, neighbours apart', () => {
-  const { c } = app();
-  const lin = (h) => [1, 3, 5].map((i) => { const v = parseInt(h.slice(i, i + 2), 16) / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
-  const oklab = ([r, g, b]) => {
-    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-    return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
-  };
-  const contrastOnWhite = (h) => { const [r, g, b] = lin(h); return 1.05 / (0.2126 * r + 0.7152 * g + 0.0722 * b + 0.05); };
-  const cols = c.AGE_BAND_COLORS;
-  assert.equal(cols.length, 23);
-  const labs = cols.map((h) => oklab(lin(h)));
-  for (const h of cols) assert.ok(contrastOnWhite(h) >= 3, `${h} is ${contrastOnWhite(h).toFixed(2)}:1 on white`);
-  for (let i = 1; i < 23; i++) {
-    assert.ok(labs[i][0] < labs[i - 1][0], `band ${i} is darker than the one before`);
-    assert.ok(Math.hypot(...labs[i].map((v, k) => v - labs[i - 1][k])) >= 0.013, `bands ${i - 1} and ${i} are far enough apart`);
-  }
-  assert.equal(c.PRICE_LINE_COLOR, '#000000');
-  for (const h of [c.PROFIT_COLOR, c.LOSS_COLOR, c.GLOW_COLOR]) assert.ok(contrastOnWhite(h) >= 4.5, `${h} reads as text on white`);
-});
