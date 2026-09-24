@@ -109,7 +109,7 @@ for (const age of [true, false]) {
     const h = fixture(age);
     const { c, element } = h;
     c.setViewMode(1);
-    c.peakStore = { 'btc|b625|s0': ['2026-09-17', 1e9] };
+    c.peakStore = { 'btc|b625|s0|raw': ['2026-09-17', 1e9] };
     await c.setRawMode(true);
     const graph = element('chart');
     const bars = graph.data.filter(trace => trace.type === 'bar');
@@ -431,7 +431,7 @@ test('RAW pins the displayed peak across dates, keeps USD and BTC pins independe
 
   element('btnPeak').onclick();
   await c.chartRenderPromise;
-  assert.deepEqual(Array.from(c.peakStore['btc|b625|s0']), ['2026-09-18', 99]);
+  assert.deepEqual(Array.from(c.peakStore['btc|b625|s0|raw']), ['2026-09-18', 99]);
   assert.equal(pinLine().y0, 99);
   const btcRange = Array.from(graph.layout.yaxis.range);
   c.goTo(1, true);
@@ -452,7 +452,7 @@ test('RAW pins the displayed peak across dates, keeps USD and BTC pins independe
   assert.equal(pinLine(), undefined, 'BTC pin cannot fix the USD scale');
   element('btnPeak').onclick();
   await c.chartRenderPromise;
-  assert.deepEqual(Array.from(c.peakStore['usd|b625|s0']), ['2026-09-19', 500000]);
+  assert.deepEqual(Array.from(c.peakStore['usd|b625|s0|raw']), ['2026-09-19', 500000]);
   assert.equal(pinLine().y0, 500000);
   const usdRange = Array.from(graph.layout.yaxis.range);
 
@@ -461,7 +461,7 @@ test('RAW pins the displayed peak across dates, keeps USD and BTC pins independe
   assert.deepEqual(Array.from(graph.layout.yaxis.range), btcRange);
   element('btnPeak').onclick();
   await c.chartRenderPromise;
-  assert.equal(c.peakStore['btc|b625|s0'], undefined);
+  assert.equal(c.peakStore['btc|b625|s0|raw'], undefined);
   assert.equal(pinLine(), undefined);
   assert.ok(graph.layout.yaxis.range[1] > btcRange[1], 'unpinning fits the current taller day again');
 
@@ -493,7 +493,7 @@ test('an intentional RAW pin overrides its default percentile despite an explici
 
   element('btnPeak').onclick();
   await c.chartRenderPromise;
-  assert.deepEqual(Array.from(c.peakStore['btc|b625|s0']), ['2026-09-18', 10000]);
+  assert.deepEqual(Array.from(c.peakStore['btc|b625|s0|raw']), ['2026-09-18', 10000]);
   assert.ok(graph.layout.yaxis.range[1] >= 10000, 'choosing a pin must override RAW percentile clipping');
   assert.equal(graph.layout.shapes.find(shape => shape.xref === 'paper' && shape.yref === 'y').y0, 10000);
   assertPreset(h, true);
