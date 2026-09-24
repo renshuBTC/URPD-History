@@ -90,12 +90,13 @@ test('a start-up that could not reach the API says so in whatever language the p
   assert.equal(element('status').style.display, 'block', 'still up: nothing can draw without dates');
 });
 
-test('the toolbar wraps instead of scrolling, with GitHub, ?, download and language kept together at the right', () => {
+test('the toolbar wraps instead of scrolling, with download, ?, language and GitHub kept together at the right, in that order', () => {
   assert.match(decls('#controls'), /flex-wrap:\s*wrap/);
   assert.match(decls('#toolbarEnd'), /margin-left:\s*auto/);
   assert.doesNotMatch(decls('#githubLink'), /margin-left/);
   const end = html.slice(html.indexOf('<div id="toolbarEnd">'), html.indexOf('<div id="status"'));
-  assert.deepEqual([...end.matchAll(/\sid="(githubLink|explainWrap|videoBtn|langBtn)"/g)].map(m => m[1]), ['githubLink', 'explainWrap', 'videoBtn', 'langBtn']);
+  // The chart's own action first, then help, the page's language, and the link that leaves the site at the far corner.
+  assert.deepEqual([...end.matchAll(/\sid="(githubLink|explainWrap|videoBtn|langBtn)"/g)].map(m => m[1]), ['videoBtn', 'explainWrap', 'langBtn', 'githubLink']);
 });
 
 test('the chart follows its own box, which the toolbar can change without the window resizing', async () => {
