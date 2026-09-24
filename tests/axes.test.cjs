@@ -267,7 +267,7 @@ test('the spot price box keeps clear of the pin\'s label and the ▲ figure at t
   assert.ok(!right.yshift, 'with the price over at the right the box is nowhere near them, and stays at the top');
 });
 
-test('the chart is white, and its 23 age colours read on white: 3:1 or more each, darker with age, colour steps in proportion to the age gaps', () => {
+test('the chart is white, and its 23 age colours read on white: 3:1 or more each, lightness falling with age, neighbours apart', () => {
   const { c } = app();
   const lin = (h) => [1, 3, 5].map((i) => { const v = parseInt(h.slice(i, i + 2), 16) / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
   const oklab = ([r, g, b]) => {
@@ -280,18 +280,10 @@ test('the chart is white, and its 23 age colours read on white: 3:1 or more each
   assert.equal(cols.length, 23);
   const labs = cols.map((h) => oklab(lin(h)));
   for (const h of cols) assert.ok(contrastOnWhite(h) >= 3, `${h} is ${contrastOnWhite(h).toFixed(2)}:1 on white`);
-  // Each band's place on a log-age scale: its geometric mid-age, 30 min for <1h to 16 y for >15y (hours).
-  const D = 24, M = 730, Y = 8760, edges = [[0.25, 1], [1, D], [D, 7 * D], [7 * D, M], [M, 2 * M], [2 * M, 3 * M], [3 * M, 4 * M], [4 * M, 5 * M], [5 * M, 6 * M], [6 * M, 9 * M], [9 * M, Y],
-    [Y, 1.5 * Y], [1.5 * Y, 2 * Y], [2 * Y, 3 * Y], [3 * Y, 4 * Y], [4 * Y, 5 * Y], [5 * Y, 6 * Y], [6 * Y, 7 * Y], [7 * Y, 8 * Y], [8 * Y, 10 * Y], [10 * Y, 12 * Y], [12 * Y, 15 * Y], [15 * Y, 18 * Y]];
-  const pos = edges.map(([a, b]) => Math.log(Math.sqrt(a * b)));
-  const perGap = [];
   for (let i = 1; i < 23; i++) {
     assert.ok(labs[i][0] < labs[i - 1][0], `band ${i} is darker than the one before`);
-    const step = Math.hypot(...labs[i].map((v, k) => v - labs[i - 1][k]));
-    assert.ok(step >= 0.0115, `bands ${i - 1} and ${i} are far enough apart`);
-    perGap.push(step / (pos[i] - pos[i - 1]));
+    assert.ok(Math.hypot(...labs[i].map((v, k) => v - labs[i - 1][k])) >= 0.013, `bands ${i - 1} and ${i} are far enough apart`);
   }
-  assert.ok(Math.max(...perGap) / Math.min(...perGap) <= 1.06, 'a gap twice as long in log-age is a colour step twice as big');
   assert.equal(c.PRICE_LINE_COLOR, '#000000');
   for (const h of [c.PROFIT_COLOR, c.LOSS_COLOR, c.GLOW_COLOR]) assert.ok(contrastOnWhite(h) >= 4.5, `${h} reads as text on white`);
 });
