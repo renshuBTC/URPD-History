@@ -12,9 +12,11 @@ const crypto = require('node:crypto');
 
 const FILE = path.join(__dirname, '..', 'index.html');
 
-// The text of every <script> without a src, exactly as the browser hashes it.
+// The text of every <script> without a src, exactly as the browser hashes it: the HTML parser turns CRLF and lone
+// CR line endings into LF first, so a Windows checkout (CRLF) must be hashed as if it had LF endings.
 function inlineScripts(html) {
-  return [...html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi)].filter(m => !/\bsrc\s*=/i.test(m[1] || '')).map(m => m[2]);
+  return [...html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi)].filter(m => !/\bsrc\s*=/i.test(m[1] || ''))
+    .map(m => m[2].replace(/\r\n?/g, '\n'));
 }
 function scriptHashes(html) {
   return inlineScripts(html).map(s => "'sha256-" + crypto.createHash('sha256').update(s, 'utf8').digest('base64') + "'");
