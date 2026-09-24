@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-115M3tPQgnCp6Ei6qp6yO9NwFbUyQFUdGXOknU4ViWA=' 'sha256-bJcbACBVhRO/9HCWmOus36qAdIcNLbUzZk97qmKaHrY=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-6SzJCgGBEdUbpSnnWYPRh0z7d5pqUSJfV8Czh3n5sWM=' 'sha256-bJcbACBVhRO/9HCWmOus36qAdIcNLbUzZk97qmKaHrY=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -87,7 +87,9 @@
   #controls .mode-toggle button.active:hover { background: #ffaa33; }
   #controls #btnRaw.active { outline: none; }
   #controls button:disabled, #controls input:disabled { opacity: 0.45; cursor: not-allowed; }
-  #dateDisplay { font-weight: bold; color: #ff8c00; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
+  /* The day counter is framed, coloured and weighted like the cycle list (#landmarks). It is not a control, so it has
+     no hover state; init() holds its width at that of (N/N) so the box does not resize as the day number gains digits. */
+  #dateDisplay { display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 8px; background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; border-radius: 2px; font-weight: normal; line-height: 1; white-space: nowrap; }
   /* Messages float over the chart near the bottom of the window instead of taking a row of the layout: the row
      pushed the chart down without resizing it, and on a phone it sat above the top of the screen. Clicks and taps
      pass through it. */
@@ -2077,6 +2079,9 @@ async function init() {
     // before this point can change settings, but cannot cache a chart with missing prices.
     allDates = cleanDates(loaded[0]);
     if (!allDates.length) throw pageError(function() { return t("errNoDates"); });
+    // The counter's box keeps the width of its longest reading, (N/N), so neither it nor the buttons after it move as
+    // the day number gains digits: one ch per character of the monospace font, plus 8px padding and a 1px border a side.
+    document.getElementById("dateDisplay").style.minWidth = "calc(" + (2 * String(allDates.length).length + 3) + "ch + 18px)";
     currentIdx = allDates.length - 1;
     await loadAndRender();
   } catch (e) {
