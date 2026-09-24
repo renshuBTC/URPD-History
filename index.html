@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-/7UGxCbSFF+tC7RcKGZ/UQS+4MWjf1IM3wqdcwm94x8=' 'sha256-bJcbACBVhRO/9HCWmOus36qAdIcNLbUzZk97qmKaHrY=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-115M3tPQgnCp6Ei6qp6yO9NwFbUyQFUdGXOknU4ViWA=' 'sha256-bJcbACBVhRO/9HCWmOus36qAdIcNLbUzZk97qmKaHrY=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -157,6 +157,9 @@
   /* Fixed panels escape the toolbar's horizontal scroll area. */
   #explainPanel, #dateDropdown { position: fixed; right: auto; margin-top: 0; max-width: calc(100vw - 20px); overflow-y: auto; }
   #explainPanel:focus { outline: none; }
+  /* The credit line's names (links, see creditLink): white and underlined when pointed at. !important because each
+     name carries its colour inline, which is how Plotly takes one. */
+  #chart .annotation-text a:hover { fill: #ffffff !important; text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -489,10 +492,13 @@ function t(key) { return T[lang][key] || T.en[key] || key; }
 // the tooltip gives that time in UTC and in the reader's own time zone.
 var VIDEO_READY_UTC_HOUR = 4;
 // The credit line's names and their X accounts. Each is drawn as a link (renderChart); Plotly gives a link in a chart
-// a new tab of its own, and a plain click opens it without a handle on this page (the chart's click listener).
+// a new tab of its own, and a plain click opens it without a handle on this page (the chart's click listener). Plotly
+// colours links its own dark blue, which all but disappeared on this background: the names are drawn a little
+// brighter than the rest of the line instead, so they read as the credits they are, and turn white when pointed at.
 var CREDIT_X = { "Bitview.space": "_bitview_", "Bitcoin Core": "bitcoincoreorg", "Antoine Le Calvez": "khannib",
   "Renato Shirakashi": "renato_shira", "James Check": "_Checkmatey_", "@_nym21_": "_nym21_" };
-function creditLink(name) { return '<a href="https://x.com/' + CREDIT_X[name] + '">' + name + "</a>"; }
+var CREDIT_NAME_COLOR = "rgba(255,255,255,0.8)";
+function creditLink(name) { return '<a href="https://x.com/' + CREDIT_X[name] + '" style="color:' + CREDIT_NAME_COLOR + '">' + name + "</a>"; }
 function setVideoTitle() {
   var el = document.getElementById("videoBtn");
   if (!el) return;
