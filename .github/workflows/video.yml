@@ -8,9 +8,12 @@ name: Daily video
 #               the picture
 #   4. publish: attests where the video was built and publishes it on the "video" release, the file the button
 #               downloads
+#   5. youtube: posts it to YouTube, unlisted (tools/video/youtube.mjs), once the channel's credentials are set up
+#   6. record:  names it in data/youtube.json for the site's YouTube button, once YouTube lets others watch it
 #
 # The jobs are split by trust. Only this repository's own code runs with a token that can write (update, publish),
-# and neither of them ever parses the video. The renderer runs third-party code (Playwright, Chromium, ffmpeg and
+# and neither of them ever parses the video. The YouTube credentials are seen only by the two steps of the youtube job
+# that need them, which run this repository's own code and nothing installed. The renderer runs third-party code (Playwright, Chromium, ffmpeg and
 # their npm packages), and the vet job parses the rendered file with ffmpeg, so both get only a read-only token and
 # no credentials. Each hands its file on as a workflow artifact. The publish job
 # signs a build attestation for the vetted file, which anyone can check with `gh attestation verify` (see
@@ -98,7 +101,7 @@ jobs:
           [ "${#CHANGED[@]}" = 0 ] || bash tools/video/replace-asset.sh video-data "${CHANGED[@]}"
           END=$(node -p "require(process.env.RUNNER_TEMP + '/store/meta.json').days.at(-1)[0]")
           echo "end=$END" >> "$GITHUB_OUTPUT"
-          # The video's first day: the first with anything on the chart (tools/video/store.mjs firstShownIndex).
+          # The video's first day: the first with bars on the chart (tools/video/store.mjs firstShownIndex).
           START=$(node --input-type=module -e "import { readStore, firstShownIndex } from './tools/video/store.mjs';
             const s = readStore(process.env.RUNNER_TEMP + '/store'); console.log(s.meta.days[firstShownIndex(s.meta, s.bars)][0]);")
           echo "start=$START" >> "$GITHUB_OUTPUT"
@@ -243,7 +246,7 @@ jobs:
           [[ "$START" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "days: '$START' '$END'" >&2; exit 1; }
           SHA=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published video reaches.
-          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the download button on https://bitcoinsupplychart.com downloads it.
+          NOTES="Every day from $START (the first with bars on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the download button on https://bitcoinsupplychart.com downloads it.
 
           SHA-256: $SHA
           Check it: gh attestation verify $VIDEO --repo $GITHUB_REPOSITORY (see SECURITY.md)"
@@ -251,3 +254,79 @@ jobs:
           bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO"
           # Retried: notes left behind would name the old file's SHA-256 and fail every site check until the next run.
           for k in 1 2 3 4 5; do gh release edit video --notes "$NOTES" && break; [ "$k" = 5 ] && exit 1; sleep $((k * 5)); done
+
+  youtube:
+    # Posts the video to YouTube, unlisted: anyone with the link can watch it (the site's YouTube button links it),
+    # but it is shown neither on the channel nor in search. Its title is the chart's own title on its last day. The
+    # channel's OAuth credentials are three repository secrets (see README), seen only by the two steps that use them.
+    # Without them the job does nothing, so the video is published the same before YouTube is set up.
+    needs: [update, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      id: ${{ steps.post.outputs.id }}
+      privacy: ${{ steps.post.outputs.privacy }}
+    steps:
+      - name: Look for the YouTube credentials
+        id: creds
+        env:
+          ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          REFRESH: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          if [ -n "$ID" ] && [ -n "$SECRET" ] && [ -n "$REFRESH" ]; then echo "found=yes" >> "$GITHUB_OUTPUT"
+          else echo "No YouTube credentials in this repository's secrets (see README): not posting."; fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          name: video-vetted
+          path: ${{ runner.temp }}/vetted
+
+      - name: Post the video to YouTube
+        id: post
+        if: steps.creds.outputs.found == 'yes'
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          START: ${{ needs.update.outputs.start }}
+          END: ${{ needs.update.outputs.end }}
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO" "$START" "$END" >> "$GITHUB_OUTPUT"
+
+  record:
+    # Names the new video in data/youtube.json for the site's YouTube button. A private upload (every upload until the
+    # channel's Google project passes YouTube's API audit) is not recorded: nobody else could watch it, so the button
+    # stays hidden.
+    needs: [update, youtube]
+    if: needs.youtube.outputs.privacy == 'unlisted' || needs.youtube.outputs.privacy == 'public'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write   # the commit
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Record the latest video
+        env:
+          ID: ${{ needs.youtube.outputs.id }}
+          END: ${{ needs.update.outputs.end }}
+        run: |
+          [[ "$ID" =~ ^[A-Za-z0-9_-]{11}$ && "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "id: '$ID' end: '$END'" >&2; exit 1; }
+          ABOUT="The latest video on YouTube, for the site's YouTube button: written by the Daily video workflow once an upload is viewable (unlisted or public); null until then."
+          printf '{\n  "about": "%s",\n  "id": "%s",\n  "end": "%s"\n}\n' "$ABOUT" "$ID" "$END" > data/youtube.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/youtube.json
+          if git diff --cached --quiet; then echo "Already recorded."; exit 0; fi
+          git commit -m "Latest video on YouTube: $ID ($END)"
+          git pull --rebase --quiet
+          git push   # Pages rebuilds the site from this push by itself
