@@ -52,3 +52,14 @@ test('the video starts on the first day with anything on the chart: the first cl
   assert.equal(day(firstShownIndex({ days }, (i) => (i >= 100 ? some : empty))), day(100), 'a bar before that');
   assert.equal(firstShownIndex({ days: days.map((d) => [d[0], 1, null, null]) }, () => empty), 0, 'nothing anywhere: every day');
 });
+
+test('the video draws with the site\'s colours: its age palette and its white chart', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const render = fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'render.mjs'), 'utf8');
+  const page = fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8');
+  const list = (src, re) => JSON.parse('[' + src.match(re)[1] + ']');
+  assert.deepEqual(list(render, /const PALETTE = \[([\s\S]*?)\];/), list(html, /var AGE_BAND_COLORS = \[([\s\S]*?)\];/));
+  assert.match(page, /paper_bgcolor: "#ffffff", plot_bgcolor: "#ffffff"/);
+  assert.match(page, /PRICE_LINE = "#000000"/);
+  assert.doesNotMatch(page, /#0a0a0a/);
+});
