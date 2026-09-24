@@ -282,7 +282,7 @@ test('each name in the credit line links to its X account, and a click opens it 
     const { dates, raw } = market(c);
     await c.renderChart(c.buildData(dates.at(-1), raw));
     const credit = element('chart').layout.annotations.find(a => /Bitview/.test(a.text));
-    assert.deepEqual([...credit.text.matchAll(/<a href="([^"]+)" style="color:rgba\(255,255,255,0\.8\)">([^<]+)<\/a>/g)].map(m => [m[2], m[1]]), want, lang + ': every name a link, in a colour that reads on the dark chart');
+    assert.deepEqual([...credit.text.matchAll(/<a href="([^"]+)" style="color:rgba\(0,0,0,0\.8\)">([^<]+)<\/a>/g)].map(m => [m[2], m[1]]), want, lang + ': every name a link, in a colour that reads on the dark chart');
     assert.equal(credit.text.replace(/<[^>]*>/g, ''), plainText[lang], lang + ': the words are as before');
   }
   const { c, element } = app(), opened = [];
@@ -300,8 +300,8 @@ test('each name in the credit line links to its X account, and a click opens it 
   click(on(null));
   assert.equal(opened.length, 1);
   assert.equal(prevented, 1);
-  // Plotly's own link colour (#447adb) all but vanished on the chart: the names keep theirs, white when pointed at.
-  assert.match(decls('#chart .annotation-text a:hover'), /fill:\s*#ffffff\s*!important/);
+  // Plotly's own link colour (#447adb) is not the credit line's: the names keep theirs, black when pointed at.
+  assert.match(decls('#chart .annotation-text a:hover'), /fill:\s*#000000\s*!important/);
 });
 
 test('the language button is named by the label it shows', () => {

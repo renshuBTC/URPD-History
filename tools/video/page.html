@@ -3,7 +3,7 @@
 <style>
   @font-face { font-family: 'Source Code Pro'; font-weight: 400; src: url('FONT400') format('woff2'); }
   @font-face { font-family: 'Source Code Pro'; font-weight: 700; src: url('FONT700') format('woff2'); }
-  html, body { margin: 0; padding: 0; background: #0a0a0a; overflow: hidden; }
+  html, body { margin: 0; padding: 0; background: #ffffff; overflow: hidden; }
   #chart { width: 1920px; height: 1080px; }
 </style>
 <script src="PLOTLY"></script>
@@ -14,7 +14,8 @@
 // all 626 bars, painted back to front, instead of 14,000 separate rectangles (the same picture, much faster), with
 // the bar edges on whole device pixels.
 var FONT = "'Source Code Pro', Consolas, monospace";
-var PROFIT = "#00e676", LOSS = "#ff1744", GLOW = "#FFE600", PRICE_LINE = "#ffffff";
+// A white chart with black ink, as on the site (index.html: PROFIT_COLOR, LOSS_COLOR, GLOW_COLOR, PRICE_LINE_COLOR).
+var PROFIT = "#00873c", LOSS = "#e0002b", GLOW = "#8f6b00", PRICE_LINE = "#000000";
 var LABELS = ["<1h","1h-1d","1d-1w","1w-1m","1m-2m","2m-3m","3m-4m","4m-5m","5m-6m","6m-9m","9m-1y","1y-18m","18m-2y","2y-3y","3y-4y","4y-5y","5y-6y","6y-7y","7y-8y","8y-10y","10y-12y","12y-15y",">15y"];
 var TOP_MARGIN = null, ML = 88, MR = 24, PLOT_W = 1920 - ML - MR, BAR_EDGES = null;
 // bar edges as fractions of the x-axis, snapped to device pixels, 2 px gap; computed from the real plot width
@@ -49,19 +50,19 @@ window.drawFrame = function(sp) {
     traces.push({ x: xs, y: ys, type: "scatter", mode: "lines", line: { width: 0, color: sp.colors[a2] }, fill: "tozeroy", fillcolor: sp.colors[a2], showlegend: false, hoverinfo: "skip" });
   }
   var shapes = [], ann = [
-    { xref: "paper", yref: "paper", x: 0.5, y: 0.5, text: "<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>", showarrow: false, font: { family: FONT } },
-    { xref: "paper", yref: "paper", x: 0, y: 0, yanchor: "bottom", yshift: -38, text: "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_", showarrow: false, font: { size: 11, color: "rgba(255,255,255,0.55)", family: FONT }, xanchor: "left" }
+    { xref: "paper", yref: "paper", x: 0.5, y: 0.5, text: "<span style='color:rgba(0,0,0,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>", showarrow: false, font: { family: FONT } },
+    { xref: "paper", yref: "paper", x: 0, y: 0, yanchor: "bottom", yshift: -38, text: "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_", showarrow: false, font: { size: 11, color: "rgba(0,0,0,0.55)", family: FONT }, xanchor: "left" }
   ];
   ann.push({ xref: "paper", yref: "paper", x: 0, y: 0.5, xanchor: "center", yanchor: "middle", xshift: -(ML - 16), textangle: -90, showarrow: false,
-    text: "USD Value of BTC Supply Last Moved", font: { family: FONT, size: 13, color: "#ffffff" } });
+    text: "USD Value of BTC Supply Last Moved", font: { family: FONT, size: 13, color: "#000000" } });
   // a bar taller than the axis (a one-day spike the axis deliberately does not rescale for) is marked, not hidden
   (sp.clip || []).forEach(function(c, k) {
     ann.push({ x: c.x, y: 1, xref: "x", yref: "paper", yanchor: "top", yshift: -1, showarrow: false, text: "\u25b2",
-      font: { family: FONT, size: 12, color: "#ffffff" } });
+      font: { family: FONT, size: 12, color: "#000000" } });
   });
   var isBottom = sp.redPct !== null && sp.redPct >= 80, spotBox = null;
   if (sp.spot && sp.spot > 0) {
-    shapes.push({ type: "line", x0: sp.spot, x1: sp.spot, y0: 0, y1: 1, xref: "x", yref: "paper", line: { color: isBottom ? GLOW : "#ffffff", width: 1, dash: "dash" }, layer: "above" });
+    shapes.push({ type: "line", x0: sp.spot, x1: sp.spot, y0: 0, y1: 1, xref: "x", yref: "paper", line: { color: isBottom ? GLOW : "#000000", width: 1, dash: "dash" }, layer: "above" });
     var loss = sp.redPct, profit = loss === null ? null : 100 - loss;
     var txt = "Price: $" + sp.spot.toLocaleString("en-US", { maximumFractionDigits: sp.spot < 10 ? 2 : 0 }) +
       "<br><span style='color:" + PROFIT + "'>USD Value Last Moved In Profit: " + (profit === null ? "N/A" : profit.toFixed(1) + "%") + "</span>" +
@@ -72,23 +73,23 @@ window.drawFrame = function(sp) {
     var boxF = (chars * 7.9 + 24) / PLOT_W, boxAt = sp.spot / xSpan + (flip ? -6 : 6) / PLOT_W;
     spotBox = { x0: flip ? boxAt - boxF : boxAt, x1: flip ? boxAt : boxAt + boxF, h: txt.split("<br>").length * 17 + 12 };
     ann.push({ x: sp.spot, y: 1, xref: "x", yref: "paper", text: txt, showarrow: false, xanchor: flip ? "right" : "left", xshift: flip ? -6 : 6, yanchor: "top", align: "left",
-      font: { color: "#ffffff", size: 13, family: FONT }, bgcolor: "rgba(0,0,0,0.92)", bordercolor: isBottom ? GLOW : "rgba(255,255,255,0.45)", borderwidth: 1, borderpad: 5 });
+      font: { color: "#000000", size: 13, family: FONT }, bgcolor: "rgba(255,255,255,0.92)", bordercolor: isBottom ? GLOW : "rgba(0,0,0,0.45)", borderwidth: 1, borderpad: 5 });
   }
   var layout = {
     title: { text: "<b>Bitcoin Supply Distribution (in USD Value Last Moved) as of " + new Date(sp.date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + "</b>",
-      xref: "paper", x: 0.5, xanchor: "center", y: 1, yanchor: "top", pad: { t: 13 }, font: { size: 20, family: FONT, color: "#ffffff" } },
-    font: { family: FONT, color: "#ffffff" }, paper_bgcolor: "#0a0a0a", plot_bgcolor: "#0a0a0a", barmode: "stack", bargap: 0, showlegend: true,
-    legend: { orientation: "h", yanchor: "bottom", y: 1, xanchor: "center", x: 0.5, bgcolor: "rgba(0,0,0,0)", font: { family: FONT, size: 9, color: "#ffffff" }, traceorder: "normal" },
-    xaxis: { title: { text: "Price [USD]", font: { family: FONT, size: 13, color: "#ffffff" }, standoff: 10 }, range: [0, xSpan], autorange: false,
-      tickvals: sp.xt.v, ticktext: sp.xt.t, tickangle: 0, showgrid: true, gridcolor: "rgba(255,255,255,0.08)", tickfont: { family: FONT, size: 11, color: "#ffffff" }, zeroline: false },
+      xref: "paper", x: 0.5, xanchor: "center", y: 1, yanchor: "top", pad: { t: 13 }, font: { size: 20, family: FONT, color: "#000000" } },
+    font: { family: FONT, color: "#000000" }, paper_bgcolor: "#ffffff", plot_bgcolor: "#ffffff", barmode: "stack", bargap: 0, showlegend: true,
+    legend: { orientation: "h", yanchor: "bottom", y: 1, xanchor: "center", x: 0.5, bgcolor: "rgba(0,0,0,0)", font: { family: FONT, size: 9, color: "#000000" }, traceorder: "normal" },
+    xaxis: { title: { text: "Price [USD]", font: { family: FONT, size: 13, color: "#000000" }, standoff: 10 }, range: [0, xSpan], autorange: false,
+      tickvals: sp.xt.v, ticktext: sp.xt.t, tickangle: 0, showgrid: true, gridcolor: "rgba(0,0,0,0.08)", tickfont: { family: FONT, size: 11, color: "#000000" }, zeroline: false },
     yaxis: { title: { text: "" }, automargin: false, side: "left",
-      tickvals: sp.yt, ticktext: sp.ytt || sp.yt.map(yLabel), range: [0, sp.ymax], autorange: false, showgrid: true, gridcolor: "rgba(255,255,255,0.08)", zeroline: false, tickfont: { family: FONT, size: 11, color: "#ffffff" } },
+      tickvals: sp.yt, ticktext: sp.ytt || sp.yt.map(yLabel), range: [0, sp.ymax], autorange: false, showgrid: true, gridcolor: "rgba(0,0,0,0.08)", zeroline: false, tickfont: { family: FONT, size: 11, color: "#000000" } },
     annotations: ann, shapes: shapes, margin: { l: ML, r: MR, t: TOP_MARGIN === null ? 68 : TOP_MARGIN, b: 44, autoexpand: false }, hovermode: false
   };
   // BTC/USD line over a one-year window, on its own hidden date axis, linear from $0 to the highest close so far
-  traces.push({ x: sp.pd, y: sp.pp, type: "scatter", mode: "lines", xaxis: "x2", yaxis: "y3", line: { color: "rgba(10,10,10,0.8)", width: 4 }, showlegend: false, hoverinfo: "skip" });
+  traces.push({ x: sp.pd, y: sp.pp, type: "scatter", mode: "lines", xaxis: "x2", yaxis: "y3", line: { color: "rgba(255,255,255,0.8)", width: 4 }, showlegend: false, hoverinfo: "skip" });
   traces.push({ x: sp.pd, y: sp.pp, type: "scatter", mode: "lines", xaxis: "x2", yaxis: "y3", line: { color: PRICE_LINE, width: 1.5 }, name: "BTC/USD", showlegend: true, hoverinfo: "skip" });
-  if (sp.spot && sp.spot > 0) traces.push({ x: [sp.tx || sp.date], y: [sp.spot], type: "scatter", mode: "markers", xaxis: "x2", yaxis: "y3", marker: { color: "#ff8c00", size: 9, line: { color: "rgba(255,140,0,0.7)", width: 1.5 } }, showlegend: false, hoverinfo: "skip" });
+  if (sp.spot && sp.spot > 0) traces.push({ x: [sp.tx || sp.date], y: [sp.spot], type: "scatter", mode: "markers", xaxis: "x2", yaxis: "y3", marker: { color: "#ff8c00", size: 9, line: { color: "#000000", width: 1.5 } }, showlegend: false, hoverinfo: "skip" });
   // Landmarks exactly as on the site: each marker on the line's own highest (lowest) close within a week of its
   // date (found in render.mjs), each label inside the plot on a dark backing, beside a top and under a bottom,
   // taking the other side, or dropping below, whenever the price box or the day's dot is in the way.
@@ -112,7 +113,7 @@ window.drawFrame = function(sp) {
       var free = fits.filter(function(a) { return !blockedBy(a, yTop).length; }), side = free.length ? free[0] : fits[0], y = yTop;
       if (!free.length) blockedBy(side, yTop).forEach(function(b) { y = Math.max(y, b.y1 + 4); });
       ann.unshift({ x: l.d, y: l.p, xref: "x2", yref: "y3", text: l.l, showarrow: false, xanchor: side, yanchor: "top",
-        xshift: side === "left" ? 8 : side === "right" ? -8 : 0, yshift: -(y - yPx), font: { color: PRICE_LINE, size: 11, family: FONT }, bgcolor: "rgba(10,10,10,0.75)", borderpad: 2 });
+        xshift: side === "left" ? 8 : side === "right" ? -8 : 0, yshift: -(y - yPx), font: { color: PRICE_LINE, size: 11, family: FONT }, bgcolor: "rgba(255,255,255,0.75)", borderpad: 2 });
     });
   }
   layout.xaxis2 = { overlaying: "x", showticklabels: false, showgrid: false, type: "date", visible: false, autorange: false, range: sp.win };
