@@ -13,7 +13,7 @@ function deferred() {
 }
 async function flush() { for (let i = 0; i < 30; i++) await Promise.resolve(); }
 function app(overrides = {}) {
-  const elements = new Map(), timers = new Map();
+  const elements = new Map(), timers = new Map(), docListeners = {};
   let timerId = 0;
   function element(id) {
     if (!elements.has(id)) {
@@ -23,7 +23,10 @@ function app(overrides = {}) {
         classList: { add() {}, remove() {}, toggle() {} },
         addEventListener(type, fn) { this.on(type, fn); },
         querySelectorAll() { return []; }, querySelector() { return null; },
-        setAttribute() {}, appendChild() {}, blur() {}, contains() { return false; }
+        attributes: {}, setAttribute(k, v) { this.attributes[k] = String(v); }, getAttribute(k) { return this.attributes[k]; },
+        focus(options) { c.document.activeElement = this; this.focusOptions = options; },
+        getBoundingClientRect() { return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }; },
+        appendChild() {}, blur() {}, contains() { return false; }
       });
       elements.set(id, el);
     }
@@ -36,7 +39,8 @@ function app(overrides = {}) {
     addEventListener() {},
     localStorage: { getItem() { return null; }, setItem() {} },
     document: {
-      getElementById: element, querySelectorAll() { return []; }, addEventListener() {},
+      getElementById: element, querySelectorAll() { return []; },
+      addEventListener(type, fn) { (docListeners[type] = docListeners[type] || []).push(fn); },
       documentElement: {}, body: { classList: { add() {}, remove() {} } },
       createElement() { return element('created'); }
     },
@@ -54,6 +58,6 @@ function app(overrides = {}) {
   c.window = c;
   vm.runInContext(main, c, { filename: 'index.html/main' });
   c.schedulePrefetch = () => {};
-  return { c, element, timers, runTimer(id) { const t = timers.get(id); timers.delete(id); t.fn(); } };
+  return { c, element, timers, docListeners, runTimer(id) { const t = timers.get(id); timers.delete(id); t.fn(); } };
 }
 module.exports = { html, scripts, app, deferred, flush };

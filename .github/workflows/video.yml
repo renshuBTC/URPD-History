@@ -20,8 +20,9 @@ name: Daily video
 on:
   schedule:
     # 01:23 UTC, well after yesterday closed and off the top of the hour, when GitHub delays or drops the most
-    # scheduled runs; the new video is out by about 04:00 UTC. The second run only catches up if the first did not
-    # happen or found no new day, and otherwise stops after a minute.
+    # scheduled runs; the new video is usually out by about 04:00 UTC (GitHub can start scheduled runs hours late).
+    # The second run only catches up if the first did not happen or found no new day, and otherwise stops after a
+    # minute.
     - cron: "23 1 * * *"
     - cron: "23 5 * * *"
   workflow_dispatch:
@@ -34,19 +35,21 @@ concurrency:
 
 env:
   # The name the download gets on people's computers (it has to end in .mp4: a file ending in .com is a program on
-  # Windows). It was URPD_daily_full_history_4K60.mp4 until 2026-09-24, and that file is removed once unused.
+  # Windows).
   VIDEO: BitcoinSupplyChart.com.mp4
-  OLD_VIDEO: URPD_daily_full_history_4K60.mp4
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    # Only on main: a run started by hand on another branch would commit there and publish a video that the site
+    # check (which wants main) then flags as not genuine.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: write   # the axis-history commit and the release files
-      pages: write      # asking Pages to rebuild after that commit
     outputs:
       render: ${{ steps.store.outputs.render }}
+      start: ${{ steps.store.outputs.start }}
       end: ${{ steps.store.outputs.end }}
     env:
       GH_TOKEN: ${{ github.token }}
@@ -55,22 +58,6 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-
-      - name: Remove the video's old name
-        run: |
-          # One-off, after the change of name: the file under the old name is left over and no longer updated. It
-          # goes once the live page no longer links it and the new name has been up for over an hour, so a browser
-          # still holding the old page (Pages allows 10 minutes of caching) can finish its download.
-          names=$(gh release view video --json assets --jq '.assets[].name' 2> /dev/null || true)
-          if grep -qxF "$OLD_VIDEO" <<< "$names" && grep -qxF "$VIDEO" <<< "$names"; then
-            since=$(gh release view video --json assets --jq ".assets[] | select(.name == \"$VIDEO\") | .createdAt")
-            age=$(( $(date +%s) - $(date -d "$since" +%s) ))
-            if [ "$age" -gt 3600 ] && ! curl -fsS "https://bitcoinsupplychart.com/?check=$(date +%s)" | grep -qF "$OLD_VIDEO"; then
-              gh release delete-asset video "$OLD_VIDEO" --yes
-            else
-              echo "Keeping $OLD_VIDEO for now."
-            fi
-          fi
 
       - name: Add the finished days to the axis history
         run: node tools/build-scales.cjs --cache "$RUNNER_TEMP/raw" --seconds 1800
@@ -86,15 +73,15 @@ jobs:
           git add data/scales.json
           git commit -m "Axis history through $(node -p "require('./data/scales.json').end")"
           git pull --rebase --quiet
-          git push
-          # A push made with this workflow's own token does not start the Pages build by itself.
-          gh api -X POST "repos/$GITHUB_REPOSITORY/pages/builds" > /dev/null || echo "Could not request a Pages build; the next push publishes it."
+          git push   # Pages rebuilds the site from this push by itself
 
       - name: Add the finished days to the video's store
         id: store
         run: |
           mkdir -p "$RUNNER_TEMP/store"
-          gh release download video-data --dir "$RUNNER_TEMP/store"
+          # An empty release (the store lost) is a store to rebuild, not an error, though gh refuses to download
+          # nothing; a missing release still stops the run.
+          gh release download video-data --dir "$RUNNER_TEMP/store" || [ "$(gh release view video-data --json assets --jq '.assets | length')" = 0 ]
           # A run stopped between the two halves of a swap (replace-asset.sh) can leave a file only under its
           # temporary name. Take it back under its real name rather than stall every run after it; a year file that
           # has run ahead of meta.json is read only as far as meta.json goes (store.mjs).
@@ -111,10 +98,18 @@ jobs:
           [ "${#CHANGED[@]}" = 0 ] || bash tools/video/replace-asset.sh video-data "${CHANGED[@]}"
           END=$(node -p "require(process.env.RUNNER_TEMP + '/store/meta.json').days.at(-1)[0]")
           echo "end=$END" >> "$GITHUB_OUTPUT"
-          # The published video's last day, from its release notes (none before the first video).
+          # The video's first day: the first with anything on the chart (tools/video/store.mjs firstShownIndex).
+          START=$(node --input-type=module -e "import { readStore, firstShownIndex } from './tools/video/store.mjs';
+            const s = readStore(process.env.RUNNER_TEMP + '/store'); console.log(s.meta.days[firstShownIndex(s.meta, s.bars)][0]);")
+          echo "start=$START" >> "$GITHUB_OUTPUT"
+          # The published video's last day, from its release notes (none before the first video). A new video only
+          # when the store has gone past it: while a lost store is rebuilt over several runs it stays behind, and a
+          # shorter video must not replace the full one. A run started by hand redraws the same days too.
           SHOWN=$(gh release view video --json body --jq .body 2> /dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -n 1 || true)
-          if [ "$SHOWN" != "$END" ] || [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+          if [[ "$END" > "$SHOWN" ]] || { [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$END" = "$SHOWN" ]; }; then
             echo "render=yes" >> "$GITHUB_OUTPUT"
+          elif [[ "$END" < "$SHOWN" ]]; then
+            echo "The store runs to $END, behind the published video ($SHOWN): it keeps catching up."
           else
             echo "The published video already runs to $END."
           fi
@@ -132,7 +127,9 @@ jobs:
   render:
     needs: update
     if: needs.update.outputs.render == 'yes'
-    runs-on: ubuntu-latest
+    # A fixed image, not ubuntu-latest: Playwright installs Chromium's system packages by the release's name, and
+    # ffmpeg's output is checked exactly, so moving to a new Ubuntu is done on purpose.
+    runs-on: ubuntu-24.04
     timeout-minutes: 240
     permissions:
       contents: read    # nothing else: this job runs third-party code
@@ -172,7 +169,7 @@ jobs:
 
   vet:
     needs: render
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read    # nothing else: this job parses a file that third-party code produced
@@ -207,7 +204,7 @@ jobs:
 
   publish:
     needs: [update, vet]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: write           # the video release
@@ -240,14 +237,17 @@ jobs:
 
       - name: Publish the video
         env:
+          START: ${{ needs.update.outputs.start }}
           END: ${{ needs.update.outputs.end }}
         run: |
+          [[ "$START" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "days: '$START' '$END'" >&2; exit 1; }
           SHA=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published video reaches.
-          NOTES="Every day from 2009-01-03 to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the download button on https://bitcoinsupplychart.com downloads it.
+          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the download button on https://bitcoinsupplychart.com downloads it.
 
           SHA-256: $SHA
           Check it: gh attestation verify $VIDEO --repo $GITHUB_REPOSITORY (see SECURITY.md)"
           gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history video (4K)" --notes "$NOTES"
           bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO"
-          gh release edit video --notes "$NOTES"
+          # Retried: notes left behind would name the old file's SHA-256 and fail every site check until the next run.
+          for k in 1 2 3 4 5; do gh release edit video --notes "$NOTES" && break; [ "$k" = 5 ] && exit 1; sleep $((k * 5)); done
