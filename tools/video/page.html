@@ -1,8 +1,8 @@
 <!doctype html>
 <html><head><meta charset="utf-8">
 <style>
-  @font-face { font-family: 'JetBrains Mono'; font-weight: 400; src: url('FONT400') format('woff2'); }
-  @font-face { font-family: 'JetBrains Mono'; font-weight: 700; src: url('FONT700') format('woff2'); }
+  @font-face { font-family: 'Source Code Pro'; font-weight: 400; src: url('FONT400') format('woff2'); }
+  @font-face { font-family: 'Source Code Pro'; font-weight: 700; src: url('FONT700') format('woff2'); }
   html, body { margin: 0; padding: 0; background: #ffffff; overflow: hidden; }
   #chart { width: 1920px; height: 1080px; }
 </style>
@@ -13,7 +13,7 @@
 // follow the site and come from render.mjs. The one deliberate difference: each age band is one filled outline of
 // all 626 bars, painted back to front, instead of 14,000 separate rectangles (the same picture, much faster), with
 // the bar edges on whole device pixels.
-var FONT = "'JetBrains Mono', Consolas, monospace";
+var FONT = "'Source Code Pro', Consolas, monospace";
 // A white chart with black ink, as on the site (index.html: PROFIT_COLOR, LOSS_COLOR, GLOW_COLOR, PRICE_LINE_COLOR).
 var PROFIT = "#00873c", LOSS = "#e0002b", GLOW = "#8f6b00", PRICE_LINE = "#000000";
 var LABELS = ["<1h","1h-1d","1d-1w","1w-1m","1m-2m","2m-3m","3m-4m","4m-5m","5m-6m","6m-9m","9m-1y","1y-18m","18m-2y","2y-3y","3y-4y","4y-5y","5y-6y","6y-7y","7y-8y","8y-10y","10y-12y","12y-15y",">15y"];
@@ -50,7 +50,7 @@ window.drawFrame = function(sp) {
     traces.push({ x: xs, y: ys, type: "scatter", mode: "lines", line: { width: 0, color: sp.colors[a2] }, fill: "tozeroy", fillcolor: sp.colors[a2], showlegend: false, hoverinfo: "skip" });
   }
   var shapes = [], ann = [
-    { xref: "paper", yref: "paper", x: 0.5, y: 0.5, text: "<span style='color:rgba(0,0,0,0.1);font-size:50px;font-weight:bold'>@RenshuBTC</span>", showarrow: false, font: { family: FONT } },
+    { xref: "paper", yref: "paper", x: 0.5, y: 0.5, text: "<span style='color:rgba(0,0,0,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>", showarrow: false, font: { family: FONT } },
     { xref: "paper", yref: "paper", x: 0, y: 0, yanchor: "bottom", yshift: -38, text: "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_", showarrow: false, font: { size: 11, color: "rgba(0,0,0,0.55)", family: FONT }, xanchor: "left" }
   ];
   ann.push({ xref: "paper", yref: "paper", x: 0, y: 0.5, xanchor: "center", yanchor: "middle", xshift: -(ML - 16), textangle: -90, showarrow: false,
@@ -81,9 +81,9 @@ window.drawFrame = function(sp) {
     font: { family: FONT, color: "#000000" }, paper_bgcolor: "#ffffff", plot_bgcolor: "#ffffff", barmode: "stack", bargap: 0, showlegend: true,
     legend: { orientation: "h", yanchor: "bottom", y: 1, xanchor: "center", x: 0.5, bgcolor: "rgba(0,0,0,0)", font: { family: FONT, size: 9, color: "#000000" }, traceorder: "normal" },
     xaxis: { title: { text: "Price [USD]", font: { family: FONT, size: 13, color: "#000000" }, standoff: 10 }, range: [0, xSpan], autorange: false,
-      tickvals: sp.xt.v, ticktext: sp.xt.t, tickangle: 0, showgrid: true, gridcolor: "rgba(0,0,0,0.2)", tickfont: { family: FONT, size: 11, color: "#000000" }, zeroline: false },
+      tickvals: sp.xt.v, ticktext: sp.xt.t, tickangle: 0, showgrid: true, gridcolor: "rgba(0,0,0,0.08)", tickfont: { family: FONT, size: 11, color: "#000000" }, zeroline: false },
     yaxis: { title: { text: "" }, automargin: false, side: "left",
-      tickvals: sp.yt, ticktext: sp.ytt || sp.yt.map(yLabel), range: [0, sp.ymax], autorange: false, showgrid: true, gridcolor: "rgba(0,0,0,0.2)", zeroline: false, tickfont: { family: FONT, size: 11, color: "#000000" } },
+      tickvals: sp.yt, ticktext: sp.ytt || sp.yt.map(yLabel), range: [0, sp.ymax], autorange: false, showgrid: true, gridcolor: "rgba(0,0,0,0.08)", zeroline: false, tickfont: { family: FONT, size: 11, color: "#000000" } },
     annotations: ann, shapes: shapes, margin: { l: ML, r: MR, t: TOP_MARGIN === null ? 68 : TOP_MARGIN, b: 44, autoexpand: false }, hovermode: false
   };
   // BTC/USD line over a one-year window, on its own hidden date axis, linear from $0 to the highest close so far
