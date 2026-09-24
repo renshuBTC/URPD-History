@@ -34,7 +34,7 @@ concurrency:
 
 env:
   # The name the download gets on people's computers (it has to end in .mp4: a file ending in .com is a program on
-  # Windows). It was URPD_daily_full_history_4K60.mp4 until 2026-09-24.
+  # Windows). It was URPD_daily_full_history_4K60.mp4 until 2026-09-24, and that file is removed once unused.
   VIDEO: BitcoinSupplyChart.com.mp4
   OLD_VIDEO: URPD_daily_full_history_4K60.mp4
 
@@ -56,18 +56,20 @@ jobs:
         with:
           node-version: 24
 
-      - name: Give the published video its new name
+      - name: Remove the video's old name
         run: |
-          # One-off, for the change of name: until a run publishes the new name, the current file is copied to it
-          # (the same bytes, so its SHA-256 and attestation still hold) and the site can link the new name at once.
-          # First in the run, so the copy is there within a minute or two of starting one by hand.
+          # One-off, after the change of name: the file under the old name is left over and no longer updated. It
+          # goes once the live page no longer links it and the new name has been up for over an hour, so a browser
+          # still holding the old page (Pages allows 10 minutes of caching) can finish its download.
           names=$(gh release view video --json assets --jq '.assets[].name' 2> /dev/null || true)
-          if grep -qxF "$OLD_VIDEO" <<< "$names" && ! grep -qxF "$VIDEO" <<< "$names"; then
-            mkdir -p "$RUNNER_TEMP/rename"
-            gh release download video --pattern "$OLD_VIDEO" --dir "$RUNNER_TEMP/rename"
-            mv "$RUNNER_TEMP/rename/$OLD_VIDEO" "$RUNNER_TEMP/rename/$VIDEO"
-            bash tools/video/replace-asset.sh video "$RUNNER_TEMP/rename/$VIDEO"
-            rm -rf "$RUNNER_TEMP/rename"
+          if grep -qxF "$OLD_VIDEO" <<< "$names" && grep -qxF "$VIDEO" <<< "$names"; then
+            since=$(gh release view video --json assets --jq ".assets[] | select(.name == \"$VIDEO\") | .createdAt")
+            age=$(( $(date +%s) - $(date -d "$since" +%s) ))
+            if [ "$age" -gt 3600 ] && ! curl -fsS "https://bitcoinsupplychart.com/?check=$(date +%s)" | grep -qF "$OLD_VIDEO"; then
+              gh release delete-asset video "$OLD_VIDEO" --yes
+            else
+              echo "Keeping $OLD_VIDEO for now."
+            fi
           fi
 
       - name: Add the finished days to the axis history
