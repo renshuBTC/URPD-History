@@ -37,7 +37,6 @@ Toolbar, left to right:
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
 - **PIN SCALE** — freeze the y-axis on the day you are viewing so other days can be compared against it
-- **RAW** — keeps the selected USD or BTC mode, with switching still available. Both use 625 bins and smoothing 0.00; Y-max is 99.8 for BTC and 100 for USD, and the left axis fits each day on its own (unsmoothed needles would hold a growing axis up for years). Hides the historical price line, removes the price/profit/loss box, and disables the bottom signal. The white dashed spot line remains and follows the selected date. PIN SCALE works in RAW, saving separate BTC and USD pins; unpinning returns to the preset percentile. Bins, smoothing, and the Y-max input stay locked until RAW is turned off, which restores the previous settings.
 - **Bottom signal** — fires when the share of value held at a loss passes your threshold
 - **Bins**, **Smoothing**, **Y-max** — bucket count; smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view
 - **download** button (an arrow) for the 4K video, a **YouTube** button (a play symbol) for the latest one on YouTube once there is one to watch, **?** explainer, a language toggle, and the **GitHub** icon linking to the source
