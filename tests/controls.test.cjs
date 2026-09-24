@@ -6,6 +6,17 @@ const vm = require('node:vm');
 const { html, scripts, app, flush } = require('./helpers.cjs');
 
 const plain = v => JSON.parse(JSON.stringify(v));   // out of the page's realm, for deepEqual
+// The page's stylesheet, comments stripped, as rules; decls(sel) is every declaration given to exactly that selector.
+const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '');
+const rules = css.split('}').map(r => r.split('{')).filter(r => r.length === 2)
+  .map(([sel, body]) => ({ sels: sel.split(',').map(x => x.trim().replace(/\s+/g, ' ')), body: body.trim() }));
+const decls = sel => {
+  const found = rules.filter(r => r.sels.includes(sel));
+  assert.ok(found.length, 'no rule for ' + sel);
+  return found.map(r => r.body).join('; ');
+};
+const props = sel => Object.fromEntries(decls(sel).split(';').map(d => d.split(':')).filter(p => p.length > 1)
+  .map(([k, ...v]) => [k.trim(), v.join(':').trim()]));
 const main = scripts.find(s => s.includes('var BASE ='));
 function section(start, end) {
   const a = main.indexOf(start), b = main.indexOf(end, a + start.length);
@@ -128,14 +139,6 @@ test('the download button is a small icon with a name, and the bar keeps the gre
   assert.match(button[1], /aria-hidden="true"/);
   assert.match(button[1], /width="14" height="14"/);
   assert.equal(button[1].replace(/<[^>]*>/g, '').trim(), '', 'no words on the button');
-  const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '');
-  const rules = css.split('}').map(r => r.split('{')).filter(r => r.length === 2)
-    .map(([sel, body]) => ({ sels: sel.split(',').map(x => x.trim().replace(/\s+/g, ' ')), body: body.trim() }));
-  const decls = sel => {
-    const found = rules.filter(r => r.sels.includes(sel));
-    assert.ok(found.length, 'no rule for ' + sel);
-    return found.map(r => r.body).join('; ');
-  };
   // Every button and link: a #555 border, #888 under the mouse, orange when on.
   for (const sel of ['#controls button', '#controls #githubLink', '#controls #videoBtn']) assert.match(decls(sel), /border:\s*1px solid #555/, sel);
   for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls #videoBtn:hover', '#explainBtn:hover', '#langBtn:hover']) {
@@ -152,4 +155,22 @@ test('the download button is a small icon with a name, and the bar keeps the gre
   assert.ok(!rules.some(r => r.sels.some(x => /^#controls (button|a|select):focus$/.test(x))), 'focus rings are not switched off');
   for (const sel of ['#githubLink:focus-visible', '#videoBtn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #ff8c00/, sel);
   assert.equal(rules.filter(r => /background-color:\s*#(4a4a4a|ffc266)/.test(r.body)).length, 0, 'no focus fills');
+});
+
+test('the day counter looks like the cycle list: same frame, grey text, normal weight, and a box that holds still', async () => {
+  const counter = props('#dateDisplay'), list = props('#landmarks');
+  for (const k of ['background', 'color', 'border', 'border-radius']) assert.equal(counter[k], list[k], k);
+  assert.equal(counter['font-weight'], 'normal');
+  assert.equal(counter.height, '24px', 'as tall as the list and the buttons');
+  assert.match(decls('#controls #dateDisplay'), /font-size:\s*12px/);
+  assert.ok(!rules.some(r => r.sels.some(x => /#dateDisplay:hover/.test(x))), 'no hover state: it is not a control');
+  // (N/N) is 2 × digits + 3 characters of a monospace font, and 18px is its padding and border (0 8px, 1px).
+  assert.match(counter.padding, /^0 8px$/);
+  for (const [n, width] of [[3, 'calc(5ch + 18px)'], [150, 'calc(9ch + 18px)'], [6469, 'calc(11ch + 18px)']]) {
+    const h = app(), dates = days('2009-01-03', '2030-01-01').slice(0, n);
+    h.c.fetchJSON = url => Promise.resolve(url.endsWith('/all/dates') ? dates : null);
+    h.c.loadAndRender = () => Promise.resolve();
+    await h.c.init();
+    assert.equal(h.element('dateDisplay').style.minWidth, width, n + ' days');
+  }
 });
