@@ -1,4 +1,4 @@
-# Bitcoin Supply Charts
+# Bitcoin Supply Chart
 
 Every bitcoin that exists last moved at some price. Sort them into price buckets,
 add up the supply in each, and you get this chart. A tall bar is a price where a lot
@@ -9,7 +9,7 @@ What is unusual here is the history: most published versions show only today, th
 one steps through every day back to 2009-01-03, with each bar split into 23 age
 cohorts.
 
-**Live: <https://www.bitcoinsupplycharts.com>**
+**Live: <https://bitcoinsupplychart.com>**
 
 ## Reading it
 
