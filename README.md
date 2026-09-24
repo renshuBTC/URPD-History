@@ -1,4 +1,4 @@
-# Bitcoin Supply Chart
+# Bitcoin Supply Charts
 
 Every bitcoin that exists last moved at some price. Sort them into price buckets,
 add up the supply in each, and you get this chart. A tall bar is a price where a lot

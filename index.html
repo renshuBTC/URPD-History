@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <!-- What this page may load and run, and nothing else: its own inline scripts (by hash, kept current by
-     tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
+     tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the JetBrains Mono
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-mxUZJHFABcJWlUIrH77McXqxRZ3XYoAok6tnaIVkVTw=' 'sha256-scAFG2S3QCScwzbc5RcpC8LBpuZsQgt2DgIF3rhKZ+Q=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-zQna5qRwYfUZsQVYea3WU9YUMUHKLOwhfAIYvgVYkFE=' 'sha256-scAFG2S3QCScwzbc5RcpC8LBpuZsQgt2DgIF3rhKZ+Q=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -57,29 +57,29 @@
   addEventListener("orientationchange", fit);
 })();
 </script>
-<title>Bitcoin Supply Chart</title>
+<title>Bitcoin Supply Charts</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"
   integrity="sha384-Hl48Kq2HifOWdXEjMsKo6qxqvRLTYqIGbvlENBmkHAxZKIGCXv43H6W1jA671RzC"
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
-  body { background: #ffffff; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; display: flex; flex-direction: column; }
+  body { background: #ffffff; color: #b35300; font-family: 'JetBrains Mono', Consolas, monospace; overflow: hidden; display: flex; flex-direction: column; }
   /* Where the bar does not fit on one line it wraps onto another rather than scrolling sideways, which hid the
      right-hand buttons behind a scrollbar on every screen up to 1920 px. The chart takes whatever height is left. */
-  #controls { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 4px 6px; padding: 3px 10px; background: #1a1a1a; border-bottom: 1px solid #333; flex-wrap: wrap; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #555 #1a1a1a; }
+  #controls { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 4px 6px; padding: 3px 10px; background: #e5e5e5; border-bottom: 1px solid #cccccc; flex-wrap: wrap; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #aaaaaa #e5e5e5; }
   #controls > *, #toolbarEnd > * { flex-shrink: 0; }
   /* GitHub, ?, download and language wrap as one group and keep to the right-hand end of their line. */
   #toolbarEnd { display: flex; align-items: center; gap: 6px; margin-left: auto; }
-  #controls button, #controls #githubLink, #controls #videoBtn { background: #252525; color: #d4d4d4; border: 1px solid #555; padding: 3px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
-  #controls button:hover, #controls #githubLink:hover, #controls #videoBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
+  #controls button, #controls #githubLink, #controls #videoBtn { background: #dadada; color: #2b2b2b; border: 1px solid #aaaaaa; padding: 3px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
+  #controls button:hover, #controls #githubLink:hover, #controls #videoBtn:hover { background: #c5c5c5; color: #000000; border-color: #777777; }
   #githubLink { display: inline-flex; align-items: center; justify-content: center; border-radius: 2px; text-decoration: none; }
-  #githubLink:focus-visible { outline: 2px solid #ff8c00; outline-offset: 2px; }
+  #githubLink:focus-visible { outline: 2px solid #c25e00; outline-offset: 2px; }
   #githubLink svg { flex-shrink: 0; }
   #videoBtn { display: inline-flex; align-items: center; justify-content: center; border-radius: 2px; text-decoration: none; box-sizing: border-box; }
-  #videoBtn:focus-visible { outline: 2px solid #ff8c00; outline-offset: 2px; }
+  #videoBtn:focus-visible { outline: 2px solid #c25e00; outline-offset: 2px; }
   .mode-toggle { display: flex; gap: 2px; }
   /* #controls button sets a background with id specificity, so the active state has to outrank it;
      without the prefix the only thing that ever showed was the bold weight. */
@@ -87,11 +87,11 @@
   #controls .mode-toggle button.active:hover { background: #ffaa33; }
   #controls #btnRaw.active { outline: none; }
   #controls button:disabled, #controls input:disabled { opacity: 0.45; cursor: not-allowed; }
-  #dateDisplay { font-weight: bold; color: #ff8c00; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
+  #dateDisplay { font-weight: bold; color: #b35300; min-width: 0; text-align: center; padding: 0 6px; white-space: nowrap; }
   /* Messages float over the chart near the bottom of the window instead of taking a row of the layout: the row
      pushed the chart down without resizing it, and on a phone it sat above the top of the screen. Clicks and taps
      pass through it. */
-  #status { display: none; position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 1000; max-width: calc(100vw - 24px); width: max-content; text-align: center; padding: 4px 10px; font-size: 11px; line-height: 1.4; color: #d4d4d4; background: #111; border: 1px solid #333; border-radius: 2px; box-shadow: 0 2px 8px rgba(0,0,0,0.6); pointer-events: none; }
+  #status { display: none; position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 1000; max-width: calc(100vw - 24px); width: max-content; text-align: center; padding: 4px 10px; font-size: 11px; line-height: 1.4; color: #2b2b2b; background: #eeeeee; border: 1px solid #cccccc; border-radius: 2px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); pointer-events: none; }
   html.phone #status { font-size: 13px; }
   #chart { width: calc(100% - 8px); margin: 0 4px; flex: 1 1 auto; min-height: 0; }
   /* On a phone the toolbar is not worth the pixels: the chart takes the whole screen and
@@ -109,42 +109,42 @@
   body.tracer-dragging, body.tracer-dragging * { cursor: grabbing !important; user-select: none; }
   #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 24px; color: #c25e00; display: none; z-index: 999; }
   #thresholdWrap, #ymaxWrap, #smoothWrap, #binsWrap { display: flex; align-items: center; gap: 5px; font-size: 11px; }
-  #thresholdWrap label, #ymaxWrap label, #smoothWrap label, #binsWrap label { color: #999; white-space: nowrap; }
-  #thresholdInput, #ymaxInput, #smoothInput, #binsInput { background: #1e1e1e; color: #ff8c00; border: 1px solid #555; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
+  #thresholdWrap label, #ymaxWrap label, #smoothWrap label, #binsWrap label { color: #666666; white-space: nowrap; }
+  #thresholdInput, #ymaxInput, #smoothInput, #binsInput { background: #e1e1e1; color: #b35300; border: 1px solid #aaaaaa; padding: 3px 5px; width: 42px; font-family: inherit; font-size: 11px; text-align: center; border-radius: 2px; }
   /* !important because the border is set inline on each box, which a plain rule cannot outrank (as for #dateInput). */
-  #thresholdInput:focus, #ymaxInput:focus, #smoothInput:focus, #binsInput:focus { border-color: #ff8c00 !important; outline: none; }
-  #intervalBar { display: flex; gap: 1px; background: #1a1a1a; padding: 0; border: 1px solid #555; border-radius: 2px; margin-right: 2px; }
-  #intervalBar .iv { background: #1a1a1a; color: #d4d4d4; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
-  #intervalBar .iv:hover { color: #ffffff; background: #3a3a3a; }
+  #thresholdInput:focus, #ymaxInput:focus, #smoothInput:focus, #binsInput:focus { border-color: #c25e00 !important; outline: none; }
+  #intervalBar { display: flex; gap: 1px; background: #e5e5e5; padding: 0; border: 1px solid #aaaaaa; border-radius: 2px; margin-right: 2px; }
+  #intervalBar .iv { background: #e5e5e5; color: #2b2b2b; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; transition: all 0.15s; }
+  #intervalBar .iv:hover { color: #000000; background: #c5c5c5; }
   #intervalBar .iv.active { background: #ff8c00; color: #000; font-weight: bold; }
-  #landmarks { background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; font-family: inherit; font-size: 12px; border-radius: 2px; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23999'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 22px; }
-  #landmarks:hover { border-color: #888; color: #ffffff; }
-  #landmarks:focus { border-color: #ff8c00; outline: none; }
+  #landmarks { background: #e1e1e1; color: #2b2b2b; border: 1px solid #aaaaaa; padding: 4px 8px; font-family: inherit; font-size: 12px; border-radius: 2px; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23666'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 22px; }
+  #landmarks:hover { border-color: #777777; color: #000000; }
+  #landmarks:focus { border-color: #c25e00; outline: none; }
   #dateInput { transition: border-color 0.15s; }
-  #dateInput:hover { border-color: #888 !important; }
-  #dateInput:focus { border-color: #ff8c00 !important; outline: none; }
+  #dateInput:hover { border-color: #777777 !important; }
+  #dateInput:focus { border-color: #c25e00 !important; outline: none; }
   #dateDropdown::-webkit-scrollbar { width: 5px; }
-  #dateDropdown::-webkit-scrollbar-track { background: #141414; }
-  #dateDropdown::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-  #dateDropdown .dd-item { padding: 5px 10px; font-family: inherit; font-size: 12px; color: #d4d4d4; cursor: pointer; border-bottom: 1px solid #1a1a1a; }
-  #dateDropdown .dd-item:hover { background: #252525; color: #ff8c00; }
-  #dateDropdown .dd-item.dd-current { color: #ff8c00; font-weight: bold; }
-  #dateDropdown .dd-year { padding: 3px 10px; font-size: 10px; color: #555; font-weight: bold; border-bottom: 1px solid #2a2a2a; background: #111; position: sticky; top: 0; z-index: 1; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; }
+  #dateDropdown::-webkit-scrollbar-track { background: #ebebeb; }
+  #dateDropdown::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 3px; }
+  #dateDropdown .dd-item { padding: 5px 10px; font-family: inherit; font-size: 12px; color: #2b2b2b; cursor: pointer; border-bottom: 1px solid #e5e5e5; }
+  #dateDropdown .dd-item:hover { background: #dadada; color: #b35300; }
+  #dateDropdown .dd-item.dd-current { color: #b35300; font-weight: bold; }
+  #dateDropdown .dd-year { padding: 3px 10px; font-size: 10px; color: #888888; font-weight: bold; border-bottom: 1px solid #d5d5d5; background: #eeeeee; position: sticky; top: 0; z-index: 1; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; }
   /* background, padding and font-size live on #controls button, which outranks a bare id. */
   #explainBtn, #videoBtn { font-weight: 700; cursor: pointer; border-radius: 2px; white-space: nowrap; }
-  #explainBtn:hover, #videoBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
+  #explainBtn:hover, #videoBtn:hover { background: #c5c5c5; color: #000000; border-color: #777777; }
   #explainWrap { position:relative; display:inline-block; }
-  #explainPanel { display:none; position:absolute; top:100%; right:0; width:460px; max-height:75vh; overflow-y:auto; background:#1a1a1a; border:1px solid #555; border-radius:2px; z-index:9999; padding:12px 16px 14px; margin-top:6px; font-size:13px; color:#ffffff; text-align:left; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
+  #explainPanel { display:none; position:absolute; top:100%; right:0; width:460px; max-height:75vh; overflow-y:auto; background:#e5e5e5; border:1px solid #aaaaaa; border-radius:2px; z-index:9999; padding:12px 16px 14px; margin-top:6px; font-size:13px; color:#000000; text-align:left; box-shadow:0 6px 18px rgba(0,0,0,0.25); }
   #explainPanel::-webkit-scrollbar { width:6px; }
-  #explainPanel::-webkit-scrollbar-track { background:#1a1a1a; }
-  #explainPanel::-webkit-scrollbar-thumb { background:#555; border-radius:0; }
-  #explainPanel h2 { color:#ffffff; font-size:13px; font-weight:400; letter-spacing:0.5px; text-transform:uppercase; margin:0 0 6px 0; padding-bottom:6px; border-bottom:1px solid #333; }
-  #explainPanel h3 { color:#ff8c00; font-size:13px; font-weight:400; letter-spacing:0.5px; text-transform:uppercase; margin:12px 0 3px 0; padding:0; border:none; }
-  #explainPanel .formula { background:#1e1e1e; border:1px solid #555; border-left:2px solid #ff8c00; border-radius:2px; padding:5px 8px; margin:5px 0 4px 0; font-size:13px; color:#ff8c00; white-space:pre-wrap; line-height:1.5; font-family:inherit; letter-spacing:0.5px; }
-  #explainPanel .desc { color:#ffffff; margin:2px 0 4px 0; font-size:13px; line-height:1.55; font-weight:400; letter-spacing:0; }
+  #explainPanel::-webkit-scrollbar-track { background:#e5e5e5; }
+  #explainPanel::-webkit-scrollbar-thumb { background:#aaaaaa; border-radius:0; }
+  #explainPanel h2 { color:#000000; font-size:13px; font-weight:400; letter-spacing:0.5px; text-transform:uppercase; margin:0 0 6px 0; padding-bottom:6px; border-bottom:1px solid #cccccc; }
+  #explainPanel h3 { color:#b35300; font-size:13px; font-weight:400; letter-spacing:0.5px; text-transform:uppercase; margin:12px 0 3px 0; padding:0; border:none; }
+  #explainPanel .formula { background:#e1e1e1; border:1px solid #aaaaaa; border-left:2px solid #ff8c00; border-radius:2px; padding:5px 8px; margin:5px 0 4px 0; font-size:13px; color:#b35300; white-space:pre-wrap; line-height:1.5; font-family:inherit; letter-spacing:0.5px; }
+  #explainPanel .desc { color:#000000; margin:2px 0 4px 0; font-size:13px; line-height:1.55; font-weight:400; letter-spacing:0; }
   #langBtn { cursor: pointer; border-radius: 2px; }
-  #langBtn:hover { background: #3a3a3a; color: #ffffff; border-color: #888; }
-  .ctrl-sep { width: 1px; height: 20px; background: #555; margin: 0 3px; }
+  #langBtn:hover { background: #c5c5c5; color: #000000; border-color: #777777; }
+  .ctrl-sep { width: 1px; height: 20px; background: #aaaaaa; margin: 0 3px; }
   /* one height for every control in the bar, and one gap between them */
   #controls button, #controls #githubLink, #controls #videoBtn, #controls input, #controls select, #controls #intervalBar { height: 24px; line-height: 1; }
   #controls #intervalBar .iv { height: 22px; line-height: 1; }
@@ -153,7 +153,7 @@
   /* one type size in the bar, hierarchy carried by colour instead */
   #controls label, #controls #binsUnit, #controls #thresholdInput, #controls #binsInput,
   #controls #smoothInput, #controls #ymaxInput, #controls #dateDisplay { font-size: 12px; }
-  #controls label, #controls #binsUnit { color: #8a8a8a; }
+  #controls label, #controls #binsUnit { color: #757575; }
   /* Fixed panels escape the toolbar's horizontal scroll area. */
   #explainPanel, #dateDropdown { position: fixed; right: auto; margin-top: 0; max-width: calc(100vw - 20px); overflow-y: auto; }
   #explainPanel:focus { outline: none; }
@@ -179,8 +179,8 @@
   <div class="ctrl-sep"></div>
   <div id="dateDropdownWrap" style="position:relative;display:inline-block;">
     <input type="text" id="dateInput" aria-label="Go to date" placeholder="YYYY-MM-DD" autocomplete="off"
-      style="background:#1e1e1e;color:#d4d4d4;border:1px solid #555;padding:4px 8px;font-family:inherit;font-size:12px;width:140px;cursor:pointer;border-radius:2px;">
-    <div id="dateDropdown" style="display:none;width:200px;max-height:320px;overflow-y:auto;background:#141414;border:1px solid #555;z-index:500;scrollbar-width:thin;scrollbar-color:#555 #141414;border-radius:2px;"></div>
+      style="background:#e1e1e1;color:#2b2b2b;border:1px solid #aaaaaa;padding:4px 8px;font-family:inherit;font-size:12px;width:140px;cursor:pointer;border-radius:2px;">
+    <div id="dateDropdown" style="display:none;width:200px;max-height:320px;overflow-y:auto;background:#ebebeb;border:1px solid #aaaaaa;z-index:500;scrollbar-width:thin;scrollbar-color:#aaaaaa #ebebeb;border-radius:2px;"></div>
   </div>
   <select id="landmarks" aria-label="Jump to a cycle top or bottom">
     <option value="">CYCLE TOP/BTM</option>
@@ -203,25 +203,25 @@
   <div class="ctrl-sep"></div>
   <div id="thresholdWrap">
     <label for="thresholdInput">Bottom signal</label>
-    <input type="text" id="thresholdInput" value="80" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:34px;font-family:inherit;text-align:center;border-radius:2px;">
+    <input type="text" id="thresholdInput" value="80" style="background:#e1e1e1;color:#b35300;border:1px solid #aaaaaa;padding:3px 5px;width:34px;font-family:inherit;text-align:center;border-radius:2px;">
     <label>% of value in loss</label>
   </div>
   <div class="ctrl-sep"></div>
   <div id="binsWrap">
     <label for="binsInput">Bins</label>
-    <input type="text" id="binsInput" value="625" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:40px;font-family:inherit;text-align:center;border-radius:2px;">
+    <input type="text" id="binsInput" value="625" style="background:#e1e1e1;color:#b35300;border:1px solid #aaaaaa;padding:3px 5px;width:40px;font-family:inherit;text-align:center;border-radius:2px;">
     <label id="binsUnit"></label>
   </div>
   <div class="ctrl-sep"></div>
   <div id="smoothWrap">
     <label for="smoothInput">Smoothing</label>
-    <input type="text" id="smoothInput" value="0.24" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:40px;font-family:inherit;text-align:center;border-radius:2px;">
+    <input type="text" id="smoothInput" value="0.24" style="background:#e1e1e1;color:#b35300;border:1px solid #aaaaaa;padding:3px 5px;width:40px;font-family:inherit;text-align:center;border-radius:2px;">
     <label>% of price</label>
   </div>
   <div class="ctrl-sep"></div>
   <div id="ymaxWrap">
     <label for="ymaxInput">Y-max</label>
-    <input type="text" id="ymaxInput" value="100" style="background:#1e1e1e;color:#ff8c00;border:1px solid #555;padding:3px 5px;width:58px;font-family:inherit;text-align:center;border-radius:2px;">
+    <input type="text" id="ymaxInput" value="100" style="background:#e1e1e1;color:#b35300;border:1px solid #aaaaaa;padding:3px 5px;width:58px;font-family:inherit;text-align:center;border-radius:2px;">
     <label>percentile</label>
   </div>
   <div id="toolbarEnd">
@@ -269,29 +269,35 @@ var AGE_BANDS = [
   {cohort:"utxos_10y_to_12y_old", label:"10y-12y"}, {cohort:"utxos_12y_to_15y_old", label:"12y-15y"}, {cohort:"utxos_over_15y_old", label:">15y"}
 ];
 // ---- Age colours: a spectrogram of age, readable with no words at all ------------------------------
-// Unclassed, the same palette as the published videos, found the same way as the one it replaced for the old black
+// Unclassed, the same palette as the published videos, built by the same rules as the one it replaced on the old black
 // chart. A band's colour sits where its geometric mid-age falls on a log-age scale (30 min for <1h to 16 y for >15y),
-// so colour distance is age distance on a log scale and no band boundary is treated specially. The colours lie on one
-// path through OKLCH: lightness falls strictly from 0.665 (young) to 0.400 (old), hue turns from 105 through red to
-// 235 (gold -> orange -> crimson -> magenta -> violet -> blue, never through green), and chroma rides 99% of the sRGB
-// gamut ridge, capped at 0.32. The path is re-spaced by arc length, so equal steps in log-age are equal perceptual
-// steps (OKLab). On white the constraint is at the young end: it is as light as keeps every band at 3:1 contrast
-// against the white plot (3.0:1 to 9.1:1), the WCAG 2.1 minimum for graphics, which is also why the youngest band is
-// gold rather than yellow (no yellow reaches 3:1 on white). Among the paths searched, and against the longest usable
-// segments of viridis, plasma, inferno, magma, cividis, rocket, mako, flare, crest, batlow, lipari, lajolla and the
-// other Scientific colour maps, it separates neighbouring bands best: the smallest OKLab step between adjacent bands
-// is 0.0133 (0.0124 for the black chart's palette), against 0.0085 to 0.0102 for the best of those (magma, inferno,
-// lipari, rocket, mako). Lightness alone still carries the order, so age reads in greyscale too.
-var AGE_BAND_COLORS = ["#a1970a", "#d04e05", "#c50674", "#9b05b0", "#7a05ce", "#6705d9", "#5a06df", "#5006e3",
-  "#4806e5", "#3a06e9", "#2606ed", "#0f20e4", "#0131d5", "#013bc5", "#0143b6", "#0247ab", "#024aa2", "#024b9a",
-  "#024d93", "#024e8b", "#024e82", "#024f78", "#024e6e"];
+// and the colour step between neighbouring bands (their straight-line OKLab distance) is proportional to their gap in
+// log-age: a bigger gap in age is a proportionally bigger change of colour, to within 5.5% after rounding to 8-bit
+// colour (9% for the black chart's palette). Older is darker: lightness falls strictly with age, from 0.664 to 0.421
+// (OKLab). The colours lie on one path through OKLCH: hue turns from 105 through red to 235 (gold -> orange -> crimson
+// -> magenta -> violet -> blue, never through green) and chroma rides 99% of the sRGB gamut ridge, capped at 0.32. On
+// white the limit is at the young end, which is as light as keeps every band at 3:1 contrast against the white plot
+// (3.0:1 to 8.5:1), the WCAG 2.1 minimum for graphics; it is also why the youngest band is gold rather than yellow (no
+// yellow reaches 3:1 on white). Under the same rules it separates neighbouring bands best: the smallest OKLab step
+// between adjacent bands is 0.0118, against 0.0076 to 0.0088 for the best usable segments of plasma, mako, rocket,
+// inferno and magma. Lightness alone still carries the order, so age reads in greyscale too.
+var AGE_BAND_COLORS = ["#a19708", "#d25005", "#c00688", "#9505c2", "#7406dd", "#6004e6", "#5305ec", "#4907f1",
+  "#4007f4", "#3007f7", "#0f13f8", "#002ce9", "#0139da", "#0142cb", "#0249bc", "#014db1", "#004ea7", "#0550a0",
+  "#02529a", "#015392", "#025388", "#015580", "#025476"];
 // ---- Overlay line --------------------------------------------------------------------------------
 // The price line is pure black, which no age band comes near (the darkest is 0.40 away in OKLab).
 var PRICE_LINE_COLOR = "#000000"; // BTC/USD price line
 
 // The bottom signal: gold, the colour the signal was on the black chart, dark enough to read on white (4.9:1).
 var GLOW_COLOR = "#8f6b00";
-var FONT = "'Source Code Pro', Consolas, monospace";
+// One typeface for every word on the page and the chart: JetBrains Mono, whose lowercase stands 0.55 em tall against
+// 0.49 em for Source Code Pro (13% more x-height at the same font size, the main driver of legibility at small sizes) on
+// the same 0.6 em character width, so every size and every width estimate stays as it was.
+var FONT = "'JetBrains Mono', Consolas, monospace";
+// Reference marks whisper (Bartram & Stone, Whisper, Don't Scream: Grids and Transparency, IEEE TVCG 2011): grid lines
+// at 20% black, the level they found usable yet unobtrusive over most plots (0.1 to 0.45 in their studies; 8% was
+// below the range), and the @RenshuBTC watermark at 10%, lighter than the grid since it is fifty times its area.
+var GRID_COLOR = "rgba(0,0,0,0.2)";
 
 var allDates = [];
 var currentIdx = 0;
@@ -502,8 +508,10 @@ var VIDEO_READY_UTC_HOUR = 4;
 // the credits they are, and turn black when pointed at.
 var CREDIT_X = { "Bitview.space": "_bitview_", "Bitcoin Core": "bitcoincoreorg", "Antoine Le Calvez": "khannib",
   "Renato Shirakashi": "renato_shira", "James Check": "_Checkmatey_", "@_nym21_": "_nym21_" };
-var CREDIT_NAME_COLOR = "rgba(0,0,0,0.8)";
-function creditLink(name) { return '<a href="https://x.com/' + CREDIT_X[name] + '" style="color:' + CREDIT_NAME_COLOR + '">' + name + "</a>"; }
+var CREDIT_NAME_COLOR = "rgba(0,0,0,0.85)";
+// fill-opacity:1 because the credit line's text is drawn at 55% opacity, which a link inherits: without it the names
+// came out lighter than the words around them.
+function creditLink(name) { return '<a href="https://x.com/' + CREDIT_X[name] + '" style="color:' + CREDIT_NAME_COLOR + ';fill-opacity:1">' + name + "</a>"; }
 function setVideoTitle() {
   var el = document.getElementById("videoBtn");
   if (!el) return;
@@ -1286,7 +1294,7 @@ function drawChart(data, plotSeq, navigationSeq) {
   var creditParts = creditLinked.map(function(part) { return part.replace(/<[^>]*>/g, ""); });   // what is measured
   var creditText = creditParts.join(L3(" ", "", ""));
   var textPx = function(str, size) { var w = 0; for (var ci = 0; ci < str.length; ci++) w += str.charCodeAt(ci) > 0x2e7f ? size : 0.6 * size; return w; };
-  // 7% of slack: Chrome on Linux rounds 11 px Source Code Pro up to 7 px a character, and at 1680 px the credit
+  // 7% of slack: Chrome on Linux rounds an 11 px monospace font up to 7 px a character, and at 1680 px the credit
   // then ran into the axis title.
   var creditRow = textPx(creditText, 11) * 1.07 + 16 <= plotW / 2 - textPx(t("priceUSD"), 13) / 2;
   // Underneath, it has from the plot's left edge to just inside the figure's right one. On a plot too narrow even
@@ -1389,7 +1397,7 @@ function drawChart(data, plotSeq, navigationSeq) {
 
   var shapes = [];
   var annotations = [
-    {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(0,0,0,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>",showarrow:false,font:{family:FONT}},
+    {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(0,0,0,0.1);font-size:50px;font-weight:bold'>@RenshuBTC</span>",showarrow:false,font:{family:FONT}},
     {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:creditRow?-38:creditWrap?-76:-62,text:creditShown,showarrow:false,font:{size:creditSize,color:"rgba(0,0,0,0.55)",family:FONT},xanchor:"left",align:"left"}
   ];
 
@@ -1472,9 +1480,9 @@ function drawChart(data, plotSeq, navigationSeq) {
     paper_bgcolor:"#ffffff",plot_bgcolor:"#ffffff",
     barmode:isAge?"stack":"overlay",bargap:0,
     legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:"center",x:0.5,font:{family:FONT,size:isAge?9.5:12,color:"#000000"},traceorder:isAge?"normal":undefined},
-    xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13,color:"#000000"},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,tickangle:0,showgrid:true,gridcolor:"rgba(0,0,0,0.08)",tickfont:{family:FONT,size:11,color:"#000000"}},
+    xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13,color:"#000000"},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,tickangle:0,showgrid:true,gridcolor:GRID_COLOR,tickfont:{family:FONT,size:11,color:"#000000"}},
     // One gridline per left-axis label, twenty intervals.
-    yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:"#000000"},standoff:8},automargin:true,side:"left",tickvals:yTickvals,ticktext:yTicktext,range:[0,maxVal],autorange:false,showgrid:true,gridcolor:"rgba(0,0,0,0.08)",tickfont:{family:FONT,size:11,color:"#000000"}},
+    yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:"#000000"},standoff:8},automargin:true,side:"left",tickvals:yTickvals,ticktext:yTicktext,range:[0,maxVal],autorange:false,showgrid:true,gridcolor:GRID_COLOR,tickfont:{family:FONT,size:11,color:"#000000"}},
     annotations:annotations,shapes:shapes,
     margin:{l:24,r:24,t:topMargin,b:bottomMargin},hovermode:"closest"
   };
@@ -2007,7 +2015,7 @@ function buildDateDropdown(filterQ) {
   if (count === 0) {
     var empty = document.createElement("div");
     empty.className = "dd-item";
-    empty.style.color = "#555";
+    empty.style.color = "#888888";
     empty.textContent = t("noMatch");
     dd.appendChild(empty);
   }
