@@ -108,6 +108,17 @@ async function main(argv = process.argv.slice(2)) {
   // it has fallen behind) would be frozen here half-finished, since past days are never recomputed.
   const listed = site.cleanDates(dates), lastListed = listed[listed.length - 1];
   const todo = listed.filter(d => d >= START && d <= until && d < lastListed && (!file.end || d > file.end));
+  // The closes feed the price axis too (the day's own close and the highest one so far) and the video's store, so
+  // they get the same kind of guard as the stamps below: none may be over three times the highest close before it
+  // (plus $10, for the first trades at a few cents). The nearest any real close came was 0.45 of that (2013-11-18).
+  if (todo.length) {
+    const upTo = closeIndex[todo[todo.length - 1]] !== undefined ? closeIndex[todo[todo.length - 1]] : closes.length - 1;
+    for (let i = 0, m = 0; i <= upTo && i < closes.length; i++) {
+      const v = closes[i] > 0 ? closes[i] : 0;
+      if (v > 3 * m + 10) throw new Error(`${closeDates[i] || 'day ' + i}: a close of $${v} is over three times the highest close before it; not recording it`);
+      m = Math.max(m, v);
+    }
+  }
 
   async function day(date) {
     const cached = opt.cache && path.join(opt.cache, date + '.json.gz');
