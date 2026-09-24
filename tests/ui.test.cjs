@@ -37,7 +37,7 @@ const textPx = (s, size) => [...s].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2
 
 test('messages float over the chart near the bottom of the window and take no room from it', () => {
   const d = decls('#status');
-  for (const want of [/position:\s*fixed/, /bottom:/, /left:\s*50%/, /pointer-events:\s*none/, /background:\s*#111/, /(^|[;\s])color:\s*#d4d4d4/, /z-index:\s*\d+/]) assert.match(d, want);
+  for (const want of [/position:\s*fixed/, /bottom:/, /left:\s*50%/, /pointer-events:\s*none/, /background:\s*#eeeeee/, /(^|[;\s])color:\s*#2b2b2b/, /z-index:\s*\d+/]) assert.match(d, want);
   assert.doesNotMatch(d, /(^|;)\s*top:/, 'never over the title');
   assert.match(decls('html.phone #status'), /font-size/);
 });
@@ -166,8 +166,8 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
 
 test('the settings boxes show focus over their inline border', () => {
   for (const id of ['thresholdInput', 'binsInput', 'smoothInput', 'ymaxInput']) {
-    assert.match(html, new RegExp(`id="${id}"[^>]*style="[^"]*border:1px solid #555`), `${id}: the border is set inline`);
-    assert.match(decls(`#${id}:focus`), /border-color:\s*#ff8c00\s*!important/, id);
+    assert.match(html, new RegExp(`id="${id}"[^>]*style="[^"]*border:1px solid #aaaaaa`), `${id}: the border is set inline`);
+    assert.match(decls(`#${id}:focus`), /border-color:\s*#c25e00\s*!important/, id);
   }
 });
 
@@ -282,7 +282,7 @@ test('each name in the credit line links to its X account, and a click opens it 
     const { dates, raw } = market(c);
     await c.renderChart(c.buildData(dates.at(-1), raw));
     const credit = element('chart').layout.annotations.find(a => /Bitview/.test(a.text));
-    assert.deepEqual([...credit.text.matchAll(/<a href="([^"]+)" style="color:rgba\(0,0,0,0\.8\)">([^<]+)<\/a>/g)].map(m => [m[2], m[1]]), want, lang + ': every name a link, in a colour that reads on the dark chart');
+    assert.deepEqual([...credit.text.matchAll(/<a href="([^"]+)" style="color:rgba\(0,0,0,0\.85\);fill-opacity:1">([^<]+)<\/a>/g)].map(m => [m[2], m[1]]), want, lang + ': every name a link, in a colour that reads on the dark chart');
     assert.equal(credit.text.replace(/<[^>]*>/g, ''), plainText[lang], lang + ': the words are as before');
   }
   const { c, element } = app(), opened = [];
