@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Checks that FILE is the video the ▶ button promises and nothing else: an .mp4 holding exactly one stream, H.264
+# Checks that FILE is the video the site's download button promises and nothing else: an .mp4 holding exactly one stream, H.264
 # video at 3840x2160 and 60 fps, 18,000 frames (5:00), of a plausible size. With --decode it also decodes every
 # frame, which a malformed stream would not survive. Exits 1, saying why, if anything is off.
 #
