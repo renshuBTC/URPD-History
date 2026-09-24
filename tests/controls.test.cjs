@@ -122,8 +122,11 @@ test('every text has all three languages', () => {
   for (const l of langs) for (const k of keys) assert.ok(typeof c.T[l][k] === 'string' && c.T[l][k].length, `${l}.${k}`);
 });
 
-test('the download button says what it does, and no button in the bar has an outline', () => {
-  assert.match(html, /<a id="videoBtn" href="[^"]+" download><span class="vlong">Download full history video<\/span><span class="vshort">Download video<\/span><\/a>/);
+test('the download button is an icon with a name, and no button in the bar has an outline', () => {
+  const button = html.match(/<a id="videoBtn" href="[^"]+" download aria-label="Download the full-history video">(<svg[\s\S]*?<\/svg>)<\/a>/);
+  assert.ok(button, 'an icon-only link with an accessible name');
+  assert.match(button[1], /aria-hidden="true"/);
+  assert.equal(button[1].replace(/<[^>]*>/g, '').trim(), '', 'no words on the button');
   const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
   // Buttons, the GitHub and download links, the step bar and the cycle select: borders transparent, no focus ring.
   let seen = 0;
