@@ -8,7 +8,7 @@ const { html, scripts, app } = require('./helpers.cjs');
 const { scriptHashes, readPolicy } = require('../tools/update-csp.cjs');
 
 const ROOT = path.join(__dirname, '..');
-const VIDEO_URL = 'https://github.com/renshuBTC/URPD-History/releases/download/video/URPD_daily_full_history_4K60.mp4';
+const VIDEO_URL = 'https://github.com/renshuBTC/URPD-History/releases/download/video/BitcoinSupplyChart.com.mp4';
 const PLOTLY = 'https://cdn.plot.ly/plotly-2.27.0.min.js';
 const plain = v => JSON.parse(JSON.stringify(v));   // out of the page's realm, for deepEqual
 
