@@ -3,7 +3,7 @@ name: Site check
 # Checks, four times a day, that visitors get exactly what this repository publishes, so tampering anywhere in between
 # (the domain, GitHub Pages or the video release) turns this workflow red and GitHub emails the owner:
 #   - https://bitcoinsupplychart.com/ serves this repository's index.html, byte for byte, and plain http redirects there
-#   - the file the page's DOWNLOAD FULL HISTORY VIDEO button links to is on this repository's "video" release, carries
+#   - the file the page's download button links to is on this repository's "video" release, carries
 #     a valid build attestation from its Daily video workflow on main, and is the one whose SHA-256 the notes give
 # The times fall after the daily video is normally out (about 03:00 UTC, or 07:00 after the catch-up run).
 on:
