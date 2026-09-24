@@ -84,12 +84,12 @@ test('the settings fields take a number and nothing else', () => {
   for (const [typed, want] of Object.entries(cases)) assert.ok(Object.is(c.fieldNumber(typed), want), typed);
 });
 
-test('RAW keeps its own pins, and PIN SCALE does nothing before the first chart', () => {
+test('a pin is kept per weighting, bin count and smoothing, and PIN SCALE does nothing before the first chart', () => {
   const { c, element } = app();
-  c.coinMode = true; c.rawMode = true;
-  assert.equal(c.peakKey({ numBins: 625, kernelPct: 0 }), 'btc|b625|s0|raw');
-  c.rawMode = false;
+  c.coinMode = true;
   assert.equal(c.peakKey({ numBins: 625, kernelPct: 0 }), 'btc|b625|s0');
+  c.coinMode = false;
+  assert.equal(c.peakKey({ numBins: 400, kernelPct: 0.24 }), 'usd|b400|s0.24');
   c.lastRenderedData = null;
   c.peakStore = { 'usd|b625|s0.24': ['2026-01-01', 5] };
   element('btnPeak').onclick();

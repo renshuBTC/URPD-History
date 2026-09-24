@@ -149,21 +149,16 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
   }
 });
 
-test('BTC leaves the first bar out of the axis and prints its height; RAW counts every bar', async () => {
+test('BTC leaves the first bar out of the axis and prints its height', async () => {
   const { c, element } = app();
   const { dates, raws } = market(c, { cohorts: () => [{ 0: 5000, 950: 20, 1000: 30 }] });
   c.coinMode = true; c.viewIdx = 1;
   await c.renderChart(c.buildData(dates[4], raws[4]));
-  let graph = element('chart');
+  const graph = element('chart');
   const bars = c.barValues(c.lastRenderedData, true);
   assert.equal(bars[0], 5000);
   assert.ok(graph.layout.yaxis.range[1] < 100, 'the $0 pile does not set the axis');
   assert.ok(graph.layout.annotations.some(a => a.text === '▲ 5.00K BTC'), 'its height is printed at the top');
-  c.currentIdx = 4; c.rawCache[dates[4]] = raws[4];
-  await c.setRawMode(true);
-  graph = element('chart');
-  assert.equal(graph.layout.annotations.some(a => /^▲/.test(a.text)), false);
-  assert.ok(graph.layout.yaxis.range[1] >= 30, 'RAW fits the day on its own');
 });
 
 test('a typed Y-max zooms into the day in view, and a pin freezes the axis', async () => {
