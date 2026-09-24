@@ -26,8 +26,8 @@ const TEST = process.env.TEST_DATES ? process.env.TEST_DATES.split(",") : null;
 const NB = 626, A = 23, DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1), BASE = "https://bitview.space";
 const dayIdx = (d) => Math.round((Date.parse(d + "T00:00:00Z") - DAY0) / DAY);
 const idxDay = (i) => new Date(DAY0 + i * DAY).toISOString().slice(0, 10);
-const PALETTE = ["#a19708", "#d25005", "#c00688", "#9505c2", "#7406dd", "#6004e6", "#5305ec", "#4907f1", "#4007f4", "#3007f7", "#0f13f8", "#002ce9",
-  "#0139da", "#0142cb", "#0249bc", "#014db1", "#004ea7", "#0550a0", "#02529a", "#015392", "#025388", "#015580", "#025476"];   // index.html AGE_BAND_COLORS
+const PALETTE = ["#a1970a", "#d04e05", "#c50674", "#9b05b0", "#7a05ce", "#6705d9", "#5a06df", "#5006e3", "#4806e5", "#3a06e9", "#2606ed", "#0f20e4",
+  "#0131d5", "#013bc5", "#0143b6", "#0247ab", "#024aa2", "#024b9a", "#024d93", "#024e8b", "#024e82", "#024f78", "#024e6e"];   // index.html AGE_BAND_COLORS
 const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0], ["2013-11-29", "Cycle 2 Top", 1], ["2015-01-14", "Cycle 2 Bottom", 0],
   ["2017-12-17", "Cycle 3 Top", 1], ["2018-12-15", "Cycle 3 Bottom", 0], ["2021-11-10", "Cycle 4 Top", 1], ["2022-11-21", "Cycle 4 Bottom", 0], ["2025-10-06", "Cycle 5 Top", 1]];
 
@@ -130,15 +130,15 @@ function spec(t) {
 const NM = path.join(HERE, "node_modules");
 const pageFile = path.join(os.tmpdir(), `urpd-video-page-${process.pid}.html`);
 fs.writeFileSync(pageFile, fs.readFileSync(path.join(HERE, "page.html"), "utf8")
-  .replace("FONT400", "file://" + path.join(NM, "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2"))
-  .replace("FONT700", "file://" + path.join(NM, "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2"))
+  .replace("FONT400", "file://" + path.join(NM, "@fontsource/source-code-pro/files/source-code-pro-latin-400-normal.woff2"))
+  .replace("FONT700", "file://" + path.join(NM, "@fontsource/source-code-pro/files/source-code-pro-latin-700-normal.woff2"))
   .replace("PLOTLY", "file://" + path.join(NM, "plotly.js-dist-min/plotly.min.js")));
 const browser = await chromium.launch({ args: ["--force-color-profile=srgb", "--font-render-hinting=none", "--disable-lcd-text", "--disable-gpu", "--allow-file-access-from-files"] });
 const frameOf = (d) => { const i = days.findIndex((x) => x.date >= d); return Math.round(Math.max(0, i) * (F - 1) / (N - 1)); };
 async function openPage() {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 2 });
   await page.goto("file://" + pageFile);
-  await page.evaluate(() => document.fonts.load("700 20px 'JetBrains Mono'").then(() => document.fonts.load("400 11px 'JetBrains Mono'")));
+  await page.evaluate(() => document.fonts.load("700 20px 'Source Code Pro'").then(() => document.fonts.load("400 11px 'Source Code Pro'")));
   // the legend's height and the plot width are fixed for the whole video: measure once, then lay out to them
   const probe = await page.evaluate((s) => window.drawFrame(s), spec(F - 1));
   await page.evaluate(([t, pw]) => window.setTopMargin(t, pw), [13 + 26 + Math.ceil(probe.legendH), probe.plotW]);
