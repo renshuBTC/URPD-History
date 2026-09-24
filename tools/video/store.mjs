@@ -58,6 +58,18 @@ export function readStore(dir) {
   return { meta, chunks, bars };
 }
 
+// The first day with anything on the chart, where the video starts (render.mjs): the day the first close comes into
+// the price line's window, whose right edge is PRICE_AHEAD days after the day as on the site, or the first day with a
+// bar if that is earlier. That is 2010-05-18, for the close of 2010-08-16. Before it the chart is empty and only the
+// date moves, which took the first 22 seconds of the video when it started on 2009-01-03.
+export const PRICE_AHEAD = 90;
+export function firstShownIndex(meta, bars) {
+  const at = (d) => Date.parse(d + "T00:00:00Z"), priced = meta.days.find((d) => d[2] > 0);
+  const reach = priced ? at(priced[0]) - PRICE_AHEAD * 864e5 : Infinity;
+  for (let i = 0; i < meta.days.length; i++) if (at(meta.days[i][0]) >= reach || bars(i).some((v) => v > 0)) return i;
+  return 0;
+}
+
 function writeAtomic(file, buf) { fs.writeFileSync(file + ".tmp", buf); fs.renameSync(file + ".tmp", file); }
 
 async function main() {
