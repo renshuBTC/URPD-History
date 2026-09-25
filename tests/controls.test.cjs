@@ -123,10 +123,9 @@ test('there is no download button, and the bar is drawn like the favicon: black 
   // Nothing in the bar is orange, grey-filled or rounded any more.
   const bar = rules.filter(r => r.sels.some(x => /^(#controls|#intervalBar|#landmarks|#dateDisplay|#ytBtn|#githubLink|#explainBtn|#langBtn|\.ctrl-sep|\.mode-toggle)/.test(x)));
   for (const r of bar) assert.doesNotMatch(r.body, /#ff8c00|#ffaa33|#3a3a3a|#252525|#1e1e1e|#1a1a1a|#d4d4d4|#555\b|#888|border-radius:\s*[1-9]/, r.sels.join(','));
-  // The favicon is the bar's mark, first in the bar, a picture only.
-  assert.match(html, /<div id="controls">\s*<span id="brandMark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><rect width="24" height="24" fill="#fff"\/><path d="M0 0H24L0 24Z" fill="#000"\/>/);
-  const favicon = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'favicon.svg'), 'utf8');
-  assert.match(favicon, /<rect width="16" height="16" fill="#ffffff"\/><path d="M0 0H16L0 16Z" fill="#000000"\/>/, 'the same picture as the favicon');
+  // The favicon stays the tab's icon only: no mark in the bar, which starts with the step sizes.
+  assert.match(html, /<div id="controls">\s*<div id="intervalBar">/);
+  assert.doesNotMatch(html, /brandMark/);
   // Keyboard focus: the browser's ring on buttons, a white ring on the links. (A mouse click lets go of focus, so
   // none of this is ever drawn for the mouse; see ui.test.cjs.)
   assert.ok(!rules.some(r => r.sels.some(x => /^#controls (button|a|select):focus$/.test(x))), 'focus rings are not switched off');
