@@ -12,13 +12,15 @@ function deferred() {
   return { promise, resolve, reject };
 }
 async function flush() { for (let i = 0; i < 30; i++) await Promise.resolve(); }
+// An element's style: plain properties, and custom properties set and removed as a browser's CSSStyleDeclaration does.
+const STYLE = { setProperty(k, v) { this[k] = String(v); }, removeProperty(k) { delete this[k]; } };
 function app(overrides = {}) {
   const elements = new Map(), timers = new Map(), docListeners = {};
   let timerId = 0;
   function element(id) {
     if (!elements.has(id)) {
       const el = Object.assign(new EventEmitter(), {
-        id, style: {}, value: '', textContent: '', clientWidth: 1200,
+        id, style: Object.create(STYLE), value: '', textContent: '', clientWidth: 1200,
         options: [{ textContent: 'Landmarks' }],
         classList: { add() {}, remove() {}, toggle() {} },
         addEventListener(type, fn) { this.on(type, fn); },

@@ -7,19 +7,20 @@ that asks for more, or offers you any other file, is not this site.
 
 ## The videos
 
-The two full-history videos, the bars coloured by age band (AGE) and split at 150 days (`<150D/>150D`), are on
-YouTube, not on the site. FULL HISTORY IN 5 MIN (AGE) and (`<150D/>150D`) in the toolbar open the latest of each, posted
+The three full-history videos, the bars coloured by age band (AGE), split at 150 days (`<150D/>150D`) and as recorded
+(RAW), are on YouTube, not on the site. FULL HISTORY IN 5 MIN (AGE), (`<150D/>150D`) and (RAW) in the toolbar open the
+latest of each, posted
 unlisted once a week by the [Weekly videos](.github/workflows/video.yml) workflow to the
-[renshuBTC](https://www.youtube.com/@renshuBTC) channel (the channel itself until there is a video of that colouring
+[renshuBTC](https://www.youtube.com/@renshuBTC) channel (the channel itself until there is a video of that look
 others can watch). They only ever go to the channel or to `https://www.youtube.com/watch?v=` and a video's id, which the
 page checks before using. The site has no video download, so that someone who broke into it could not use it to hand
 visitors a file posing as a video.
 
 The workflow keeps its latest renders on this repository's
-[`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video) (`BitcoinSupplyChart.com-AGE.mp4` and
-`BitcoinSupplyChart.com-Under-Over-150D.mp4`), where the next run reads which day they reach; nothing links to them. GitHub
-keeps a signed record of the run that built them (a build provenance attestation, logged by Sigstore). To check a copy
-of either:
+[`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video) (`BitcoinSupplyChart.com-AGE.mp4`,
+`BitcoinSupplyChart.com-Under-Over-150D.mp4` and `BitcoinSupplyChart.com-RAW.mp4`), where the next run reads which day
+they reach; nothing links to them. GitHub keeps a signed record of the run that built them (a build provenance
+attestation, logged by Sigstore). To check a copy of any of them:
 
 - **SHA-256:** compare it with the one in the release notes: `shasum -a 256 FILE` on macOS, `sha256sum FILE` on
   Linux, `Get-FileHash FILE` in Windows PowerShell.
@@ -47,7 +48,7 @@ of either:
   axis history refuses values from the data API far outside anything in the real history rather than commit them.
   Actions are pinned to full commit hashes and npm packages to exact versions and hashes, with install scripts off.
   The channel's YouTube credentials are repository secrets seen only by the steps that use them (two in each of the
-  two youtube jobs, the check for them and the post; and the one step of the hand-run YouTube credentials check),
+  three youtube jobs, the check for them and the post; and the one step of the hand-run YouTube credentials check),
   which run this repository's own code (`tools/video/youtube.mjs`, with Node's own http) and nothing installed. The
   jobs after the vetting take the vetted videos by their exact names, never another file the renderer could have left.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that

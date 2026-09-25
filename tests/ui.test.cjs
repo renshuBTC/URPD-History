@@ -121,40 +121,68 @@ test('an open How to read panel follows the toolbar when it re-fits, under the b
   assert.equal(panel.style.top, '65px');
 });
 
-test('the toolbar wraps instead of scrolling; the two videos, How to read and GitHub follow the settings in words, and the language button keeps to the right on its own', () => {
-  assert.match(decls('#controls'), /flex-wrap:\s*wrap/);
+test('the toolbar is one row that never scrolls; three videos in words, How to read and GitHub as icons, and the language button on its own at the right', () => {
+  assert.match(decls('#controls'), /flex-wrap:\s*nowrap/);
+  assert.match(decls('#controls'), /overflow:\s*hidden/);
+  assert.doesNotMatch(decls('#controls'), /overflow-x|scrollbar|flex-wrap:\s*wrap/);
   assert.match(decls('#toolbarEnd'), /margin-left:\s*auto/);
   assert.doesNotMatch(decls('#githubLink'), /margin-left/);
   const end = html.slice(html.indexOf('<div id="toolbarEnd">'), html.indexOf('<div id="status"'));
   assert.deepEqual([...end.matchAll(/\sid="(\w+)"/g)].map(m => m[1]), ['toolbarEnd', 'langBtn'], 'only the language at the right-hand end');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytSplitBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'ytSplitBtn', 'explainWrap', 'githubLink']);
-  // Each shows its icon and words, at the weight of the other buttons (the ? used to be bold on its own).
+  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytSplitBtn|ytRawBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'ytSplitBtn', 'ytRawBtn', 'explainWrap', 'githubLink']);
+  // The video buttons show their icon and words, at the weight of the other buttons.
   assert.match(bar, /id="ytBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytLabel" class="yt-word">Full history in 5 min<\/span><span id="ytTag" class="yt-tag">AGE<\/span>/, 'the video buttons say what they give you');
   assert.match(bar, /id="ytSplitBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytSplitLabel" class="yt-word">Full history in 5 min<\/span><span class="yt-tag"><span id="ytSplitTag" class="yt-tag-full">&lt;150D\/&gt;150D<\/span><span class="yt-tag-short">150D<\/span><\/span>/);
-  // In the narrowest bars the longer name gives way to a short one, 150D.
-  assert.match(decls('#controls.compact-more .yt-tag-short'), /display:\s*inline/);
-  assert.match(decls('#controls.compact-more .yt-tag-full'), /display:\s*none/);
-  assert.match(bar, /id="githubLink"[^>]*>\s*<svg[\s\S]*?<\/svg><span class="btn-word">GitHub<\/span>/);
-  assert.match(bar, /<button id="explainBtn"[^>]*><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><span id="explainLabel" class="btn-word">How to read<\/span><\/button>/);
-  // Where the words would wrap the bar they give way, measured against the step bar at the start: How to read's and
-  // GitHub's first, then the video buttons' FULL HISTORY IN 5 MIN, which keep AGE and <150D/>150D to tell them apart.
+  assert.match(bar, /id="ytRawBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytRawLabel" class="yt-word">Full history in 5 min<\/span><span id="ytRawTag" class="yt-tag">RAW<\/span>/);
+  // How to read and GitHub: their icons only, named by their tooltips and for screen readers.
+  assert.match(bar, /<a id="githubLink"[^>]*aria-label="View code on GitHub \(opens in a new tab\)" title="View code on GitHub \(opens in a new tab\)">\s*<svg[\s\S]*?<\/svg>\s*<\/a>/);
+  assert.match(bar, /<button id="explainBtn" aria-label="How to read this chart" title="How to read this chart" aria-expanded="false"><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><\/button>/);
+  assert.doesNotMatch(html, /btn-word|explainLabel/);
+  // In the narrowest bars the longest name gives way to a short one, 150D.
+  assert.match(decls('#controls.compact .yt-tag-short'), /display:\s*inline/);
+  assert.match(decls('#controls.compact .yt-tag-full'), /display:\s*none/);
   // Transitions would be measured half-way, so the buttons animate their colours only.
   for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
-  assert.match(decls('#controls.compact .btn-word'), /display:\s*none/);
-  assert.match(decls('#controls.compact-more .yt-word'), /display:\s*none/);
-  assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'AGE and <150D/>150D never go');
-  // Before any words go, the spacing tightens.
+  // To fit: the spacing tightens (dense), the type goes a size down (tight), the video buttons drop their words and
+  // keep AGE, 150D and RAW (compact), and last the whole bar is drawn smaller; the How to read panel undoes that.
   assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
   assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);
-  assert.match(html, /var TOOLBAR_FITS = \["dense", "compact", "compact-more"\];\s*function fitToolbarWords\(\) \{[\s\S]*?var wraps = function\(\) \{ return end\.getBoundingClientRect\(\)\.top - first\.getBoundingClientRect\(\)\.top > 4; \};\s*TOOLBAR_FITS\.forEach\(function\(c\) \{ bar\.classList\.remove\(c\); \}\);\s*for \(var i = 0; i < TOOLBAR_FITS\.length && wraps\(\); i\+\+\) bar\.classList\.add\(TOOLBAR_FITS\[i\]\);/);
+  assert.match(decls('#controls.tight button'), /font-size:\s*11px;\s*letter-spacing:\s*0/);
+  assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
+  assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'AGE, <150D/>150D and RAW never go');
+  assert.match(decls('#explainPanel'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
+  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\];/);
   for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
   const { c, element } = app();
-  for (const [lang, word] of [['zh', '如何看懂'], ['ja', '読み方'], ['en', 'How to read']]) {
+  for (const lang of ['zh', 'ja', 'en']) {
     c.lang = lang; c.applyLang();
-    assert.equal(element('explainLabel').textContent, word, lang);
-    assert.ok(c.t('ariaExplain').startsWith(word) || c.t('ariaExplain').endsWith(word), lang + ': the spoken name holds the visible word');
+    assert.equal(element('explainBtn').title, c.t('ariaExplain'), lang);
+    assert.equal(element('explainBtn').getAttribute('aria-label'), c.t('ariaExplain'), lang);
   }
+});
+
+test('the bar fits its one row: each step only if the row does not fit without it, and then drawn just small enough', () => {
+  const { c, element } = app();
+  const bar = element('controls'), classes = new Set();
+  bar.classList = { add: (k) => classes.add(k), remove: (k) => classes.delete(k), contains: (k) => classes.has(k), toggle() {} };
+  // The row's width at each step, as measured in English (tools: a browser at 3000 px), and a window of W px: the
+  // bar's own width, in its own (zoomed) pixels, is W / zoom.
+  const need = () => (classes.has('compact') ? 1377 : classes.has('tight') ? 1898 : classes.has('dense') ? 2085 : 2383);
+  let W = 0;
+  Object.defineProperty(bar, 'scrollWidth', { get: () => need() });
+  Object.defineProperty(bar, 'clientWidth', { get: () => W / (parseFloat(bar.style.zoom) || 1) });
+  const fit = (w) => { W = w; c.fitToolbarWords(); return [[...classes].join(' '), bar.style.zoom || '', bar.style['--bar-zoom'] || '']; };
+  assert.deepEqual(fit(2560), ['', '', ''], 'room for everything');
+  assert.deepEqual(fit(2100), ['dense', '', '']);
+  assert.deepEqual(fit(1920), ['dense tight', '', ''], '1920 px: every word, a size smaller');
+  assert.deepEqual(fit(1440), ['dense tight compact', '', '']);
+  const [cls, zoom, varZoom] = fit(1280);
+  assert.equal(cls, 'dense tight compact');
+  assert.ok(+zoom > 0.9 && +zoom <= 1280 / 1377, zoom);
+  assert.equal(varZoom, zoom, 'the panel is told how far to undo it');
+  assert.ok(need() <= W / +zoom + 1, 'and then it fits');
+  assert.deepEqual(fit(2560), ['', '', ''], 'a wider window takes every step back');
 });
 
 test('the chart follows its own box, which the toolbar can change without the window resizing', async () => {

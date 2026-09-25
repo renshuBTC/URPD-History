@@ -168,11 +168,12 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the two video buttons always show: FULL HISTORY IN 5 MIN (AGE) and (<150D/>150D), each its latest video others can watch, else the channel', async () => {
+test('the three video buttons always show: FULL HISTORY IN 5 MIN (AGE), (<150D/>150D) and (RAW), each its latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
   // as the markup writes them: the <150D/>150D button also holds the short name its tag gives way to in a narrow bar
   const BUTTONS = [['ytBtn', 'ytLabel', '<span id="ytTag" class="yt-tag">([^<]+)</span>', 'AGE'],
-    ['ytSplitBtn', 'ytSplitLabel', '<span class="yt-tag"><span id="ytSplitTag" class="yt-tag-full">([^<]+)</span><span class="yt-tag-short">150D</span></span>', '&lt;150D/&gt;150D']];
+    ['ytSplitBtn', 'ytSplitLabel', '<span class="yt-tag"><span id="ytSplitTag" class="yt-tag-full">([^<]+)</span><span class="yt-tag-short">150D</span></span>', '&lt;150D/&gt;150D'],
+    ['ytRawBtn', 'ytRawLabel', '<span id="ytRawTag" class="yt-tag">([^<]+)</span>', 'RAW']];
   for (const [id, label, tag, name] of BUTTONS) {
     const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${label}" class="yt-word">Full history in 5 min</span>${tag}</a>`));
     assert.ok(a, id + ': a visible link that opens in a new tab: the play symbol, the words and which video, named for screen readers and tooltips');
@@ -183,24 +184,26 @@ test('the two video buttons always show: FULL HISTORY IN 5 MIN (AGE) and (<150D/
     assert.match(a[4], /aria-hidden="true"/);
     assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   }
-  assert.ok(html.indexOf('id="ytBtn"') < html.indexOf('id="ytSplitBtn"'), 'AGE first, <150D/>150D on its right');
+  assert.ok(html.indexOf('id="ytBtn"') < html.indexOf('id="ytSplitBtn"') && html.indexOf('id="ytSplitBtn"') < html.indexOf('id="ytRawBtn"'), 'AGE first, <150D/>150D on its right, then RAW');
   assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
   assert.match(decls('#controls .yt-btn'), /border:\s*1px solid #595959/);
   assert.match(decls('#controls .yt-btn:hover'), /border-color:\s*#fff/);
   assert.match(decls('.yt-btn:focus-visible'), /outline:\s*2px solid #fff/);
-  // The bracketed name: (AGE) and (<150D/>150D) beside the words, and on their own where the words give way.
+  // The bracketed name: (AGE), (<150D/>150D) and (RAW) beside the words, and on their own where the words give way.
   assert.match(decls('#controls .yt-tag::before'), /content:\s*"\("/);
   assert.match(decls('#controls .yt-tag::after'), /content:\s*"\)"/);
-  assert.match(decls('#controls.compact-more .yt-word'), /display:\s*none/);
-  assert.match(decls('#controls.compact-more .yt-tag::before'), /content:\s*none/);
+  assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
+  assert.match(decls('#controls.compact .yt-tag::before'), /content:\s*none/);
   // data/youtube.json names each video once others can watch it; anything else leaves that button on the channel.
-  const { c, element } = app(), age = element('ytBtn'), split = element('ytSplitBtn');
-  c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, lthsth: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
+  const { c, element } = app(), age = element('ytBtn'), split = element('ytSplitBtn'), raw = element('ytRawBtn');
+  c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, lthsth: { id: 'Abc_123-xyZ', end: '2026-09-24' }, raw: { id: 'Raw_567-abC', end: '2026-10-01' } });
   assert.equal(age.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   assert.equal(split.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  assert.equal(raw.href, 'https://www.youtube.com/watch?v=Raw_567-abC');
   assert.equal(age.title, 'Full history in 5 min (AGE): every day since 2010 as one 4K video, the bars coloured by age band, on YouTube (opens in a new tab)');
   assert.equal(split.title, 'Full history in 5 min (<150D/>150D): every day since 2010 as one 4K video, the bars split at 150 days, on YouTube (opens in a new tab)');
-  for (const el of [age, split]) assert.equal(el.getAttribute('aria-label'), el.title);
+  assert.equal(raw.title, 'Full history in 5 min (RAW): every day since 2010 as one 4K video, the bars as recorded, unsmoothed, black on a light chart, on YouTube (opens in a new tab)');
+  for (const el of [age, split, raw]) assert.equal(el.getAttribute('aria-label'), el.title);
   for (const [lang, words, ageTag, splitTag, want] of [
     ['zh', '5 分钟看完整历史', '年龄', '<150D/>150D', '5 分钟看完整历史（年龄）：2010 年以来的每一天，一段 4K 视频，柱子按币龄层着色，在 YouTube 上观看（在新标签页中打开）'],
     ['ja', '全期間を5分で', '年齢', '<150D/>150D', '全期間を5分で（年齢）：2010年以降の毎日を 1 本の 4K 動画にまとめ、棒を年齢帯で色分けして YouTube で（新しいタブで開きます）']]) {
@@ -210,7 +213,9 @@ test('the two video buttons always show: FULL HISTORY IN 5 MIN (AGE) and (<150D/
     assert.equal(element('ytSplitLabel').textContent, words, lang);
     assert.equal(element('ytTag').textContent, ageTag, lang);
     assert.equal(element('ytSplitTag').textContent, splitTag, lang);
-    assert.ok(age.title.startsWith(words) && split.title.startsWith(words), lang + ': the spoken name starts with the words on the button');
+    assert.equal(element('ytRawLabel').textContent, words, lang);
+    assert.equal(element('ytRawTag').textContent, 'RAW', lang);
+    assert.ok(age.title.startsWith(words) && split.title.startsWith(words) && raw.title.startsWith(words), lang + ': the spoken name starts with the words on the button');
     assert.ok(split.title.includes(splitTag), lang);
   }
   c.lang = 'en'; c.labelYouTube();
@@ -218,18 +223,21 @@ test('the two video buttons always show: FULL HISTORY IN 5 MIN (AGE) and (<150D/
   assert.equal(element('ytSplitTag').textContent, '<150D/>150D');
   const channel = n => `Full history in 5 min (${n}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`;
   for (const bad of [null, {}, { id: null }, { id: 'javascript:x' }, { id: 'short' }, { id: 'dQw4w9WgXcQ"x' }, { id: 12345678901 }, 'dQw4w9WgXcQ']) {
-    c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ' }, lthsth: { id: 'dQw4w9WgXcQ' } });
-    c.setYouTubeLinks({ age: bad, lthsth: bad });
+    c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ' }, lthsth: { id: 'dQw4w9WgXcQ' }, raw: { id: 'dQw4w9WgXcQ' } });
+    c.setYouTubeLinks({ age: bad, lthsth: bad, raw: bad });
     assert.equal(age.href, CHANNEL, JSON.stringify(bad));
     assert.equal(split.href, CHANNEL, JSON.stringify(bad));
+    assert.equal(raw.href, CHANNEL, JSON.stringify(bad));
+    assert.equal(raw.title, channel('RAW'), JSON.stringify(bad));
     assert.equal(age.title, channel('AGE'), JSON.stringify(bad));
     assert.equal(split.title, channel('<150D/>150D'), JSON.stringify(bad));
   }
   for (const bad of [null, 'x', 5, []]) { c.setYouTubeLinks(bad); assert.equal(age.href, CHANNEL); assert.equal(split.href, CHANNEL); }
-  // One video without the other: each button on its own.
+  // One video without the others: each button on its own (the file before RAW had no "raw" at all).
   c.setYouTubeLinks({ age: null, lthsth: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
   assert.equal(age.href, CHANNEL);
   assert.equal(split.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  assert.equal(raw.href, CHANNEL);
   // The one-video file from before (its id at the top level) was the AGE video.
   c.setYouTubeLinks({ id: 'dQw4w9WgXcQ', end: '2026-09-24' });
   assert.equal(age.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
@@ -257,8 +265,8 @@ test('the two video buttons always show: FULL HISTORY IN 5 MIN (AGE) and (<150D/
 test('data/youtube.json names each video by its YouTube id, or none yet', () => {
   const fs = require('node:fs'), path = require('node:path');
   const yt = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'youtube.json'), 'utf8'));
-  assert.deepEqual(Object.keys(yt), ['about', 'age', 'lthsth']);
-  for (const k of ['age', 'lthsth']) {
+  assert.deepEqual(Object.keys(yt), ['about', 'age', 'lthsth', 'raw']);
+  for (const k of ['age', 'lthsth', 'raw']) {
     if (yt[k] === null) continue;
     assert.deepEqual(Object.keys(yt[k]), ['id', 'end'], k);
     assert.match(yt[k].id, /^[A-Za-z0-9_-]{11}$/, k);
@@ -266,12 +274,13 @@ test('data/youtube.json names each video by its YouTube id, or none yet', () => 
   }
 });
 
-test('AGE | <150D/>150D sits right of USD | BTC and only recolours the bars: <150D amber under >150D blue', async () => {
+test('AGE | <150D/>150D | RAW sits right of USD | BTC; <150D/>150D only recolours the bars: <150D amber under >150D blue', async () => {
   // The markup: its own group, after the weighting and before Pin Y-axis, AGE chosen at first.
-  const group = html.match(/<div class="mode-toggle">\s*<button id="btnUSD"[\s\S]*?<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*(<button id="btnAge"[^>]*>AGE<\/button>)\s*(<button id="btnSplit"[^>]*>&lt;150D\/&gt;150D<\/button>)\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*<button id="btnPeak"/);
-  assert.ok(group, 'USD | BTC, then AGE | <150D/>150D, then Pin Y-axis');
+  const group = html.match(/<div class="mode-toggle">\s*<button id="btnUSD"[\s\S]*?<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*(<button id="btnAge"[^>]*>AGE<\/button>)\s*(<button id="btnSplit"[^>]*>&lt;150D\/&gt;150D<\/button>)\s*(<button id="btnRaw"[^>]*>RAW<\/button>)\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*<button id="btnPeak"/);
+  assert.ok(group, 'USD | BTC, then AGE | <150D/>150D | RAW, then Pin Y-axis');
   assert.match(group[1], /class="active" aria-pressed="true"/);
   assert.match(group[2], /aria-pressed="false"/);
+  assert.match(group[3], /aria-pressed="false" title="RAW: the bars as recorded, with no smoothing and no colours: every bar in black, on a light chart"/);
   const { c, element } = app();
   assert.equal(c.STH_BANDS, 8, '<1h to 4m-5m: the coins that moved within 150 days');
   assert.deepEqual([c.AGE_BANDS[7].label, c.AGE_BANDS[8].label], ['4m-5m', '5m-6m']);

@@ -7,7 +7,7 @@ name is URPD, the UTXO Realised Price Distribution.
 
 What is unusual here is the history: most published versions show only today, this
 one steps through every day back to 2009-01-03, with each bar split into 23 age
-cohorts, or in two at 150 days.
+cohorts, or in two at 150 days, or drawn RAW: as recorded, in black on a light chart.
 
 **Live: <https://bitcoinsupplychart.com>**
 
@@ -20,6 +20,8 @@ cohorts, or in two at 150 days.
 - **White line** is bitcoin’s own price on its own hidden axes: a year of time around the selected day, and linear from $0 to the highest close shown so far, so the line fills the chart and only rescales on a new high.
 - **Dashed vertical** is the spot price. Supply to its left last moved below it, supply to its right above it.
 - **Colour** is age: yellow is fresh, deep blue is ancient, logarithmic in between. The 23 colours lie on one path through OKLCH, evenly spaced to the eye, with lightness falling from young to old so the order survives greyscale, and every band at least 3:1 against the background.
+- **RAW** draws the bars as recorded: no smoothing, and no colours, every bar in black on a light chart (the bar above
+  stays dark). The smoothing field shows 0 and is locked while RAW is on; AGE or `<150D/>150D` gives it back.
 - **`<150D/>150D`** instead adds the bands up into two at 150 days: `<150D` in amber (coins that moved within the last 150 days, the bands up to 4m-5m) and `>150D` in blue (150 days or more unmoved). It says how long coins have sat still, not who holds them; 150 days is where Bitcoin Research Kit splits what it calls short- from long-term holders. The bars and axes are the same either way.
 
 Press **HOW TO READ** in the toolbar for the full explainer, in English, Chinese or Japanese.
@@ -33,22 +35,24 @@ Keyboard:
 - **W / S** or **↑ / ↓** — step interval up / down, one size at a time (1D → 1W → 1M → 1Y, and round again)
 - **Home / End** — first / last date
 
-USD / BTC and AGE / `<150D/>150D` are switched with their toolbar buttons.
+USD / BTC and AGE / `<150D/>150D` / RAW are switched with their toolbar buttons.
 
 Toolbar, left to right:
 
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
-- **AGE / `<150D/>150D`** — colour the bars by their 23 age bands, or in two at 150 days
+- **AGE / `<150D/>150D` / RAW** — colour the bars by their 23 age bands, or in two at 150 days, or draw them as
+  recorded, unsmoothed and black on a light chart
 - **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
 - **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 626 bars
-- **FULL HISTORY IN 5 MIN (AGE)** and **FULL HISTORY IN 5 MIN (`<150D/>150D`)** for the latest full-history videos on YouTube, one for each colouring (each opens the channel until there is a video of it others can watch), **HOW TO READ** for the explainer and **GITHUB** for the source
+- **FULL HISTORY IN 5 MIN (AGE)**, **(`<150D/>150D`)** and **(RAW)** for the latest full-history videos on YouTube, one for each way of drawing the bars (each opens the channel until there is a video of it others can watch), then **?** for the explainer and the GitHub mark for the source, as icons
 - the language toggle, on its own at the right-hand end
 
 The chart's camera icon saves a PNG of it; there is no video download.
 
-Where the controls do not fit the window on one line, the toolbar's spacing tightens, then HOW TO READ and GITHUB
-go down to their icons, then the video buttons to ▶ AGE and ▶ 150D; only below that does it wrap onto a second row.
+The toolbar is always one row and never scrolls. Where the controls do not fit the window, its spacing tightens, then
+its type goes a size down, then the video buttons go down to ▶ AGE, ▶ 150D and ▶ RAW, and past that the whole bar is
+drawn smaller.
 
 On a phone the toolbar is hidden to give the chart the whole screen. Tap the left or
 right quarter of the screen to step back or forward a day, or drag the orange dot along
@@ -63,17 +67,19 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-**FULL HISTORY IN 5 MIN (AGE)** and **(`<150D/>150D`)** in the toolbar each open the whole history as one video on
-YouTube, coloured by age band or split at 150 days: every day from 2010-05-18, when the first price comes onto the
-chart (it is empty before that), to the latest, 5:00 at 60 fps in 4K (3840×2160), drawn with the page’s default
-settings. The **Weekly videos** workflow draws both again once a week on GitHub’s runners, one runner each, taking in
-the week just ended, and posts them to YouTube (see [Posting to YouTube](#posting-to-youtube)).
+**FULL HISTORY IN 5 MIN (AGE)**, **(`<150D/>150D`)** and **(RAW)** in the toolbar each open the whole history as one
+video on YouTube, coloured by age band, split at 150 days, or as recorded (unsmoothed, black on a light chart): every
+day from 2010-05-18, when the first price comes onto the chart (it is empty before that), to the latest, 5:00 at 60
+fps in 4K (3840×2160), drawn with the page’s default settings. The **Weekly videos** workflow draws all three again
+once a week on GitHub’s runners, one runner each, taking in the week just ended, and posts them to YouTube (see
+[Posting to YouTube](#posting-to-youtube)).
 The site offers no file to download, so that a break-in could not use it to hand anyone a file. The workflow keeps its
 latest renders on the `video` release, whose notes tell the next run which day they reach; nothing links to them. A
 render goes out only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
 It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there; `tools/video/looks.mjs` holds the
-two colourings), from a store of every day’s bars kept on the `video-data` release: past days never change, so each
-day’s run adds the new day, and once a week the 18,000 frames of each video are drawn again. Free for a public
+three looks), from a store of every day’s bars, smoothed in their age bands and unsmoothed as a whole, kept on the
+`video-data` release: past days never change, so each day’s run adds the new day, and once a week the 18,000 frames
+of each video are drawn again. Free for a public
 repository.
 
 The axes need the whole history to be a function of the date alone, which no single
@@ -90,13 +96,13 @@ the whole deployment.
 
 ## Posting to YouTube
 
-After publishing the videos, the **Weekly videos** workflow posts both to the [renshuBTC](https://www.youtube.com/@renshuBTC)
+After publishing the videos, the **Weekly videos** workflow posts all three to the [renshuBTC](https://www.youtube.com/@renshuBTC)
 channel with `tools/video/youtube.mjs`, through the YouTube Data API, each from a job of its own: one video's trouble
-does not hold back the other, and a failed post can be run again (**Re-run failed jobs**, within a week) without
-posting the other video twice. Each week's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
+does not hold back the others, and a failed post can be run again (**Re-run failed jobs**, within a week) without
+posting the others twice. Each week's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
 channel nor in search), titled with the chart's own title on their last day, *Bitcoin Supply by Price When Last Moved
 (USD Value, AGE) as of 24 Sept 2026* and the same with *(USD Value, Under/Over 150D)* (YouTube takes no < or > in a
-title). Once YouTube lets others watch one, the
+title) and *(USD Value, RAW)*. Once YouTube lets others watch one, the
 workflow names it in `data/youtube.json` and its button on the site links to it; until then that button opens the
 channel.
 
