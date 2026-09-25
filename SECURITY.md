@@ -1,25 +1,22 @@
 # Security
 
 Bitcoin Supply Chart is a static page. It has no accounts, takes no payments and needs nothing installed. It will
-never ask for a seed phrase, a private key, a wallet connection or a signature, and the only file it offers is the
-full-history video. Anything that asks for more is not this site.
+never ask for a seed phrase, a private key, a wallet connection or a signature, and it offers no file to download: the
+one thing you can save is a PNG picture of the chart, which the chart's camera icon makes in your own browser. Anything
+that asks for more, or offers you any other file, is not this site.
 
 ## The video
 
-The download button (the arrow icon in the toolbar) downloads one file, always from this address:
+The full-history video is on YouTube, not on the site. The YouTube button (a play symbol in the toolbar) opens the
+latest one, posted unlisted by the [Daily video](.github/workflows/video.yml) workflow to the
+[renshuBTC](https://www.youtube.com/@renshuBTC) channel. It only ever goes to `https://www.youtube.com/watch?v=` and
+the video's id, which the page checks before using. The site has no video download, so that someone who broke into
+it could not use it to hand visitors a file posing as the video.
 
-<https://github.com/renshuBTC/URPD-History/releases/download/video/BitcoinSupplyChart.com.mp4>
-
-It is always an `.mp4` video served by GitHub from this repository's
-[`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video). A copy from anywhere else, or a
-file of any other kind (`.exe`, `.dmg`, `.zip`, `.scr`, `.apk`, …), did not come from here.
-
-The YouTube button (a play symbol beside it) opens the same video on YouTube, posted unlisted by the same workflow to
-the [renshuBTC](https://www.youtube.com/@renshuBTC) channel. It only ever goes to `https://www.youtube.com/watch?v=`
-and the video's id, which the page checks before using.
-
-Every day's file is built by the [Daily video](.github/workflows/video.yml) workflow, and GitHub keeps a signed
-record of the run that built it (a build provenance attestation, logged by Sigstore). To check a downloaded copy:
+The workflow keeps its latest render on this repository's
+[`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video), where the next run reads which day it
+reaches; nothing links to it. GitHub keeps a signed record of the run that built it (a build provenance attestation,
+logged by Sigstore). To check a copy of it:
 
 - **SHA-256:** compare it with the one in the release notes: `shasum -a 256 FILE` on macOS, `sha256sum FILE` on
   Linux, `Get-FileHash FILE` in Windows PowerShell.
@@ -37,8 +34,8 @@ record of the run that built it (a build provenance attestation, logged by Sigst
 - **The page** allows only its own inline scripts (by SHA-256) and Plotly from its CDN (by integrity hash) to run,
   and connects only to this site and bitview.space: a Content-Security-Policy refuses every other script, frame,
   plugin, form and connection. It writes text, never markup, and everything from the data API is checked before use,
-  so the API can at worst put wrong numbers on the chart. Its one download link is fixed, and the tests fail if any
-  other download, redirect or outside address appears (`tests/security.test.cjs`).
+  so the API can at worst put wrong numbers on the chart. It links to no file to download, and the tests fail if a
+  download link, redirect or outside address appears (`tests/security.test.cjs`).
 - **The build** is split by trust. Only this repository's own code runs with a token that can write, and that code
   never parses the video. The renderer, which runs third-party code (Playwright, Chromium, ffmpeg), and the job that
   vets its file get a read-only token and no credentials. The file is published only if it is exactly the expected
@@ -49,8 +46,9 @@ record of the run that built it (a build provenance attestation, logged by Sigst
   The channel's YouTube credentials are repository secrets seen only by the two steps of the youtube job that use
   them, which run this repository's own code (`tools/video/youtube.mjs`, with Node's own http) and nothing installed.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that
-  bitcoinsupplychart.com serves this repository's `index.html` byte for byte, and that the video behind the button
-  verifies as above. If anything differs it fails, and GitHub emails the owner.
+  bitcoinsupplychart.com serves this repository's `index.html` byte for byte, so a page changed anywhere on the way (a
+  download slipped in, say) turns it red, and that plain http is sent to https. If anything differs it fails, and
+  GitHub emails the owner.
 
 ## Reporting a problem
 

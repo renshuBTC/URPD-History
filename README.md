@@ -36,10 +36,9 @@ Toolbar, left to right:
 
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
-- **PIN SCALE** — freeze the y-axis on the day you are viewing so other days can be compared against it
-- **Bottom signal** — fires when the share of value that last moved above the day's price passes your threshold
-- **Bins**, **Smoothing**, **Y-max** — bucket count; smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view
-- **download** button (an arrow) for the 4K video, a **YouTube** button (a play symbol) for the latest one on YouTube once there is one to watch, **?** explainer, a language toggle, and the **GitHub** icon linking to the source
+- **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
+- **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 625 bars, and its title gives the width of one in dollars
+- a **YouTube** button (a play symbol) for the latest full-history video once there is one to watch, **?** explainer, a language toggle, and the **GitHub** icon linking to the source. The chart's camera icon saves a PNG of it; there is no video download
 
 The toolbar stays on one row. Scroll it horizontally when the controls do not fit the window.
 
@@ -56,12 +55,13 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-The **download** button (the arrow icon in the toolbar) downloads the whole history as one video: every day from 2010-05-18,
-when the first price comes onto the chart (it is empty before that), to the latest, 5:00 at 60 fps in 4K (3840×2160, about
-250 MB), drawn with the page’s default settings. The **Daily video** workflow rebuilds it every day on GitHub’s runners and
-publishes it on the `video` release, so the day that just ended is usually in it by about 04:00 UTC.
-A new file takes the old one’s place only once it is fully uploaded, so the link never breaks,
-and only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
+The **YouTube** button (the play symbol in the toolbar) opens the whole history as one video: every day from 2010-05-18,
+when the first price comes onto the chart (it is empty before that), to the latest, 5:00 at 60 fps in 4K (3840×2160),
+drawn with the page’s default settings. The **Daily video** workflow rebuilds it every day on GitHub’s runners and posts
+it to YouTube (see [Posting to YouTube](#posting-to-youtube)), so the day that just ended is usually in it by about 04:00 UTC.
+The site offers no file to download, so that a break-in could not use it to hand anyone a file. The workflow keeps its
+latest render on the `video` release, whose notes tell the next run which day it reaches; nothing links to it. A render
+goes out only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
 It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there), from a
 store of every day’s bars kept on the `video-data` release: past days never change, so each
 run adds the new day and draws the 18,000 frames again. Free for a public repository.
@@ -110,9 +110,9 @@ To stop posting, delete the three secrets (and remove the app's access at
 
 ## Security
 
-The site never asks you to install anything, connect a wallet or enter a seed phrase, and the only file it offers is
-the `.mp4` video from this repository's `video` release. [SECURITY.md](SECURITY.md) explains how to check a download
-is genuine, how the page and the build are protected, and how to report a problem.
+The site never asks you to install anything, connect a wallet or enter a seed phrase, and it offers no file to
+download: the video is on YouTube, and the chart's camera icon only saves a PNG of the chart, made in your browser. [SECURITY.md](SECURITY.md) explains how the page and the build are protected, and how to report a
+problem.
 
 ## Development checks
 

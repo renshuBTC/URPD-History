@@ -1,13 +1,13 @@
 name: Daily video
 
-# Every day, for the site's download button and for scrubbing through history:
+# Every day, for YouTube and for scrubbing through history:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
 #               video's store (the files on the "video-data" release)
 #   2. render:  draws the full-history 4K video with tools/video
 #   3. vet:     accepts the file only if it is exactly the expected video, and rewrites its container keeping only
 #               the picture
-#   4. publish: attests where the video was built and publishes it on the "video" release, the file the button
-#               downloads
+#   4. publish: attests where the video was built and keeps it on the "video" release, whose notes tell the next
+#               run which day it reaches (the site does not link to it)
 #   5. youtube: posts it to YouTube, unlisted (tools/video/youtube.mjs), once the channel's credentials are set up
 #   6. record:  names it in data/youtube.json for the site's YouTube button, once YouTube lets others watch it
 #
@@ -18,7 +18,7 @@ name: Daily video
 # no credentials. Each hands its file on as a workflow artifact. The publish job
 # signs a build attestation for the vetted file, which anyone can check with `gh attestation verify` (see
 # SECURITY.md). New release files replace the old ones only once fully uploaded (tools/video/replace-asset.sh), so
-# the button never meets a missing file. Actions are pinned to full commit hashes. Standard GitHub-hosted runners are
+# the release never holds half a file. Actions are pinned to full commit hashes. Standard GitHub-hosted runners are
 # free for public repositories; the whole run takes about an hour and a half.
 on:
   schedule:
@@ -37,8 +37,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # The name the download gets on people's computers (it has to end in .mp4: a file ending in .com is a program on
-  # Windows).
+  # The video's file name, on the release and as sent to YouTube (it has to end in .mp4: a file ending in .com is a
+  # program on Windows).
   VIDEO: BitcoinSupplyChart.com.mp4
 
 jobs:
@@ -246,7 +246,7 @@ jobs:
           [[ "$START" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "days: '$START' '$END'" >&2; exit 1; }
           SHA=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published video reaches.
-          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow; the download button on https://bitcoinsupplychart.com downloads it.
+          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow, which posts it to YouTube; the site does not link to this file.
 
           SHA-256: $SHA
           Check it: gh attestation verify $VIDEO --repo $GITHUB_REPOSITORY (see SECURITY.md)"

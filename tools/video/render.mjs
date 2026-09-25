@@ -1,4 +1,4 @@
-// Renders the full-history video the site's download button serves: every day in the store (store.mjs) from the first
+// Renders the full-history video the Daily video workflow posts to YouTube: every day in the store (store.mjs) from the first
 // with anything on the chart (2010-05-18, when the first price comes into view) to the latest, in 5:00 at 60 fps
 // (18,000 frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days
 // there are; the chart is the site's, drawn by page.html.
