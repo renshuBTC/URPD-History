@@ -10,7 +10,9 @@
 //
 //   YOUTUBE_CLIENT_ID=… YOUTUBE_CLIENT_SECRET=… YOUTUBE_REFRESH_TOKEN=… node tools/video/youtube.mjs FILE START END
 //
-// prints id=<the video's id> and privacy=<the privacy YouTube recorded> for $GITHUB_OUTPUT.
+// prints id=<the video's id> and privacy=<the privacy YouTube recorded> for $GITHUB_OUTPUT. With --check instead of
+// FILE START END it only asks Google for an access token with the three secrets and says whether that worked.
+// The secrets are trimmed first: a token pasted with a line break after it is, to Google, a token it never issued.
 import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
@@ -143,6 +145,25 @@ async function uploadFile(session, file, size, token, o) {
   }
 }
 
+// The three secrets from the environment, without the spaces or line breaks a paste can bring along; `padded` names
+// the ones that had some (never their values).
+export function credentialsFrom(env) {
+  const names = { clientId: "YOUTUBE_CLIENT_ID", clientSecret: "YOUTUBE_CLIENT_SECRET", refreshToken: "YOUTUBE_REFRESH_TOKEN" };
+  const credentials = {}, padded = [];
+  for (const [key, name] of Object.entries(names)) {
+    const raw = typeof env[name] === "string" ? env[name] : "";
+    credentials[key] = raw.trim();
+    if (raw !== credentials[key]) padded.push(name);
+  }
+  return { credentials, padded };
+}
+
+// Asks for an access token and nothing more: true, or the error Google gave.
+export async function checkToken({ credentials, endpoints = ENDPOINTS, tries = 3, wait = backoff, log = console.error }) {
+  await accessToken(credentials, { endpoints, tries, wait, log });
+  return true;
+}
+
 export async function post({ file, start, end, credentials, endpoints = ENDPOINTS, tries = 8, wait = backoff, log = console.error }) {
   const o = { endpoints, tries, wait, log };
   const size = fs.statSync(file).size;
@@ -156,10 +177,17 @@ export async function post({ file, start, end, credentials, endpoints = ENDPOINT
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])) {
   const [file, start, end] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
-  if (!file || !isDay(start) || !isDay(end)) { console.error("usage: node tools/video/youtube.mjs FILE START END"); process.exit(2); }
-  const credentials = { clientId: process.env.YOUTUBE_CLIENT_ID, clientSecret: process.env.YOUTUBE_CLIENT_SECRET, refreshToken: process.env.YOUTUBE_REFRESH_TOKEN };
+  const check = file === "--check";
+  if (!check && (!file || !isDay(start) || !isDay(end))) { console.error("usage: node tools/video/youtube.mjs FILE START END | --check"); process.exit(2); }
+  const { credentials, padded } = credentialsFrom(process.env);
   if (!credentials.clientId || !credentials.clientSecret || !credentials.refreshToken) {
     console.error("YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET and YOUTUBE_REFRESH_TOKEN are all needed"); process.exit(2);
+  }
+  if (padded.length) console.error(`${padded.join(", ")} had spaces or a line break around it; they were left out.`);
+  if (check) {
+    try { await checkToken({ credentials }); } catch (e) { console.error(`Google did not accept the credentials: ${e.message}`); process.exit(1); }
+    console.error("Google accepted the credentials: the refresh token gives an access token.");
+    process.exit(0);
   }
   const { id, privacy } = await post({ file, start, end, credentials });
   console.error(`Posted https://www.youtube.com/watch?v=${id} (${privacy})`);
