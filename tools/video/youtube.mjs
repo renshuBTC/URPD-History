@@ -24,7 +24,7 @@ const day = (d, opts) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", 
 
 // The chart's title on the video's last day, exactly as the site and the video print it ("… as of 24 Sept 2026").
 export function videoTitle(end) {
-  return "Bitcoin Supply Distribution (in USD Value Last Moved) as of " + day(end, { day: "2-digit", month: "short", year: "numeric" });
+  return "Bitcoin Supply by Price When Last Moved (USD Value) as of " + day(end, { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export function videoDescription(start, end) {

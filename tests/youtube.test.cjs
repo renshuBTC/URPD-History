@@ -69,8 +69,10 @@ const quiet = { wait: async () => {}, log: () => {} };
 
 test('the title is the chart\'s own title on the video\'s last day, and nothing in the text is refused by YouTube', async () => {
   const { videoTitle, metadata } = await load();
-  assert.equal(videoTitle('2026-09-24'), 'Bitcoin Supply Distribution (in USD Value Last Moved) as of 24 Sept 2026');
-  assert.equal(videoTitle('2026-06-07'), 'Bitcoin Supply Distribution (in USD Value Last Moved) as of 07 Jun 2026');
+  assert.equal(videoTitle('2026-09-24'), 'Bitcoin Supply by Price When Last Moved (USD Value) as of 24 Sept 2026');
+  assert.equal(videoTitle('2026-06-07'), 'Bitcoin Supply by Price When Last Moved (USD Value) as of 07 Jun 2026');
+  const site = /titleUSDAge: "([^"]+)"/.exec(fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8'))[1];
+  assert.ok(videoTitle('2026-09-24').startsWith(site), 'the video is titled with the site\'s own chart title');
   const m = metadata('2011-01-31', '2026-09-24');
   assert.ok(m.snippet.title.length <= 100);
   assert.match(m.snippet.description, /every day from 31 January 2011 to 24 September 2026\./);
@@ -92,7 +94,7 @@ test('a clean upload: token, session, the whole file in one request, and the id 
     assert.equal(s.headers.authorization, 'Bearer at');
     assert.equal(Number(s.headers['x-upload-content-length']), fs.statSync(file).size);
     assert.equal(s.headers['x-upload-content-type'], 'video/mp4');
-    assert.equal(s.meta.snippet.title, 'Bitcoin Supply Distribution (in USD Value Last Moved) as of 24 Sept 2026');
+    assert.equal(s.meta.snippet.title, 'Bitcoin Supply by Price When Last Moved (USD Value) as of 24 Sept 2026');
     assert.equal(g.seen.puts.length, 1);
     assert.ok(g.received().equals(fs.readFileSync(file)), 'every byte, in order');
   } finally { g.close(); }
