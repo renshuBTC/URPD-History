@@ -159,3 +159,34 @@ test('the video\'s price box: where the day\'s dot runs under it, it is moved to
   assert.match(page, /spotBox = \{ x0: pb\.box\.x0, x1: pb\.box\.x1, y0: drop, h: pb\.box\.h \};/);
   assert.match(page, /yshift: -drop, yanchor: "top"/);
 });
+
+test('the store keeps each day\'s unsmoothed bars too: a year\'s raw file may fall short of meta.json (those days are added again) or run ahead (cut to it)', async () => {
+  const { readStore } = await import('../tools/video/store.mjs');
+  const dir = store(['2026-01-01', '2026-01-02', '2026-01-03']);
+  const rawFile = (n) => { const f = new Float32Array(n * 626); for (let i = 0; i < n; i++) f.fill(100 + i, i * 626, (i + 1) * 626); fs.writeFileSync(path.join(dir, 'raw-2026.f32.gz'), zlib.gzipSync(Buffer.from(f.buffer))); };
+  let s = readStore(dir);
+  assert.deepEqual([s.rawDays['2026'], s.raw(0)], [0, null], 'none yet');
+  rawFile(2); s = readStore(dir);
+  assert.deepEqual([s.rawDays['2026'], s.raw(0).length, s.raw(1)[625], s.raw(2)], [2, 626, 101, null], 'the third day still to add');
+  rawFile(4); s = readStore(dir);
+  assert.deepEqual([s.rawDays['2026'], s.raw(2)[0]], [3, 102], 'a day ahead of meta.json is left out');
+  fs.writeFileSync(path.join(dir, 'raw-2026.f32.gz'), zlib.gzipSync(Buffer.from(new Float32Array(700).buffer)));
+  assert.throws(() => readStore(dir), /raw-2026\.f32\.gz holds/);
+  // store.mjs adds a missing day's raw bars before any new day, and renders RAW only from a store that has them all.
+  const src = fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'store.mjs'), 'utf8');
+  assert.match(src, /for \(const date of nRaw === backfill\.length \? todo : \[\]\)/);
+  assert.match(src, /site\.setBinning\(site\.BINS_DEFAULT, 0\);\s*try \{ return Float32Array\.from\(site\.aggregate\(all, binWidth\), \(b\) => b\.invested\); \}\s*finally \{ site\.setBinning\(site\.BINS_DEFAULT, site\.KERNEL_DEFAULT\); \}/);
+  const render = fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'render.mjs'), 'utf8');
+  assert.match(render, /if \(LOOK\.source === "raw"\) for \(let i = S; i < meta\.days\.length; i\+\+\) if \(!store\.raw\(i\)\) throw new Error/);
+});
+
+test('the unsmoothed bars are what the site draws in RAW: the day\'s aggregate at no smoothing, on the same axis', () => {
+  const { loadSite } = require('../tools/build-scales.cjs');
+  const site = loadSite();
+  const all = { 50000: 2, 50001: 1, 70000: 3 };
+  site.setBinning(site.BINS_DEFAULT, 0);
+  const raw = site.aggregate(all, 200).map((b) => b.invested);
+  site.setBinning(site.BINS_DEFAULT, site.KERNEL_DEFAULT);
+  assert.equal(raw.length, 626);
+  assert.deepEqual(raw.map((v, j) => [j, v]).filter(([, v]) => v > 0), [[250, 50000 * 2 + 50001], [350, 70000 * 3]], 'every coin in its own stamp\'s bar');
+});

@@ -72,13 +72,14 @@ test('the title is the chart\'s own title on the video\'s last day, naming its l
   assert.equal(videoTitle('2026-09-24'), 'Bitcoin Supply by Price When Last Moved (USD Value, AGE) as of 24 Sept 2026');
   assert.equal(videoTitle('2026-06-07', 'age'), 'Bitcoin Supply by Price When Last Moved (USD Value, AGE) as of 07 Jun 2026');
   assert.equal(videoTitle('2026-09-24', 'lthsth'), 'Bitcoin Supply by Price When Last Moved (USD Value, Under/Over 150D) as of 24 Sept 2026');
+  assert.equal(videoTitle('2026-10-01', 'raw'), 'Bitcoin Supply by Price When Last Moved (USD Value, RAW) as of 01 Oct 2026');
   const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  for (const [key, look] of [['titleUSDAge', 'age'], ['titleUSDSplit', 'lthsth']]) {
+  for (const [key, look] of [['titleUSDAge', 'age'], ['titleUSDSplit', 'lthsth'], ['titleUSDRaw', 'raw']]) {
     // The site's own chart title, with <150D/>150D written out, since YouTube takes no < or >.
     const site = new RegExp(key + ': "([^"]+)"').exec(index)[1].replace('<150D/>150D', 'Under/Over 150D');
     assert.ok(videoTitle('2026-09-24', look).startsWith(site), look + ': the video is titled with the site\'s own chart title');
   }
-  for (const look of ['age', 'lthsth']) {
+  for (const look of ['age', 'lthsth', 'raw']) {
     const m = metadata('2011-01-31', '2026-09-24', look);
     assert.ok(m.snippet.title.length <= 100);
     assert.match(m.snippet.description, /every day from 31 January 2011 to 24 September 2026\./);
@@ -92,6 +93,7 @@ test('the title is the chart\'s own title on the video\'s last day, naming its l
   assert.match(metadata('2011-01-31', '2026-09-24').snippet.description, /each bar split into 23 age bands/);
   assert.match(metadata('2011-01-31', '2026-09-24', 'lthsth').snippet.description,
     /each bar split in two at 150 days, the coins that moved within the last 150 days and the coins unmoved for 150 days or more/);
+  assert.match(metadata('2011-01-31', '2026-09-24', 'raw').snippet.description, /each bar as recorded, with no smoothing, in black on a light chart, every day from/);
   assert.throws(() => metadata('2011-01-31', '2026-09-24', 'nope'), /no look "nope"/);
 });
 

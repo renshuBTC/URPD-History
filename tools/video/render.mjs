@@ -4,7 +4,8 @@
 // there are; the chart is the site's, drawn by page.html, with its bars coloured one of the site's two ways (looks.mjs).
 //
 //   node tools/video/render.mjs STORE_DIR OUT.mp4
-//   env: LOOK (age, the default: each bar in its 23 age bands; lthsth: split at 150 days, <150D and >150D),
+//   env: LOOK (age, the default: each bar in its 23 age bands; lthsth: split at 150 days, <150D and >150D; raw: the
+//        store's unsmoothed bars, black on a light chart),
 //        FRAMES (18000), WORKERS (browser pages drawing at once: 2 with 12 GB or more, else 1), SEG (frames per segment,
 //        180: a whole number of microseconds long, so at 60 fps a multiple of 3),
 //        TEST_DATES (comma list: write a still of each of those days, drawn as recorded, as PNG next to OUT instead of a
@@ -35,16 +36,20 @@ for (const [k, v] of [["FRAMES", F], ["SEG", SEG], ["WORKERS", WORKERS]]) if (!(
 if ((SEG * 1e6) % FPS !== 0) throw new Error(`SEG=${SEG}: ${SEG} frames at ${FPS} fps is not a whole number of microseconds (use a multiple of 3)`);
 const TEST = process.env.TEST_DATES ? process.env.TEST_DATES.split(",") : null;
 const LOOK_NAME = process.env.LOOK || "age", LOOK = look(LOOK_NAME), TITLE = titleStart(LOOK_NAME);
-const NB = 626, A = 23, DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1);
+// A: the bands a day's source holds, the 23 age bands of the smoothed bars, or the one unsmoothed bar (RAW).
+const NB = 626, A = LOOK.source === "raw" ? 1 : 23, DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1);
 const dayIdx = (d) => Math.round((Date.parse(d + "T00:00:00Z") - DAY0) / DAY);
 const idxDay = (i) => new Date(DAY0 + i * DAY).toISOString().slice(0, 10);
 const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0], ["2013-11-29", "Cycle 2 Top", 1], ["2015-01-14", "Cycle 2 Bottom", 0],
   ["2017-12-17", "Cycle 3 Top", 1], ["2018-12-15", "Cycle 3 Bottom", 0], ["2021-11-10", "Cycle 4 Top", 1], ["2022-11-21", "Cycle 4 Bottom", 0], ["2025-10-06", "Cycle 5 Top", 1]];
 
 // ---- the days, their prices and their price-line windows ----------------------------------------------------
-const { meta, bars: storeBars } = readStore(STORE);
+const store = readStore(STORE), { meta } = store;
 // Days before the first with anything on the chart are left out: an empty chart with only the date moving.
-const S = firstShownIndex(meta, storeBars), bars = (i) => storeBars(i + S);
+const S = firstShownIndex(meta, store.bars);
+// RAW draws the store's unsmoothed bars, which every day in the video must have (store.mjs adds any that are missing).
+if (LOOK.source === "raw") for (let i = S; i < meta.days.length; i++) if (!store.raw(i)) throw new Error(`the store has no unsmoothed bars for ${meta.days[i][0]}: run store.mjs on it first`);
+const bars = LOOK.source === "raw" ? (i) => store.raw(i + S) : (i) => store.bars(i + S);
 const days = meta.days.slice(S).map(([date, X, spot, redPct]) => ({ date, w: X / (NB - 1), spot, redPct })), N = days.length;
 if (N < 2) throw new Error("the store needs at least two days");
 // The price line: every day's close as the store recorded it with the day's bars (store.mjs, from the closes
@@ -141,7 +146,7 @@ function spec(t, exact) {
       if (close[k] > 0 && (best < 0 || (top ? close[k] > close[best] : close[k] < close[best]))) best = k;
     if (best >= 0) lm.push({ d: idxDay(best), p: close[best], l, top: !!top });
   }
-  return { date: g.date, tx: g.tx, nb: NB, w, title: TITLE, labels: LOOK.labels, colors: LOOK.colors, legendSize: LOOK.legendSize,
+  return { date: g.date, tx: g.tx, nb: NB, w, title: TITLE, labels: LOOK.labels, colors: LOOK.colors, legendSize: LOOK.legendSize, theme: LOOK.theme || "dark",
     cum, xt: { v: xv, t: xt }, ymax, yt, ytt, spot, redPct, pd, pp,
     win: [isoAt(wl), isoAt(wr)], cStr, rStr, pr: M[t] > 0 ? [0, M[t]] : null, lm, drop: DROP ? DROP[t] : 0 };
 }
@@ -155,7 +160,7 @@ function spec(t, exact) {
 let DROP = null, dropping = null;
 async function boxDrops(page) {
   const facts = Array.from({ length: F }, (_, t) => { const g = frameFacts(t);
-    return { spot: g.spot, redPct: g.redPct, nb: NB, w: g.w, win: [isoAt(g.wl), isoAt(g.wr)], tx: g.tx, date: g.date, pr: M[t] > 0 ? [0, M[t]] : null }; });
+    return { spot: g.spot, redPct: g.redPct, nb: NB, w: g.w, win: [isoAt(g.wl), isoAt(g.wr)], tx: g.tx, date: g.date, pr: M[t] > 0 ? [0, M[t]] : null, theme: LOOK.theme || "dark" }; });
   const need = await page.evaluate((fr) => window.boxNeeds(fr), facts);
   const HOLD = 60, EASE = 10, held = new Float64Array(F), drop = new Float64Array(F);
   for (let t = 0; t < F; t++) if (need[t] > 0) for (let s = Math.max(0, t - HOLD); s <= Math.min(F - 1, t + HOLD); s++) if (need[t] > held[s]) held[s] = need[t];
