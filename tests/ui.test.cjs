@@ -186,7 +186,7 @@ test('Smoothing and Y-max are framed like the cycle list: label, white value, un
     assert.doesNotMatch(m[0], /style=/, 'no inline styles');
   }
   const frame = decls('#controls .field');
-  for (const want of [/border:\s*1px solid #595959/, /background:\s*#000/, /height:\s*24px/, /border-radius:\s*0/]) assert.match(frame, want);
+  for (const want of [/border:\s*1px solid #595959/, /background:\s*#1a1a1a/, /height:\s*24px/, /border-radius:\s*0/]) assert.match(frame, want);
   assert.match(decls('#controls .field:focus-within'), /border-color:\s*#fff;\s*box-shadow:\s*inset 0 0 0 1px #fff/);
   assert.match(decls('#controls .field .field-label'), /text-transform:\s*uppercase/);
   assert.match(decls('#controls .field input'), /color:\s*#fff/);

@@ -104,11 +104,12 @@ test('every text has all three languages', () => {
 
 test('there is no download button, and the bar is drawn like the favicon: black and white, square, the chosen option inverted', () => {
   assert.doesNotMatch(html, /id="videoBtn"|#videoBtn/, 'no video download (security.test.cjs checks every link)');
-  assert.match(decls('#controls'), /background:\s*#000;/);
-  // Every button and link: black, a 1px outline of white at 35% (#595959 on black), solid white under the mouse,
+  // The bar is the greyish black it always had (#1a1a1a), drawn in black and white on it.
+  assert.match(decls('#controls'), /background:\s*#1a1a1a;/);
+  // Every button and link: the bar's grey, a 1px outline of white at 35% (#595959), solid white under the mouse,
   // square corners; the chosen option is a white block with black text.
   for (const sel of ['#controls button', '#controls #githubLink', '#controls #ytBtn']) {
-    assert.match(decls(sel), /background:\s*#000;\s*color:\s*#fff;\s*border:\s*1px solid #595959;\s*border-radius:\s*0;/, sel);
+    assert.match(decls(sel), /background:\s*#1a1a1a;\s*color:\s*#fff;\s*border:\s*1px solid #595959;\s*border-radius:\s*0;/, sel);
   }
   for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls #ytBtn:hover', '#explainBtn:hover', '#langBtn:hover']) {
     assert.match(decls(sel), /border-color:\s*#fff/, sel);
@@ -117,12 +118,12 @@ test('there is no download button, and the bar is drawn like the favicon: black 
   assert.match(decls('#intervalBar .iv.active'), /background:\s*#fff;\s*color:\s*#000/);
   // The step bar and the cycle list are framed the same way; the list's frame doubles while it has focus.
   assert.match(decls('#intervalBar'), /border:\s*1px solid #595959;\s*border-radius:\s*0/);
-  assert.match(decls('#landmarks'), /background:\s*#000;.*border:\s*1px solid #595959;.*border-radius:\s*0/);
+  assert.match(decls('#landmarks'), /background:\s*#1a1a1a;.*border:\s*1px solid #595959;.*border-radius:\s*0/);
   assert.match(decls('#landmarks:hover'), /border-color:\s*#fff/);
   assert.match(decls('#landmarks:focus'), /border-color:\s*#fff;\s*box-shadow:\s*inset 0 0 0 1px #fff/);
-  // Nothing in the bar is orange, grey-filled or rounded any more.
+  // Nothing in the bar is orange, lighter grey or rounded any more.
   const bar = rules.filter(r => r.sels.some(x => /^(#controls|#intervalBar|#landmarks|#dateDisplay|#ytBtn|#githubLink|#explainBtn|#langBtn|\.ctrl-sep|\.mode-toggle)/.test(x)));
-  for (const r of bar) assert.doesNotMatch(r.body, /#ff8c00|#ffaa33|#3a3a3a|#252525|#1e1e1e|#1a1a1a|#d4d4d4|#555\b|#888|border-radius:\s*[1-9]/, r.sels.join(','));
+  for (const r of bar) assert.doesNotMatch(r.body, /#ff8c00|#ffaa33|#3a3a3a|#252525|#1e1e1e|#d4d4d4|#555\b|#888|border-radius:\s*[1-9]/, r.sels.join(','));
   // The favicon stays the tab's icon only: no mark in the bar, which starts with the step sizes.
   assert.match(html, /<div id="controls">\s*<div id="intervalBar">/);
   assert.doesNotMatch(html, /brandMark/);
