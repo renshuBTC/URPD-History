@@ -37,7 +37,7 @@ Toolbar, left to right:
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
 - **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
-- **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 625 bars, and its title gives the width of one in dollars
+- **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 625 bars
 - **FULL HISTORY IN 5 MIN** for the latest full-history video on YouTube (the channel until there is one others can watch), **HOW TO READ** for the explainer and **GITHUB** for the source
 - the language toggle, on its own at the right-hand end
 
