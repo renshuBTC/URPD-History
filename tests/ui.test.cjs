@@ -90,22 +90,31 @@ test('a start-up that could not reach the API says so in whatever language the p
   assert.equal(element('status').style.display, 'block', 'still up: nothing can draw without dates');
 });
 
-test('the toolbar wraps instead of scrolling; YouTube, How to read and GitHub follow the settings in words, and the language button keeps to the right on its own', () => {
+test('the toolbar wraps instead of scrolling; the two videos, How to read and GitHub follow the settings in words, and the language button keeps to the right on its own', () => {
   assert.match(decls('#controls'), /flex-wrap:\s*wrap/);
   assert.match(decls('#toolbarEnd'), /margin-left:\s*auto/);
   assert.doesNotMatch(decls('#githubLink'), /margin-left/);
   const end = html.slice(html.indexOf('<div id="toolbarEnd">'), html.indexOf('<div id="status"'));
   assert.deepEqual([...end.matchAll(/\sid="(\w+)"/g)].map(m => m[1]), ['toolbarEnd', 'langBtn'], 'only the language at the right-hand end');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'explainWrap', 'githubLink']);
-  // Each shows its icon and a word, at the weight of the other buttons (the ? used to be bold on its own).
-  assert.match(bar, /id="ytBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytLabel" class="btn-word">Full history in 5 min<\/span>/, 'the video button says what it gives you');
+  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytSplitBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'ytSplitBtn', 'explainWrap', 'githubLink']);
+  // Each shows its icon and words, at the weight of the other buttons (the ? used to be bold on its own).
+  assert.match(bar, /id="ytBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytLabel" class="yt-word">Full history in 5 min<\/span><span id="ytTag" class="yt-tag">AGE<\/span>/, 'the video buttons say what they give you');
+  assert.match(bar, /id="ytSplitBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytSplitLabel" class="yt-word">Full history in 5 min<\/span><span id="ytSplitTag" class="yt-tag">LTH\/STH<\/span>/);
   assert.match(bar, /id="githubLink"[^>]*>\s*<svg[\s\S]*?<\/svg><span class="btn-word">GitHub<\/span>/);
   assert.match(bar, /<button id="explainBtn"[^>]*><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><span id="explainLabel" class="btn-word">How to read<\/span><\/button>/);
-  // Where the words would wrap the bar they give way to the icons: measured against the step bar at the start.
+  // Where the words would wrap the bar they give way, measured against the step bar at the start: How to read's and
+  // GitHub's first, then the video buttons' FULL HISTORY IN 5 MIN, which keep AGE and LTH/STH to tell them apart.
+  // Transitions would be measured half-way, so the buttons animate their colours only.
+  for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
   assert.match(decls('#controls.compact .btn-word'), /display:\s*none/);
-  assert.match(html, /function fitToolbarWords\(\) \{[\s\S]*?bar\.classList\.remove\("compact"\);\s*if \(end\.getBoundingClientRect\(\)\.top - first\.getBoundingClientRect\(\)\.top > 4\) bar\.classList\.add\("compact"\);/);
-  for (const sel of ['#explainBtn', '#ytBtn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
+  assert.match(decls('#controls.compact-more .yt-word'), /display:\s*none/);
+  assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag/.test(x))), 'AGE and LTH/STH never go');
+  // Before any words go, the spacing tightens.
+  assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
+  assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);
+  assert.match(html, /var TOOLBAR_FITS = \["dense", "compact", "compact-more"\];\s*function fitToolbarWords\(\) \{[\s\S]*?var wraps = function\(\) \{ return end\.getBoundingClientRect\(\)\.top - first\.getBoundingClientRect\(\)\.top > 4; \};\s*TOOLBAR_FITS\.forEach\(function\(c\) \{ bar\.classList\.remove\(c\); \}\);\s*for \(var i = 0; i < TOOLBAR_FITS\.length && wraps\(\); i\+\+\) bar\.classList\.add\(TOOLBAR_FITS\[i\]\);/);
+  for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
   const { c, element } = app();
   for (const [lang, word] of [['zh', '如何看懂'], ['ja', '読み方'], ['en', 'How to read']]) {
     c.lang = lang; c.applyLang();
@@ -167,7 +176,7 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
     assert.ok(textPx(title, size) <= 600, `${lang}: the title fits over the plot at ${size} px`);
     const credit = L.annotations.find(a => /Bitview/.test(a.text));
     for (const line of credit.text.split('<br>')) assert.ok(textPx(line.replace(/<[^>]*>/g, ''), credit.font.size) * 1.07 <= 620, `${lang}: ${line}`);
-    if (lang === 'en') { assert.equal(size, 13); assert.equal(credit.text.split('<br>').length, 2); assert.equal(L.margin.b, 78); assert.equal(credit.align, 'left'); }
+    if (lang === 'en') { assert.equal(size, 12); assert.equal(credit.text.split('<br>').length, 2); assert.equal(L.margin.b, 78); assert.equal(credit.align, 'left'); }
   }
   const wide = await drawAt(1040);
   assert.ok(wide.xaxis.ticktext.every(s => s !== ''), 'a plot with room keeps all twenty-one labels');
