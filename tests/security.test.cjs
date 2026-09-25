@@ -170,5 +170,19 @@ test('the privacy page runs nothing and loads nothing from elsewhere, and the ex
   assert.match(page, /Bitcoin Supply Chart uploader/, 'it names the app that posts to YouTube');
   assert.match(page, /https:\/\/www\.youtube\.com\/t\/terms/);
   assert.match(page, /https:\/\/policies\.google\.com\/privacy/);
-  assert.match(html, /<p id="explainFoot"><a id="privacyLink" href="privacy.html">Privacy<\/a><\/p>/);
+  assert.match(page, /This site uses the YouTube API Services\./);
+  assert.match(page, /https:\/\/security\.google\.com\/settings\/security\/permissions/, 'how the permission is withdrawn');
+  assert.match(page, /<a href="terms\.html">Terms<\/a>/);
+  assert.match(html, /<p id="explainFoot"><a id="privacyLink" href="privacy.html">Privacy<\/a> · <a id="termsLink" href="terms.html">Terms<\/a><\/p>/);
+});
+
+test('the terms page runs nothing either, and binds the video to YouTube\'s terms', () => {
+  const page = fs.readFileSync(path.join(ROOT, 'terms.html'), 'utf8');
+  assert.match(page, /<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">/);
+  assert.doesNotMatch(page, /<script|\son[a-z]+=|javascript:/i, 'no script of any kind');
+  assert.doesNotMatch(page, /<(iframe|object|embed|form|img)\b/i);
+  assert.match(page, /agree\s+to be bound by the <a href="https:\/\/www\.youtube\.com\/t\/terms">YouTube Terms of Service<\/a>/);
+  assert.match(page, /https:\/\/policies\.google\.com\/privacy/);
+  assert.match(page, /not financial, investment,\s+tax or legal advice/);
+  assert.match(page, /<a href="privacy\.html">Privacy<\/a>/);
 });
