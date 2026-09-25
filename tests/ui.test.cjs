@@ -99,7 +99,8 @@ test('the toolbar wraps instead of scrolling; YouTube, How to read and GitHub fo
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
   assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'explainWrap', 'githubLink']);
   // Each shows its icon and a word, at the weight of the other buttons (the ? used to be bold on its own).
-  for (const [id, word] of [['ytBtn', 'YouTube'], ['githubLink', 'GitHub']]) assert.match(bar, new RegExp(`id="${id}"[^>]*>\\s*<svg[\\s\\S]*?</svg><span class="btn-word">${word}</span>`), id);
+  assert.match(bar, /id="ytBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytLabel" class="btn-word">Full history in 5 min<\/span>/, 'the video button says what it gives you');
+  assert.match(bar, /id="githubLink"[^>]*>\s*<svg[\s\S]*?<\/svg><span class="btn-word">GitHub<\/span>/);
   assert.match(bar, /<button id="explainBtn"[^>]*><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><span id="explainLabel" class="btn-word">How to read<\/span><\/button>/);
   // Where the words would wrap the bar they give way to the icons: measured against the step bar at the start.
   assert.match(decls('#controls.compact .btn-word'), /display:\s*none/);
