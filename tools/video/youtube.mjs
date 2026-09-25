@@ -1,10 +1,10 @@
 // Posts one of the week's two videos to the channel on YouTube: the bars coloured by age band (AGE), or split at 150
-// days (<150D/>150D; looks.mjs). The Weekly videos workflow's youtube job runs it for each once they are
-// published on GitHub. It speaks the YouTube Data API's resumable upload itself
+// days (<150D/>150D; looks.mjs). The Weekly videos workflow's two youtube jobs run it, one for each video, once they
+// are published on GitHub. It speaks the YouTube Data API's resumable upload itself
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
 // so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
 //
-// The video goes up unlisted: anyone with the link can watch it (the site's YouTube button), but it is shown neither
+// The video goes up unlisted: anyone with the link can watch it (the site's video buttons), but it is shown neither
 // on the channel nor in search. Its title is the chart's own title for its last day, which names its look (YouTube
 // refuses < and >, so <150D/>150D is written Under/Over 150D there). Until the Google Cloud project
 // behind the credentials passes YouTube's API audit, YouTube records every upload as private instead, whatever is
@@ -190,6 +190,10 @@ export async function post({ file, start, end, name = "age", credentials, endpoi
   return { id, privacy: PRIVACY.has(privacy) ? privacy : "unknown" };
 }
 
+// What the workflow reads, appending this program's output to $GITHUB_OUTPUT: the video's id and its privacy, one to a
+// line (the record job names the video for the site only if its privacy lets others watch it).
+export const githubOutput = ({ id, privacy }) => `id=${id}\nprivacy=${privacy}\n`;
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])) {
   const [file, start, end, name = "age"] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
   const check = file === "--check";
@@ -208,5 +212,5 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(proces
   }
   const { id, privacy } = await post({ file, start, end, name, credentials });
   console.error(`Posted ${look(name).tag}: https://www.youtube.com/watch?v=${id} (${privacy})`);
-  process.stdout.write(`id=${id}\nprivacy=${privacy}\n`);
+  process.stdout.write(githubOutput({ id, privacy }));
 }

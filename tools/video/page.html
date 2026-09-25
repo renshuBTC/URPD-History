@@ -11,9 +11,10 @@
 <script>
 // The site's chart (index.html drawChart, USD view) for one frame of the video. Axes, labels, landmarks, colours and
 // the title follow the site and come from render.mjs, with the bars coloured by age band (AGE) or split at 150 days
-// (<150D/>150D): looks.mjs. Text Plotly draws is escaped: it reads "<150D/>" as markup. The one deliberate difference: each layer (an age band, or a holder group)
-// is one filled outline of all 626 bars, painted back to front, instead of up to 14,000 separate rectangles (the same
-// picture, much faster), with the bar edges on whole device pixels.
+// (<150D/>150D): looks.mjs. Text for Plotly is escaped (esc), since Plotly reads <...> as markup. The one deliberate
+// difference: each layer (an age band, or one side of 150 days) is one filled outline of all 626 bars, painted back to
+// front, instead of up to 14,000 separate rectangles (the same picture, much faster), with the bar edges on whole
+// device pixels.
 var FONT = "'Source Code Pro', Consolas, monospace";
 var GRID_COLOR = "#272727", WATERMARK_COLOR = "#1a1a1a";   // the site's (index.html, "Grid and watermark")
 var PROFIT = "#00e676", LOSS = "#ff1744", PRICE_LINE = "#ffffff";
@@ -33,7 +34,32 @@ function compactNumber(v) {
 }
 function yLabel(v) { return v === 0 ? "$0" : "$" + compactNumber(v); }
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-// the width of one bar in dollars, as the site writes it in its price axis title
+// The price box and the day's dot for a frame: the box's text and where it sits, beside the dashed line (on its left
+// where it would run past the plot's right edge), and the dot on the price line; plot fractions across, pixels down
+// from the plot's top. drawFrame draws them, and boxNeeds tells render.mjs where the dot runs under the box.
+var DOT_R = 9;
+function priceBox(sp) {
+  if (!(sp.spot > 0)) return null;
+  var xSpan = sp.nb * sp.w, loss = sp.redPct, profit = loss === null ? null : 100 - loss;
+  var txt = "Price: $" + sp.spot.toLocaleString("en-US", { maximumFractionDigits: sp.spot < 10 ? 2 : 0 }) +
+    "<br><span style='color:" + PROFIT + "'>USD Value Last Moved In Profit: " + (profit === null ? "N/A" : profit.toFixed(1) + "%") + "</span>" +
+    "<br><span style='color:" + LOSS + "'>USD Value Last Moved In Loss: " + (loss === null ? "N/A" : loss.toFixed(1) + "%") + "</span>";
+  var chars = txt.split("<br>").reduce(function(m, s) { return Math.max(m, s.replace(/<[^>]+>/g, "").length); }, 0);
+  var boxF = (chars * 7.9 + 24) / PLOT_W, flip = sp.spot / xSpan + boxF > 0.99, boxAt = sp.spot / xSpan + (flip ? -6 : 6) / PLOT_W;
+  var wl = Date.parse(sp.win[0].replace(" ", "T") + "Z"), wr = Date.parse(sp.win[1].replace(" ", "T") + "Z"), top3 = sp.pr ? sp.pr[1] : 0;
+  var plotH = 1080 - (TOP_MARGIN === null ? 68 : TOP_MARGIN) - 44;
+  var dot = top3 > 0 ? { f: (Date.parse((sp.tx || sp.date).replace(" ", "T") + (sp.tx ? "Z" : "T00:00:00Z")) - wl) / (wr - wl), y: (1 - sp.spot / top3) * plotH } : null;
+  return { txt: txt, flip: flip, box: { x0: flip ? boxAt - boxF : boxAt, x1: flip ? boxAt : boxAt + boxF, y0: 0, h: txt.split("<br>").length * 17 + 12 }, dot: dot };
+}
+function dotUnderBox(pb) {
+  var b = pb.box, d = pb.dot;
+  return !!d && d.f + DOT_R / PLOT_W > b.x0 && d.f - DOT_R / PLOT_W < b.x1 && d.y - DOT_R < b.y0 + b.h && d.y + DOT_R > b.y0;
+}
+// For each frame (only its figures: spot, redPct, nb, w, win, tx or date, pr), how far down the price box must go for
+// the dot to be clear of it, just below the dot as on the site; 0 where the dot is clear. render.mjs eases these.
+window.boxNeeds = function(frames) {
+  return frames.map(function(sp) { var pb = priceBox(sp); return pb && dotUnderBox(pb) ? Math.ceil(pb.dot.y + DOT_R + 4) : 0; });
+};
 window.drawFrame = function(sp) {
   var n = sp.nb, w = sp.w, xSpan = n * w, A = sp.labels.length;
   var traces = [];
@@ -58,23 +84,15 @@ window.drawFrame = function(sp) {
   ];
   ann.push({ xref: "paper", yref: "paper", x: 0, y: 0.5, xanchor: "center", yanchor: "middle", xshift: -(ML - 16), textangle: -90, showarrow: false,
     text: "Value When Last Moved [USD]", font: { family: FONT, size: 13, color: "#ffffff" } });
-  // a bar taller than the axis (a one-day spike the axis deliberately does not rescale for) is marked, not hidden
-  (sp.clip || []).forEach(function(c, k) {
-    ann.push({ x: c.x, y: 1, xref: "x", yref: "paper", yanchor: "top", yshift: -1, showarrow: false, text: "\u25b2",
-      font: { family: FONT, size: 12, color: "#ffffff" } });
-  });
-  var spotBox = null;
-  if (sp.spot && sp.spot > 0) {
+  // The price box, beside the dashed line at the day's price. Near a high the day's dot runs under it (the box is drawn
+  // over the dot); the site then moves the box down to just below the dot, and here render.mjs does the same, eased
+  // over a few frames and held through short gaps (sp.drop), so the box slides rather than jumps at 60 fps.
+  var pb = priceBox(sp), dot = pb && pb.dot, spotBox = null;
+  if (pb) {
     shapes.push({ type: "line", x0: sp.spot, x1: sp.spot, y0: 0, y1: 1, xref: "x", yref: "paper", line: { color: "#ffffff", width: 1, dash: "dash" }, layer: "above" });
-    var loss = sp.redPct, profit = loss === null ? null : 100 - loss;
-    var txt = "Price: $" + sp.spot.toLocaleString("en-US", { maximumFractionDigits: sp.spot < 10 ? 2 : 0 }) +
-      "<br><span style='color:" + PROFIT + "'>USD Value Last Moved In Profit: " + (profit === null ? "N/A" : profit.toFixed(1) + "%") + "</span>" +
-      "<br><span style='color:" + LOSS + "'>USD Value Last Moved In Loss: " + (loss === null ? "N/A" : loss.toFixed(1) + "%") + "</span>";
-    var chars = txt.split("<br>").reduce(function(m, s) { return Math.max(m, s.replace(/<[^>]+>/g, "").length); }, 0);
-    var flip = sp.spot / xSpan + (chars * 7.9 + 24) / PLOT_W > 0.99;
-    var boxF = (chars * 7.9 + 24) / PLOT_W, boxAt = sp.spot / xSpan + (flip ? -6 : 6) / PLOT_W;
-    spotBox = { x0: flip ? boxAt - boxF : boxAt, x1: flip ? boxAt : boxAt + boxF, h: txt.split("<br>").length * 17 + 12 };
-    ann.push({ x: sp.spot, y: 1, xref: "x", yref: "paper", text: txt, showarrow: false, xanchor: flip ? "right" : "left", xshift: flip ? -6 : 6, yanchor: "top", align: "left",
+    var drop = sp.drop > 0 ? sp.drop : 0;
+    spotBox = { x0: pb.box.x0, x1: pb.box.x1, y0: drop, h: pb.box.h };
+    ann.push({ x: sp.spot, y: 1, xref: "x", yref: "paper", text: pb.txt, showarrow: false, xanchor: pb.flip ? "right" : "left", xshift: pb.flip ? -6 : 6, yshift: -drop, yanchor: "top", align: "left",
       font: { color: "#ffffff", size: 13, family: FONT }, bgcolor: "rgba(0,0,0,0.92)", bordercolor: "rgba(255,255,255,0.45)", borderwidth: 1, borderpad: 5 });
   }
   var layout = {
@@ -92,18 +110,17 @@ window.drawFrame = function(sp) {
   traces.push({ x: sp.pd, y: sp.pp, type: "scatter", mode: "lines", xaxis: "x2", yaxis: "y3", line: { color: "rgba(10,10,10,0.8)", width: 4 }, showlegend: false, hoverinfo: "skip" });
   traces.push({ x: sp.pd, y: sp.pp, type: "scatter", mode: "lines", xaxis: "x2", yaxis: "y3", line: { color: PRICE_LINE, width: 1.5 }, name: "BTC/USD", showlegend: true, hoverinfo: "skip" });
   if (sp.spot && sp.spot > 0) traces.push({ x: [sp.tx || sp.date], y: [sp.spot], type: "scatter", mode: "markers", xaxis: "x2", yaxis: "y3", marker: { color: "#ff8c00", size: 9, line: { color: "rgba(255,140,0,0.7)", width: 1.5 } }, showlegend: false, hoverinfo: "skip" });
-  // Landmarks exactly as on the site: each marker on the line's own highest (lowest) close within a week of its
-  // date (found in render.mjs), each label inside the plot on a dark backing, beside a top and under a bottom,
-  // taking the other side, or dropping below, whenever the price box or the day's dot is in the way.
+  // Landmarks as on the site: each marker on the line's own highest (lowest) close within a week of its date (found in
+  // render.mjs), each label inside the plot on a dark backing, beside a top and under a bottom, taking the other side,
+  // or dropping below, whenever the price box or the day's dot is in the way.
   var lms = sp.lm || [];
   if (lms.length) {
     traces.push({ x: lms.map(function(l) { return l.d; }), y: lms.map(function(l) { return l.p; }), type: "scatter", mode: "markers", xaxis: "x2", yaxis: "y3",
       marker: { color: PRICE_LINE, size: 10, symbol: lms.map(function(l) { return l.top ? "triangle-down" : "triangle-up"; }), line: { color: PRICE_LINE, width: 1 } }, cliponaxis: false, showlegend: false, hoverinfo: "skip" });
     var wl = Date.parse(sp.win[0].replace(" ", "T") + "Z"), wr = Date.parse(sp.win[1].replace(" ", "T") + "Z"), top3 = sp.pr ? sp.pr[1] : 0;
     var plotH = 1080 - (TOP_MARGIN === null ? 68 : TOP_MARGIN) - 44, blocks = [];
-    if (spotBox) blocks.push({ x0: spotBox.x0, x1: spotBox.x1, y0: 0, y1: spotBox.h });
-    if (sp.spot > 0 && top3 > 0) { var dF = (Date.parse((sp.tx || sp.date).replace(" ", "T") + (sp.tx ? "Z" : "T00:00:00Z")) - wl) / (wr - wl), dY = (1 - sp.spot / top3) * plotH;
-      blocks.push({ x0: dF - 8 / PLOT_W, x1: dF + 8 / PLOT_W, y0: dY - 8, y1: dY + 8 }); }
+    if (spotBox) blocks.push({ x0: spotBox.x0, x1: spotBox.x1, y0: spotBox.y0, y1: spotBox.y0 + spotBox.h });
+    if (dot) blocks.push({ x0: dot.f - 8 / PLOT_W, x1: dot.f + 8 / PLOT_W, y0: dot.y - 8, y1: dot.y + 8 });
     lms.forEach(function(l) {
       var f = (Date.parse(l.d + "T00:00:00Z") - wl) / (wr - wl), wF = (l.l.length * 6.6 + 8) / PLOT_W, gF = 8 / PLOT_W;
       var yPx = top3 > 0 ? (1 - l.p / top3) * plotH : 0, yTop = l.top ? yPx : yPx + 8;
@@ -113,7 +130,9 @@ window.drawFrame = function(sp) {
       var order = l.top ? (f < 0.2 ? ["left", "right"] : ["right", "left"]) : ["center", "left", "right"];
       var fits = order.filter(inside); if (!fits.length) fits = [order[0]];
       var free = fits.filter(function(a) { return !blockedBy(a, yTop).length; }), side = free.length ? free[0] : fits[0], y = yTop;
-      if (!free.length) blockedBy(side, yTop).forEach(function(b) { y = Math.max(y, b.y1 + 4); });
+      // Below whatever is in the way, and again below anything that move ran into (up to ten times, as on the site),
+      // so a label that drops clear of the box does not land on the dot.
+      if (!free.length) for (var hit, guard = 0; (hit = blockedBy(side, y)).length && guard < 10; guard++) hit.forEach(function(b) { y = Math.max(y, b.y1 + 4); });
       ann.unshift({ x: l.d, y: l.p, xref: "x2", yref: "y3", text: l.l, showarrow: false, xanchor: side, yanchor: "top",
         xshift: side === "left" ? 8 : side === "right" ? -8 : 0, yshift: -(y - yPx), font: { color: PRICE_LINE, size: 11, family: FONT }, bgcolor: "rgba(10,10,10,0.75)", borderpad: 2 });
     });

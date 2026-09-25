@@ -5,7 +5,8 @@
 #
 #   bash tools/video/check-video.sh FILE [--decode]     (needs ffprobe and jq; env FRAMES, default 18000)
 set -euo pipefail
-f=$1; frames=${FRAMES:-18000}
+f=$1; frames=${FRAMES:-18000}; err=""
+trap 'rm -f "$err"' EXIT   # the decode's error log, also when it fails
 fail() { echo "check-video: $f: $*" >&2; exit 1; }
 [ -f "$f" ] || fail "no such file"
 case "$f" in *.mp4) ;; *) fail "not named .mp4" ;; esac
@@ -25,6 +26,5 @@ if [ "${2:-}" = --decode ]; then
   n=$(ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 "$f" 2> "$err") || fail "cannot be decoded: $(head -c 300 "$err")"
   [ ! -s "$err" ] || fail "decoding reported: $(head -c 300 "$err")"
   [ "$(tr -d '[:space:]' <<< "$n")" = "$frames" ] || fail "decoded $n frames, not $frames"
-  rm -f "$err"
 fi
 echo "check-video: $(basename "$f") is a $frames-frame 3840x2160 60 fps H.264 video, $size bytes$([ "${2:-}" = --decode ] && echo ', every frame decoded')"
