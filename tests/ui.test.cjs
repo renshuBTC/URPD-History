@@ -88,6 +88,37 @@ test('a start-up that could not reach the API says so in whatever language the p
   c.lang = 'ja'; c.applyLang();
   assert.equal(element('status').textContent, c.T.ja.errBRK);
   assert.equal(element('status').style.display, 'block', 'still up: nothing can draw without dates');
+  // The date box, which says why as well, follows too (it kept the English words).
+  assert.equal(element('dateDisplay').textContent, c.T.ja.errPrefix + 'Failed to fetch');
+});
+
+test('while the dates load, the date box says so in the language chosen meanwhile', async () => {
+  const { c, element } = app();
+  const dates = deferred();
+  c.fetchJSON = url => (url.endsWith('/all/dates') ? dates.promise : Promise.resolve(null));
+  const ready = c.init(); await flush();
+  assert.equal(element('dateDisplay').textContent, c.T.en.loadingDates);
+  c.lang = 'zh'; c.applyLang();
+  assert.equal(element('dateDisplay').textContent, c.T.zh.loadingDates);
+  dates.reject(new TypeError('Failed to fetch')); await ready;
+  assert.equal(element('dateDisplay').textContent, c.T.zh.errPrefix + 'Failed to fetch');
+});
+
+test('an open How to read panel follows the toolbar when it re-fits, under the bar and its button as they are now', () => {
+  const { c, element } = app();
+  const panel = element('explainPanel'), bar = element('controls'), btn = element('explainBtn');
+  panel.style.display = 'block'; panel.offsetWidth = 300; c.innerWidth = 1600; c.innerHeight = 900;
+  bar.getBoundingClientRect = () => ({ bottom: 31 }); btn.getBoundingClientRect = () => ({ right: 1500 });
+  c.fitToolbarWords();
+  assert.deepEqual([panel.style.top, panel.style.left], ['37px', '1200px']);
+  // A re-fit that moves the bar's end and the button: the panel goes with them, not where they were.
+  bar.getBoundingClientRect = () => ({ bottom: 59 }); btn.getBoundingClientRect = () => ({ right: 1452 });
+  c.fitToolbarWords();
+  assert.deepEqual([panel.style.top, panel.style.left], ['65px', '1152px']);
+  // A closed panel is left alone.
+  panel.style.display = 'none'; bar.getBoundingClientRect = () => ({ bottom: 31 });
+  c.fitToolbarWords();
+  assert.equal(panel.style.top, '65px');
 });
 
 test('the toolbar wraps instead of scrolling; the two videos, How to read and GitHub follow the settings in words, and the language button keeps to the right on its own', () => {
@@ -157,9 +188,9 @@ test('the chart follows its own box, which the toolbar can change without the wi
 });
 
 // The chart drawn over a plot `plotW` px wide.
-async function drawAt(plotW, lang = 'en') {
+async function drawAt(plotW, lang = 'en', split = false) {
   const { c, element } = app();
-  c.lang = lang;
+  c.lang = lang; c.splitMode = split;
   const { dates, raw } = market(c), react = c.Plotly.react;
   element('chart').clientWidth = plotW + 160;
   c.Plotly.react = (id, traces, layout) => react(id, traces, layout).then(() => {
@@ -189,6 +220,17 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
   assert.equal(wide.margin.t, 13 + 26 + 29);
   const tablet = await drawAt(420);
   assert.ok(tablet.title.font.size >= 12, 'never below 12 px');
+});
+
+test('the <150D/>150D title is sized by its words as drawn, not by the escaped text Plotly is given', async () => {
+  // Measured escaped, each < and > counted as four letters and the title shrank a size or two before it had to.
+  for (const [plotW, lang, want] of [[1040, 'en', 20], [900, 'en', 17], [800, 'zh', 19], [900, 'ja', 19]]) {
+    const L = await drawAt(plotW, lang, true);
+    assert.match(L.title.text, /&lt;150D\/&gt;150D/, 'still escaped for Plotly');
+    const words = L.title.text.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    assert.equal(L.title.font.size, want, `${lang} at ${plotW} px`);
+    assert.ok(textPx(words, want) * 1.03 <= plotW - 8, `${lang}: it fits at ${want} px`);
+  }
 });
 
 test('the explainer\'s section headings are capitals, underlined, not bold', () => {
@@ -253,6 +295,16 @@ test('no bottom signal, no Bins field and no bar width: 625 bars, and the price 
     assert.equal(element('chart').layout.xaxis.title.text, want, lang);
   }
   assert.doesNotMatch(html, /per bar|perBar|每根柱 \{w\}|1 本あたり \{w\}/);
+  // What the explainer says of the bars and of the white line's window is what is drawn: 625 bars up to the axis
+  // end and one past it, so the drawn axis is 626 bars long; a year up to 90 days ahead, but at most a week past the
+  // latest day.
+  assert.ok(Math.abs(layout.xaxis.range[1] / data.binWidth - 626) < 1e-9, String(layout.xaxis.range[1] / data.binWidth));
+  assert.equal((html.match(/ΔP = price axis end \/ 626"/g) || []).length, 3, 'en, zh, ja');
+  assert.doesNotMatch(html, /625 (equal-width bars|根等宽|本の等幅)/);
+  assert.match(html, /OV_WINDOW=365\*OV_DAY, OV_FUTURE=90\*OV_DAY, OV_PAD=7\*OV_DAY/);
+  for (const words of ['from 275 days before the selected day to 90 days after it (near the latest day it ends a week past that day',
+    '之前 275 天到之后 90 天（接近最新一天时，窗口止于最新一天之后一周', '275 日前から 90 日後までの 1 年間を表します（最新日に近いときは、最新日の 1 週間後で終わり'])
+    assert.ok(html.includes(words), words);
 });
 
 test('input methods: their 。 is the decimal point, and the Enter or Escape that ends a composition is theirs', () => {

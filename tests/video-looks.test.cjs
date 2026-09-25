@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
+const { execFileSync, spawnSync } = require('node:child_process');
 const { app } = require('./helpers.cjs');
 
 const ROOT = path.join(__dirname, '..');
@@ -47,31 +47,66 @@ test('each video colours its bars exactly as the site does, and is titled as the
   assert.doesNotMatch(render, /PALETTE|#f8f919/, 'the colours come from looks.mjs');
 });
 
-test('the workflow renders and vets both videos on runners of their own, and publishes and posts them together', async () => {
+test('the workflow renders and vets both videos on runners of their own, publishes them together and posts each on its own', async () => {
   const { LOOKS } = await load();
   const env = Object.fromEntries([...workflow.matchAll(/^ {2}(VIDEO\w*): (\S+)$/gm)].map(m => [m[1], m[2]]));
-  assert.deepEqual(env, { VIDEO: 'BitcoinSupplyChart.com.mp4', VIDEO_LTHSTH: 'BitcoinSupplyChart.com-LTH-STH.mp4' });
-  const matrix = `      matrix:
+  // Each file names its look; the split is written as in its YouTube title, since a file name can hold no < or >.
+  assert.deepEqual(env, { VIDEO: 'BitcoinSupplyChart.com-AGE.mp4', VIDEO_LTHSTH: 'BitcoinSupplyChart.com-Under-Over-150D.mp4' });
+  assert.doesNotMatch(workflow, /BitcoinSupplyChart\.com\.mp4|LTH-STH/);
+  const matrix = `      fail-fast: false
+      matrix:
         include:
           - look: age
             file: ${env.VIDEO}
           - look: lthsth
             file: ${env.VIDEO_LTHSTH}
 `;
-  for (const name of ['render', 'vet']) assert.ok(job(name).includes(matrix), name + ': one leg a video, named as in env');
+  for (const name of ['render', 'vet']) assert.ok(job(name).includes(matrix), name + ': one leg a video, named as in env, one failing leg not cancelling the other');
   assert.deepEqual(Object.keys(LOOKS), ['age', 'lthsth']);
   const render = job('render');
   assert.match(render, /LOOK: \$\{\{ matrix\.look \}\}/);
   assert.match(render, /run: node tools\/video\/render\.mjs "\$RUNNER_TEMP\/store" "\$RUNNER_TEMP\/\$FILE"/);
   assert.match(render, /name: video-\$\{\{ matrix\.look \}\}/);
-  assert.match(job('vet'), /name: video-vetted-\$\{\{ matrix\.look \}\}/);
-  for (const name of ['publish', 'youtube']) assert.match(job(name), /pattern: video-vetted-\*\n\s+merge-multiple: true/, name);
-  // Each video posted with its own look; <150D/>150D also when AGE failed, and never once the run is cancelled.
-  const youtube = job('youtube');
-  assert.match(youtube, /run: node tools\/video\/youtube\.mjs "\$RUNNER_TEMP\/vetted\/\$VIDEO" "\$START" "\$END" age >> "\$GITHUB_OUTPUT"/);
-  assert.match(youtube, /if: \$\{\{ !cancelled\(\) && steps\.videos\.outcome == 'success' \}\}\n[\s\S]*?run: node tools\/video\/youtube\.mjs "\$RUNNER_TEMP\/vetted\/\$VIDEO_LTHSTH" "\$START" "\$END" lthsth >> "\$GITHUB_OUTPUT"/);
-  for (const k of ['age_id', 'age_privacy', 'lthsth_id', 'lthsth_privacy']) assert.match(youtube, new RegExp(`${k}: \\$\\{\\{ steps\\.${k.split('_')[0]}\\.outputs\\.${k.split('_')[1]} \\}\\}`), k);
-  assert.match(job('record'), /if: >-\n\s+\$\{\{ !cancelled\(\) && \(/);
+  assert.match(job('vet'), /name: video-vetted-\$\{\{ matrix\.look \}\}\n.*\n.*\n\s+retention-days: 7 /, 'kept a week, for re-runs');
+  // After vet, every artifact is taken by its exact name: a pattern also took in any artifact of the run whose name
+  // matched, and the render job (third-party code) could have made one to replace a vetted file.
+  assert.doesNotMatch(workflow, /pattern:|merge-multiple/);
+  const downloads = (block) => [...block.matchAll(/uses: actions\/download-artifact@\S+ # v[\d.]+\n(?:\s+if: .*\n)?\s+with:\n\s+name: (\S+)\n\s+path: (\S+)/g)].map(m => m[1] + ' -> ' + m[2]);
+  assert.deepEqual(downloads(job('publish')), ['video-vetted-age -> ${{', 'video-vetted-lthsth -> ${{']);
+  assert.match(job('publish'), /name: video-vetted-age\n\s+path: \$\{\{ runner\.temp \}\}\/vetted\n[\s\S]*name: video-vetted-lthsth\n\s+path: \$\{\{ runner\.temp \}\}\/vetted\n/);
+  // Each video posted from a job of its own with its own look and file, so a failed post can be run again alone.
+  for (const [look, file] of [['age', 'VIDEO'], ['lthsth', 'VIDEO_LTHSTH']]) {
+    const yt = job('youtube-' + look);
+    assert.match(yt, /needs: \[update, publish\]/);
+    assert.deepEqual(downloads(yt), [`video-vetted-${look} -> \${{`], look);
+    assert.equal((yt.match(/run: node tools\/video\/youtube\.mjs /g) || []).length, 1, look);
+    assert.ok(yt.includes(`run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$${file}" "$START" "$END" ${look} >> "$GITHUB_OUTPUT"`), look);
+    assert.match(yt, /outputs:\n\s+id: \$\{\{ steps\.post\.outputs\.id \}\}\n\s+privacy: \$\{\{ steps\.post\.outputs\.privacy \}\}\n/, look);
+    assert.match(yt, /- name: Post the \S+ video to YouTube\n\s+id: post\n\s+if: steps\.creds\.outputs\.found == 'yes'\n/, look);
+  }
+  assert.doesNotMatch(workflow, /^ {2}youtube:$/m, 'no job posts both');
+  // The record job runs once either video is viewable, also when the other's post failed, never on a cancelled run,
+  // and names each from its own job's outputs; it starts from the latest main.
+  const record = job('record');
+  assert.ok(record.includes(`    needs: [update, youtube-age, youtube-lthsth]
+    if: >-
+      \${{ !cancelled() && (
+        needs.youtube-age.outputs.privacy == 'unlisted' || needs.youtube-age.outputs.privacy == 'public' ||
+        needs.youtube-lthsth.outputs.privacy == 'unlisted' || needs.youtube-lthsth.outputs.privacy == 'public') }}
+`), 'the whole condition');
+  for (const [v, out] of [['AGE_ID', 'youtube-age.outputs.id'], ['AGE_PRIVACY', 'youtube-age.outputs.privacy'], ['LTHSTH_ID', 'youtube-lthsth.outputs.id'], ['LTHSTH_PRIVACY', 'youtube-lthsth.outputs.privacy']])
+    assert.ok(record.includes(`          ${v}: \${{ needs.${out} }}\n`), v);
+  assert.match(record, /uses: actions\/checkout@\S+ # v[\d.]+\n\s+with:\n\s+ref: main\n/);
+  // Only runs on main wait for each other; a run by hand on another branch (which does nothing) has a group of its own.
+  assert.match(workflow, /^concurrency:\n {2}group: \$\{\{ github\.ref == 'refs\/heads\/main' && 'daily-video' \|\| format\('video-\{0\}', github\.run_id\) \}\}\n {2}cancel-in-progress: false$/m);
+});
+
+test('the uploader writes exactly the two lines the youtube jobs read as their outputs', async () => {
+  const { githubOutput } = await import('../tools/video/youtube.mjs');
+  assert.equal(githubOutput({ id: 'AAAAAAAAAAA', privacy: 'unlisted' }), 'id=AAAAAAAAAAA\nprivacy=unlisted\n');
+  const src = fs.readFileSync(path.join(ROOT, 'tools', 'video', 'youtube.mjs'), 'utf8');
+  assert.match(src, /\n {2}process\.stdout\.write\(githubOutput\(\{ id, privacy \}\)\);\n\}\n$/, 'the only thing it prints to stdout, last');
+  assert.equal((src.match(/process\.stdout\.write/g) || []).length, 1);
 });
 
 // The record job's script, run as the workflow runs it (bash -e), with jq, in a copy of the repository's data folder.
@@ -104,32 +139,74 @@ test('the record step writes both videos, and keeps a video\'s last viewable upl
   assert.throws(() => record({ END: 'x', AGE_ID: 'AAAAAAAAAAA', AGE_PRIVACY: 'unlisted' }, before), 'a day that is not a date stops it');
 });
 
-// The update job's decision whether new videos are due, run as the workflow runs it (bash -e, GNU date).
-function due(env) {
-  const block = job('update'), a = block.indexOf('          # New videos once a week'), b = block.indexOf('\n          fi\n', a);
+// The publish job's release notes for videos from START to END, as it writes them (bash, sha256sum).
+function notes(START, END) {
+  const block = job('publish'), a = block.indexOf('          SHA=$(sha256sum'), b = block.indexOf('(see SECURITY.md)"\n', a);
+  assert.ok(a > 0 && b > a, 'the notes');
+  const script = block.slice(a, b + '(see SECURITY.md)"\n'.length).split('\n').map(l => l.slice(10)).join('\n') + 'printf "%s" "$NOTES"\n';
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'notes-'));
+  fs.mkdirSync(path.join(dir, 'vetted'));
+  const env = Object.fromEntries([...workflow.matchAll(/^ {2}(VIDEO\w*): (\S+)$/gm)].map(m => [m[1], m[2]]));
+  for (const f of Object.values(env)) fs.writeFileSync(path.join(dir, 'vetted', f), f);
+  return execFileSync('bash', ['-e', '-c', script], { env: { PATH: process.env.PATH, RUNNER_TEMP: dir, START, END, GITHUB_REPOSITORY: 'o/r', ...env }, encoding: 'utf8' });
+}
+// The update job's reading of the published videos' day and its decision whether new ones are due, run as the
+// workflow runs it (bash -e, GNU date), with a stand-in gh that answers from the notes given (or fails as told), a
+// sleep that does not wait, and the axis history ending on SCALES_END.
+function due({ NOTES = '', GH_ERR = '', SCALES_END = '2026-12-31', ...env }) {
+  const block = job('update'), a = block.indexOf("          # The published videos' last day"), b = block.indexOf('\n          fi\n', a);
   assert.ok(a > 0 && b > a, 'the decision block');
   const script = block.slice(a, b + '\n          fi\n'.length).split('\n').map(l => l.slice(10)).join('\n');
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'due-')), out = path.join(dir, 'out');
-  fs.writeFileSync(out, '');
-  const said = execFileSync('bash', ['-e', '-c', script], { env: { PATH: process.env.PATH, GITHUB_OUTPUT: out, GITHUB_EVENT_NAME: 'schedule', ...env }, encoding: 'utf8' });
-  return { render: fs.readFileSync(out, 'utf8').includes('render=yes'), said };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'due-')), out = path.join(dir, 'out'), bin = path.join(dir, 'bin'), calls = path.join(dir, 'calls');
+  fs.mkdirSync(bin); fs.mkdirSync(path.join(dir, 'data'));
+  fs.writeFileSync(path.join(dir, 'data', 'scales.json'), JSON.stringify({ end: SCALES_END }));
+  fs.writeFileSync(path.join(bin, 'gh'), '#!/usr/bin/env bash\necho "$*" >> "$CALLS"\n' +
+    'if [ -n "$GH_ERR" ]; then echo "gh: $GH_ERR" >&2; exit 1; fi\nprintf "%s\\n" "$NOTES"\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(bin, 'sleep'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  fs.writeFileSync(out, ''); fs.writeFileSync(calls, '');
+  const res = spawnSync('bash', ['-e', '-c', script], { cwd: dir, encoding: 'utf8',
+    env: { PATH: bin + path.delimiter + process.env.PATH, GITHUB_OUTPUT: out, GITHUB_EVENT_NAME: 'schedule', GITHUB_REPOSITORY: 'o/r', RUNNER_TEMP: dir, CALLS: calls, NOTES, GH_ERR, ...env } });
+  return { render: fs.readFileSync(out, 'utf8').includes('render=yes'), said: res.stdout + res.stderr, status: res.status,
+    calls: fs.readFileSync(calls, 'utf8').trim().split('\n').filter(Boolean) };
 }
 function haveGnuDate() { try { return execFileSync('date', ['-u', '-d', '2026-09-24 + 7 days', '+%F'], { encoding: 'utf8' }).trim() === '2026-10-01'; } catch (e) { return false; } }
 
 test('new videos are drawn once a week: seven days after the published ones, at once if there are none, and on a run started by hand', { skip: !haveGnuDate() && 'needs GNU date' }, () => {
-  assert.equal(due({ END: '2026-09-30', SHOWN: '2026-09-24' }).render, false, 'six days on');
-  assert.match(due({ END: '2026-09-30', SHOWN: '2026-09-24' }).said, /the next are drawn once the store reaches 2026-10-01/);
-  assert.equal(due({ END: '2026-10-01', SHOWN: '2026-09-24' }).render, true, 'seven days on');
-  assert.equal(due({ END: '2026-10-04', SHOWN: '2026-09-24' }).render, true, 'after missed runs');
-  assert.equal(due({ END: '2027-01-04', SHOWN: '2026-12-28' }).render, true, 'across a year');
-  assert.equal(due({ END: '2026-09-24', SHOWN: '' }).render, true, 'no videos yet');
-  assert.equal(due({ END: '2026-09-20', SHOWN: '2026-09-24' }).render, false, 'a store still catching up');
-  assert.match(due({ END: '2026-09-20', SHOWN: '2026-09-24' }).said, /behind the published videos/);
+  const shown = (day) => notes('2010-05-18', day);   // the notes the publish job wrote for videos through that day
+  assert.equal(due({ END: '2026-09-30', NOTES: shown('2026-09-24') }).render, false, 'six days on');
+  assert.match(due({ END: '2026-09-30', NOTES: shown('2026-09-24') }).said, /the next are drawn once the store reaches 2026-10-01/);
+  assert.equal(due({ END: '2026-10-01', NOTES: shown('2026-09-24') }).render, true, 'seven days on');
+  assert.equal(due({ END: '2026-10-04', NOTES: shown('2026-09-24') }).render, true, 'after missed runs');
+  assert.equal(due({ END: '2027-01-04', NOTES: shown('2026-12-28') }).render, true, 'across a year');
+  assert.equal(due({ END: '2026-09-20', NOTES: shown('2026-09-24') }).render, false, 'a store still catching up');
+  assert.match(due({ END: '2026-09-20', NOTES: shown('2026-09-24') }).said, /behind the published videos/);
   // By hand: new videos whenever the store is not behind, the same days included.
   for (const [END, want] of [['2026-09-24', true], ['2026-09-26', true], ['2026-09-20', false]]) {
-    assert.equal(due({ END, SHOWN: '2026-09-24', GITHUB_EVENT_NAME: 'workflow_dispatch' }).render, want, END);
+    assert.equal(due({ END, NOTES: shown('2026-09-24'), GITHUB_EVENT_NAME: 'workflow_dispatch' }).render, want, END);
   }
   // The schedule itself stays daily: the axis history needs every day.
   assert.match(workflow, /^name: Weekly videos$/m);
   assert.match(workflow, /- cron: "23 1 \* \* \*"\n\s+- cron: "23 5 \* \* \*"/);
+});
+
+test('the published videos\' day is the last date in the notes the publish job writes, whatever else they hold', { skip: !haveGnuDate() && 'needs GNU date' }, () => {
+  const text = notes('2010-05-18', '2026-09-24');
+  assert.match(text, /^Every day from 2010-05-18 \(the first with anything on the chart\) to 2026-09-24, /);
+  assert.match(text, /BitcoinSupplyChart\.com-AGE\.mp4 with the bars coloured by age band, and BitcoinSupplyChart\.com-Under-Over-150D\.mp4 split at 150 days/);
+  assert.match(text, /\nSHA-256 of BitcoinSupplyChart\.com-AGE\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinSupplyChart\.com-Under-Over-150D\.mp4: [0-9a-f]{64}\n/);
+  const r = due({ END: '2026-09-30', NOTES: text });
+  assert.deepEqual([r.render, r.calls], [false, ['api repos/o/r/releases/tags/video --jq .body']]);
+  assert.match(r.said, /The published videos run to 2026-09-24;/, 'the last date, not the first');
+});
+
+test('no published videos: only a 404 says so, and then the videos wait for a store with every day; any other failure stops the run', { skip: !haveGnuDate() && 'needs GNU date' }, () => {
+  const none = due({ END: '2026-09-24', GH_ERR: 'Not Found (HTTP 404)', SCALES_END: '2026-09-24' });
+  assert.deepEqual([none.status, none.render, none.calls.length], [0, true, 1], 'no release: the first videos, at once');
+  const rebuilding = due({ END: '2026-03-01', GH_ERR: 'Not Found (HTTP 404)', SCALES_END: '2026-09-24' });
+  assert.deepEqual([rebuilding.status, rebuilding.render], [0, false], 'but not from a store still being rebuilt');
+  assert.match(rebuilding.said, /No videos are published yet, and the store runs to 2026-03-01 of 2026-09-24: it catches up first\./);
+  // A server error is tried again, and in the end stops the run instead of passing for "no videos".
+  const down = due({ END: '2026-09-24', GH_ERR: 'HTTP 502', SCALES_END: '2026-09-24' });
+  assert.deepEqual([down.status, down.render, down.calls.length], [1, false, 5]);
+  assert.match(down.said, /gh: HTTP 502/);
 });

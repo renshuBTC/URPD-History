@@ -41,18 +41,18 @@ Toolbar, left to right:
 - **USD / BTC** — weight by dollar value at last move, or by coins
 - **AGE / `<150D/>150D`** — colour the bars by their 23 age bands, or in two at 150 days
 - **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
-- **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 625 bars
+- **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 626 bars
 - **FULL HISTORY IN 5 MIN (AGE)** and **FULL HISTORY IN 5 MIN (`<150D/>150D`)** for the latest full-history videos on YouTube, one for each colouring (each opens the channel until there is a video of it others can watch), **HOW TO READ** for the explainer and **GITHUB** for the source
 - the language toggle, on its own at the right-hand end
 
 The chart's camera icon saves a PNG of it; there is no video download.
 
 Where the controls do not fit the window on one line, the toolbar's spacing tightens, then HOW TO READ and GITHUB
-go down to their icons, then the video buttons to ▶ AGE and ▶ `<150D/>150D`; only below that does it wrap onto a second row.
+go down to their icons, then the video buttons to ▶ AGE and ▶ 150D; only below that does it wrap onto a second row.
 
-On a phone the toolbar is hidden to give the chart the whole screen. Drag sideways
-with one finger to move through the calendar, pinch with two to zoom the price axis,
-double-tap to undo the zoom.
+On a phone the toolbar is hidden to give the chart the whole screen. Tap the left or
+right quarter of the screen to step back or forward a day, or drag the orange dot along
+the price line; the chart itself does not pan or zoom.
 
 ## How it works
 
@@ -91,8 +91,9 @@ the whole deployment.
 ## Posting to YouTube
 
 After publishing the videos, the **Weekly videos** workflow posts both to the [renshuBTC](https://www.youtube.com/@renshuBTC)
-channel with `tools/video/youtube.mjs`, through the YouTube Data API, one after the other (the second also when the
-first fails). Each week's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
+channel with `tools/video/youtube.mjs`, through the YouTube Data API, each from a job of its own: one video's trouble
+does not hold back the other, and a failed post can be run again (**Re-run failed jobs**, within a week) without
+posting the other video twice. Each week's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
 channel nor in search), titled with the chart's own title on their last day, *Bitcoin Supply by Price When Last Moved
 (USD Value, AGE) as of 24 Sept 2026* and the same with *(USD Value, Under/Over 150D)* (YouTube takes no < or > in a
 title). Once YouTube lets others watch one, the

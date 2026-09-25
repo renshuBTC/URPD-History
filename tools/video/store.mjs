@@ -81,7 +81,7 @@ async function main() {
     else if (!opt.dir) opt.dir = argv[i];
     else throw new Error("unknown argument " + argv[i]);
   }
-  if (!opt.dir) throw new Error("usage: store.mjs DIR [--cache RAWDIR] [--until DATE]");
+  if (!opt.dir) throw new Error("usage: store.mjs DIR [--cache RAWDIR] [--until DATE] [--seconds N]");
   fs.mkdirSync(opt.dir, { recursive: true });
   const until = opt.until || new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const scales = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "scales.json"), "utf8"));
@@ -139,6 +139,7 @@ async function main() {
   for (const f of changed) process.stdout.write(f + "\n");
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// Run as a program, however it was named (Node gives this module's real path; argv[1] may be a symbolic link to it).
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch((e) => { console.error(e); process.exit(1); });
 }

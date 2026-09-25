@@ -1,8 +1,8 @@
 name: YouTube credentials check
 
 # Run by hand (Actions -> YouTube credentials check -> Run workflow) after setting or changing the three YOUTUBE_*
-# secrets: asks Google for an access token with them, as the Weekly videos workflow's youtube job does before it
-# uploads, and says whether that worked. It uploads nothing. The secrets are seen only by the one step that uses them,
+# secrets: asks Google for an access token with them, as the Weekly videos workflow's youtube jobs do before they
+# upload, and says whether that worked. It uploads nothing. The secrets are seen only by the one step that uses them,
 # which runs this repository's own code (tools/video/youtube.mjs --check) and nothing installed.
 on:
   workflow_dispatch:
