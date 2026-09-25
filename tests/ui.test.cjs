@@ -179,7 +179,9 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
   assert.ok(tablet.title.font.size >= 12, 'never below 12 px');
 });
 
-test('the explainer\'s section headings are underlined', () => {
+test('the explainer\'s section headings are capitals, underlined, not bold', () => {
+  assert.match(decls('#explainPanel h3'), /text-transform:\s*uppercase/);
+  assert.match(decls('#explainPanel h3'), /font-weight:\s*400/);
   assert.match(decls('#explainPanel h3'), /text-decoration:\s*underline/);
   assert.match(decls('#explainPanel h3'), /text-underline-offset:\s*3px/);
 });
