@@ -103,7 +103,8 @@ once:
    `https://www.googleapis.com/auth/youtube.upload` with the channel's Google account (past the *Google hasn't verified
    this app* notice: **Advanced**, then continue), then **Exchange authorization code for tokens**.
 5. In this repository's **Settings → Secrets and variables → Actions**, add `YOUTUBE_CLIENT_ID`,
-   `YOUTUBE_CLIENT_SECRET` and `YOUTUBE_REFRESH_TOKEN`.
+   `YOUTUBE_CLIENT_SECRET` and `YOUTUBE_REFRESH_TOKEN`. Then run **Actions → YouTube credentials check → Run
+   workflow**: it asks Google for an access token with them and says whether that worked, uploading nothing.
 6. Until the project passes YouTube's API compliance audit, YouTube keeps every upload **private**, whatever the
    request asks for. Ask for the audit with the
    [YouTube API Services audit form](https://support.google.com/youtube/contact/yt_api_form); once it passes, the
