@@ -1,11 +1,12 @@
-// Posts one of the day's two videos to the channel on YouTube: the bars coloured by age band (AGE), or by short- and
-// long-term holders (LTH/STH; looks.mjs). The Daily video workflow's youtube job runs it for each once they are
+// Posts one of the week's two videos to the channel on YouTube: the bars coloured by age band (AGE), or split at 150
+// days (<150D/>150D; looks.mjs). The Weekly videos workflow's youtube job runs it for each once they are
 // published on GitHub. It speaks the YouTube Data API's resumable upload itself
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
 // so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
 //
 // The video goes up unlisted: anyone with the link can watch it (the site's YouTube button), but it is shown neither
-// on the channel nor in search. Its title is the chart's own title for its last day, which names its look. Until the Google Cloud project
+// on the channel nor in search. Its title is the chart's own title for its last day, which names its look (YouTube
+// refuses < and >, so <150D/>150D is written Under/Over 150D there). Until the Google Cloud project
 // behind the credentials passes YouTube's API audit, YouTube records every upload as private instead, whatever is
 // asked for here.
 //
@@ -19,7 +20,7 @@ import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import { fileURLToPath } from "node:url";
-import { look, titleStart } from "./looks.mjs";
+import { look, youtubeTitleStart } from "./looks.mjs";
 
 export const ENDPOINTS = { token: "https://oauth2.googleapis.com/token", upload: "https://www.googleapis.com/upload/youtube/v3/videos" };
 const RETRY = new Set([500, 502, 503, 504]);   // the answers YouTube says to retry (with backoff)
@@ -27,19 +28,19 @@ const PRIVACY = new Set(["private", "unlisted", "public"]);
 
 const day = (d, opts) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
 
-// The chart's title on the video's last day, exactly as the site and the video print it ("… (USD Value, AGE) as of
-// 24 Sept 2026").
+// The chart's title on the video's last day, as the site and the video print it ("… (USD Value, AGE) as of
+// 24 Sept 2026"), with the split at 150 days written Under/Over 150D.
 export function videoTitle(end, name = "age") {
-  return titleStart(name) + day(end, { day: "2-digit", month: "short", year: "numeric" });
+  return youtubeTitleStart(name) + day(end, { day: "2-digit", month: "short", year: "numeric" });
 }
 
 // How each look splits a bar, in the description's words.
 const SPLIT = {
   age: "each bar split into 23 age bands, by how long its coins have sat unmoved",
-  lthsth: "each bar split into short-term holders (coins that moved within the last 150 days) and long-term holders " +
-    "(coins unmoved for 150 days or more)",
+  lthsth: "each bar split in two at 150 days, the coins that moved within the last 150 days and the coins unmoved for " +
+    "150 days or more",
 };
-const TAGS = { age: ["UTXO age", "coin age"], lthsth: ["long-term holders", "short-term holders", "LTH", "STH"] };
+const TAGS = { age: ["UTXO age", "coin age"], lthsth: ["UTXO age", "coin age", "150 days"] };
 
 export function videoDescription(start, end, name = "age") {
   look(name);
