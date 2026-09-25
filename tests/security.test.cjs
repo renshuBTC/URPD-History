@@ -159,7 +159,10 @@ test('the jobs that run third-party code or parse its output can read the reposi
   const publish = job(video, 'publish');
   assert.match(publish, /needs: \[update, vet\]/);
   assert.match(publish, /uses: actions\/attest@/);
-  assert.match(publish, /subject-path: \|\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO \}\}\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO_LTHSTH \}\}\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO_RAW \}\}\n/, 'all three videos attested');
+  // Every video the run drew is attested: the folder holds exactly those (the step before counts them).
+  assert.match(publish, /subject-path: \$\{\{ runner\.temp \}\}\/vetted\/\*\.mp4\n/, 'every vetted video attested');
+  assert.match(publish, /\[ "\$\(find "\$RUNNER_TEMP\/vetted" -type f \| wc -l\)" = "\$\{#FILES\[@\]\}" \]/, 'and nothing else in the folder');
+  assert.ok(publish.indexOf('Look at the files without parsing them') < publish.indexOf('actions/attest@'), 'looked at before they are attested');
   assert.ok(publish.indexOf('actions/attest@') < publish.indexOf('replace-asset.sh video'), 'attest before publishing');
   assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO" "\$RUNNER_TEMP\/vetted\/\$VIDEO_LTHSTH" "\$RUNNER_TEMP\/vetted\/\$VIDEO_RAW"/);
   // The YouTube credentials reach two steps of each youtube job (the check for them and its one post) and nothing
