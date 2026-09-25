@@ -179,17 +179,18 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
   assert.ok(tablet.title.font.size >= 12, 'never below 12 px');
 });
 
-test('Smoothing and Y-max are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
+test('Smoothing and Y-max are framed like the cycle list: label, orange value, unit; the frame doubles while editing', () => {
   for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL']]) {
     const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*><span class="field-unit">([^<]+)</span>\\s*</label>`).exec(html);
     assert.ok(m, wrap); assert.equal(m[1], unit);
     assert.doesNotMatch(m[0], /style=/, 'no inline styles');
   }
   const frame = decls('#controls .field');
-  for (const want of [/border:\s*1px solid #595959/, /background:\s*#000/, /height:\s*24px/, /border-radius:\s*0/]) assert.match(frame, want);
-  assert.match(decls('#controls .field:focus-within'), /border-color:\s*#fff;\s*box-shadow:\s*inset 0 0 0 1px #fff/);
+  for (const want of [/border:\s*1px solid #563309/, /background:\s*#000/, /height:\s*24px/, /border-radius:\s*0/]) assert.match(frame, want);
+  assert.match(decls('#controls .field:focus-within'), /border-color:\s*#f7931a;\s*box-shadow:\s*inset 0 0 0 1px #f7931a/);
   assert.match(decls('#controls .field .field-label'), /text-transform:\s*uppercase/);
-  assert.match(decls('#controls .field input'), /color:\s*#fff/);
+  assert.match(decls('#controls .field input'), /color:\s*#f7931a/);
+  assert.match(decls('#controls .field .field-label'), /color:\s*#945810/);
   assert.match(decls('#controls .field input'), /border:\s*0/);
 });
 
@@ -213,7 +214,7 @@ test('the price box says In Profit and In Loss, in every language and for both w
   assert.match(html, /Profit % = /);
 });
 
-test('no bottom signal and no Bins field: 625 bars, and the price axis title gives the width of one', async () => {
+test('no bottom signal, no Bins field and no bar width: 625 bars, and the price axis title names the axis only', async () => {
   for (const gone of ['thresholdInput', 'thresholdWrap', 'binsInput', 'binsWrap', 'binsUnit', 'Bottom signal', 'BOTTOM SIGNAL', 'GLOW_COLOR', 'bottomThreshold'])
     assert.ok(!html.includes(gone), gone);
   const { c, element } = app();
@@ -228,11 +229,12 @@ test('no bottom signal and no Bins field: 625 bars, and the price axis title giv
   const box = layout.annotations.find(a => /In Profit/.test(a.text));
   assert.equal(box.text.split('<br>').length, 3, 'price and the two shares, nothing more');
   assert.equal(box.bordercolor, 'rgba(255,255,255,0.45)');
-  assert.match(layout.xaxis.title.text, /^Price When Last Moved \[USD\] \u00b7 \$[\d,.]+ per bar$/);
-  for (const [lang, rx] of [['zh', / \u00b7 每根柱 \$[\d,.]+$/], ['ja', / \u00b7 1 本あたり \$[\d,.]+$/]]) {
+  assert.equal(layout.xaxis.title.text, 'Price When Last Moved [USD]');
+  for (const [lang, want] of [['zh', c.T.zh.priceUSD], ['ja', c.T.ja.priceUSD]]) {
     c.lang = lang; await c.renderChart(data);
-    assert.match(element('chart').layout.xaxis.title.text, rx, lang);
+    assert.equal(element('chart').layout.xaxis.title.text, want, lang);
   }
+  assert.doesNotMatch(html, /per bar|perBar|每根柱 \{w\}|1 本あたり \{w\}/);
 });
 
 test('input methods: their 。 is the decimal point, and the Enter or Escape that ends a composition is theirs', () => {
