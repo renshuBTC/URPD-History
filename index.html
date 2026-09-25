@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-Paag3DzZWBEIrjDp8Uw45Rpxd7jBBEDWGfSt51VsJbo=' 'sha256-h/NOd0RQ6vR7qorqJXBbPd1DgrHhD5D/EjSXHzGe5oQ=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-hpkfL/mlLFkNfczAtq1xbsKa7ixVBmzxj7W9rV8Qe7k=' 'sha256-h/NOd0RQ6vR7qorqJXBbPd1DgrHhD5D/EjSXHzGe5oQ=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -427,8 +427,8 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     landmarks: "CYCLE TOP/BTM",     signalLabel: "Bottom signal", signalUnit: "% of value in loss", yMaxLabel: "Y-max", yMaxUnit: "percentile", smoothLabel: "Smoothing", smoothUnit: "% of price", binsLabel: "Bins",
     bottomSignal: "BOTTOM SIGNAL \u2014 ", bottomSignalSuffix: "% of USD Value Last Moved In Loss",
-        titleUSDAge: "Bitcoin Supply Distribution (in USD Value Last Moved) as of ", titleBTCAge: "Bitcoin Supply Distribution (in BTC Supply Last Moved) as of ",
-    priceUSD: "Price [USD]", usdInvested: "USD Value of BTC Supply Last Moved", btcSupply: "BTC Supply Last Moved",
+        titleUSDAge: "Bitcoin Supply Distribution (in USD Value Last Moved) as of ", titleBTCAge: "Bitcoin Supply Distribution (in Bitcoin Supply Last Moved) as of ",
+    priceUSD: "Price [USD]", usdInvested: "Bitcoin Supply in USD Value Last Moved [USD]", btcSupply: "Bitcoin Supply Last Moved [BTC]",
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ", hoverTotalUSD: "Total USD Value Last Moved: ", hoverTotalBTC: "Total BTC Supply Last Moved: ", hoverDate: "Date: ", usdProfit: "USD Value Last Moved In Profit: ", usdLoss: "USD Value Last Moved In Loss: ", btcProfit: "BTC Supply Last Moved In Profit: ", btcLoss: "BTC Supply Last Moved In Loss: ",
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Could not reach bitview.space. Check your connection and try again.",
@@ -445,8 +445,8 @@ var T = {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     landmarks: "周期顶部/底部",     signalLabel: "\u5e95\u90e8\u4fe1\u53f7", signalUnit: "% 价值处于亏损", yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "百分位", smoothLabel: "\u5e73\u6ed1", smoothUnit: "% \u4ef7\u683c", binsLabel: "\u5206\u7bb1",
     bottomSignal: "\u5e95\u90e8\u4fe1\u53f7 \u2014 ", bottomSignalSuffix: "% 的最后移动美元价值处于亏损",
-        titleUSDAge: "比特币供应分布（以最后移动的美元价值计）截至 ", titleBTCAge: "比特币供应分布（以最后移动的 BTC 供应计）截至 ",
-    priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "最后移动的 BTC 供应的美元价值", btcSupply: "最后移动的 BTC 供应",
+        titleUSDAge: "比特币供应分布（以最后移动的美元价值计）截至 ", titleBTCAge: "比特币供应分布（以最后移动的比特币供应计）截至 ",
+    priceUSD: "\u4ef7\u683c [\u7f8e\u5143]", usdInvested: "比特币供应（以最后移动的美元价值计）[美元]", btcSupply: "最后移动的比特币供应 [BTC]",
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "\u5360\u603b\u91cf\u767e\u5206\u6bd4: ", hoverTotalUSD: "最后移动的美元总价值: ", hoverTotalBTC: "最后移动的 BTC 总供应: ", hoverDate: "日期: ", usdProfit: "最后移动的美元价值处于盈利: ", usdLoss: "最后移动的美元价值处于亏损: ", btcProfit: "最后移动的 BTC 供应处于盈利: ", btcLoss: "最后移动的 BTC 供应处于亏损: ",
     langBtn: "日本語",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "无法连接 bitview.space。请检查网络后重试。",
@@ -473,10 +473,10 @@ var T = {
     bottomSignal: "ボトムシグナル — ",
     bottomSignalSuffix: "% の最終移動 USD 評価額が含み損",
     titleUSDAge: "ビットコイン供給分布（最終移動時の USD 評価額） 基準日 ",
-    titleBTCAge: "ビットコイン供給分布（最終移動時の BTC 供給量） 基準日 ",
+    titleBTCAge: "ビットコイン供給分布（最終移動時のビットコイン供給量） 基準日 ",
     priceUSD: "価格 [USD]",
-    usdInvested: "最終移動した BTC 供給量の USD 評価額",
-    btcSupply: "最終移動した BTC 供給量",
+    usdInvested: "ビットコイン供給量（最終移動時の USD 評価額）[USD]",
+    btcSupply: "最終移動したビットコイン供給量 [BTC]",
     hoverPrice: "価格: $",
     hoverPctTotal: "全体に占める割合: ",
     hoverTotalUSD: "最終移動 USD 評価額の合計: ", hoverTotalBTC: "最終移動 BTC 供給量の合計: ", hoverDate: "日付: ",
