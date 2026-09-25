@@ -19,8 +19,9 @@ visitors a file posing as a video.
 The workflow keeps its latest renders on this repository's
 [`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video) (`BitcoinSupplyChart.com-AGE.mp4`,
 `BitcoinSupplyChart.com-Under-Over-150D.mp4` and `BitcoinSupplyChart.com-RAW.mp4`), where the next run reads which day
-they reach; nothing links to them. GitHub keeps a signed record of the run that built them (a build provenance
-attestation, logged by Sigstore). To check a copy of any of them:
+they reach; nothing links to them (a video drawn on its own by hand is posted but joins the release only with the
+next weekly run). GitHub keeps a signed record of the run that built each of them (a build provenance attestation,
+logged by Sigstore). To check a copy of any of them:
 
 - **SHA-256:** compare it with the one in the release notes: `shasum -a 256 FILE` on macOS, `sha256sum FILE` on
   Linux, `Get-FileHash FILE` in Windows PowerShell.
