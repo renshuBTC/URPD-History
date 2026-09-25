@@ -157,6 +157,34 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
   assert.doesNotMatch(video, /This Price|Supply Distribution|per bar|perBar|BOTTOM SIGNAL|GLOW|isBottom/);
 });
 
+test('Cumulative % of Total meets the price box at the dashed line: at most In Profit left of it, at least right of it', async () => {
+  const { c, element } = app();
+  // A pile of supply just above the day's price (1020), which the smoothing spreads onto both sides of the line.
+  const { dates, raws } = market(c, { cohorts: () => [{ 900: 5, 1015: 2, 1025: 50, 1100: 3 }] });
+  c.KERNEL_PCT = 0.24;
+  for (const coin of [false, true]) {
+    c.coinMode = coin;
+    const data = c.buildData(dates[2], raws[2]);
+    await c.renderChart(data);
+    const graph = element('chart'), bar = graph.data.find(t => t.type === 'bar'), spot = data.spot;
+    const profit = coin ? data.profitPctCoin : data.profitPct;
+    const box = graph.layout.annotations.find(a => /In Profit/.test(a.text)).text;
+    assert.ok(box.includes('In Profit: ' + profit.toFixed(1) + '%'), box);
+    let left = 0, right = 0;
+    bar.x.forEach((price, i) => {
+      const share = bar.customdata[i][1];
+      if (price < spot) { left++; assert.ok(share <= profit && +share.toFixed(1) <= +profit.toFixed(1), `${price}: ${share} > ${profit}`); }
+      else { right++; assert.ok(share >= profit && +share.toFixed(1) >= +profit.toFixed(1), `${price}: ${share} < ${profit}`); }
+    });
+    assert.ok(left > 0 && right > 0);
+    // The smoothed bars' own running sum, which the hover used to show, crossed the line here.
+    const vals = c.barValues(data, coin), tot = vals.reduce((a, b) => a + b, 0);
+    let run = 0;
+    const smoothed = vals.map(v => (run += v, 100 * run / tot));
+    assert.ok(bar.x.some((price, i) => price < spot && smoothed[i] > profit + 0.05), 'the case this guards against');
+  }
+});
+
 test('BTC leaves the first bar out of the axis and prints its height', async () => {
   const { c, element } = app();
   const { dates, raws } = market(c, { cohorts: () => [{ 0: 5000, 950: 20, 1000: 30 }] });
