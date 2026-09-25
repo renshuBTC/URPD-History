@@ -162,13 +162,31 @@ test('the jobs that run third-party code or parse its output can read the reposi
   assert.match(publish, /subject-path: \|\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO \}\}\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO_LTHSTH \}\}\n/, 'both videos attested');
   assert.ok(publish.indexOf('actions/attest@') < publish.indexOf('replace-asset.sh video'), 'attest before publishing');
   assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO" "\$RUNNER_TEMP\/vetted\/\$VIDEO_LTHSTH"/);
-  // The YouTube credentials reach three steps of the youtube job (the check for them and one post for each video)
-  // and nothing else in the workflow; the steps that hold them run this repository's own code.
-  assert.equal((video.match(/secrets\./g) || []).length, 9);
-  const youtube = job(video, 'youtube');
-  assert.equal((youtube.match(/secrets\.YOUTUBE_/g) || []).length, 9);
-  assert.equal((youtube.match(/run: node tools\/video\/youtube\.mjs /g) || []).length, 2);
-  assert.doesNotMatch(youtube, /npm |contents: write|GH_TOKEN/);
+  // The YouTube credentials reach two steps of each youtube job (the check for them and its one post) and nothing
+  // else in the workflow; the steps that hold them run this repository's own code.
+  assert.equal((video.match(/secrets\./g) || []).length, 12);
+  for (const name of ['youtube-age', 'youtube-lthsth']) {
+    const youtube = job(video, name);
+    assert.equal((youtube.match(/secrets\.YOUTUBE_/g) || []).length, 6, name);
+    const holders = youtube.split(/\n      - /).filter(step => /secrets\./.test(step));
+    assert.deepEqual(holders.map(step => (step.match(/(?:name: .*|run: .*)/g) || []).join(' | ')),
+      ['name: Look for the YouTube credentials | run: |', youtube.includes('Post the AGE video') ? 'name: Post the AGE video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO" "$START" "$END" age >> "$GITHUB_OUTPUT"'
+        : 'name: Post the <150D/>150D video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" "$START" "$END" lthsth >> "$GITHUB_OUTPUT"'], name);
+    assert.equal((youtube.match(/run: node tools\/video\/youtube\.mjs /g) || []).length, 1, name);
+    assert.doesNotMatch(youtube, /npm |contents: write|GH_TOKEN|uses: (?!actions\/(checkout|setup-node|download-artifact)@)/, name);
+  }
+});
+
+test('the site check compares the live page, the pages it links to and the data it loads with the latest main', () => {
+  const check = workflows.find(w => w.f === 'site-check.yml').text;
+  assert.match(check, /files="index\.html privacy\.html terms\.html data\/youtube\.json data\/scales\.json"/);
+  assert.match(check, /git fetch -q --depth=1 origin main\n/, 'fetched again on every try: the daily commits land while it runs');
+  assert.match(check, /git show "FETCH_HEAD:\$f" \| cmp -s - "\$RUNNER_TEMP\/live"/);
+  assert.match(check, /--proto '=https' --tlsv1\.2/);
+  // Every file the site links to or loads from itself is among them.
+  const own = [...new Set([...html.matchAll(/(?:href|fetchJSON\()\s*=?\s*"((?:[a-z]+\/)?[a-z]+\.(?:html|json))"/g)].map(m => m[1]))];
+  assert.ok(own.length >= 4, own.join(' '));
+  for (const f of own) assert.ok(check.includes(f), f);
 });
 
 test('the privacy page runs nothing and loads nothing from elsewhere, and the explainer links to it', () => {
