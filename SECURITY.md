@@ -16,8 +16,8 @@ page checks before using. The site has no video download, so that someone who br
 visitors a file posing as a video.
 
 The workflow keeps its latest renders on this repository's
-[`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video) (`BitcoinSupplyChart.com.mp4` and
-`BitcoinSupplyChart.com-LTH-STH.mp4`), where the next run reads which day they reach; nothing links to them. GitHub
+[`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video) (`BitcoinSupplyChart.com-AGE.mp4` and
+`BitcoinSupplyChart.com-Under-Over-150D.mp4`), where the next run reads which day they reach; nothing links to them. GitHub
 keeps a signed record of the run that built them (a build provenance attestation, logged by Sigstore). To check a copy
 of either:
 
@@ -26,7 +26,7 @@ of either:
 - **Attestation**, with the [GitHub CLI](https://cli.github.com):
 
   ```sh
-  gh attestation verify BitcoinSupplyChart.com.mp4 --repo renshuBTC/URPD-History \
+  gh attestation verify BitcoinSupplyChart.com-AGE.mp4 --repo renshuBTC/URPD-History \
     --signer-workflow renshuBTC/URPD-History/.github/workflows/video.yml --source-ref refs/heads/main
   ```
 
@@ -46,12 +46,15 @@ of either:
   frame decoded), after its container is rewritten to hold nothing but the picture, and with an attestation. The
   axis history refuses values from the data API far outside anything in the real history rather than commit them.
   Actions are pinned to full commit hashes and npm packages to exact versions and hashes, with install scripts off.
-  The channel's YouTube credentials are repository secrets seen only by the steps that use them (three in the youtube
-  job: the check for them and one post for each video; and the one step of the hand-run YouTube credentials check),
-  which run this repository's own code (`tools/video/youtube.mjs`, with Node's own http) and nothing installed.
+  The channel's YouTube credentials are repository secrets seen only by the steps that use them (two in each of the
+  two youtube jobs, the check for them and the post; and the one step of the hand-run YouTube credentials check),
+  which run this repository's own code (`tools/video/youtube.mjs`, with Node's own http) and nothing installed. The
+  jobs after the vetting take the vetted videos by their exact names, never another file the renderer could have left.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that
-  bitcoinsupplychart.com serves this repository's `index.html` byte for byte, so a page changed anywhere on the way (a
-  download slipped in, say) turns it red, and that plain http is sent to https. If anything differs it fails, and
+  bitcoinsupplychart.com serves this repository's `index.html` byte for byte, and its privacy and terms pages and the
+  data it loads from the site (`data/youtube.json`, where the video buttons go, and `data/scales.json`), so a page
+  changed anywhere on the way (a download slipped in, say, or a video button sent elsewhere) turns it red, and that
+  plain http is sent to https. If anything differs it fails, and
   GitHub emails the owner.
 
 ## Reporting a problem
