@@ -159,19 +159,20 @@ test('the jobs that run third-party code or parse its output can read the reposi
   const publish = job(video, 'publish');
   assert.match(publish, /needs: \[update, vet\]/);
   assert.match(publish, /uses: actions\/attest@/);
-  assert.match(publish, /subject-path: \|\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO \}\}\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO_LTHSTH \}\}\n/, 'both videos attested');
+  assert.match(publish, /subject-path: \|\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO \}\}\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO_LTHSTH \}\}\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO_RAW \}\}\n/, 'all three videos attested');
   assert.ok(publish.indexOf('actions/attest@') < publish.indexOf('replace-asset.sh video'), 'attest before publishing');
-  assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO" "\$RUNNER_TEMP\/vetted\/\$VIDEO_LTHSTH"/);
+  assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO" "\$RUNNER_TEMP\/vetted\/\$VIDEO_LTHSTH" "\$RUNNER_TEMP\/vetted\/\$VIDEO_RAW"/);
   // The YouTube credentials reach two steps of each youtube job (the check for them and its one post) and nothing
   // else in the workflow; the steps that hold them run this repository's own code.
-  assert.equal((video.match(/secrets\./g) || []).length, 12);
-  for (const name of ['youtube-age', 'youtube-lthsth']) {
+  assert.equal((video.match(/secrets\./g) || []).length, 18);
+  const POSTS = { 'youtube-age': 'name: Post the AGE video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO" "$START" "$END" age >> "$GITHUB_OUTPUT"',
+    'youtube-lthsth': 'name: Post the <150D/>150D video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" "$START" "$END" lthsth >> "$GITHUB_OUTPUT"',
+    'youtube-raw': 'name: Post the RAW video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_RAW" "$START" "$END" raw >> "$GITHUB_OUTPUT"' };
+  for (const name of Object.keys(POSTS)) {
     const youtube = job(video, name);
     assert.equal((youtube.match(/secrets\.YOUTUBE_/g) || []).length, 6, name);
     const holders = youtube.split(/\n      - /).filter(step => /secrets\./.test(step));
-    assert.deepEqual(holders.map(step => (step.match(/(?:name: .*|run: .*)/g) || []).join(' | ')),
-      ['name: Look for the YouTube credentials | run: |', youtube.includes('Post the AGE video') ? 'name: Post the AGE video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO" "$START" "$END" age >> "$GITHUB_OUTPUT"'
-        : 'name: Post the <150D/>150D video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" "$START" "$END" lthsth >> "$GITHUB_OUTPUT"'], name);
+    assert.deepEqual(holders.map(step => (step.match(/(?:name: .*|run: .*)/g) || []).join(' | ')), ['name: Look for the YouTube credentials | run: |', POSTS[name]], name);
     assert.equal((youtube.match(/run: node tools\/video\/youtube\.mjs /g) || []).length, 1, name);
     assert.doesNotMatch(youtube, /npm |contents: write|GH_TOKEN|uses: (?!actions\/(checkout|setup-node|download-artifact)@)/, name);
   }
