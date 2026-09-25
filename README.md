@@ -45,8 +45,8 @@ Toolbar, left to right:
   recorded, unsmoothed and black on a light chart
 - **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
 - **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 626 bars
-- **FULL HISTORY IN 5 MIN (AGE)**, **(`<150D/>150D`)** and **(RAW)** for the latest full-history videos on YouTube, one for each way of drawing the bars (each opens the channel until there is a video of it others can watch), then **?** for the explainer and the GitHub mark for the source, as icons
-- the language toggle, on its own at the right-hand end
+- **FULL HISTORY IN 5 MIN (AGE)**, **(`<150D/>150D`)** and **(RAW)** for the latest full-history videos on YouTube, one for each way of drawing the bars (each opens the channel until there is a video of it others can watch)
+- together at the right-hand end: **?** for the explainer and the GitHub mark for the source, as icons, and the language toggle
 
 The chart's camera icon saves a PNG of it; there is no video download.
 
@@ -72,7 +72,9 @@ video on YouTube, coloured by age band, split at 150 days, or as recorded (unsmo
 day from 2010-05-18, when the first price comes onto the chart (it is empty before that), to the latest, 5:00 at 60
 fps in 4K (3840×2160), drawn with the page’s default settings. The **Weekly videos** workflow draws all three again
 once a week on GitHub’s runners, one runner each, taking in the week just ended, and posts them to YouTube (see
-[Posting to YouTube](#posting-to-youtube)).
+[Posting to YouTube](#posting-to-youtube)). Run by hand (**Actions → Weekly videos → Run workflow**), it draws all
+three at once, or with **only** just one of them, outside the weekly cycle: that one is posted and its button updated,
+while the release and its week stay as they are until the next weekly run draws all three together.
 The site offers no file to download, so that a break-in could not use it to hand anyone a file. The workflow keeps its
 latest renders on the `video` release, whose notes tell the next run which day they reach; nothing links to them. A
 render goes out only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
