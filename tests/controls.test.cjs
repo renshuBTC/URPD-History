@@ -1,4 +1,4 @@
-// The toolbar's controls: the date box, the step sizes, the settings fields, pins, the download button and the
+// The toolbar's controls: the date box, the step sizes, the settings fields, pins, the YouTube button and the
 // languages. Each test here pins down a bug the 2026-09-24 audit found.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -102,15 +102,11 @@ test('every text has all three languages', () => {
   for (const l of langs) for (const k of keys) assert.ok(typeof c.T[l][k] === 'string' && c.T[l][k].length, `${l}.${k}`);
 });
 
-test('the download button is a small icon with a name, and the bar keeps the grey-bordered look it had before 2026-09-24', () => {
-  const button = html.match(/<a id="videoBtn" href="[^"]+" download aria-label="Download the full-history video">(<svg[\s\S]*?<\/svg>)<\/a>/);
-  assert.ok(button, 'an icon-only link with an accessible name');
-  assert.match(button[1], /aria-hidden="true"/);
-  assert.match(button[1], /width="14" height="14"/);
-  assert.equal(button[1].replace(/<[^>]*>/g, '').trim(), '', 'no words on the button');
+test('there is no download button, and the bar keeps the grey-bordered look it had before 2026-09-24', () => {
+  assert.doesNotMatch(html, /id="videoBtn"|#videoBtn/, 'no video download (security.test.cjs checks every link)');
   // Every button and link: a #555 border, #888 under the mouse, orange when on.
-  for (const sel of ['#controls button', '#controls #githubLink', '#controls #videoBtn']) assert.match(decls(sel), /border:\s*1px solid #555/, sel);
-  for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls #videoBtn:hover', '#explainBtn:hover', '#langBtn:hover']) {
+  for (const sel of ['#controls button', '#controls #githubLink', '#controls #ytBtn']) assert.match(decls(sel), /border:\s*1px solid #555/, sel);
+  for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls #ytBtn:hover', '#explainBtn:hover', '#langBtn:hover']) {
     assert.match(decls(sel), /border-color:\s*#888/, sel);
   }
   assert.match(decls('#controls .mode-toggle button.active'), /background:\s*#ff8c00;.*border-color:\s*#ff8c00/);
@@ -119,10 +115,10 @@ test('the download button is a small icon with a name, and the bar keeps the gre
   assert.match(decls('#landmarks'), /background:\s*#1e1e1e;.*border:\s*1px solid #555/);
   assert.match(decls('#landmarks:hover'), /border-color:\s*#888/);
   assert.match(decls('#landmarks:focus'), /border-color:\s*#ff8c00/);
-  // Keyboard focus shows as before: the browser's ring on buttons, an orange ring on the two links. (A mouse click
+  // Keyboard focus shows as before: the browser's ring on buttons, an orange ring on the links. (A mouse click
   // lets go of focus, so none of this is ever drawn for the mouse; see ui.test.cjs.)
   assert.ok(!rules.some(r => r.sels.some(x => /^#controls (button|a|select):focus$/.test(x))), 'focus rings are not switched off');
-  for (const sel of ['#githubLink:focus-visible', '#videoBtn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #ff8c00/, sel);
+  for (const sel of ['#githubLink:focus-visible', '#ytBtn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #ff8c00/, sel);
   assert.equal(rules.filter(r => /background-color:\s*#(4a4a4a|ffc266)/.test(r.body)).length, 0, 'no focus fills');
 });
 
@@ -144,7 +140,7 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the YouTube button sits beside the download button, and shows only once there is a video others can watch', async () => {
+test('the YouTube button, the one way to the video, shows only once there is a video others can watch', async () => {
   const a = html.match(/<a id="ytBtn" hidden href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\s\S]*?<\/svg>)<\/a>/);
   assert.ok(a, 'a hidden icon-only link that opens in a new tab, named for screen readers and tooltips');
   assert.equal(a[1], 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg');
