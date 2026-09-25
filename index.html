@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-8d9Tu01hDkAtEZbaLFdN+f+Y55yUoAwkQYQU9Dnxrto=' 'sha256-1e79N4CwyNCOjX1cPaHjgbfGRZXUSpeCjYmqzNAXwt4=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-/popIzyI4ZZG9AvLakiRQEQJRyb0CiX+ebv44hp6+HI=' 'sha256-1e79N4CwyNCOjX1cPaHjgbfGRZXUSpeCjYmqzNAXwt4=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -55,6 +55,17 @@
   fit();
   addEventListener("resize", fit);
   addEventListener("orientationchange", fit);
+})();
+// Marks a fractional device-pixel ratio for the gridline rule in the stylesheet (html.dpr-fractional), counting the
+// phone view's scale. Checked again on every resize, which browser zoom and a move to another screen both fire.
+(function () {
+  function check() {
+    var fit = window.__PHONE ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--fit")) || 1 : 1;
+    var r = (window.devicePixelRatio || 1) * fit;
+    document.documentElement.classList.toggle("dpr-fractional", Math.abs(r - Math.round(r)) > 0.01);
+  }
+  check();
+  addEventListener("resize", check);
 })();
 </script>
 <title>Bitcoin Supply Chart</title>
@@ -157,6 +168,12 @@
   /* The credit line's names (links, see creditLink) are the colour of the rest of the line, and underlined when
      pointed at. */
   #chart .annotation-text a:hover { text-decoration: underline; }
+  /* Plotly draws gridlines with shape-rendering: crispEdges. Where a CSS pixel is not a whole number of device pixels
+     (display scaling or browser zoom of 125 %, 150 %, 90 %, and the scaled-down phone view) that snaps some 1 px lines
+     to one device pixel and others to two, or none, so the grid looked uneven. There they are anti-aliased instead,
+     and every line carries the same weight. At 100 % and 200 % crispEdges already draws every line the same, and
+     sharper, so it stays. The class is set by the first script in <head>. */
+  html.dpr-fractional #chart .gridlayer path { shape-rendering: geometricPrecision; }
 </style>
 </head>
 <body>
@@ -280,6 +297,22 @@ var PRICE_LINE_COLOR = "#ffffff"; // BTC/USD price line
 
 var GLOW_COLOR = "#FFE600";
 var FONT = "'Source Code Pro', Consolas, monospace";
+// ---- Grid and watermark -------------------------------------------------------------------------
+// The chart's two quiet layers on its #0a0a0a background, as solid colours (the same as white at the given opacity
+// there, but a crossing of two gridlines is no brighter than the lines). Contrast is given as ΔL*, the difference in
+// CIE lightness from the background.
+//  - Grid: #272727, white at 12 %, ΔL* 13. Bartram and Stone (IEEE TVCG 2011, "Whisper, Don't Scream: Grids and
+//    Transparency") found a grid over mostly empty background is usable yet unobtrusive from an opacity of about
+//    0.1, turns into a "fence" in front of the data at 0.3 to 0.5 for a white grid on a dark background, and that
+//    people want a white grid a little stronger than a black one. Material Design's dark-theme dividers are white
+//    at 12 %. The old 8 % (ΔL* 8) sat at the faint end, which a scrubbed chart, whose bars are the thing moving,
+//    and a video YouTube recompresses both erode; much above this and a grid of 20 by 20 lines, which moves
+//    whenever an axis grows, starts pulling the eye.
+//  - Watermark: #1a1a1a, white at 6.5 %, ΔL* 6.5: half the grid's contrast, because 50 px bold letters are seen
+//    far more easily than 1 px lines. It is drawn under the grid and the bars (see drawChart), so it never tints a
+//    bar's colour and the bars simply pass in front of it as you scrub.
+var GRID_COLOR = "#272727";
+var WATERMARK_COLOR = "#1a1a1a";
 
 var allDates = [];
 var currentIdx = 0;
@@ -1339,9 +1372,12 @@ function drawChart(data, plotSeq, navigationSeq) {
   // as fits, down to 12 px.
   var titleSize = Math.max(12, Math.min(20, Math.floor(20 * (plotW - 8) / (textPx(titleText.replace(/<[^>]+>/g, ""), 20) * 1.03))));
 
-  var shapes = [];
+  // The watermark is the label of an invisible shape in the layer under the grid and the bars. An annotation, which
+  // it used to be, is always drawn over the bars: at 15 % white it lightened every bar it crossed, and while you
+  // scrubbed, the letters flickered across the moving bars.
+  var shapes = [{type:"rect",xref:"paper",yref:"paper",x0:0,x1:1,y0:0,y1:1,layer:"below",line:{width:0},fillcolor:"rgba(0,0,0,0)",
+    label:{text:"<b>@RenshuBTC</b>",textposition:"middle center",font:{family:FONT,size:50,color:WATERMARK_COLOR}}}];
   var annotations = [
-    {xref:"paper",yref:"paper",x:0.5,y:0.5,text:"<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>",showarrow:false,font:{family:FONT}},
     {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:creditRow?-38:creditWrap?-76:-62,text:creditShown,showarrow:false,font:{size:creditSize,color:"rgba(255,255,255,0.55)",family:FONT},xanchor:"left",align:"left"}
   ];
 
@@ -1424,9 +1460,9 @@ function drawChart(data, plotSeq, navigationSeq) {
     paper_bgcolor:"#0a0a0a",plot_bgcolor:"#0a0a0a",
     barmode:isAge?"stack":"overlay",bargap:0,
     legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:"center",x:0.5,font:{family:FONT,size:isAge?9.5:12,color:"#ffffff"},traceorder:isAge?"normal":undefined},
-    xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13,color:"#ffffff"},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,tickangle:0,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11,color:"#ffffff"}},
+    xaxis:{title:{text:t("priceUSD"),font:{family:FONT,size:13,color:"#ffffff"},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,tickangle:0,showgrid:true,gridcolor:GRID_COLOR,tickfont:{family:FONT,size:11,color:"#ffffff"}},
     // One gridline per left-axis label, twenty intervals.
-    yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:"#ffffff"},standoff:8},automargin:true,side:"left",tickvals:yTickvals,ticktext:yTicktext,range:[0,maxVal],autorange:false,showgrid:true,gridcolor:"rgba(255,255,255,0.08)",tickfont:{family:FONT,size:11,color:"#ffffff"}},
+    yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:"#ffffff"},standoff:8},automargin:true,side:"left",tickvals:yTickvals,ticktext:yTicktext,range:[0,maxVal],autorange:false,showgrid:true,gridcolor:GRID_COLOR,tickfont:{family:FONT,size:11,color:"#ffffff"}},
     annotations:annotations,shapes:shapes,
     margin:{l:24,r:24,t:topMargin,b:bottomMargin},hovermode:"closest"
   };
