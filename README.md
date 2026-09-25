@@ -16,9 +16,9 @@ cohorts.
 - **Bottom axis** is the price each coin last moved at, not today’s price.
 - **Left axis** is how much supply sits in each bucket: dollars in USD mode, coins in BTC mode. Both axes are marked at twenty equal steps from zero to their very end, labels rounded to two significant figures.
 - **Both axes only grow.** Each ends at the furthest the data had reached by the day you are viewing (the highest price and the tallest bar so far), moves only when the data goes past it, and never shrinks, so scrubbing back shows every day exactly as it looked at the time. In BTC mode the first bar, the coins last moved for less than one bar’s width, is left out of this and runs off the top with its height printed.
-- **Hover a bar** for its price, its age band, the whole bar’s total (Total USD Value Last Moved, or Total BTC Supply Last Moved) and Percent of Total, the running share of the day at or below that price.
+- **Hover a bar** for its price, its age band, the whole bar’s total (Total Value When Last Moved, or Total Supply) and Cumulative % of Total, the running share of the day at or below that price.
 - **White line** is bitcoin’s own price on its own hidden axes: a year of time around the selected day, and linear from $0 to the highest close shown so far, so the line fills the chart and only rescales on a new high.
-- **Dashed vertical** is the spot price. Supply to its left is held at a paper profit.
+- **Dashed vertical** is the spot price. Supply to its left last moved below it, supply to its right above it.
 - **Colour** is age: yellow is fresh, deep blue is ancient, logarithmic in between. The 23 colours lie on one path through OKLCH, evenly spaced to the eye, with lightness falling from young to old so the order survives greyscale, and every band at least 3:1 against the background.
 
 Press **?** in the toolbar for the full explainer, in English, Chinese or Japanese.
@@ -37,7 +37,7 @@ Toolbar, left to right:
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
 - **PIN SCALE** — freeze the y-axis on the day you are viewing so other days can be compared against it
-- **Bottom signal** — fires when the share of value held at a loss passes your threshold
+- **Bottom signal** — fires when the share of value that last moved above the day's price passes your threshold
 - **Bins**, **Smoothing**, **Y-max** — bucket count; smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view
 - **download** button (an arrow) for the 4K video, a **YouTube** button (a play symbol) for the latest one on YouTube once there is one to watch, **?** explainer, a language toggle, and the **GitHub** icon linking to the source
 
@@ -82,7 +82,7 @@ the whole deployment.
 After publishing the video, the **Daily video** workflow posts it to the [renshuBTC](https://www.youtube.com/@renshuBTC)
 channel with `tools/video/youtube.mjs`, through the YouTube Data API. Each day's video goes up **unlisted** (anyone
 with the link can watch it; it is shown neither on the channel nor in search), titled with the chart's own title on its
-last day, for example *Bitcoin Supply Distribution (in USD Value Last Moved) as of 24 Sept 2026*. Once YouTube lets
+last day, for example *Bitcoin Supply by Price When Last Moved (USD Value) as of 24 Sept 2026*. Once YouTube lets
 others watch it, the workflow names it in `data/youtube.json`, and the site's YouTube button appears and links to it.
 
 It needs the channel's OAuth credentials as three repository secrets. Without them the step does nothing. To set it up
