@@ -2,7 +2,7 @@
   "name": "urpd-video",
   "private": true,
   "type": "module",
-  "description": "Renders the full-history 4K video that the Daily video workflow posts to YouTube (see render.mjs). Not part of the site, which has no build step.",
+  "description": "Renders the full-history 4K videos that the Weekly videos workflow posts to YouTube (see render.mjs). Not part of the site, which has no build step.",
   "dependencies": {
     "@fontsource/source-code-pro": "5.3.0",
     "playwright": "1.47.2",
