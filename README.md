@@ -36,9 +36,8 @@ Toolbar, left to right:
 
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
-- **PIN SCALE** — freeze the y-axis on the day you are viewing so other days can be compared against it
-- **Bottom signal** — fires when the share of value that last moved above the day's price passes your threshold
-- **Bins**, **Smoothing**, **Y-max** — bucket count; smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view
+- **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
+- **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 625 bars, and its title gives the width of one in dollars
 - **download** button (an arrow) for the 4K video, a **YouTube** button (a play symbol) for the latest one on YouTube once there is one to watch, **?** explainer, a language toggle, and the **GitHub** icon linking to the source
 
 The toolbar stays on one row. Scroll it horizontally when the controls do not fit the window.
