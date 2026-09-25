@@ -3,6 +3,8 @@ name: Site check
 # Checks, four times a day, that visitors get exactly what this repository publishes, so tampering anywhere in between
 # (the domain or GitHub Pages) turns this workflow red and GitHub emails the owner:
 #   - https://bitcoinsupplychart.com/ serves this repository's index.html, byte for byte, and plain http redirects there
+#   - so are the two pages it links to (privacy.html, terms.html) and the data it loads from this site:
+#     data/youtube.json, which says where its video buttons go, and data/scales.json, the axis history
 # The page links to no file to download (tests/security.test.cjs), so a live page that is index.html links to none either.
 on:
   schedule:
@@ -24,17 +26,27 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: The live page is this repository's index.html
+      - name: The live site is this repository's files
         run: |
-          # A merge takes a few minutes to go live, so only a difference that lasts counts.
+          # A merge takes a few minutes to go live, so only a difference that lasts counts. Each try compares with the
+          # latest main, fetched again: the daily axis history and the weekly videos commit to it while this runs.
+          files="index.html privacy.html terms.html data/youtube.json data/scales.json"
           for _ in $(seq 1 8); do
-            if curl -fsS --proto '=https' --tlsv1.2 --max-time 60 -o "$RUNNER_TEMP/live.html" "${SITE}?check=$(date +%s)" && cmp -s "$RUNNER_TEMP/live.html" index.html; then
-              echo "The live page is index.html as of $(git rev-parse --short HEAD)."; exit 0
-            fi
+            git fetch -q --depth=1 origin main
+            differ=""
+            for f in $files; do
+              url="$SITE$([ "$f" = index.html ] || echo "$f")?check=$(date +%s)"
+              if ! curl -fsS --proto '=https' --tlsv1.2 --max-time 60 -o "$RUNNER_TEMP/live" "$url" || ! git show "FETCH_HEAD:$f" | cmp -s - "$RUNNER_TEMP/live"; then
+                differ="$differ $f"
+              fi
+            done
+            if [ -z "$differ" ]; then echo "The live site is $files as of $(git rev-parse --short FETCH_HEAD)."; exit 0; fi
             sleep 90
           done
-          echo "::error::$SITE is not serving this repository's index.html"
-          diff index.html "$RUNNER_TEMP/live.html" | head -40 || true
+          echo "::error::$SITE is not serving this repository's$differ"
+          for f in $differ; do
+            curl -sS --max-time 60 "$SITE$([ "$f" = index.html ] || echo "$f")" | diff <(git show "FETCH_HEAD:$f") - | head -20 || true
+          done
           exit 1
 
       - name: Plain http is sent to https
