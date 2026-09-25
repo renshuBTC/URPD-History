@@ -1,5 +1,5 @@
 // The site's defences against being used to hand visitors anything harmful: what the page may run and load, what it
-// offers to download, what it accepts from the API, and how the workflows that build and publish it are locked down.
+// links to (no file to download), what it accepts from the API, and how the workflows that build and publish it are locked down.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -8,7 +8,6 @@ const { html, scripts, app } = require('./helpers.cjs');
 const { scriptHashes, readPolicy } = require('../tools/update-csp.cjs');
 
 const ROOT = path.join(__dirname, '..');
-const VIDEO_URL = 'https://github.com/renshuBTC/URPD-History/releases/download/video/BitcoinSupplyChart.com.mp4';
 const PLOTLY = 'https://cdn.plot.ly/plotly-2.27.0.min.js';
 const plain = v => JSON.parse(JSON.stringify(v));   // out of the page's realm, for deepEqual
 
@@ -36,14 +35,14 @@ test('Plotly is the one outside script, pinned by its integrity hash', () => {
   assert.match(tags[0][0], /\bcrossorigin="anonymous"/);
 });
 
-test('the only download the page offers is the official .mp4 video, and its code starts none of its own', () => {
+test('the page links to no file to download, and its code starts none of its own', () => {
+  // So that someone who broke into the site could not use it to hand visitors a file: the video is on YouTube. (The
+  // chart's camera icon, Plotly's own, draws a PNG of the chart in the browser; it fetches nothing.)
   const links = [...html.matchAll(/<a\b[^>]*>/gi)].map(m => m[0]);
-  const downloads = links.filter(a => /\sdownload[\s>=]/.test(a));
-  assert.equal(downloads.length, 1);
-  assert.match(downloads[0], /\bid="videoBtn"/);
-  assert.equal(downloads[0].match(/\bhref="([^"]*)"/)[1], VIDEO_URL);
+  assert.deepEqual(links.filter(a => /\sdownload[\s>=]/.test(a)), [], 'no download links');
+  assert.doesNotMatch(html, /releases\/download|\.mp4\b|id="videoBtn"/, 'and no address of a file to fetch');
   for (const a of links.filter(a => /target="_blank"/.test(a))) assert.match(a, /\brel="[^"]*\bnoopener\b/);
-  // A programmatic download or redirect would bypass the link above; any new one has to be added here on purpose.
+  // A programmatic download or redirect would get round that; any new one has to be added here on purpose.
   const code = scripts.join('\n');
   for (const pattern of [/\.click\(\s*\)/, /location\.(href|assign|replace)\b/, /createObjectURL/, /\.download\s*=/, /setAttribute\(\s*["']download/]) {
     assert.doesNotMatch(code, pattern);
@@ -54,7 +53,7 @@ test('the only download the page offers is the official .mp4 video, and its code
 });
 
 test('every address in the page is one of the few it is meant to use', () => {
-  const allowed = new Set([VIDEO_URL, PLOTLY, 'https://github.com/renshuBTC/URPD-History', 'https://bitview.space',
+  const allowed = new Set([PLOTLY, 'https://github.com/renshuBTC/URPD-History', 'https://bitview.space',
     'https://fonts.googleapis.com', 'https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap',
     'https://fonts.gstatic.com', 'http://www.w3.org/2000/svg', 'https://x.com/',
     'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg', 'https://www.youtube.com/watch?v=']);
