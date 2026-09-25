@@ -44,7 +44,8 @@ logged by Sigstore). To check a copy of it:
   frame decoded), after its container is rewritten to hold nothing but the picture, and with an attestation. The
   axis history refuses values from the data API far outside anything in the real history rather than commit them.
   Actions are pinned to full commit hashes and npm packages to exact versions and hashes, with install scripts off.
-  The channel's YouTube credentials are repository secrets seen only by the two steps of the youtube job that use
+  The channel's YouTube credentials are repository secrets seen only by the steps that use them (two in the youtube
+  job, and the one step of the hand-run YouTube credentials check), which
   them, which run this repository's own code (`tools/video/youtube.mjs`, with Node's own http) and nothing installed.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that
   bitcoinsupplychart.com serves this repository's `index.html` byte for byte, so a page changed anywhere on the way (a
