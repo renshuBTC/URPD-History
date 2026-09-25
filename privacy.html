@@ -31,19 +31,22 @@ it collects no personal data.</p>
   <li>Your browser loads the chart's data from <a href="https://bitview.space">bitview.space</a> and the page's font from
     Google Fonts. Like any website, those services see what a browser sends with a request, such as your IP address,
     under their own privacy policies.</li>
-  <li>Scales you pin with <b>PIN SCALE</b> are kept in your own browser (its local storage). They never leave your
+  <li>Y-axes you pin with <b>PIN Y-AXIS</b> are kept in your own browser (its local storage). They never leave your
     device, and clearing your browser's site data removes them.</li>
   <li>The site is served by GitHub Pages, which keeps its own logs of requests under
     <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</li>
 </ul>
 
 <h2>The video on YouTube</h2>
-<p>Every day the site's own build posts the full-history video to the site's YouTube channel,
-<a href="https://www.youtube.com/@renshuBTC">renshuBTC</a>, with an app called <b>Bitcoin Supply Chart uploader</b>.
-That app is used only by the site's owner, only to upload that one video to that one channel. It asks YouTube for
-permission to upload videos and for nothing else: it reads no one's data, including yours, and keeps nothing but that
-permission, stored as a secret in the site's build. You can see exactly what it does in the source code:
-<a href="https://github.com/renshuBTC/URPD-History/blob/main/tools/video/youtube.mjs">tools/video/youtube.mjs</a>.</p>
+<p>This site uses the YouTube API Services. Every day the site's own build posts the full-history video to the site's
+YouTube channel, <a href="https://www.youtube.com/@renshuBTC">renshuBTC</a>, with an app called
+<b>Bitcoin Supply Chart uploader</b>. That app is used only by the site's owner, only to upload that one video to that
+one channel. It asks YouTube for permission to upload videos and for nothing else: it reads no one's data, including
+yours, and keeps nothing but that permission, stored as a secret in the site's build. You can see exactly what it does in the source
+code: <a href="https://github.com/renshuBTC/URPD-History/blob/main/tools/video/youtube.mjs">tools/video/youtube.mjs</a>.</p>
+<p>The permission belongs to the channel's Google account, and can be withdrawn at any time on Google's security
+settings page: <a href="https://security.google.com/settings/security/permissions">security.google.com/settings/security/permissions</a>.
+Because neither the site nor the app stores anything about you, there is nothing of yours to delete.</p>
 <p>Watching a video on YouTube is covered by <a href="https://www.youtube.com/t/terms">YouTube's Terms of Service</a>
 and the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</p>
 
@@ -51,6 +54,6 @@ and the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.
 <p>Questions: message <a href="https://x.com/RenshuBTC">@RenshuBTC</a> on X, or see
 <a href="https://github.com/renshuBTC/URPD-History">the source on GitHub</a>.</p>
 
-<p><a href="./">← Back to the chart</a></p>
+<p><a href="./">← Back to the chart</a> · <a href="terms.html">Terms</a></p>
 </body>
 </html>
