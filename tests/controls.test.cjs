@@ -1,5 +1,5 @@
-// The toolbar's controls: the date box, the step sizes, the settings fields, pins, the YouTube button and the
-// languages. Each test here pins down a bug the 2026-09-24 audit found.
+// The toolbar's controls: the date box, the step sizes, the settings fields, pins, AGE or LTH/STH, the two video
+// buttons and the languages. Each test here pins down a bug the 2026-09-24 audit found.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
@@ -108,10 +108,10 @@ test('there is no download button, and the bar is drawn like the favicon: black 
   assert.match(decls('#controls'), /background:\s*#1a1a1a;/);
   // Every button and link: the bar's grey, a 1px outline of white at 35% (#595959), solid white under the mouse,
   // square corners; the chosen option is a white block with black text.
-  for (const sel of ['#controls button', '#controls #githubLink', '#controls #ytBtn']) {
+  for (const sel of ['#controls button', '#controls #githubLink', '#controls .yt-btn']) {
     assert.match(decls(sel), /background:\s*#1a1a1a;\s*color:\s*#fff;\s*border:\s*1px solid #595959;\s*border-radius:\s*0;/, sel);
   }
-  for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls #ytBtn:hover', '#explainBtn:hover', '#langBtn:hover']) {
+  for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls .yt-btn:hover', '#explainBtn:hover', '#langBtn:hover']) {
     assert.match(decls(sel), /border-color:\s*#fff/, sel);
   }
   assert.match(decls('#controls .mode-toggle button.active'), /background:\s*#fff;\s*color:\s*#000;\s*border-color:\s*#fff/);
@@ -122,7 +122,7 @@ test('there is no download button, and the bar is drawn like the favicon: black 
   assert.match(decls('#landmarks:hover'), /border-color:\s*#fff/);
   assert.match(decls('#landmarks:focus'), /border-color:\s*#fff;\s*box-shadow:\s*inset 0 0 0 1px #fff/);
   // Nothing in the bar is orange, lighter grey or rounded any more.
-  const bar = rules.filter(r => r.sels.some(x => /^(#controls|#intervalBar|#landmarks|#dateDisplay|#ytBtn|#githubLink|#explainBtn|#langBtn|\.ctrl-sep|\.mode-toggle)/.test(x)));
+  const bar = rules.filter(r => r.sels.some(x => /^(#controls|#intervalBar|#landmarks|#dateDisplay|\.yt-|#githubLink|#explainBtn|#langBtn|\.ctrl-sep|\.mode-toggle)/.test(x)));
   for (const r of bar) assert.doesNotMatch(r.body, /#ff8c00|#ffaa33|#3a3a3a|#252525|#1e1e1e|#d4d4d4|#555\b|#888|border-radius:\s*[1-9]/, r.sels.join(','));
   // The favicon stays the tab's icon only: no mark in the bar, which starts with the step sizes.
   assert.match(html, /<div id="controls">\s*<div id="intervalBar">/);
@@ -130,7 +130,7 @@ test('there is no download button, and the bar is drawn like the favicon: black 
   // Keyboard focus: the browser's ring on buttons, a white ring on the links. (A mouse click lets go of focus, so
   // none of this is ever drawn for the mouse; see ui.test.cjs.)
   assert.ok(!rules.some(r => r.sels.some(x => /^#controls (button|a|select):focus$/.test(x))), 'focus rings are not switched off');
-  for (const sel of ['#githubLink:focus-visible', '#ytBtn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #fff/, sel);
+  for (const sel of ['#githubLink:focus-visible', '.yt-btn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #fff/, sel);
   assert.equal(rules.filter(r => /background-color:\s*#(4a4a4a|ffc266)/.test(r.body)).length, 0, 'no focus fills');
 });
 
@@ -152,60 +152,163 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the YouTube button, the one way to the video, always shows: the latest video others can watch, else the channel', async () => {
+test('the two video buttons always show: FULL HISTORY IN 5 MIN (AGE) and (LTH/STH), each its latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
-  const a = html.match(/<a id="ytBtn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\s\S]*?<\/svg>)<span id="ytLabel" class="btn-word">Full history in 5 min<\/span><\/a>/);
-  assert.ok(a, 'a visible link that opens in a new tab: the play symbol and the word, named for screen readers and tooltips');
-  assert.equal(a[1], CHANNEL, 'the channel until the page learns of a video');
-  assert.equal(a[2], 'Full history in 5 min: on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)');
-  assert.ok(a[2].startsWith('Full history in 5 min'), 'the spoken name starts with the words on the button');
-  assert.equal(a[2], a[3]);
-  assert.match(a[4], /aria-hidden="true"/);
-  assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
-  assert.doesNotMatch(html, /#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
-  assert.match(decls('#controls #ytBtn'), /border:\s*1px solid #595959/);
-  assert.match(decls('#controls #ytBtn:hover'), /border-color:\s*#fff/);
-  assert.match(decls('#ytBtn:focus-visible'), /outline:\s*2px solid #fff/);
-  // data/youtube.json names the latest video once it is unlisted or public; anything else leaves the channel.
-  const { c, element } = app(), btn = element('ytBtn');
-  c.setYouTubeLink({ id: 'dQw4w9WgXcQ', end: '2026-09-24' });
-  assert.equal(btn.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  assert.equal(btn.title, 'Full history in 5 min: every day since 2010 as one 4K video, on YouTube (opens in a new tab)');
-  assert.equal(btn.getAttribute('aria-label'), btn.title);
-  for (const [lang, want, word] of [['zh', '5 分钟看完整历史：2010 年以来的每一天，一段 4K 视频，在 YouTube 上观看（在新标签页中打开）', '5 分钟看完整历史'], ['ja', '全期間を5分で：2010年以降の毎日を 1 本の 4K 動画にまとめて YouTube で（新しいタブで開きます）', '全期間を5分で']]) {
-    c.lang = lang; c.labelYouTube();
-    assert.equal(btn.title, want, lang);
-    assert.equal(element('ytLabel').textContent, word, lang);
-    assert.ok(want.startsWith(word), lang + ': the spoken name starts with the words on the button');
+  const BUTTONS = [['ytBtn', 'ytLabel', 'ytTag', 'AGE'], ['ytSplitBtn', 'ytSplitLabel', 'ytSplitTag', 'LTH/STH']];
+  for (const [id, label, tag, name] of BUTTONS) {
+    const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${label}" class="yt-word">Full history in 5 min</span><span id="${tag}" class="yt-tag">([^<]+)</span></a>`));
+    assert.ok(a, id + ': a visible link that opens in a new tab: the play symbol, the words and which video, named for screen readers and tooltips');
+    assert.equal(a[1], CHANNEL, 'the channel until the page learns of a video');
+    assert.equal(a[5], name);
+    assert.equal(a[2], `Full history in 5 min (${name}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`);
+    assert.equal(a[2], a[3]);
+    assert.match(a[4], /aria-hidden="true"/);
+    assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   }
-  c.lang = 'en';
+  assert.ok(html.indexOf('id="ytBtn"') < html.indexOf('id="ytSplitBtn"'), 'AGE first, LTH/STH on its right');
+  assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
+  assert.match(decls('#controls .yt-btn'), /border:\s*1px solid #595959/);
+  assert.match(decls('#controls .yt-btn:hover'), /border-color:\s*#fff/);
+  assert.match(decls('.yt-btn:focus-visible'), /outline:\s*2px solid #fff/);
+  // The bracketed name: (AGE) and (LTH/STH) beside the words, and on their own where the words give way.
+  assert.match(decls('#controls .yt-tag::before'), /content:\s*"\("/);
+  assert.match(decls('#controls .yt-tag::after'), /content:\s*"\)"/);
+  assert.match(decls('#controls.compact-more .yt-word'), /display:\s*none/);
+  assert.match(decls('#controls.compact-more .yt-tag::before'), /content:\s*none/);
+  // data/youtube.json names each video once others can watch it; anything else leaves that button on the channel.
+  const { c, element } = app(), age = element('ytBtn'), split = element('ytSplitBtn');
+  c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, lthsth: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
+  assert.equal(age.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  assert.equal(split.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  assert.equal(age.title, 'Full history in 5 min (AGE): every day since 2010 as one 4K video, the bars coloured by age band, on YouTube (opens in a new tab)');
+  assert.equal(split.title, 'Full history in 5 min (LTH/STH): every day since 2010 as one 4K video, the bars split into short- and long-term holders, on YouTube (opens in a new tab)');
+  for (const el of [age, split]) assert.equal(el.getAttribute('aria-label'), el.title);
+  for (const [lang, words, ageTag, splitTag, want] of [
+    ['zh', '5 分钟看完整历史', '年龄', '长/短期', '5 分钟看完整历史（年龄）：2010 年以来的每一天，一段 4K 视频，柱子按币龄层着色，在 YouTube 上观看（在新标签页中打开）'],
+    ['ja', '全期間を5分で', '年齢', '長期/短期', '全期間を5分で（年齢）：2010年以降の毎日を 1 本の 4K 動画にまとめ、棒を年齢帯で色分けして YouTube で（新しいタブで開きます）']]) {
+    c.lang = lang; c.labelYouTube();
+    assert.equal(age.title, want, lang);
+    assert.equal(element('ytLabel').textContent, words, lang);
+    assert.equal(element('ytSplitLabel').textContent, words, lang);
+    assert.equal(element('ytTag').textContent, ageTag, lang);
+    assert.equal(element('ytSplitTag').textContent, splitTag, lang);
+    assert.ok(age.title.startsWith(words) && split.title.startsWith(words), lang + ': the spoken name starts with the words on the button');
+    assert.ok(split.title.includes(splitTag), lang);
+  }
+  c.lang = 'en'; c.labelYouTube();
+  assert.equal(element('ytTag').textContent, 'AGE');
+  assert.equal(element('ytSplitTag').textContent, 'LTH/STH');
+  const channel = n => `Full history in 5 min (${n}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`;
   for (const bad of [null, {}, { id: null }, { id: 'javascript:x' }, { id: 'short' }, { id: 'dQw4w9WgXcQ"x' }, { id: 12345678901 }, 'dQw4w9WgXcQ']) {
-    c.setYouTubeLink({ id: 'dQw4w9WgXcQ' });
-    c.setYouTubeLink(bad);
-    assert.equal(btn.href, CHANNEL, JSON.stringify(bad));
-    assert.equal(btn.title, 'Full history in 5 min: on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)', JSON.stringify(bad));
+    c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ' }, lthsth: { id: 'dQw4w9WgXcQ' } });
+    c.setYouTubeLinks({ age: bad, lthsth: bad });
+    assert.equal(age.href, CHANNEL, JSON.stringify(bad));
+    assert.equal(split.href, CHANNEL, JSON.stringify(bad));
+    assert.equal(age.title, channel('AGE'), JSON.stringify(bad));
+    assert.equal(split.title, channel('LTH/STH'), JSON.stringify(bad));
   }
-  for (const [lang, want] of [['zh', '5 分钟看完整历史：YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）'], ['ja', '全期間を5分で：YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）']]) {
+  for (const bad of [null, 'x', 5, []]) { c.setYouTubeLinks(bad); assert.equal(age.href, CHANNEL); assert.equal(split.href, CHANNEL); }
+  // One video without the other: each button on its own.
+  c.setYouTubeLinks({ age: null, lthsth: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
+  assert.equal(age.href, CHANNEL);
+  assert.equal(split.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  // The one-video file from before (its id at the top level) was the AGE video.
+  c.setYouTubeLinks({ id: 'dQw4w9WgXcQ', end: '2026-09-24' });
+  assert.equal(age.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  assert.equal(split.href, CHANNEL);
+  for (const [lang, want] of [['zh', '5 分钟看完整历史（长/短期）：YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）'], ['ja', '全期間を5分で（長期/短期）：YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
-    assert.equal(btn.title, want, lang);
-    assert.equal(btn.getAttribute('aria-label'), want, lang);
+    assert.equal(split.title, want, lang);
+    assert.equal(split.getAttribute('aria-label'), want, lang);
   }
   // The page asks for it on its own, and a missing file changes nothing else.
   for (const found of [true, false]) {
     const h = app(), asked = [];
-    h.element('ytBtn').href = CHANNEL;   // as the page starts
-    const yt = () => (found ? Promise.resolve({ id: 'dQw4w9WgXcQ' }) : Promise.reject(new Error('HTTP 404')));
+    h.element('ytBtn').href = CHANNEL; h.element('ytSplitBtn').href = CHANNEL;   // as the page starts
+    const yt = () => (found ? Promise.resolve({ age: { id: 'dQw4w9WgXcQ' }, lthsth: { id: 'Abc_123-xyZ' } }) : Promise.reject(new Error('HTTP 404')));
     h.c.fetchJSON = url => { asked.push(url); return url === 'data/youtube.json' ? yt() : Promise.resolve(url.endsWith('/all/dates') ? days('2026-09-20', '2026-09-24') : null); };
     h.c.loadAndRender = () => Promise.resolve();
     await h.c.init(); await flush();
     assert.equal(asked[0], 'data/youtube.json');
     assert.equal(h.c.allDates.length, 5, 'the chart loads either way');
     assert.equal(h.element('ytBtn').href, found ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : CHANNEL);
+    assert.equal(h.element('ytSplitBtn').href, found ? 'https://www.youtube.com/watch?v=Abc_123-xyZ' : CHANNEL);
   }
 });
 
-test('data/youtube.json names no video, or one YouTube video by its id', () => {
+test('data/youtube.json names each video by its YouTube id, or none yet', () => {
   const fs = require('node:fs'), path = require('node:path');
   const yt = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'youtube.json'), 'utf8'));
-  assert.ok(yt.id === null || /^[A-Za-z0-9_-]{11}$/.test(yt.id), String(yt.id));
+  assert.deepEqual(Object.keys(yt), ['about', 'age', 'lthsth']);
+  for (const k of ['age', 'lthsth']) {
+    if (yt[k] === null) continue;
+    assert.deepEqual(Object.keys(yt[k]), ['id', 'end'], k);
+    assert.match(yt[k].id, /^[A-Za-z0-9_-]{11}$/, k);
+    assert.match(yt[k].end, /^\d{4}-\d{2}-\d{2}$/, k);
+  }
+});
+
+test('AGE | LTH/STH sits right of USD | BTC and only recolours the bars: short-term holders amber under long-term holders blue', async () => {
+  // The markup: its own group, after the weighting and before Pin Y-axis, AGE chosen at first.
+  const group = html.match(/<div class="mode-toggle">\s*<button id="btnUSD"[\s\S]*?<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*(<button id="btnAge"[^>]*>AGE<\/button>)\s*(<button id="btnSplit"[^>]*>LTH\/STH<\/button>)\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*<button id="btnPeak"/);
+  assert.ok(group, 'USD | BTC, then AGE | LTH/STH, then Pin Y-axis');
+  assert.match(group[1], /class="active" aria-pressed="true"/);
+  assert.match(group[2], /aria-pressed="false"/);
+  const { c, element } = app();
+  assert.equal(c.STH_BANDS, 8, '<1h to 4m-5m: the coins that moved within 150 days');
+  assert.deepEqual([c.AGE_BANDS[7].label, c.AGE_BANDS[8].label], ['4m-5m', '5m-6m']);
+  assert.equal(c.STH_COLOR, '#e6a817');
+  assert.equal(c.LTH_COLOR, '#5599ff');
+  // A day whose coins sit in three bands: two young (bands 0 and 7), one old (band 8).
+  const dates = days('2026-09-20', '2026-09-24');
+  c.allDates = dates; c.priceDates = dates.slice(); c.priceIndexByDate = Object.fromEntries(dates.map((d, i) => [d, i]));
+  c.priceArray = dates.map(() => 60000); c.currentIdx = 4;
+  const age = c.AGE_BANDS.map(() => ({}));
+  age[0] = { 50000: 1 }; age[7] = { 50000: 2, 70000: 1 }; age[8] = { 50000: 4 };
+  const all = { 50000: 7, 70000: 1 };
+  let fetched = 0;
+  c.fetchRaw = () => { fetched++; return Promise.resolve({ all, age }); };
+  await c.loadAndRender();
+  let graph = element('chart'), bars = graph.data.filter(t => t.type === 'bar');
+  assert.equal(bars.length, 23, 'AGE: one trace a band');
+  assert.match(graph.layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, AGE\) as of /);
+  const ageTotals = bars[0].y.map((_, i) => bars.reduce((s, b) => s + b.y[i], 0));
+  // LTH/STH: the same day drawn again from the cache, with two traces that add up to the same bars.
+  element('btnSplit').onclick();
+  await c.chartRenderPromise;
+  assert.equal(c.splitMode, true);
+  assert.equal(fetched, 1, 'nothing fetched again');
+  assert.equal(element('btnSplit').getAttribute('aria-pressed'), 'true');
+  assert.equal(element('btnAge').getAttribute('aria-pressed'), 'false');
+  graph = element('chart'); bars = graph.data.filter(t => t.type === 'bar');
+  assert.deepEqual(plain(bars.map(b => [b.meta, b.name, b.marker.color])), [['sth', 'Short-Term Holders', '#e6a817'], ['lth', 'Long-Term Holders', '#5599ff']]);
+  assert.equal(graph.layout.barmode, 'stack');
+  assert.equal(graph.layout.legend.font.size, 12);
+  assert.match(graph.layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, LTH\/STH\) as of /);
+  const sth = bars[0].y.reduce((s, v) => s + v, 0), lth = bars[1].y.reduce((s, v) => s + v, 0);
+  assert.ok(Math.abs(sth - (50000 * 3 + 70000)) < 1e-3, 'bands 0 and 7, in dollars');
+  assert.ok(Math.abs(lth - 50000 * 4) < 1e-3, 'band 8');
+  bars[0].y.forEach((v, i) => assert.ok(Math.abs(v + bars[1].y[i] - ageTotals[i]) < 1e-6 * (1 + ageTotals[i]), 'the same bars'));
+  assert.match(bars[0].hovertemplate, /<br>Short-Term Holders: %\{y:\$,\.0f\}<br>Total Value When Last Moved: /);
+  assert.equal(bars[0].customdata, bars[1].customdata, 'the whole bar\'s hover, shared');
+  // Each weighting has its title in each language.
+  c.coinMode = true; await c.rerenderCurrent();
+  assert.match(element('chart').layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(BTC, LTH\/STH\) as of /);
+  for (const [lang, want] of [['zh', '（BTC，长/短期）截至 '], ['ja', '（BTC、長期/短期） 基準日 ']]) {
+    c.lang = lang; await c.rerenderCurrent();
+    assert.ok(element('chart').layout.title.text.includes(want), lang);
+    assert.deepEqual(plain(element('chart').data.filter(t => t.type === 'bar').map(b => b.name)), [c.T[lang].sth, c.T[lang].lth], lang);
+  }
+  c.lang = 'en'; c.coinMode = false;
+  // Back to AGE; a second press of the same button changes nothing.
+  element('btnAge').onclick(); await c.chartRenderPromise;
+  assert.equal(element('chart').data.filter(t => t.type === 'bar').length, 23);
+  const before = c.chartRenderSeq;
+  element('btnAge').onclick();
+  assert.equal(c.chartRenderSeq, before, 'already AGE: no redraw');
+  // The buttons are named in the page's language.
+  c.lang = 'ja'; c.applyLang();
+  assert.equal(element('btnAge').textContent, '年齢');
+  assert.equal(element('btnSplit').textContent, '長期/短期');
+  assert.equal(element('btnSplit').title, c.T.ja.splitTitle);
 });

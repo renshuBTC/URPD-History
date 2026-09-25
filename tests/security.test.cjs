@@ -151,15 +151,24 @@ test('the jobs that run third-party code or parse its output can read the reposi
   assert.match(job(video, 'render'), /npm ci --ignore-scripts/);
   // The vet job checks the rendered file, rewrites it keeping only the picture, and decodes every frame.
   const vet = job(video, 'vet');
-  assert.match(vet, /check-video\.sh "\$RUNNER_TEMP\/rendered\/\$VIDEO"/);
+  assert.match(vet, /check-video\.sh "\$RUNNER_TEMP\/rendered\/\$FILE"/);
   assert.match(vet, /filter_units=pass_types=/);
-  assert.match(vet, /check-video\.sh "\$RUNNER_TEMP\/vetted\/\$VIDEO" --decode/);
+  assert.match(vet, /check-video\.sh "\$RUNNER_TEMP\/vetted\/\$FILE" --decode/);
   // The jobs that can write never parse the video, and the publish job attests before it publishes.
   for (const name of ['update', 'publish']) assert.doesNotMatch(job(video, name), /ffmpeg|ffprobe|check-video/, name);
   const publish = job(video, 'publish');
   assert.match(publish, /needs: \[update, vet\]/);
   assert.match(publish, /uses: actions\/attest@/);
+  assert.match(publish, /subject-path: \|\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO \}\}\n\s+\$\{\{ runner\.temp \}\}\/vetted\/\$\{\{ env\.VIDEO_LTHSTH \}\}\n/, 'both videos attested');
   assert.ok(publish.indexOf('actions/attest@') < publish.indexOf('replace-asset.sh video'), 'attest before publishing');
+  assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO" "\$RUNNER_TEMP\/vetted\/\$VIDEO_LTHSTH"/);
+  // The YouTube credentials reach three steps of the youtube job (the check for them and one post for each video)
+  // and nothing else in the workflow; the steps that hold them run this repository's own code.
+  assert.equal((video.match(/secrets\./g) || []).length, 9);
+  const youtube = job(video, 'youtube');
+  assert.equal((youtube.match(/secrets\.YOUTUBE_/g) || []).length, 9);
+  assert.equal((youtube.match(/run: node tools\/video\/youtube\.mjs /g) || []).length, 2);
+  assert.doesNotMatch(youtube, /npm |contents: write|GH_TOKEN/);
 });
 
 test('the privacy page runs nothing and loads nothing from elsewhere, and the explainer links to it', () => {

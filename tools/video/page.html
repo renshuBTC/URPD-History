@@ -9,14 +9,14 @@
 <script src="PLOTLY"></script>
 </head><body><div id="chart"></div>
 <script>
-// The site's chart (index.html drawChart, USD view) for one frame of the video. Axes, labels, landmarks and colours
-// follow the site and come from render.mjs. The one deliberate difference: each age band is one filled outline of
-// all 626 bars, painted back to front, instead of 14,000 separate rectangles (the same picture, much faster), with
-// the bar edges on whole device pixels.
+// The site's chart (index.html drawChart, USD view) for one frame of the video. Axes, labels, landmarks, colours and
+// the title follow the site and come from render.mjs, with the bars coloured by age band (AGE) or by short- and
+// long-term holders (LTH/STH): looks.mjs. The one deliberate difference: each layer (an age band, or a holder group)
+// is one filled outline of all 626 bars, painted back to front, instead of up to 14,000 separate rectangles (the same
+// picture, much faster), with the bar edges on whole device pixels.
 var FONT = "'Source Code Pro', Consolas, monospace";
 var GRID_COLOR = "#272727", WATERMARK_COLOR = "#1a1a1a";   // the site's (index.html, "Grid and watermark")
 var PROFIT = "#00e676", LOSS = "#ff1744", PRICE_LINE = "#ffffff";
-var LABELS = ["<1h","1h-1d","1d-1w","1w-1m","1m-2m","2m-3m","3m-4m","4m-5m","5m-6m","6m-9m","9m-1y","1y-18m","18m-2y","2y-3y","3y-4y","4y-5y","5y-6y","6y-7y","7y-8y","8y-10y","10y-12y","12y-15y",">15y"];
 var TOP_MARGIN = null, ML = 88, MR = 24, PLOT_W = 1920 - ML - MR, BAR_EDGES = null;
 // bar edges as fractions of the x-axis, snapped to device pixels, 2 px gap; computed from the real plot width
 function barEdges(plotW) { var dpr = window.devicePixelRatio || 1, len = plotW * dpr, n = 626, e = [], out = [];
@@ -34,17 +34,17 @@ function compactNumber(v) {
 function yLabel(v) { return v === 0 ? "$0" : "$" + compactNumber(v); }
 // the width of one bar in dollars, as the site writes it in its price axis title
 window.drawFrame = function(sp) {
-  var n = sp.nb, w = sp.w, xSpan = n * w, A = LABELS.length;
+  var n = sp.nb, w = sp.w, xSpan = n * w, A = sp.labels.length;
   var traces = [];
-  // legend entries: bar swatches in age order, exactly as the site lists them
-  for (var a = 0; a < A; a++) traces.push({ x: [null], y: [null], type: "bar", name: LABELS[a], marker: { color: sp.colors[a], line: { width: 0 } }, hoverinfo: "skip" });
+  // legend entries: bar swatches from the youngest coins to the oldest, exactly as the site lists them
+  for (var a = 0; a < A; a++) traces.push({ x: [null], y: [null], type: "bar", name: sp.labels[a], marker: { color: sp.colors[a], line: { width: 0 } }, hoverinfo: "skip" });
   // bars: one filled outline per cumulative layer, oldest (top of the stack) first, each painted from zero, so
-  // every layer's visible band is exactly its own cohort. Bar edges sit on whole device pixels with a 2 px gap
+  // every layer's visible band is exactly its own share of the bar. Bar edges sit on whole device pixels with a 2 px gap
   // (1 px at 1080p), the site's "one pixel narrower than the pitch"; the grid never moves because the bars
   // always span the whole axis, so the gaps stay crisp while the axis grows.
   var xs = [], edges = BAR_EDGES;
   for (var j = 0; j < n; j++) { var x0 = edges[j][0] * xSpan, x1 = edges[j][1] * xSpan; xs.push(x0, x0, x1, x1); }
-  var cum = sp.cum;                                   // cum[a] = sum of cohorts 0..a, per bin
+  var cum = sp.cum;                                   // cum[a] = layers 0..a added up, per bin
   for (var a2 = A - 1; a2 >= 0; a2--) {
     var ys = new Array(4 * n), c = cum[a2];
     for (var k = 0; k < n; k++) { ys[4 * k] = 0; ys[4 * k + 1] = c[k]; ys[4 * k + 2] = c[k]; ys[4 * k + 3] = 0; }
@@ -77,10 +77,10 @@ window.drawFrame = function(sp) {
       font: { color: "#ffffff", size: 13, family: FONT }, bgcolor: "rgba(0,0,0,0.92)", bordercolor: "rgba(255,255,255,0.45)", borderwidth: 1, borderpad: 5 });
   }
   var layout = {
-    title: { text: "<b>Bitcoin Supply by Price When Last Moved (USD Value) as of " + new Date(sp.date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + "</b>",
+    title: { text: "<b>" + sp.title + new Date(sp.date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + "</b>",
       xref: "paper", x: 0.5, xanchor: "center", y: 1, yanchor: "top", pad: { t: 13 }, font: { size: 20, family: FONT, color: "#ffffff" } },
     font: { family: FONT, color: "#ffffff" }, paper_bgcolor: "#0a0a0a", plot_bgcolor: "#0a0a0a", barmode: "stack", bargap: 0, showlegend: true,
-    legend: { orientation: "h", yanchor: "bottom", y: 1, xanchor: "center", x: 0.5, bgcolor: "rgba(0,0,0,0)", font: { family: FONT, size: 9, color: "#ffffff" }, traceorder: "normal" },
+    legend: { orientation: "h", yanchor: "bottom", y: 1, xanchor: "center", x: 0.5, bgcolor: "rgba(0,0,0,0)", font: { family: FONT, size: sp.legendSize, color: "#ffffff" }, traceorder: "normal" },
     xaxis: { title: { text: "Price When Last Moved [USD]", font: { family: FONT, size: 13, color: "#ffffff" }, standoff: 10 }, range: [0, xSpan], autorange: false,
       tickvals: sp.xt.v, ticktext: sp.xt.t, tickangle: 0, showgrid: true, gridcolor: GRID_COLOR, tickfont: { family: FONT, size: 11, color: "#ffffff" }, zeroline: false },
     yaxis: { title: { text: "" }, automargin: false, side: "left",
