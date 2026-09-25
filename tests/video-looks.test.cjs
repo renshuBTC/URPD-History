@@ -57,17 +57,26 @@ test('the workflow renders and vets both videos on runners of their own, publish
   // Each file names its look; the split is written as in its YouTube title, since a file name can hold no < or >.
   assert.deepEqual(env, { VIDEO: 'BitcoinSupplyChart.com-AGE.mp4', VIDEO_LTHSTH: 'BitcoinSupplyChart.com-Under-Over-150D.mp4', VIDEO_RAW: 'BitcoinSupplyChart.com-RAW.mp4' });
   assert.doesNotMatch(workflow, /BitcoinSupplyChart\.com\.mp4|LTH-STH/);
+  // One leg a video, from the update job (the looks the run draws, named as in env); one failing leg does not cancel
+  // the others.
   const matrix = `      fail-fast: false
       matrix:
-        include:
-          - look: age
-            file: ${env.VIDEO}
-          - look: lthsth
-            file: ${env.VIDEO_LTHSTH}
-          - look: raw
-            file: ${env.VIDEO_RAW}
+        include: \${{ fromJSON(needs.update.outputs.include) }}
 `;
-  for (const name of ['render', 'vet']) assert.ok(job(name).includes(matrix), name + ': one leg a video, named as in env, one failing leg not cancelling the other');
+  for (const name of ['render', 'vet']) assert.ok(job(name).includes(matrix), name);
+  assert.match(job('vet'), /needs: \[update, render\]/);
+  // Scheduled: all three. By hand: all three, or only the one asked for; anything else stops the run.
+  for (const [ONLY, looks] of [['', ['age', 'lthsth', 'raw']], ['all', ['age', 'lthsth', 'raw']], ['raw', ['raw']], ['age', ['age']], ['lthsth', ['lthsth']]]) {
+    const out = only(ONLY, env);
+    assert.equal(out.status, 0, ONLY);
+    assert.deepEqual(JSON.parse(out.looks), looks, ONLY);
+    assert.deepEqual(JSON.parse(out.include), looks.map((l) => ({ look: l, file: { age: env.VIDEO, lthsth: env.VIDEO_LTHSTH, raw: env.VIDEO_RAW }[l] })), ONLY);
+    assert.equal(out.only, ONLY || 'all');
+  }
+  assert.notEqual(only('everything', env).status, 0, 'no such video');
+  assert.match(workflow, /workflow_dispatch:\n\s+inputs:\n\s+only:\n\s+description: .*\n\s+type: choice\n\s+options: \[all, age, lthsth, raw\]\n\s+default: all\n/);
+  // A run for one video leaves the release, and so the week, as they are.
+  assert.match(job('publish'), /- name: Publish the videos\n\s+if: needs\.update\.outputs\.only == 'all'\n/);
   assert.deepEqual(Object.keys(LOOKS), ['age', 'lthsth', 'raw']);
   const render = job('render');
   assert.match(render, /LOOK: \$\{\{ matrix\.look \}\}/);
@@ -83,7 +92,8 @@ test('the workflow renders and vets both videos on runners of their own, publish
   // Each video posted from a job of its own with its own look and file, so a failed post can be run again alone.
   for (const [look, file] of [['age', 'VIDEO'], ['lthsth', 'VIDEO_LTHSTH'], ['raw', 'VIDEO_RAW']]) {
     const yt = job('youtube-' + look);
-    assert.match(yt, /needs: \[update, publish\]/);
+    assert.match(yt, new RegExp(`needs: \\[update, publish\\]\\n\\s+if: contains\\(fromJSON\\(needs\\.update\\.outputs\\.looks\\), '${look}'\\)\\n`), look + ': posted when the run drew it');
+    assert.match(job('publish'), new RegExp(`if: contains\\(fromJSON\\(needs\\.update\\.outputs\\.looks\\), '${look}'\\)\\n\\s+with:\\n\\s+name: video-vetted-${look}\\n`), look + ': downloaded when the run drew it');
     assert.deepEqual(downloads(yt), [`video-vetted-${look} -> \${{`], look);
     assert.equal((yt.match(/run: node tools\/video\/youtube\.mjs /g) || []).length, 1, look);
     assert.ok(yt.includes(`run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$${file}" "$START" "$END" ${look} >> "$GITHUB_OUTPUT"`), look);
@@ -116,6 +126,18 @@ test('the uploader writes exactly the two lines the youtube jobs read as their o
   assert.match(src, /\n {2}process\.stdout\.write\(githubOutput\(\{ id, privacy \}\)\);\n\}\n$/, 'the only thing it prints to stdout, last');
   assert.equal((src.match(/process\.stdout\.write/g) || []).length, 1);
 });
+
+// The update job's choice of videos, run as the workflow runs it (bash -e, jq), for a given ONLY (inputs.only).
+function only(ONLY, env) {
+  const block = job('update'), a = block.indexOf('          # Which videos:'), b = block.indexOf('          } >> "$GITHUB_OUTPUT"\n', a);
+  assert.ok(a > 0 && b > a, 'the choice');
+  const script = block.slice(a, b + '          } >> "$GITHUB_OUTPUT"\n'.length).split('\n').map(l => l.slice(10)).join('\n');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'only-')), out = path.join(dir, 'out');
+  fs.writeFileSync(out, '');
+  const r = spawnSync('bash', ['-e', '-c', script], { env: { PATH: process.env.PATH, GITHUB_OUTPUT: out, ONLY, ...env }, encoding: 'utf8' });
+  const kv = Object.fromEntries(fs.readFileSync(out, 'utf8').trim().split('\n').filter(Boolean).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+  return { status: r.status, ...kv };
+}
 
 // The record job's script, run as the workflow runs it (bash -e), with jq, in a copy of the repository's data folder.
 function record(env, before) {
