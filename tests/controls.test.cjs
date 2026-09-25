@@ -123,10 +123,9 @@ test('there is no download button, and the bar is drawn like the favicon: black 
   // Nothing in the bar is orange, grey-filled or rounded any more.
   const bar = rules.filter(r => r.sels.some(x => /^(#controls|#intervalBar|#landmarks|#dateDisplay|#ytBtn|#githubLink|#explainBtn|#langBtn|\.ctrl-sep|\.mode-toggle)/.test(x)));
   for (const r of bar) assert.doesNotMatch(r.body, /#ff8c00|#ffaa33|#3a3a3a|#252525|#1e1e1e|#1a1a1a|#d4d4d4|#555\b|#888|border-radius:\s*[1-9]/, r.sels.join(','));
-  // The favicon is the bar's mark, first in the bar, a picture only.
-  assert.match(html, /<div id="controls">\s*<span id="brandMark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><rect width="24" height="24" fill="#fff"\/><path d="M0 0H24L0 24Z" fill="#000"\/>/);
-  const favicon = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'favicon.svg'), 'utf8');
-  assert.match(favicon, /<rect width="16" height="16" fill="#ffffff"\/><path d="M0 0H16L0 16Z" fill="#000000"\/>/, 'the same picture as the favicon');
+  // The favicon stays the tab's icon only: no mark in the bar, which starts with the step sizes.
+  assert.match(html, /<div id="controls">\s*<div id="intervalBar">/);
+  assert.doesNotMatch(html, /brandMark/);
   // Keyboard focus: the browser's ring on buttons, a white ring on the links. (A mouse click lets go of focus, so
   // none of this is ever drawn for the mouse; see ui.test.cjs.)
   assert.ok(!rules.some(r => r.sels.some(x => /^#controls (button|a|select):focus$/.test(x))), 'focus rings are not switched off');
@@ -154,10 +153,11 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
 
 test('the YouTube button, the one way to the video, always shows: the latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
-  const a = html.match(/<a id="ytBtn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\s\S]*?<\/svg>)<span class="btn-word">YouTube<\/span><\/a>/);
+  const a = html.match(/<a id="ytBtn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\s\S]*?<\/svg>)<span id="ytLabel" class="btn-word">Full history in 5 min<\/span><\/a>/);
   assert.ok(a, 'a visible link that opens in a new tab: the play symbol and the word, named for screen readers and tooltips');
   assert.equal(a[1], CHANNEL, 'the channel until the page learns of a video');
-  assert.equal(a[2], 'The renshuBTC channel on YouTube (opens in a new tab)');
+  assert.equal(a[2], 'Full history in 5 min: on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)');
+  assert.ok(a[2].startsWith('Full history in 5 min'), 'the spoken name starts with the words on the button');
   assert.equal(a[2], a[3]);
   assert.match(a[4], /aria-hidden="true"/);
   assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
@@ -169,20 +169,22 @@ test('the YouTube button, the one way to the video, always shows: the latest vid
   const { c, element } = app(), btn = element('ytBtn');
   c.setYouTubeLink({ id: 'dQw4w9WgXcQ', end: '2026-09-24' });
   assert.equal(btn.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  assert.equal(btn.title, 'Watch the latest video on YouTube (opens in a new tab)');
+  assert.equal(btn.title, 'Full history in 5 min: every day since 2010 as one 4K video, on YouTube (opens in a new tab)');
   assert.equal(btn.getAttribute('aria-label'), btn.title);
-  for (const [lang, want] of [['zh', '在 YouTube 观看最新视频（在新标签页中打开）'], ['ja', 'YouTube で最新の動画を見る（新しいタブで開きます）']]) {
+  for (const [lang, want, word] of [['zh', '5 分钟看完整历史：2010 年以来的每一天，一段 4K 视频，在 YouTube 上观看（在新标签页中打开）', '5 分钟看完整历史'], ['ja', '全期間を5分で：2010年以降の毎日を 1 本の 4K 動画にまとめて YouTube で（新しいタブで開きます）', '全期間を5分で']]) {
     c.lang = lang; c.labelYouTube();
     assert.equal(btn.title, want, lang);
+    assert.equal(element('ytLabel').textContent, word, lang);
+    assert.ok(want.startsWith(word), lang + ': the spoken name starts with the words on the button');
   }
   c.lang = 'en';
   for (const bad of [null, {}, { id: null }, { id: 'javascript:x' }, { id: 'short' }, { id: 'dQw4w9WgXcQ"x' }, { id: 12345678901 }, 'dQw4w9WgXcQ']) {
     c.setYouTubeLink({ id: 'dQw4w9WgXcQ' });
     c.setYouTubeLink(bad);
     assert.equal(btn.href, CHANNEL, JSON.stringify(bad));
-    assert.equal(btn.title, 'The renshuBTC channel on YouTube (opens in a new tab)', JSON.stringify(bad));
+    assert.equal(btn.title, 'Full history in 5 min: on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)', JSON.stringify(bad));
   }
-  for (const [lang, want] of [['zh', 'YouTube 上的 renshuBTC 频道（在新标签页中打开）'], ['ja', 'YouTube の renshuBTC チャンネル（新しいタブで開きます）']]) {
+  for (const [lang, want] of [['zh', '5 分钟看完整历史：YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）'], ['ja', '全期間を5分で：YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
     assert.equal(btn.title, want, lang);
     assert.equal(btn.getAttribute('aria-label'), want, lang);
