@@ -1,22 +1,25 @@
-// Posts the day's video to the channel on YouTube. The Daily video workflow's youtube job runs it once the video is
+// Posts one of the day's two videos to the channel on YouTube: the bars coloured by age band (AGE), or by short- and
+// long-term holders (LTH/STH; looks.mjs). The Daily video workflow's youtube job runs it for each once they are
 // published on GitHub. It speaks the YouTube Data API's resumable upload itself
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
-// so the job that holds the channel's credentials runs nothing installed.
+// so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
 //
 // The video goes up unlisted: anyone with the link can watch it (the site's YouTube button), but it is shown neither
-// on the channel nor in search. Its title is the chart's own title for its last day. Until the Google Cloud project
+// on the channel nor in search. Its title is the chart's own title for its last day, which names its look. Until the Google Cloud project
 // behind the credentials passes YouTube's API audit, YouTube records every upload as private instead, whatever is
 // asked for here.
 //
-//   YOUTUBE_CLIENT_ID=… YOUTUBE_CLIENT_SECRET=… YOUTUBE_REFRESH_TOKEN=… node tools/video/youtube.mjs FILE START END
+//   YOUTUBE_CLIENT_ID=… YOUTUBE_CLIENT_SECRET=… YOUTUBE_REFRESH_TOKEN=… node tools/video/youtube.mjs FILE START END [LOOK]
 //
-// prints id=<the video's id> and privacy=<the privacy YouTube recorded> for $GITHUB_OUTPUT. With --check instead of
-// FILE START END it only asks Google for an access token with the three secrets and says whether that worked.
+// (LOOK: age, the default, or lthsth) prints id=<the video's id> and privacy=<the privacy YouTube recorded> for
+// $GITHUB_OUTPUT. With --check instead of FILE START END it only asks Google for an access token with the three secrets
+// and says whether that worked.
 // The secrets are trimmed first: a token pasted with a line break after it is, to Google, a token it never issued.
 import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import { fileURLToPath } from "node:url";
+import { look, titleStart } from "./looks.mjs";
 
 export const ENDPOINTS = { token: "https://oauth2.googleapis.com/token", upload: "https://www.googleapis.com/upload/youtube/v3/videos" };
 const RETRY = new Set([500, 502, 503, 504]);   // the answers YouTube says to retry (with backoff)
@@ -24,16 +27,26 @@ const PRIVACY = new Set(["private", "unlisted", "public"]);
 
 const day = (d, opts) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
 
-// The chart's title on the video's last day, exactly as the site and the video print it ("… as of 24 Sept 2026").
-export function videoTitle(end) {
-  return "Bitcoin Supply by Price When Last Moved (USD Value) as of " + day(end, { day: "2-digit", month: "short", year: "numeric" });
+// The chart's title on the video's last day, exactly as the site and the video print it ("… (USD Value, AGE) as of
+// 24 Sept 2026").
+export function videoTitle(end, name = "age") {
+  return titleStart(name) + day(end, { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function videoDescription(start, end) {
+// How each look splits a bar, in the description's words.
+const SPLIT = {
+  age: "each bar split into 23 age bands, by how long its coins have sat unmoved",
+  lthsth: "each bar split into short-term holders (coins that moved within the last 150 days) and long-term holders " +
+    "(coins unmoved for 150 days or more)",
+};
+const TAGS = { age: ["UTXO age", "coin age"], lthsth: ["long-term holders", "short-term holders", "LTH", "STH"] };
+
+export function videoDescription(start, end, name = "age") {
+  look(name);
   const long = (d) => day(d, { day: "numeric", month: "long", year: "numeric" });
   return [
     "Every bitcoin last moved at some price. This is the whole supply sorted by that price and weighed by what it was " +
-      "worth then (the URPD, UTXO Realised Price Distribution), each bar split into 23 age bands, every day from " +
+      "worth then (the URPD, UTXO Realised Price Distribution), " + SPLIT[name] + ", every day from " +
       long(start) + " to " + long(end) + ".",
     "",
     "Any day, in your browser: https://bitcoinsupplychart.com",
@@ -43,12 +56,12 @@ export function videoDescription(start, end) {
 }
 
 // The video resource sent with the upload (snippet and status parts).
-export function metadata(start, end) {
+export function metadata(start, end, name = "age") {
   return {
     snippet: {
-      title: videoTitle(end),
-      description: videoDescription(start, end),
-      tags: ["bitcoin", "URPD", "UTXO", "on-chain", "bitcoin supply", "realized price", "cost basis"],
+      title: videoTitle(end, name),
+      description: videoDescription(start, end, name),
+      tags: ["bitcoin", "URPD", "UTXO", "on-chain", "bitcoin supply", "realized price", "cost basis", ...TAGS[name]],
       categoryId: "28",   // Science & Technology
       defaultLanguage: "en",
     },
@@ -164,11 +177,12 @@ export async function checkToken({ credentials, endpoints = ENDPOINTS, tries = 3
   return true;
 }
 
-export async function post({ file, start, end, credentials, endpoints = ENDPOINTS, tries = 8, wait = backoff, log = console.error }) {
+export async function post({ file, start, end, name = "age", credentials, endpoints = ENDPOINTS, tries = 8, wait = backoff, log = console.error }) {
   const o = { endpoints, tries, wait, log };
+  const meta = metadata(start, end, name);   // an unknown look stops here, before anything is sent
   const size = fs.statSync(file).size;
   const token = await accessToken(credentials, o);
-  const session = await startSession(token, size, metadata(start, end), o);
+  const session = await startSession(token, size, meta, o);
   const video = await uploadFile(session, file, size, token, o);
   const id = video && video.id, privacy = video && video.status && video.status.privacyStatus;
   if (typeof id !== "string" || !/^[A-Za-z0-9_-]{11}$/.test(id)) throw new Error("upload: no video id in YouTube's answer");
@@ -176,9 +190,11 @@ export async function post({ file, start, end, credentials, endpoints = ENDPOINT
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])) {
-  const [file, start, end] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
+  const [file, start, end, name = "age"] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
   const check = file === "--check";
-  if (!check && (!file || !isDay(start) || !isDay(end))) { console.error("usage: node tools/video/youtube.mjs FILE START END | --check"); process.exit(2); }
+  if (!check && (!file || !isDay(start) || !isDay(end) || !Object.hasOwn(SPLIT, name))) {
+    console.error("usage: node tools/video/youtube.mjs FILE START END [age|lthsth] | --check"); process.exit(2);
+  }
   const { credentials, padded } = credentialsFrom(process.env);
   if (!credentials.clientId || !credentials.clientSecret || !credentials.refreshToken) {
     console.error("YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET and YOUTUBE_REFRESH_TOKEN are all needed"); process.exit(2);
@@ -189,7 +205,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(proces
     console.error("Google accepted the credentials: the refresh token gives an access token.");
     process.exit(0);
   }
-  const { id, privacy } = await post({ file, start, end, credentials });
-  console.error(`Posted https://www.youtube.com/watch?v=${id} (${privacy})`);
+  const { id, privacy } = await post({ file, start, end, name, credentials });
+  console.error(`Posted ${look(name).tag}: https://www.youtube.com/watch?v=${id} (${privacy})`);
   process.stdout.write(`id=${id}\nprivacy=${privacy}\n`);
 }
