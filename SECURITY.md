@@ -7,7 +7,7 @@ that asks for more, or offers you any other file, is not this site.
 
 ## The video
 
-The full-history video is on YouTube, not on the site. The YOUTUBE button in the toolbar opens the latest
+The full-history video is on YouTube, not on the site. FULL HISTORY IN 5 MIN in the toolbar opens the latest
 one, posted unlisted by the [Daily video](.github/workflows/video.yml) workflow to the
 [renshuBTC](https://www.youtube.com/@renshuBTC) channel (the channel itself until there is a video others can watch).
 It only ever goes to the channel or to `https://www.youtube.com/watch?v=` and the video's id, which the page checks
