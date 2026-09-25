@@ -162,3 +162,14 @@ test('the jobs that run third-party code or parse its output can read the reposi
   assert.match(publish, /uses: actions\/attest@/);
   assert.ok(publish.indexOf('actions/attest@') < publish.indexOf('replace-asset.sh video'), 'attest before publishing');
 });
+
+test('the privacy page runs nothing and loads nothing from elsewhere, and the explainer links to it', () => {
+  const page = fs.readFileSync(path.join(ROOT, 'privacy.html'), 'utf8');
+  assert.match(page, /<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">/);
+  assert.doesNotMatch(page, /<script|\son[a-z]+=|javascript:/i, 'no script of any kind');
+  assert.doesNotMatch(page, /<(iframe|object|embed|form|img)\b/i);
+  assert.match(page, /Bitcoin Supply Chart uploader/, 'it names the app that posts to YouTube');
+  assert.match(page, /https:\/\/www\.youtube\.com\/t\/terms/);
+  assert.match(page, /https:\/\/policies\.google\.com\/privacy/);
+  assert.match(html, /<p id="explainFoot"><a id="privacyLink" href="privacy.html">Privacy<\/a><\/p>/);
+});
