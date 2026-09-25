@@ -1,7 +1,10 @@
 // The video's store: every day's bars (23 age bands x 626 bins, in dollars) binned by index.html's own code on the
-// growing price axis of data/scales.json, plus the day's axis end, price and share of value that last moved above that price. A past day
-// never changes (its axis is fixed once the day has passed), so the store only ever gains days. It is kept as
-// meta.json plus one gzipped Float32Array per year (bars-YYYY.f32.gz), and lives as files on the "video-data" release.
+// growing price axis of data/scales.json, plus the day's axis end, price and share of value that last moved above that
+// price, and the same day's bars unsmoothed, the whole bar in one (626 bins), for the RAW video. A past day never
+// changes (its axis is fixed once the day has passed), so the store only ever gains days. It is kept as meta.json plus
+// gzipped Float32Arrays per year, bars-YYYY.f32.gz and raw-YYYY.f32.gz, and lives as files on the "video-data" release.
+// A year's raw file may hold fewer days than meta.json lists (the RAW bars came later): the missing ones are added
+// again from each day's data, as new days are.
 //
 //   node tools/video/store.mjs DIR [--cache RAWDIR] [--until DATE] [--seconds N]
 //
@@ -16,7 +19,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const { loadSite } = require("../build-scales.cjs");
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const BANDS = 23, BINS = 626, PER_DAY = BANDS * BINS;
+const BANDS = 23, BINS = 626, PER_DAY = BANDS * BINS, RAW_PER_DAY = BINS;
 
 export async function getJSON(url, tries = 5) {
   for (let k = 1; ; k++) {
@@ -55,7 +58,19 @@ export function readStore(dir) {
   const offsets = []; const seen = {};
   for (const [date] of meta.days) { const y = date.slice(0, 4); offsets.push([y, (seen[y] = (seen[y] || 0) + 1) - 1]); }
   const bars = (i) => { const [y, k] = offsets[i]; return chunks[y].subarray(k * PER_DAY, (k + 1) * PER_DAY); };
-  return { meta, chunks, bars };
+  // raw(i): the i-th day's 626 unsmoothed values, or null where its year's raw file does not reach it yet. rawDays[y]:
+  // how many of the year's days it holds (a longer file is cut to meta.json, as the bars are).
+  const rawChunks = {}, rawDays = {};
+  for (const y of Object.keys(years)) {
+    const file = path.join(dir, `raw-${y}.f32.gz`);
+    if (!fs.existsSync(file)) { rawChunks[y] = new Float32Array(0); rawDays[y] = 0; continue; }
+    const b = zlib.gunzipSync(fs.readFileSync(file)), f = new Float32Array(b.buffer, b.byteOffset, b.length / 4);
+    if (f.length % RAW_PER_DAY) throw new Error(`raw-${y}.f32.gz holds ${f.length / RAW_PER_DAY} days`);
+    rawDays[y] = Math.min(years[y], f.length / RAW_PER_DAY);
+    rawChunks[y] = f.subarray(0, rawDays[y] * RAW_PER_DAY);
+  }
+  const raw = (i) => { const [y, k] = offsets[i]; return k < rawDays[y] ? rawChunks[y].subarray(k * RAW_PER_DAY, (k + 1) * RAW_PER_DAY) : null; };
+  return { meta, chunks, bars, rawChunks, rawDays, raw };
 }
 
 // The first day with anything on the chart, where the video starts (render.mjs): the day the first close comes into
@@ -95,47 +110,71 @@ async function main() {
   site.setBinning(site.BINS_DEFAULT, site.KERNEL_DEFAULT);
   site.setScales(scales);
 
-  const { meta, chunks } = readStore(opt.dir);
+  const { meta, chunks, rawChunks, rawDays } = readStore(opt.dir);
   const last = meta.days.length ? meta.days[meta.days.length - 1][0] : "";
   // Only days the axis history already covers, so every bar sits on the axis the site draws for that day.
   const todo = site.cleanDates(dates).filter((d) => d > last && d <= until && d <= scales.end);
   const changed = new Set();
-  const added = {}, deadline = opt.seconds ? Date.now() + opt.seconds * 1000 : Infinity;
+  const added = {}, addedRaw = {}, deadline = opt.seconds ? Date.now() + opt.seconds * 1000 : Infinity;
+  // A day's 23 cohorts, from the cache or the API.
+  async function cohorts(date) {
+    const cached = opt.cache && path.join(opt.cache, date + ".json.gz");
+    if (cached && fs.existsSync(cached)) return JSON.parse(zlib.gunzipSync(fs.readFileSync(cached))).map(site.cleanCohort);
+    const res = [];
+    for (let i = 0; i < site.AGE_BANDS.length; i += 6) {
+      res.push(...(await Promise.all(site.AGE_BANDS.slice(i, i + 6).map((b) => getJSON(site.BASE + "/api/series/cost-basis/" + b.cohort + "/" + date)))).map(site.cleanCohort));
+    }
+    if (cached) { fs.mkdirSync(opt.cache, { recursive: true }); fs.writeFileSync(cached, zlib.gzipSync(JSON.stringify(res))); }
+    return res;
+  }
+  const whole = (res) => { const all = {}; for (const c of res) for (const k in c) all[k] = (all[k] || 0) + c[k]; return all; };
+  // The day's bars unsmoothed on the same axis (bar width binWidth), the whole bar: what the site's RAW draws.
+  function rawBars(all, binWidth) {
+    site.setBinning(site.BINS_DEFAULT, 0);
+    try { return Float32Array.from(site.aggregate(all, binWidth), (b) => b.invested); }
+    finally { site.setBinning(site.BINS_DEFAULT, site.KERNEL_DEFAULT); }
+  }
+  // Days already in the store whose year's raw file does not reach them yet (the RAW bars came after them): each year's
+  // missing days are its last ones, added in order.
+  const perYear = {};
+  meta.days.forEach(([date, X], i) => { const y = date.slice(0, 4); (perYear[y] = perYear[y] || []).push([date, X]); });
+  const backfill = [];
+  for (const y of Object.keys(perYear)) perYear[y].slice(rawDays[y] || 0).forEach(([date, X]) => backfill.push([y, date, X]));
+  let nRaw = 0;
+  for (const [y, date, X] of backfill) {
+    if (Date.now() > deadline) break;
+    (addedRaw[y] = addedRaw[y] || []).push(rawBars(whole(await cohorts(date)), X / site.BINS_DEFAULT));
+    nRaw++;
+  }
   let n = 0;
-  for (const date of todo) {
+  // New days only once every earlier day has its raw bars, so each year's raw file stays in step with meta.json.
+  for (const date of nRaw === backfill.length ? todo : []) {
     if (Date.now() > deadline) break;
     n++;
-    const cached = opt.cache && path.join(opt.cache, date + ".json.gz");
-    let res;
-    if (cached && fs.existsSync(cached)) res = JSON.parse(zlib.gunzipSync(fs.readFileSync(cached))).map(site.cleanCohort);
-    else {
-      res = [];
-      for (let i = 0; i < site.AGE_BANDS.length; i += 6) {
-        res.push(...(await Promise.all(site.AGE_BANDS.slice(i, i + 6).map((b) => getJSON(site.BASE + "/api/series/cost-basis/" + b.cohort + "/" + date)))).map(site.cleanCohort));
-      }
-      if (cached) { fs.mkdirSync(opt.cache, { recursive: true }); fs.writeFileSync(cached, zlib.gzipSync(JSON.stringify(res))); }
-    }
-    const all = {};
-    for (const c of res) for (const k in c) all[k] = (all[k] || 0) + c[k];
+    const res = await cohorts(date), all = whole(res);
     const data = site.buildData(date, { all, age: res });
     if (!data.aggAge || data.aggAge.length !== BANDS) throw new Error(date + ": expected " + BANDS + " age bands");
     const f = new Float32Array(PER_DAY);
     data.aggAge.forEach((c, a) => { for (let j = 0; j < BINS; j++) f[a * BINS + j] = c.agg[j].invested; });
     const y = date.slice(0, 4);
     (added[y] = added[y] || []).push(f);
+    (addedRaw[y] = addedRaw[y] || []).push(rawBars(all, data.binWidth));
     meta.days.push([date, +(data.binWidth * site.BINS_DEFAULT).toPrecision(9), data.spot > 0 ? data.spot : null,
       data.redPct === null ? null : +data.redPct.toFixed(4)]);
   }
-  for (const y of Object.keys(added)) {
-    const old = chunks[y] || new Float32Array(0), f = new Float32Array(old.length + added[y].length * PER_DAY);
-    f.set(old); added[y].forEach((d, k) => f.set(d, old.length + k * PER_DAY));
-    const file = path.join(opt.dir, `bars-${y}.f32.gz`);
+  const appendYear = (prefix, y, old, list, per) => {
+    const f = new Float32Array(old.length + list.length * per);
+    f.set(old); list.forEach((d, k) => f.set(d, old.length + k * per));
+    const file = path.join(opt.dir, `${prefix}-${y}.f32.gz`);
     writeAtomic(file, zlib.gzipSync(Buffer.from(f.buffer, f.byteOffset, f.byteLength), { level: 9 }));
     changed.add(file);
-  }
+  };
+  for (const y of Object.keys(added)) appendYear("bars", y, chunks[y] || new Float32Array(0), added[y], PER_DAY);
+  for (const y of Object.keys(addedRaw)) appendYear("raw", y, rawChunks[y] || new Float32Array(0), addedRaw[y], RAW_PER_DAY);
   if (n) { writeAtomic(path.join(opt.dir, "meta.json"), JSON.stringify(meta)); changed.add(path.join(opt.dir, "meta.json")); }
   process.stderr.write(`store: ${n} day(s) added, ${meta.days.length} in all, through ${meta.days.length ? meta.days[meta.days.length - 1][0] : "-"}` +
-    (n < todo.length ? `; ${todo.length - n} still to do (run again)` : "") + "\n");
+    (nRaw ? `; raw bars added for ${nRaw} earlier day(s)` : "") + (nRaw < backfill.length ? `, ${backfill.length - nRaw} still to do (run again)` : "") +
+    (n < todo.length ? `; ${todo.length - n} new day(s) still to do (run again)` : "") + "\n");
   for (const f of changed) process.stdout.write(f + "\n");
 }
 
