@@ -121,23 +121,24 @@ test('an open How to read panel follows the toolbar when it re-fits, under the b
   assert.equal(panel.style.top, '65px');
 });
 
-test('the toolbar is one row that never scrolls; three videos in words, How to read and GitHub as icons, and the language button on its own at the right', () => {
+test('the toolbar is one row that never scrolls; three videos in words, then How to read and GitHub as icons and the language button, together at the right', () => {
   assert.match(decls('#controls'), /flex-wrap:\s*nowrap/);
   assert.match(decls('#controls'), /overflow:\s*hidden/);
   assert.doesNotMatch(decls('#controls'), /overflow-x|scrollbar|flex-wrap:\s*wrap/);
   assert.match(decls('#toolbarEnd'), /margin-left:\s*auto/);
   assert.doesNotMatch(decls('#githubLink'), /margin-left/);
   const end = html.slice(html.indexOf('<div id="toolbarEnd">'), html.indexOf('<div id="status"'));
-  assert.deepEqual([...end.matchAll(/\sid="(\w+)"/g)].map(m => m[1]), ['toolbarEnd', 'langBtn'], 'only the language at the right-hand end');
+  assert.deepEqual([...end.matchAll(/\sid="(explainWrap|githubLink|langBtn)"/g)].map(m => m[1]), ['explainWrap', 'githubLink', 'langBtn'], 'How to read, GitHub and the language together at the right-hand end');
+  assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytSplitBtn|ytRawBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'ytSplitBtn', 'ytRawBtn', 'explainWrap', 'githubLink']);
+  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytSplitBtn|ytRawBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'ytSplitBtn', 'ytRawBtn']);
   // The video buttons show their icon and words, at the weight of the other buttons.
   assert.match(bar, /id="ytBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytLabel" class="yt-word">Full history in 5 min<\/span><span id="ytTag" class="yt-tag">AGE<\/span>/, 'the video buttons say what they give you');
   assert.match(bar, /id="ytSplitBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytSplitLabel" class="yt-word">Full history in 5 min<\/span><span class="yt-tag"><span id="ytSplitTag" class="yt-tag-full">&lt;150D\/&gt;150D<\/span><span class="yt-tag-short">150D<\/span><\/span>/);
   assert.match(bar, /id="ytRawBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytRawLabel" class="yt-word">Full history in 5 min<\/span><span id="ytRawTag" class="yt-tag">RAW<\/span>/);
   // How to read and GitHub: their icons only, named by their tooltips and for screen readers.
-  assert.match(bar, /<a id="githubLink"[^>]*aria-label="View code on GitHub \(opens in a new tab\)" title="View code on GitHub \(opens in a new tab\)">\s*<svg[\s\S]*?<\/svg>\s*<\/a>/);
-  assert.match(bar, /<button id="explainBtn" aria-label="How to read this chart" title="How to read this chart" aria-expanded="false"><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><\/button>/);
+  assert.match(end, /<a id="githubLink"[^>]*aria-label="View code on GitHub \(opens in a new tab\)" title="View code on GitHub \(opens in a new tab\)">\s*<svg[\s\S]*?<\/svg>\s*<\/a>/);
+  assert.match(end, /<button id="explainBtn" aria-label="How to read this chart" title="How to read this chart" aria-expanded="false"><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><\/button>/);
   assert.doesNotMatch(html, /btn-word|explainLabel/);
   // In the narrowest bars the longest name gives way to a short one, 150D.
   assert.match(decls('#controls.compact .yt-tag-short'), /display:\s*inline/);
