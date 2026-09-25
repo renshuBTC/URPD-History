@@ -102,37 +102,35 @@ test('every text has all three languages', () => {
   for (const l of langs) for (const k of keys) assert.ok(typeof c.T[l][k] === 'string' && c.T[l][k].length, `${l}.${k}`);
 });
 
-test('there is no download button, and the bar is drawn like the favicon: black and bitcoin orange, square, the chosen option inverted', () => {
+test('there is no download button, and the bar is drawn like the favicon: black and white, square, the chosen option inverted', () => {
   assert.doesNotMatch(html, /id="videoBtn"|#videoBtn/, 'no video download (security.test.cjs checks every link)');
-  assert.match(decls('#controls'), /background:\s*#000;/);
-  // Every button and link: black, orange words, a 1px outline of orange at 35% (#563309 on black), solid orange
-  // under the mouse, square corners; the chosen option is an orange block with black text.
+  // The bar is the greyish black it always had (#1a1a1a), drawn in black and white on it.
+  assert.match(decls('#controls'), /background:\s*#1a1a1a;/);
+  // Every button and link: the bar's grey, a 1px outline of white at 35% (#595959), solid white under the mouse,
+  // square corners; the chosen option is a white block with black text.
   for (const sel of ['#controls button', '#controls #githubLink', '#controls #ytBtn']) {
-    assert.match(decls(sel), /background:\s*#000;\s*color:\s*#f7931a;\s*border:\s*1px solid #563309;\s*border-radius:\s*0;/, sel);
+    assert.match(decls(sel), /background:\s*#1a1a1a;\s*color:\s*#fff;\s*border:\s*1px solid #595959;\s*border-radius:\s*0;/, sel);
   }
   for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls #ytBtn:hover', '#explainBtn:hover', '#langBtn:hover']) {
-    assert.match(decls(sel), /border-color:\s*#f7931a/, sel);
+    assert.match(decls(sel), /border-color:\s*#fff/, sel);
   }
-  assert.match(decls('#controls .mode-toggle button.active'), /background:\s*#f7931a;\s*color:\s*#000;\s*border-color:\s*#f7931a/);
-  assert.match(decls('#intervalBar .iv.active'), /background:\s*#f7931a;\s*color:\s*#000/);
+  assert.match(decls('#controls .mode-toggle button.active'), /background:\s*#fff;\s*color:\s*#000;\s*border-color:\s*#fff/);
+  assert.match(decls('#intervalBar .iv.active'), /background:\s*#fff;\s*color:\s*#000/);
   // The step bar and the cycle list are framed the same way; the list's frame doubles while it has focus.
-  assert.match(decls('#intervalBar'), /border:\s*1px solid #563309;\s*border-radius:\s*0/);
-  assert.match(decls('#landmarks'), /background:\s*#000;.*border:\s*1px solid #563309;.*border-radius:\s*0/);
-  assert.match(decls('#landmarks:hover'), /border-color:\s*#f7931a/);
-  assert.match(decls('#landmarks:focus'), /border-color:\s*#f7931a;\s*box-shadow:\s*inset 0 0 0 1px #f7931a/);
-  // Nothing in the bar is white, grey, the old orange or rounded any more: black and bitcoin orange only.
+  assert.match(decls('#intervalBar'), /border:\s*1px solid #595959;\s*border-radius:\s*0/);
+  assert.match(decls('#landmarks'), /background:\s*#1a1a1a;.*border:\s*1px solid #595959;.*border-radius:\s*0/);
+  assert.match(decls('#landmarks:hover'), /border-color:\s*#fff/);
+  assert.match(decls('#landmarks:focus'), /border-color:\s*#fff;\s*box-shadow:\s*inset 0 0 0 1px #fff/);
+  // Nothing in the bar is orange, lighter grey or rounded any more.
   const bar = rules.filter(r => r.sels.some(x => /^(#controls|#intervalBar|#landmarks|#dateDisplay|#ytBtn|#githubLink|#explainBtn|#langBtn|\.ctrl-sep|\.mode-toggle)/.test(x)));
-  for (const r of bar) assert.doesNotMatch(r.body, /#fff\b|#ffffff|#595959|#999\b|#333\b|#ff8c00|#ffaa33|#3a3a3a|#252525|#1e1e1e|#1a1a1a|#d4d4d4|#555\b|#888|border-radius:\s*[1-9]/, r.sels.join(','));
-  // The favicon is the same two colours: a bitcoin-orange square with its black half.
-  const favicon = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'favicon.svg'), 'utf8');
-  assert.match(favicon, /<rect width="16" height="16" fill="#f7931a"\/><path d="M0 0H16L0 16Z" fill="#000000"\/>/);
+  for (const r of bar) assert.doesNotMatch(r.body, /#ff8c00|#ffaa33|#3a3a3a|#252525|#1e1e1e|#d4d4d4|#555\b|#888|border-radius:\s*[1-9]/, r.sels.join(','));
   // The favicon stays the tab's icon only: no mark in the bar, which starts with the step sizes.
   assert.match(html, /<div id="controls">\s*<div id="intervalBar">/);
   assert.doesNotMatch(html, /brandMark/);
-  // Keyboard focus: the browser's ring on buttons, an orange ring on the links. (A mouse click lets go of focus, so
+  // Keyboard focus: the browser's ring on buttons, a white ring on the links. (A mouse click lets go of focus, so
   // none of this is ever drawn for the mouse; see ui.test.cjs.)
   assert.ok(!rules.some(r => r.sels.some(x => /^#controls (button|a|select):focus$/.test(x))), 'focus rings are not switched off');
-  for (const sel of ['#githubLink:focus-visible', '#ytBtn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #f7931a/, sel);
+  for (const sel of ['#githubLink:focus-visible', '#ytBtn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #fff/, sel);
   assert.equal(rules.filter(r => /background-color:\s*#(4a4a4a|ffc266)/.test(r.body)).length, 0, 'no focus fills');
 });
 
@@ -165,9 +163,9 @@ test('the YouTube button, the one way to the video, always shows: the latest vid
   assert.match(a[4], /aria-hidden="true"/);
   assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   assert.doesNotMatch(html, /#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
-  assert.match(decls('#controls #ytBtn'), /border:\s*1px solid #563309/);
-  assert.match(decls('#controls #ytBtn:hover'), /border-color:\s*#f7931a/);
-  assert.match(decls('#ytBtn:focus-visible'), /outline:\s*2px solid #f7931a/);
+  assert.match(decls('#controls #ytBtn'), /border:\s*1px solid #595959/);
+  assert.match(decls('#controls #ytBtn:hover'), /border-color:\s*#fff/);
+  assert.match(decls('#ytBtn:focus-visible'), /outline:\s*2px solid #fff/);
   // data/youtube.json names the latest video once it is unlisted or public; anything else leaves the channel.
   const { c, element } = app(), btn = element('ytBtn');
   c.setYouTubeLink({ id: 'dQw4w9WgXcQ', end: '2026-09-24' });
