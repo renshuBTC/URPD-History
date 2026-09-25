@@ -38,7 +38,7 @@ Toolbar, left to right:
 - **USD / BTC** — weight by dollar value at last move, or by coins
 - **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
 - **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 625 bars, and its title gives the width of one in dollars
-- a **YouTube** button (a play symbol) for the latest full-history video once there is one to watch, **?** explainer, a language toggle, and the **GitHub** icon linking to the source. The chart's camera icon saves a PNG of it; there is no video download
+- a **YouTube** button (a play symbol) for the latest full-history video (the channel until there is one others can watch), **?** explainer, a language toggle, and the **GitHub** icon linking to the source. The chart's camera icon saves a PNG of it; there is no video download
 
 The toolbar stays on one row. Scroll it horizontally when the controls do not fit the window.
 
@@ -83,7 +83,8 @@ After publishing the video, the **Daily video** workflow posts it to the [renshu
 channel with `tools/video/youtube.mjs`, through the YouTube Data API. Each day's video goes up **unlisted** (anyone
 with the link can watch it; it is shown neither on the channel nor in search), titled with the chart's own title on its
 last day, for example *Bitcoin Supply by Price When Last Moved (USD Value) as of 24 Sept 2026*. Once YouTube lets
-others watch it, the workflow names it in `data/youtube.json`, and the site's YouTube button appears and links to it.
+others watch it, the workflow names it in `data/youtube.json` and the site's YouTube button links to it; until then
+the button opens the channel.
 
 It needs the channel's OAuth credentials as three repository secrets. Without them the step does nothing. To set it up
 once:
@@ -103,7 +104,7 @@ once:
 6. Until the project passes YouTube's API compliance audit, YouTube keeps every upload **private**, whatever the
    request asks for. Ask for the audit with the
    [YouTube API Services audit form](https://support.google.com/youtube/contact/yt_api_form); once it passes, the
-   uploads come out unlisted and the button appears.
+   uploads come out unlisted and the button links to the latest one.
 
 To stop posting, delete the three secrets (and remove the app's access at
 [myaccount.google.com/permissions](https://myaccount.google.com/permissions)).
