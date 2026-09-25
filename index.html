@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-DJAMpiafAufM0oJpmHHAteLslmX951tH7ni2fUTUBQQ=' 'sha256-o09LSKbyHZiW0dNYM3PifRwH+65roh1pG2upLo7miog=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-i33LZy/viq5G9K8a70tQva3ese0cEA0eTImG0xoMUFI=' 'sha256-o09LSKbyHZiW0dNYM3PifRwH+65roh1pG2upLo7miog=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -91,9 +91,6 @@
   #githubLink svg { flex-shrink: 0; }
   #ytBtn, #explainBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 0; text-decoration: none; box-sizing: border-box; }
   #ytBtn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-  /* The favicon, as the bar's mark: its white square with the black half, outlined so the square reads on black. */
-  #brandMark { display: inline-flex; flex-shrink: 0; width: 24px; height: 24px; margin-right: 2px; }
-  #brandMark svg { display: block; }
   /* Where the words would push the bar onto a second line, the three page buttons show only their icons
      (fitToolbarWords); their tooltips still name them. */
   #controls.compact .btn-word { display: none; }
@@ -189,7 +186,6 @@
 </head>
 <body>
 <div id="controls">
-  <span id="brandMark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><rect width="24" height="24" fill="#fff"/><path d="M0 0H24L0 24Z" fill="#000"/><rect x="0.5" y="0.5" width="23" height="23" fill="none" stroke="#fff"/></svg></span>
   <div id="intervalBar">
     <button class="iv active" data-idx="0" aria-pressed="true">1D</button>
     <button class="iv" data-idx="1" aria-pressed="false">1W</button>
@@ -587,7 +583,7 @@ window.addEventListener("resize", positionToolbarPanels);
 // YouTube, How to read and GitHub carry a word beside their icon where the bar has room for it on one line, and only
 // the icon where the words would push the bar onto a second line (their tooltips still name them).
 function fitToolbarWords() {
-  var bar = document.getElementById("controls"), first = document.getElementById("brandMark"), end = document.getElementById("langBtn");
+  var bar = document.getElementById("controls"), first = document.getElementById("intervalBar"), end = document.getElementById("langBtn");
   if (!bar || !first || !end) return;
   bar.classList.remove("compact");
   if (end.getBoundingClientRect().top - first.getBoundingClientRect().top > 4) bar.classList.add("compact");
