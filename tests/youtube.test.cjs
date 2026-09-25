@@ -141,3 +141,36 @@ test('a refused upload or an expired refresh token stops with the reason, and a 
     assert.equal(g.seen.start.length, 0);
   } finally { g.close(); }
 });
+
+test('the secrets are trimmed, and which had spaces around them is said without their values', async () => {
+  const { credentialsFrom } = await load();
+  const r = credentialsFrom({ YOUTUBE_CLIENT_ID: 'cid', YOUTUBE_CLIENT_SECRET: ' secret ', YOUTUBE_REFRESH_TOKEN: '1//refresh\n' });
+  assert.deepEqual(r.credentials, { clientId: 'cid', clientSecret: 'secret', refreshToken: '1//refresh' });
+  assert.deepEqual(r.padded, ['YOUTUBE_CLIENT_SECRET', 'YOUTUBE_REFRESH_TOKEN']);
+  assert.deepEqual(credentialsFrom({}).credentials, { clientId: '', clientSecret: '', refreshToken: '' });
+});
+
+test('--check asks for an access token and nothing else, and passes on what Google said', async () => {
+  const { checkToken } = await load();
+  let g = await google();
+  try {
+    assert.equal(await checkToken({ credentials: CREDS, endpoints: g.endpoints, wait: async () => {}, log: () => {} }), true);
+    assert.equal(g.seen.token.length, 1);
+    assert.deepEqual(g.seen.token[0], { client_id: 'cid', client_secret: 'secret', refresh_token: 'refresh', grant_type: 'refresh_token' });
+    assert.equal(g.seen.start.length, 0, 'no upload started');
+  } finally { await g.close(); }
+  g = await google({ token: 'expired' });
+  try {
+    await assert.rejects(checkToken({ credentials: CREDS, endpoints: g.endpoints, wait: async () => {}, log: () => {} }), /invalid_grant Token has been expired or revoked/);
+  } finally { await g.close(); }
+});
+
+test('the credentials check workflow is run by hand, reads the repository only, and gives the secrets to one step', () => {
+  const wf = fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'youtube-check.yml'), 'utf8');
+  assert.match(wf, /^on:\n  workflow_dispatch:\n/m);
+  assert.match(wf, /^permissions: \{\}/m);
+  assert.match(wf, /permissions:\n      contents: read\n/);
+  assert.equal((wf.match(/secrets\.YOUTUBE_/g) || []).length, 3);
+  assert.match(wf, /run: node tools\/video\/youtube\.mjs --check\n/);
+  assert.doesNotMatch(wf, /npm |upload-artifact|GITHUB_TOKEN|contents: write/);
+});
