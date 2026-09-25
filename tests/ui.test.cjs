@@ -164,10 +164,39 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
   assert.ok(tablet.title.font.size >= 12, 'never below 12 px');
 });
 
-test('the settings boxes show focus over their inline border', () => {
-  for (const id of ['thresholdInput', 'binsInput', 'smoothInput', 'ymaxInput']) {
-    assert.match(html, new RegExp(`id="${id}"[^>]*style="[^"]*border:1px solid #555`), `${id}: the border is set inline`);
-    assert.match(decls(`#${id}:focus`), /border-color:\s*#ff8c00\s*!important/, id);
+test('Smoothing and Y-max are framed like the cycle list: label, orange value, unit; the frame turns orange while editing', () => {
+  for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL']]) {
+    const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*><span class="field-unit">([^<]+)</span>\\s*</label>`).exec(html);
+    assert.ok(m, wrap); assert.equal(m[1], unit);
+    assert.doesNotMatch(m[0], /style=/, 'no inline styles');
+  }
+  const frame = decls('#controls .field');
+  for (const want of [/border:\s*1px solid #555/, /background:\s*#1e1e1e/, /height:\s*24px/, /border-radius:\s*2px/]) assert.match(frame, want);
+  assert.match(decls('#controls .field:focus-within'), /border-color:\s*#ff8c00/);
+  assert.match(decls('#controls .field .field-label'), /text-transform:\s*uppercase/);
+  assert.match(decls('#controls .field input'), /color:\s*#ff8c00/);
+  assert.match(decls('#controls .field input'), /border:\s*0/);
+});
+
+test('no bottom signal and no Bins field: 625 bars, and the price axis title gives the width of one', async () => {
+  for (const gone of ['thresholdInput', 'thresholdWrap', 'binsInput', 'binsWrap', 'binsUnit', 'Bottom signal', 'BOTTOM SIGNAL', 'GLOW_COLOR', 'bottomThreshold'])
+    assert.ok(!html.includes(gone), gone);
+  const { c, element } = app();
+  assert.equal(c.NUM_BINS, 625);
+  const { dates, raw } = market(c);
+  // every coin above the day's price: the old signal would have fired
+  const data = c.buildData(dates[4], { all: { 90000: 3 }, age: [{ 90000: 3 }] });
+  await c.renderChart(data);
+  const layout = element('chart').layout;
+  const spotLine = layout.shapes.find(s => s.type === 'line' && s.xref === 'x');
+  assert.equal(spotLine.line.color, '#ffffff', 'the spot line stays white');
+  const box = layout.annotations.find(a => /Below This Price/.test(a.text));
+  assert.equal(box.text.split('<br>').length, 3, 'price and the two shares, nothing more');
+  assert.equal(box.bordercolor, 'rgba(255,255,255,0.45)');
+  assert.match(layout.xaxis.title.text, /^Price When Last Moved \[USD\] \u00b7 \$[\d,.]+ per bar$/);
+  for (const [lang, rx] of [['zh', / \u00b7 每根柱 \$[\d,.]+$/], ['ja', / \u00b7 1 本あたり \$[\d,.]+$/]]) {
+    c.lang = lang; await c.renderChart(data);
+    assert.match(element('chart').layout.xaxis.title.text, rx, lang);
   }
 });
 
@@ -178,7 +207,7 @@ test('input methods: their 。 is the decimal point, and the Enter or Escape tha
   assert.ok(Number.isNaN(c.fieldNumber('1、000')), 'a comma is still not a number');
   let prevented = 0;
   const key = (extra = {}) => Object.assign({ key: 'Enter', preventDefault() { prevented++; } }, extra);
-  for (const id of ['thresholdInput', 'binsInput', 'smoothInput', 'ymaxInput']) {
+  for (const id of ['smoothInput', 'ymaxInput']) {
     const field = element(id);
     let blurred = 0;
     field.blur = () => blurred++;

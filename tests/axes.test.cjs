@@ -146,15 +146,16 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
     assert.ok(Math.abs(cd.at(-1)[1] - 100) < 1e-9);
     assert.equal(graph.data.some(t => t.meta === 'pct' || t.yaxis === 'y2'), false);
     assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin Supply by Price When Last Moved \(BTC\) as of / : /^<b>Bitcoin Supply by Price When Last Moved \(USD Value\) as of /);
-    assert.equal(graph.layout.xaxis.title.text, 'Price When Last Moved [USD]');
+    const perBar = '$' + (data => data.binWidth >= 100 ? Math.round(data.binWidth).toLocaleString('en-US') : data.binWidth >= 1 ? data.binWidth.toFixed(1) : data.binWidth.toFixed(3))(c.buildData(dates[3], raws[3]));
+    assert.equal(graph.layout.xaxis.title.text, 'Price When Last Moved [USD] \u00b7 ' + perBar + ' per bar', 'the title gives the width of one bar');
     assert.equal(graph.layout.yaxis.title.text, coin ? 'Supply [BTC]' : 'Value When Last Moved [USD]');
   }
   // the video's chart says the same (USD view)
   const video = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8');
-  for (const s of ['"<b>Bitcoin Supply by Price When Last Moved (USD Value) as of "', 'title: { text: "Price When Last Moved [USD]"',
+  for (const s of ['"<b>Bitcoin Supply by Price When Last Moved (USD Value) as of "', 'title: { text: "Price When Last Moved [USD] \\u00b7 " + perBar(w)',
     'text: "Value When Last Moved [USD]"', 'USD Value Last Moved Below This Price: ', 'USD Value Last Moved Above This Price: ',
-    '% of USD Value Last Moved Above This Price']) assert.ok(video.includes(s), 'video: ' + s);
-  assert.doesNotMatch(video, /In Profit|In Loss|Supply Distribution|Price \[USD\]"/);
+  ]) assert.ok(video.includes(s), 'video: ' + s);
+  assert.doesNotMatch(video, /In Profit|In Loss|Supply Distribution|Price \[USD\]"|BOTTOM SIGNAL|GLOW|isBottom/);
 });
 
 test('BTC leaves the first bar out of the axis and prints its height', async () => {

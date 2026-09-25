@@ -84,7 +84,7 @@ test('the settings fields take a number and nothing else', () => {
   for (const [typed, want] of Object.entries(cases)) assert.ok(Object.is(c.fieldNumber(typed), want), typed);
 });
 
-test('a pin is kept per weighting, bin count and smoothing, and PIN SCALE does nothing before the first chart', () => {
+test('a pin is kept per weighting, bin count and smoothing, and PIN Y-AXIS does nothing before the first chart', () => {
   const { c, element } = app();
   c.coinMode = true;
   assert.equal(c.peakKey({ numBins: 625, kernelPct: 0 }), 'btc|b625|s0');
