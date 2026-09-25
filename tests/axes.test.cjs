@@ -137,16 +137,24 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
     const graph = element('chart'), bars = graph.data.filter(t => t.type === 'bar');
     assert.equal(bars.length, 2);
     for (const b of bars) {
-      assert.match(b.hovertemplate, coin ? /Total BTC Supply Last Moved: %\{customdata\[0\]/ : /Total USD Value Last Moved: %\{customdata\[0\]/);
-      assert.match(b.hovertemplate, /<br>Percent of Total: %\{customdata\[1\]:\.1f\}%/);
+      assert.match(b.hovertemplate, coin ? /Total Supply: %\{customdata\[0\]:,\.2f\} BTC/ : /Total Value When Last Moved: %\{customdata\[0\]:\$,\.0f\}/);
+      assert.match(b.hovertemplate, /<br>Cumulative % of Total: %\{customdata\[1\]:\.1f\}%/);
       assert.equal(b.customdata, bars[0].customdata, 'one shared array');
     }
     const cd = bars[0].customdata, totals = c.barValues(c.buildData(dates[3], raws[3]), coin);
     cd.forEach((p, i) => { assert.equal(p[0], totals[i]); if (i) assert.ok(p[1] >= cd[i - 1][1]); });
     assert.ok(Math.abs(cd.at(-1)[1] - 100) < 1e-9);
     assert.equal(graph.data.some(t => t.meta === 'pct' || t.yaxis === 'y2'), false);
-    assert.match(graph.layout.title.text, coin ? /\(in BTC Supply Last Moved\) as of / : /\(in USD Value Last Moved\) as of /);
+    assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin Supply by Price When Last Moved \(BTC\) as of / : /^<b>Bitcoin Supply by Price When Last Moved \(USD Value\) as of /);
+    assert.equal(graph.layout.xaxis.title.text, 'Price When Last Moved [USD]');
+    assert.equal(graph.layout.yaxis.title.text, coin ? 'Supply [BTC]' : 'Value When Last Moved [USD]');
   }
+  // the video's chart says the same (USD view)
+  const video = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8');
+  for (const s of ['"<b>Bitcoin Supply by Price When Last Moved (USD Value) as of "', 'title: { text: "Price When Last Moved [USD]"',
+    'text: "Value When Last Moved [USD]"', 'USD Value Last Moved Below This Price: ', 'USD Value Last Moved Above This Price: ',
+    '% of USD Value Last Moved Above This Price']) assert.ok(video.includes(s), 'video: ' + s);
+  assert.doesNotMatch(video, /In Profit|In Loss|Supply Distribution|Price \[USD\]"/);
 });
 
 test('BTC leaves the first bar out of the axis and prints its height', async () => {
