@@ -1,8 +1,11 @@
 {
   "about": "The latest videos on YouTube for the site's two video buttons: age, the bars coloured by age band, and lthsth, split at 150 days (<150D/>150D). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then.",
   "age": {
-    "id": "92BA2evcdOE",
+    "id": "vg0tVLozJXo",
     "end": "2026-09-24"
   },
-  "lthsth": null
+  "lthsth": {
+    "id": "xP0cDK0EcVU",
+    "end": "2026-09-24"
+  }
 }
