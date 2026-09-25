@@ -34,7 +34,12 @@ test('zero USD denominator is unavailable while BTC ratio remains valid', async 
   await c.renderChart(data);
   text = element('chart').layout.annotations.map(a => a.text).join(' ');
   assert.match(text, /BTC Supply Last Moved In Profit: 100\.0%/);
-  assert.equal(c.computeRedPct({ 10: 1 }, null), null);
+  // No price for the day: no split at all. The shares come from one ladder of the recorded prices (priceLadder).
+  const unpriced = c.buildData('2009-01-12', { all: { 10: 1 }, age: [{ 10: 1 }] });
+  assert.deepEqual([unpriced.spot, unpriced.profitPct, unpriced.profitPctCoin, unpriced.redPct, unpriced.redPctCoin], [null, null, null, null, null]);
+  const ladder = c.priceLadder({ 10: 1 });
+  assert.deepEqual([c.shareAtOrBelow(ladder, 9.99, true), c.shareAtOrBelow(ladder, 10, true)], [0, 100], 'at or below the price');
+  assert.equal(c.shareAtOrBelow(c.priceLadder({}), 10, false), null, 'nothing recorded: no share');
 });
 
 test('startup publishes dates only after price initialization settles', async () => {
