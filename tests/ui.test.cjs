@@ -101,7 +101,7 @@ test('the toolbar wraps instead of scrolling; YouTube, How to read and GitHub fo
   // Each shows its icon and a word, at the weight of the other buttons (the ? used to be bold on its own).
   for (const [id, word] of [['ytBtn', 'YouTube'], ['githubLink', 'GitHub']]) assert.match(bar, new RegExp(`id="${id}"[^>]*>\\s*<svg[\\s\\S]*?</svg><span class="btn-word">${word}</span>`), id);
   assert.match(bar, /<button id="explainBtn"[^>]*><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><span id="explainLabel" class="btn-word">How to read<\/span><\/button>/);
-  // Where the words would wrap the bar they give way to the icons: measured against the mark at the start.
+  // Where the words would wrap the bar they give way to the icons: measured against the step bar at the start.
   assert.match(decls('#controls.compact .btn-word'), /display:\s*none/);
   assert.match(html, /function fitToolbarWords\(\) \{[\s\S]*?bar\.classList\.remove\("compact"\);\s*if \(end\.getBoundingClientRect\(\)\.top - first\.getBoundingClientRect\(\)\.top > 4\) bar\.classList\.add\("compact"\);/);
   for (const sel of ['#explainBtn', '#ytBtn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
