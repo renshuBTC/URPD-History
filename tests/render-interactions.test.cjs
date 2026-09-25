@@ -73,16 +73,17 @@ for (const failBeforeDraw of [false, true]) {
   });
 }
 
-test('date counter and bin labels remain committed until the pending chart succeeds', async () => {
+test('date counter and the price axis title (with its bar width) remain committed until the pending chart succeeds', async () => {
   const h = controlledApp();
   await showFirst(h);
   const oldCounter = h.element('dateDisplay').textContent;
-  const oldBins = h.element('binsUnit').textContent;
+  const oldBins = h.element('chart').layout.xaxis.title.text;
+  assert.match(oldBins, / per bar$/);
   h.c.currentIdx = 1;
   const load = h.c.loadAndRender();
   await flush();
   assert.equal(h.element('dateDisplay').textContent, oldCounter);
-  assert.equal(h.element('binsUnit').textContent, oldBins);
+  assert.equal(h.element('chart').layout.xaxis.title.text, oldBins);
   h.draws[1].reject(new Error('draw failed'));
   await flush();
   for (let i = 2; i < h.draws.length; i++) {
@@ -91,7 +92,7 @@ test('date counter and bin labels remain committed until the pending chart succe
   }
   await load;
   assert.equal(h.element('dateDisplay').textContent, oldCounter);
-  assert.equal(h.element('binsUnit').textContent, oldBins);
+  assert.equal(h.element('chart').layout.xaxis.title.text, oldBins);
 });
 
 test('pinning during a mode switch never saves the displayed USD peak under BTC', async () => {
@@ -134,9 +135,9 @@ test('fallback redraw keeps the displayed data binning in its peak key', async (
   await showFirst(h);
   const displayedKey = h.c.peakKey();
   h.c.currentIdx = 1;
-  h.c.NUM_BINS = 500;
+  h.c.KERNEL_PCT = 0.5;
   const newKey = h.c.peakKey();
-  // The selected date has no cache entry for the new bins yet, so a presentation
+  // The selected date has no cache entry for the new smoothing yet, so a presentation
   // setting redraw uses the last displayed day's data until its fetch completes.
   const redraw = h.c.rerenderCurrent();
   await flush();
@@ -152,7 +153,7 @@ test('a new smoothing that cannot be drawn, with no raw series left to re-bin, i
   c.allDates = ['2026-09-18', '2026-09-19']; c.currentIdx = 0;
   c.priceArray = [100, 110]; c.priceDates = [...c.allDates]; c.priceIndexByDate = { '2026-09-18': 0, '2026-09-19': 1 };
   for (const date of c.allDates) { const all = { 50: 1, 1000: 99 }; c.rawCache[date] = { all, age: [all] }; }
-  c.NUM_BINS = 400; c.KERNEL_PCT = 0.6;
+  c.KERNEL_PCT = 0.6;
   await c.loadAndRender();
   assert.equal(c.lastRenderedData.kernelPct, 0.6);
   delete c.rawCache['2026-09-18']; delete c.rawCache['2026-09-19'];
@@ -166,5 +167,4 @@ test('a new smoothing that cannot be drawn, with no raw series left to re-bin, i
   assert.equal(c.lastRenderedData.dateStr, '2026-09-18');
   assert.equal(c.KERNEL_PCT, 0.6, 'the smoothing goes back to what the chart was drawn with');
   assert.equal(element('smoothInput').value, '0.60', 'and the field says so');
-  assert.equal(element('binsInput').value, '400');
 });
