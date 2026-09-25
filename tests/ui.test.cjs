@@ -100,16 +100,19 @@ test('the toolbar wraps instead of scrolling; the two videos, How to read and Gi
   assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytSplitBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'ytSplitBtn', 'explainWrap', 'githubLink']);
   // Each shows its icon and words, at the weight of the other buttons (the ? used to be bold on its own).
   assert.match(bar, /id="ytBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytLabel" class="yt-word">Full history in 5 min<\/span><span id="ytTag" class="yt-tag">AGE<\/span>/, 'the video buttons say what they give you');
-  assert.match(bar, /id="ytSplitBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytSplitLabel" class="yt-word">Full history in 5 min<\/span><span id="ytSplitTag" class="yt-tag">LTH\/STH<\/span>/);
+  assert.match(bar, /id="ytSplitBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytSplitLabel" class="yt-word">Full history in 5 min<\/span><span class="yt-tag"><span id="ytSplitTag" class="yt-tag-full">&lt;150D\/&gt;150D<\/span><span class="yt-tag-short">150D<\/span><\/span>/);
+  // In the narrowest bars the longer name gives way to a short one, 150D.
+  assert.match(decls('#controls.compact-more .yt-tag-short'), /display:\s*inline/);
+  assert.match(decls('#controls.compact-more .yt-tag-full'), /display:\s*none/);
   assert.match(bar, /id="githubLink"[^>]*>\s*<svg[\s\S]*?<\/svg><span class="btn-word">GitHub<\/span>/);
   assert.match(bar, /<button id="explainBtn"[^>]*><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><span id="explainLabel" class="btn-word">How to read<\/span><\/button>/);
   // Where the words would wrap the bar they give way, measured against the step bar at the start: How to read's and
-  // GitHub's first, then the video buttons' FULL HISTORY IN 5 MIN, which keep AGE and LTH/STH to tell them apart.
+  // GitHub's first, then the video buttons' FULL HISTORY IN 5 MIN, which keep AGE and <150D/>150D to tell them apart.
   // Transitions would be measured half-way, so the buttons animate their colours only.
   for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
   assert.match(decls('#controls.compact .btn-word'), /display:\s*none/);
   assert.match(decls('#controls.compact-more .yt-word'), /display:\s*none/);
-  assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag/.test(x))), 'AGE and LTH/STH never go');
+  assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'AGE and <150D/>150D never go');
   // Before any words go, the spacing tightens.
   assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
   assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);

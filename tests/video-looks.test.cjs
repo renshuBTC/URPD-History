@@ -1,6 +1,6 @@
-// The two videos, AGE and LTH/STH: each colours its bars as the site does (tools/video/looks.mjs against index.html),
-// the Daily video workflow renders, publishes and posts both, and its record step keeps each video's last viewable
-// upload in data/youtube.json.
+// The two videos, AGE and <150D/>150D: each colours its bars as the site does (tools/video/looks.mjs against index.html),
+// the Weekly videos workflow draws them once a week, renders, publishes and posts both, and its record step keeps
+// each video's last viewable upload in data/youtube.json.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -20,19 +20,23 @@ function job(name) {
 }
 
 test('each video colours its bars exactly as the site does, and is titled as the site titles that view in USD', async () => {
-  const { LOOKS, AGE_LABELS, AGE_COLORS, STH_BANDS, titleStart, look } = await load();
+  const { LOOKS, AGE_LABELS, AGE_COLORS, STH_BANDS, titleStart, youtubeTitleStart, look } = await load();
   const { c } = app();
   assert.deepEqual(AGE_LABELS, Array.from(c.AGE_BANDS, b => b.label));
   assert.deepEqual(AGE_COLORS, Array.from(c.AGE_BAND_COLORS));
   assert.equal(STH_BANDS, c.STH_BANDS);
   assert.deepEqual(Object.keys(LOOKS), ['age', 'lthsth']);
   assert.deepEqual(LOOKS.age.ends, AGE_LABELS.map((_, k) => k + 1), 'AGE: every band a layer of its own');
-  assert.deepEqual(LOOKS.lthsth.ends, [c.STH_BANDS, c.AGE_BANDS.length], 'LTH/STH: the short-term bands, then all of them');
+  assert.deepEqual(LOOKS.lthsth.ends, [c.STH_BANDS, c.AGE_BANDS.length], '<150D/>150D: the bands under 150 days, then all of them');
   assert.deepEqual(LOOKS.lthsth.colors, [c.STH_COLOR, c.LTH_COLOR]);
   assert.deepEqual(LOOKS.lthsth.labels, [c.T.en.sth, c.T.en.lth]);
   for (const k of Object.keys(LOOKS)) assert.equal(LOOKS[k].labels.length, LOOKS[k].colors.length, k);
   assert.equal(titleStart('age'), c.T.en.titleUSDAge);
   assert.equal(titleStart('lthsth'), c.T.en.titleUSDSplit);
+  // YouTube refuses < and >: there the split is written out, and nothing else changes.
+  assert.equal(youtubeTitleStart('age'), titleStart('age'));
+  assert.equal(youtubeTitleStart('lthsth'), titleStart('lthsth').replace('<150D/>150D', 'Under/Over 150D'));
+  for (const k of Object.keys(LOOKS)) assert.doesNotMatch(youtubeTitleStart(k), /[<>]/, k);
   assert.throws(() => look('__proto__'), /no look/);
   // The drawing takes its layers, their names and colours and the title from the frame, never a list of its own.
   const page = fs.readFileSync(path.join(ROOT, 'tools', 'video', 'page.html'), 'utf8');
@@ -62,7 +66,7 @@ test('the workflow renders and vets both videos on runners of their own, and pub
   assert.match(render, /name: video-\$\{\{ matrix\.look \}\}/);
   assert.match(job('vet'), /name: video-vetted-\$\{\{ matrix\.look \}\}/);
   for (const name of ['publish', 'youtube']) assert.match(job(name), /pattern: video-vetted-\*\n\s+merge-multiple: true/, name);
-  // Each video posted with its own look; LTH/STH also when AGE failed, and never once the run is cancelled.
+  // Each video posted with its own look; <150D/>150D also when AGE failed, and never once the run is cancelled.
   const youtube = job('youtube');
   assert.match(youtube, /run: node tools\/video\/youtube\.mjs "\$RUNNER_TEMP\/vetted\/\$VIDEO" "\$START" "\$END" age >> "\$GITHUB_OUTPUT"/);
   assert.match(youtube, /if: \$\{\{ !cancelled\(\) && steps\.videos\.outcome == 'success' \}\}\n[\s\S]*?run: node tools\/video\/youtube\.mjs "\$RUNNER_TEMP\/vetted\/\$VIDEO_LTHSTH" "\$START" "\$END" lthsth >> "\$GITHUB_OUTPUT"/);
@@ -83,9 +87,11 @@ function record(env, before) {
 function haveJq() { try { execFileSync('jq', ['--version'], { stdio: 'ignore' }); execFileSync('bash', ['-c', 'true']); return true; } catch (e) { return false; } }
 
 test('the record step writes both videos, and keeps a video\'s last viewable upload when today\'s is not', { skip: !haveJq() && 'needs bash and jq' }, () => {
-  const before = fs.readFileSync(path.join(ROOT, 'data', 'youtube.json'), 'utf8'), was = JSON.parse(before);
+  const before = fs.readFileSync(path.join(ROOT, 'data', 'youtube.json'), 'utf8');
   const both = JSON.parse(record({ END: '2026-09-25', AGE_ID: 'AAAAAAAAAAA', AGE_PRIVACY: 'unlisted', LTHSTH_ID: 'BBBBBBBBBBB', LTHSTH_PRIVACY: 'public' }, before));
-  assert.deepEqual(both, { about: was.about, age: { id: 'AAAAAAAAAAA', end: '2026-09-25' }, lthsth: { id: 'BBBBBBBBBBB', end: '2026-09-25' } });
+  assert.deepEqual(Object.keys(both), ['about', 'age', 'lthsth'], 'the committed file\'s layout');
+  assert.match(both.about, /^The latest videos on YouTube for the site's two video buttons: .* Written by \.github\/workflows\/video\.yml /);
+  assert.deepEqual({ age: both.age, lthsth: both.lthsth }, { age: { id: 'AAAAAAAAAAA', end: '2026-09-25' }, lthsth: { id: 'BBBBBBBBBBB', end: '2026-09-25' } });
   const written = record({ END: '2026-09-25', AGE_ID: 'AAAAAAAAAAA', AGE_PRIVACY: 'unlisted', LTHSTH_ID: 'BBBBBBBBBBB', LTHSTH_PRIVACY: 'public' }, before);
   assert.equal(written, JSON.stringify(both, null, 2) + '\n', 'the same layout as the committed file');
   // A private upload, a failed post and a malformed id all leave that video's entry as it was.
@@ -96,4 +102,34 @@ test('the record step writes both videos, and keeps a video\'s last viewable upl
     assert.deepEqual(r.lthsth, split[1] === 'unlisted' ? { id: split[0], end: '2026-09-25' } : { id: 'OldSplitVid', end: '2026-09-24' }, JSON.stringify(split));
   }
   assert.throws(() => record({ END: 'x', AGE_ID: 'AAAAAAAAAAA', AGE_PRIVACY: 'unlisted' }, before), 'a day that is not a date stops it');
+});
+
+// The update job's decision whether new videos are due, run as the workflow runs it (bash -e, GNU date).
+function due(env) {
+  const block = job('update'), a = block.indexOf('          # New videos once a week'), b = block.indexOf('\n          fi\n', a);
+  assert.ok(a > 0 && b > a, 'the decision block');
+  const script = block.slice(a, b + '\n          fi\n'.length).split('\n').map(l => l.slice(10)).join('\n');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'due-')), out = path.join(dir, 'out');
+  fs.writeFileSync(out, '');
+  const said = execFileSync('bash', ['-e', '-c', script], { env: { PATH: process.env.PATH, GITHUB_OUTPUT: out, GITHUB_EVENT_NAME: 'schedule', ...env }, encoding: 'utf8' });
+  return { render: fs.readFileSync(out, 'utf8').includes('render=yes'), said };
+}
+function haveGnuDate() { try { return execFileSync('date', ['-u', '-d', '2026-09-24 + 7 days', '+%F'], { encoding: 'utf8' }).trim() === '2026-10-01'; } catch (e) { return false; } }
+
+test('new videos are drawn once a week: seven days after the published ones, at once if there are none, and on a run started by hand', { skip: !haveGnuDate() && 'needs GNU date' }, () => {
+  assert.equal(due({ END: '2026-09-30', SHOWN: '2026-09-24' }).render, false, 'six days on');
+  assert.match(due({ END: '2026-09-30', SHOWN: '2026-09-24' }).said, /the next are drawn once the store reaches 2026-10-01/);
+  assert.equal(due({ END: '2026-10-01', SHOWN: '2026-09-24' }).render, true, 'seven days on');
+  assert.equal(due({ END: '2026-10-04', SHOWN: '2026-09-24' }).render, true, 'after missed runs');
+  assert.equal(due({ END: '2027-01-04', SHOWN: '2026-12-28' }).render, true, 'across a year');
+  assert.equal(due({ END: '2026-09-24', SHOWN: '' }).render, true, 'no videos yet');
+  assert.equal(due({ END: '2026-09-20', SHOWN: '2026-09-24' }).render, false, 'a store still catching up');
+  assert.match(due({ END: '2026-09-20', SHOWN: '2026-09-24' }).said, /behind the published videos/);
+  // By hand: new videos whenever the store is not behind, the same days included.
+  for (const [END, want] of [['2026-09-24', true], ['2026-09-26', true], ['2026-09-20', false]]) {
+    assert.equal(due({ END, SHOWN: '2026-09-24', GITHUB_EVENT_NAME: 'workflow_dispatch' }).render, want, END);
+  }
+  // The schedule itself stays daily: the axis history needs every day.
+  assert.match(workflow, /^name: Weekly videos$/m);
+  assert.match(workflow, /- cron: "23 1 \* \* \*"\n\s+- cron: "23 5 \* \* \*"/);
 });
