@@ -1,6 +1,6 @@
-// Posts one of the week's two videos to the channel on YouTube: the bars coloured by age band (AGE), or split at 150
-// days (<150D/>150D; looks.mjs). The Weekly videos workflow's two youtube jobs run it, one for each video, once they
-// are published on GitHub. It speaks the YouTube Data API's resumable upload itself
+// Posts one of the week's three videos to the channel on YouTube: the bars coloured by age band (AGE), split at 150
+// days (<150D/>150D), or as recorded, unsmoothed and black on a light chart (RAW; looks.mjs). The Weekly videos
+// workflow's three youtube jobs run it, one for each video, once they are published on GitHub. It speaks the YouTube Data API's resumable upload itself
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
 // so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
 //
@@ -39,8 +39,9 @@ const SPLIT = {
   age: "each bar split into 23 age bands, by how long its coins have sat unmoved",
   lthsth: "each bar split in two at 150 days, the coins that moved within the last 150 days and the coins unmoved for " +
     "150 days or more",
+  raw: "each bar as recorded, with no smoothing, in black on a light chart",
 };
-const TAGS = { age: ["UTXO age", "coin age"], lthsth: ["UTXO age", "coin age", "150 days"] };
+const TAGS = { age: ["UTXO age", "coin age"], lthsth: ["UTXO age", "coin age", "150 days"], raw: ["raw data", "unsmoothed"] };
 
 export function videoDescription(start, end, name = "age") {
   look(name);
@@ -198,7 +199,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(proces
   const [file, start, end, name = "age"] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
   const check = file === "--check";
   if (!check && (!file || !isDay(start) || !isDay(end) || !Object.hasOwn(SPLIT, name))) {
-    console.error("usage: node tools/video/youtube.mjs FILE START END [age|lthsth] | --check"); process.exit(2);
+    console.error("usage: node tools/video/youtube.mjs FILE START END [age|lthsth|raw] | --check"); process.exit(2);
   }
   const { credentials, padded } = credentialsFrom(process.env);
   if (!credentials.clientId || !credentials.clientSecret || !credentials.refreshToken) {
