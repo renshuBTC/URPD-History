@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-8d9Tu01hDkAtEZbaLFdN+f+Y55yUoAwkQYQU9Dnxrto=' 'sha256-vHcaA9ECZIzPnPZW1yru9oPooq3wuyogpvDnIBXi6BM=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qm/eCTDXS3dFBzwiBUEf1Ew8IOQYh7XDrxbk5MQihDQ=' 'sha256-8d9Tu01hDkAtEZbaLFdN+f+Y55yUoAwkQYQU9Dnxrto=' 'sha256-1e79N4CwyNCOjX1cPaHjgbfGRZXUSpeCjYmqzNAXwt4=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -150,6 +150,10 @@
   /* The explainer is fixed, so it escapes the toolbar's horizontal scroll area. */
   #explainPanel { position: fixed; right: auto; margin-top: 0; max-width: calc(100vw - 20px); overflow-y: auto; }
   #explainPanel:focus { outline: none; }
+  /* The explainer ends with the one link the site has to its own privacy page. */
+  #explainFoot { margin: 14px 0 0; padding-top: 8px; border-top: 1px solid #333; font-size: 12px; }
+  #explainFoot a { color: #8a8a8a; }
+  #explainFoot a:hover { color: #ffffff; }
   /* The credit line's names (links, see creditLink) are the colour of the rest of the line, and underlined when
      pointed at. */
   #chart .annotation-text a:hover { text-decoration: underline; }
@@ -219,6 +223,7 @@
   <div id="explainWrap"><button id="explainBtn" aria-label="How to read this chart" aria-expanded="false">?</button><div id="explainPanel" tabindex="-1">
 <h2 id="explainTitle"></h2>
 <div id="explainBody"></div>
+<p id="explainFoot"><a id="privacyLink" href="privacy.html">Privacy</a></p>
 </div></div>
   <button id="langBtn" aria-label="中文 — Change language">中文</button>
   <a id="githubLink" href="https://github.com/renshuBTC/URPD-History" target="_blank" rel="noopener noreferrer" aria-label="View code on GitHub (opens in a new tab)" title="View code on GitHub (opens in a new tab)">
@@ -2012,6 +2017,8 @@ function updateExplainerLang() {
   var ex = EXPLAINER[lang] || EXPLAINER.en;
   var head = document.getElementById("explainTitle");
   if (head) head.textContent = ex.title;
+  var privacy = document.getElementById("privacyLink");
+  if (privacy) privacy.textContent = L3("Privacy", "隐私", "プライバシー");
   var box = document.getElementById("explainBody");
   if (!box) return;
   box.textContent = "";
