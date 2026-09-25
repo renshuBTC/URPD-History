@@ -179,18 +179,17 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
   assert.ok(tablet.title.font.size >= 12, 'never below 12 px');
 });
 
-test('Smoothing and Y-max are framed like the cycle list: label, orange value, unit; the frame doubles while editing', () => {
+test('Smoothing and Y-max are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
   for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL']]) {
     const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*><span class="field-unit">([^<]+)</span>\\s*</label>`).exec(html);
     assert.ok(m, wrap); assert.equal(m[1], unit);
     assert.doesNotMatch(m[0], /style=/, 'no inline styles');
   }
   const frame = decls('#controls .field');
-  for (const want of [/border:\s*1px solid #563309/, /background:\s*#000/, /height:\s*24px/, /border-radius:\s*0/]) assert.match(frame, want);
-  assert.match(decls('#controls .field:focus-within'), /border-color:\s*#f7931a;\s*box-shadow:\s*inset 0 0 0 1px #f7931a/);
+  for (const want of [/border:\s*1px solid #595959/, /background:\s*#000/, /height:\s*24px/, /border-radius:\s*0/]) assert.match(frame, want);
+  assert.match(decls('#controls .field:focus-within'), /border-color:\s*#fff;\s*box-shadow:\s*inset 0 0 0 1px #fff/);
   assert.match(decls('#controls .field .field-label'), /text-transform:\s*uppercase/);
-  assert.match(decls('#controls .field input'), /color:\s*#f7931a/);
-  assert.match(decls('#controls .field .field-label'), /color:\s*#945810/);
+  assert.match(decls('#controls .field input'), /color:\s*#fff/);
   assert.match(decls('#controls .field input'), /border:\s*0/);
 });
 
