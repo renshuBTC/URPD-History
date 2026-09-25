@@ -38,7 +38,7 @@ Toolbar, left to right:
 - **USD / BTC** — weight by dollar value at last move, or by coins
 - **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
 - **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the tallest bar so far and anything lower zooms into the day in view. The price axis is always cut into 625 bars, and its title gives the width of one in dollars
-- **YOUTUBE** for the latest full-history video (the channel until there is one others can watch), **HOW TO READ** for the explainer and **GITHUB** for the source
+- **FULL HISTORY IN 5 MIN** for the latest full-history video on YouTube (the channel until there is one others can watch), **HOW TO READ** for the explainer and **GITHUB** for the source
 - the language toggle, on its own at the right-hand end
 
 The chart's camera icon saves a PNG of it; there is no video download.
@@ -58,7 +58,7 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-The **YOUTUBE** button in the toolbar opens the whole history as one video: every day from 2010-05-18,
+**FULL HISTORY IN 5 MIN** in the toolbar opens the whole history as one video on YouTube: every day from 2010-05-18,
 when the first price comes onto the chart (it is empty before that), to the latest, 5:00 at 60 fps in 4K (3840×2160),
 drawn with the page’s default settings. The **Daily video** workflow rebuilds it every day on GitHub’s runners and posts
 it to YouTube (see [Posting to YouTube](#posting-to-youtube)), so the day that just ended is usually in it by about 04:00 UTC.
