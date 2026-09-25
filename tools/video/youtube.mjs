@@ -35,7 +35,6 @@ export function videoDescription(start, end) {
       long(start) + " to " + long(end) + ".",
     "",
     "Any day, in your browser: https://bitcoinsupplychart.com",
-    "This video to download in 4K: https://github.com/renshuBTC/URPD-History/releases/tag/video",
     "",
     "Powered by Bitview.space and Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_.",
   ].join("\n");
