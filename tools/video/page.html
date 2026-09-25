@@ -33,7 +33,6 @@ function compactNumber(v) {
 }
 function yLabel(v) { return v === 0 ? "$0" : "$" + compactNumber(v); }
 // the width of one bar in dollars, as the site writes it in its price axis title
-function perBar(w) { return "$" + (w >= 100 ? Math.round(w).toLocaleString("en-US") : w >= 1 ? w.toFixed(1) : w.toFixed(3)) + " per bar"; }
 window.drawFrame = function(sp) {
   var n = sp.nb, w = sp.w, xSpan = n * w, A = LABELS.length;
   var traces = [];
@@ -82,7 +81,7 @@ window.drawFrame = function(sp) {
       xref: "paper", x: 0.5, xanchor: "center", y: 1, yanchor: "top", pad: { t: 13 }, font: { size: 20, family: FONT, color: "#ffffff" } },
     font: { family: FONT, color: "#ffffff" }, paper_bgcolor: "#0a0a0a", plot_bgcolor: "#0a0a0a", barmode: "stack", bargap: 0, showlegend: true,
     legend: { orientation: "h", yanchor: "bottom", y: 1, xanchor: "center", x: 0.5, bgcolor: "rgba(0,0,0,0)", font: { family: FONT, size: 9, color: "#ffffff" }, traceorder: "normal" },
-    xaxis: { title: { text: "Price When Last Moved [USD] \u00b7 " + perBar(w), font: { family: FONT, size: 13, color: "#ffffff" }, standoff: 10 }, range: [0, xSpan], autorange: false,
+    xaxis: { title: { text: "Price When Last Moved [USD]", font: { family: FONT, size: 13, color: "#ffffff" }, standoff: 10 }, range: [0, xSpan], autorange: false,
       tickvals: sp.xt.v, ticktext: sp.xt.t, tickangle: 0, showgrid: true, gridcolor: GRID_COLOR, tickfont: { family: FONT, size: 11, color: "#ffffff" }, zeroline: false },
     yaxis: { title: { text: "" }, automargin: false, side: "left",
       tickvals: sp.yt, ticktext: sp.ytt || sp.yt.map(yLabel), range: [0, sp.ymax], autorange: false, showgrid: true, gridcolor: GRID_COLOR, zeroline: false, tickfont: { family: FONT, size: 11, color: "#ffffff" } },

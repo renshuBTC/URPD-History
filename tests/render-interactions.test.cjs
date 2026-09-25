@@ -73,17 +73,14 @@ for (const failBeforeDraw of [false, true]) {
   });
 }
 
-test('date counter and the price axis title (with its bar width) remain committed until the pending chart succeeds', async () => {
+test('the date counter remains committed until the pending chart succeeds', async () => {
   const h = controlledApp();
   await showFirst(h);
   const oldCounter = h.element('dateDisplay').textContent;
-  const oldBins = h.element('chart').layout.xaxis.title.text;
-  assert.match(oldBins, / per bar$/);
   h.c.currentIdx = 1;
   const load = h.c.loadAndRender();
   await flush();
   assert.equal(h.element('dateDisplay').textContent, oldCounter);
-  assert.equal(h.element('chart').layout.xaxis.title.text, oldBins);
   h.draws[1].reject(new Error('draw failed'));
   await flush();
   for (let i = 2; i < h.draws.length; i++) {
@@ -92,7 +89,6 @@ test('date counter and the price axis title (with its bar width) remain committe
   }
   await load;
   assert.equal(h.element('dateDisplay').textContent, oldCounter);
-  assert.equal(h.element('chart').layout.xaxis.title.text, oldBins);
 });
 
 test('pinning during a mode switch never saves the displayed USD peak under BTC', async () => {
