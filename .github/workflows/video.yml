@@ -1,22 +1,23 @@
 name: Daily video
 
-# Every day, for YouTube and for scrubbing through history:
+# Every day, for YouTube and for scrubbing through history, two videos of the whole history, one for each way the site
+# colours its bars (tools/video/looks.mjs): by age band (AGE), and by short- and long-term holders (LTH/STH).
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
-#               video's store (the files on the "video-data" release)
-#   2. render:  draws the full-history 4K video with tools/video
-#   3. vet:     accepts the file only if it is exactly the expected video, and rewrites its container keeping only
+#               videos' store (the files on the "video-data" release)
+#   2. render:  draws each 4K video with tools/video, the two on runners of their own
+#   3. vet:     accepts each file only if it is exactly the expected video, and rewrites its container keeping only
 #               the picture
-#   4. publish: attests where the video was built and keeps it on the "video" release, whose notes tell the next
-#               run which day it reaches (the site does not link to it)
-#   5. youtube: posts it to YouTube, unlisted (tools/video/youtube.mjs), once the channel's credentials are set up
-#   6. record:  names it in data/youtube.json for the site's YouTube button, once YouTube lets others watch it
+#   4. publish: attests where the videos were built and keeps them on the "video" release, whose notes tell the next
+#               run which day they reach (the site does not link to them)
+#   5. youtube: posts each to YouTube, unlisted (tools/video/youtube.mjs), once the channel's credentials are set up
+#   6. record:  names them in data/youtube.json for the site's two video buttons, once YouTube lets others watch them
 #
-# The jobs are split by trust. Only this repository's own code runs with a token that can write (update, publish),
-# and neither of them ever parses the video. The YouTube credentials are seen only by the two steps of the youtube job
-# that need them, which run this repository's own code and nothing installed. The renderer runs third-party code (Playwright, Chromium, ffmpeg and
-# their npm packages), and the vet job parses the rendered file with ffmpeg, so both get only a read-only token and
-# no credentials. Each hands its file on as a workflow artifact. The publish job
-# signs a build attestation for the vetted file, which anyone can check with `gh attestation verify` (see
+# The jobs are split by trust. Only this repository's own code runs with a token that can write (update, publish,
+# record), and none of them ever parses a video. The YouTube credentials are seen only by the three steps of the
+# youtube job that need them, which run this repository's own code and nothing installed. The renderer runs
+# third-party code (Playwright, Chromium, ffmpeg and their npm packages), and the vet job parses the rendered files with
+# ffmpeg, so both get only a read-only token and no credentials. Each hands its file on as a workflow artifact. The
+# publish job signs a build attestation for the vetted files, which anyone can check with `gh attestation verify` (see
 # SECURITY.md). New release files replace the old ones only once fully uploaded (tools/video/replace-asset.sh), so
 # the release never holds half a file. Actions are pinned to full commit hashes. Standard GitHub-hosted runners are
 # free for public repositories; the whole run takes about an hour and a half.
@@ -37,9 +38,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # The video's file name, on the release and as sent to YouTube (it has to end in .mp4: a file ending in .com is a
-  # program on Windows).
+  # The videos' file names on the release (each has to end in .mp4: a file ending in .com is a program on Windows): the
+  # bars coloured by age band, and by short- and long-term holders. The render and vet jobs name them again, in their
+  # matrix.
   VIDEO: BitcoinSupplyChart.com.mp4
+  VIDEO_LTHSTH: BitcoinSupplyChart.com-LTH-STH.mp4
 
 jobs:
   update:
@@ -105,9 +108,9 @@ jobs:
           START=$(node --input-type=module -e "import { readStore, firstShownIndex } from './tools/video/store.mjs';
             const s = readStore(process.env.RUNNER_TEMP + '/store'); console.log(s.meta.days[firstShownIndex(s.meta, s.bars)][0]);")
           echo "start=$START" >> "$GITHUB_OUTPUT"
-          # The published video's last day, from its release notes (none before the first video). A new video only
-          # when the store has gone past it: while a lost store is rebuilt over several runs it stays behind, and a
-          # shorter video must not replace the full one. A run started by hand redraws the same days too.
+          # The published videos' last day, from their release notes (none before the first videos). New videos only
+          # when the store has gone past it: while a lost store is rebuilt over several runs it stays behind, and
+          # shorter videos must not replace the full ones. A run started by hand redraws the same days too.
           SHOWN=$(gh release view video --json body --jq .body 2> /dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -n 1 || true)
           if [[ "$END" > "$SHOWN" ]] || { [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$END" = "$SHOWN" ]; }; then
             echo "render=yes" >> "$GITHUB_OUTPUT"
@@ -134,6 +137,17 @@ jobs:
     # ffmpeg's output is checked exactly, so moving to a new Ubuntu is done on purpose.
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    # One runner for each video: its look (tools/video/looks.mjs) and its file name (VIDEO and VIDEO_LTHSTH above).
+    strategy:
+      matrix:
+        include:
+          - look: age
+            file: BitcoinSupplyChart.com.mp4
+          - look: lthsth
+            file: BitcoinSupplyChart.com-LTH-STH.mp4
+    env:
+      LOOK: ${{ matrix.look }}
+      FILE: ${{ matrix.file }}
     permissions:
       contents: read    # nothing else: this job runs third-party code
     steps:
@@ -157,15 +171,15 @@ jobs:
           command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
 
       - name: Render the video
-        run: node tools/video/render.mjs "$RUNNER_TEMP/store" "$RUNNER_TEMP/$VIDEO"
+        run: node tools/video/render.mjs "$RUNNER_TEMP/store" "$RUNNER_TEMP/$FILE"
 
       - name: Check the video
-        run: bash tools/video/check-video.sh "$RUNNER_TEMP/$VIDEO"
+        run: bash tools/video/check-video.sh "$RUNNER_TEMP/$FILE"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: video
-          path: ${{ runner.temp }}/${{ env.VIDEO }}
+          name: video-${{ matrix.look }}
+          path: ${{ runner.temp }}/${{ matrix.file }}
           if-no-files-found: error
           retention-days: 1
           compression-level: 0   # already compressed
@@ -174,6 +188,15 @@ jobs:
     needs: render
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    strategy:
+      matrix:
+        include:
+          - look: age
+            file: BitcoinSupplyChart.com.mp4
+          - look: lthsth
+            file: BitcoinSupplyChart.com-LTH-STH.mp4
+    env:
+      FILE: ${{ matrix.file }}
     permissions:
       contents: read    # nothing else: this job parses a file that third-party code produced
     steps:
@@ -182,25 +205,25 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: video
+          name: video-${{ matrix.look }}
           path: ${{ runner.temp }}/rendered
 
       - name: Accept only the expected video, rewritten by Ubuntu's ffmpeg
         run: |
           command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
-          bash tools/video/check-video.sh "$RUNNER_TEMP/rendered/$VIDEO"
+          bash tools/video/check-video.sh "$RUNNER_TEMP/rendered/$FILE"
           # A fresh container holding only the picture: no metadata, chapters or other boxes, and of the H.264 stream
           # only the units a picture needs (slices 1-5, SPS, PPS and delimiters 7-9), so no SEI or filler, where
           # free-form data could ride along. Then every frame is decoded.
           mkdir -p "$RUNNER_TEMP/vetted"
-          ffmpeg -nostdin -v error -i "$RUNNER_TEMP/rendered/$VIDEO" -map 0:v:0 -c copy -bsf:v 'filter_units=pass_types=1-5|7-9' \
-            -map_metadata -1 -map_chapters -1 -movflags +faststart -f mp4 "$RUNNER_TEMP/vetted/$VIDEO"
-          bash tools/video/check-video.sh "$RUNNER_TEMP/vetted/$VIDEO" --decode
+          ffmpeg -nostdin -v error -i "$RUNNER_TEMP/rendered/$FILE" -map 0:v:0 -c copy -bsf:v 'filter_units=pass_types=1-5|7-9' \
+            -map_metadata -1 -map_chapters -1 -movflags +faststart -f mp4 "$RUNNER_TEMP/vetted/$FILE"
+          bash tools/video/check-video.sh "$RUNNER_TEMP/vetted/$FILE" --decode
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: video-vetted
-          path: ${{ runner.temp }}/vetted/${{ env.VIDEO }}
+          name: video-vetted-${{ matrix.look }}
+          path: ${{ runner.temp }}/vetted/${{ matrix.file }}
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
@@ -222,52 +245,62 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: video-vetted
+          pattern: video-vetted-*
+          merge-multiple: true
           path: ${{ runner.temp }}/vetted
 
-      - name: Look at the file without parsing it
+      - name: Look at the files without parsing them
         run: |
-          # The vet job did the real checks. Here only the bytes are looked at, never decoded: an MP4 begins with an
-          # ftyp box, and this one is under GitHub's 2 GiB limit for a release file.
-          f="$RUNNER_TEMP/vetted/$VIDEO"
-          [ "$(head -c 8 "$f" | tail -c 4)" = ftyp ] || { echo "not an MP4" >&2; exit 1; }
-          size=$(stat -c %s "$f"); [ "$size" -gt 18000000 ] && [ "$size" -lt 2000000000 ] || { echo "$size bytes" >&2; exit 1; }
+          # The vet job did the real checks. Here only the bytes are looked at, never decoded: each video begins with
+          # an MP4's ftyp box and is under GitHub's 2 GiB limit for a release file, and nothing else came with them.
+          for f in "$RUNNER_TEMP/vetted/$VIDEO" "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH"; do
+            [ "$(head -c 8 "$f" | tail -c 4)" = ftyp ] || { echo "$f: not an MP4" >&2; exit 1; }
+            size=$(stat -c %s "$f"); [ "$size" -gt 18000000 ] && [ "$size" -lt 2000000000 ] || { echo "$f: $size bytes" >&2; exit 1; }
+          done
+          [ "$(find "$RUNNER_TEMP/vetted" -type f | wc -l)" = 2 ] || { find "$RUNNER_TEMP/vetted" >&2; exit 1; }
 
-      - name: Attest where the video was built
+      - name: Attest where the videos were built
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: ${{ runner.temp }}/vetted/${{ env.VIDEO }}
+          subject-path: |
+            ${{ runner.temp }}/vetted/${{ env.VIDEO }}
+            ${{ runner.temp }}/vetted/${{ env.VIDEO_LTHSTH }}
 
-      - name: Publish the video
+      - name: Publish the videos
         env:
           START: ${{ needs.update.outputs.start }}
           END: ${{ needs.update.outputs.end }}
         run: |
           [[ "$START" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "days: '$START' '$END'" >&2; exit 1; }
           SHA=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO" | cut -d' ' -f1)
-          # The last date in these notes is how the next run knows which day the published video reaches.
-          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264. Rebuilt every day by the Daily video workflow, which posts it to YouTube; the site does not link to this file.
+          SHA_LTHSTH=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" | cut -d' ' -f1)
+          # The last date in these notes is how the next run knows which day the published videos reach.
+          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264, in two videos: $VIDEO with the bars coloured by age band, and $VIDEO_LTHSTH by short- and long-term holders. Rebuilt every day by the Daily video workflow, which posts them to YouTube; the site does not link to these files.
 
-          SHA-256: $SHA
-          Check it: gh attestation verify $VIDEO --repo $GITHUB_REPOSITORY (see SECURITY.md)"
-          gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history video (4K)" --notes "$NOTES"
-          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO"
-          # Retried: notes left behind would name the old file's SHA-256 and fail every site check until the next run.
+          SHA-256 of $VIDEO: $SHA
+          SHA-256 of $VIDEO_LTHSTH: $SHA_LTHSTH
+          Check either: gh attestation verify FILE --repo $GITHUB_REPOSITORY (see SECURITY.md)"
+          gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history videos (4K)" --notes "$NOTES"
+          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO" "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH"
+          # Retried: notes left behind would name the old files' SHA-256.
           for k in 1 2 3 4 5; do gh release edit video --notes "$NOTES" && break; [ "$k" = 5 ] && exit 1; sleep $((k * 5)); done
 
   youtube:
-    # Posts the video to YouTube, unlisted: anyone with the link can watch it (the site's YouTube button links it),
-    # but it is shown neither on the channel nor in search. Its title is the chart's own title on its last day. The
-    # channel's OAuth credentials are three repository secrets (see README), seen only by the two steps that use them.
-    # Without them the job does nothing, so the video is published the same before YouTube is set up.
+    # Posts each video to YouTube, unlisted: anyone with the link can watch it (the site's two video buttons link
+    # them), but it is shown neither on the channel nor in search. Its title is the chart's own title on its last day,
+    # which names its look. The channel's OAuth credentials are three repository secrets (see README), seen only by the
+    # three steps that use them. Without them the job does nothing, so the videos are published the same before
+    # YouTube is set up.
     needs: [update, publish]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read
     outputs:
-      id: ${{ steps.post.outputs.id }}
-      privacy: ${{ steps.post.outputs.privacy }}
+      age_id: ${{ steps.age.outputs.id }}
+      age_privacy: ${{ steps.age.outputs.privacy }}
+      lthsth_id: ${{ steps.lthsth.outputs.id }}
+      lthsth_privacy: ${{ steps.lthsth.outputs.privacy }}
     steps:
       - name: Look for the YouTube credentials
         id: creds
@@ -287,13 +320,15 @@ jobs:
         with:
           node-version: 24
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        id: videos
         if: steps.creds.outputs.found == 'yes'
         with:
-          name: video-vetted
+          pattern: video-vetted-*
+          merge-multiple: true
           path: ${{ runner.temp }}/vetted
 
-      - name: Post the video to YouTube
-        id: post
+      - name: Post the AGE video to YouTube
+        id: age
         if: steps.creds.outputs.found == 'yes'
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
@@ -301,32 +336,58 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           START: ${{ needs.update.outputs.start }}
           END: ${{ needs.update.outputs.end }}
-        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO" "$START" "$END" >> "$GITHUB_OUTPUT"
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO" "$START" "$END" age >> "$GITHUB_OUTPUT"
+
+      - name: Post the LTH/STH video to YouTube
+        id: lthsth
+        # Also after the AGE video failed to post: one video's trouble does not keep the other off YouTube.
+        if: ${{ !cancelled() && steps.videos.outcome == 'success' }}
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          START: ${{ needs.update.outputs.start }}
+          END: ${{ needs.update.outputs.end }}
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" "$START" "$END" lthsth >> "$GITHUB_OUTPUT"
 
   record:
-    # Names the new video in data/youtube.json for the site's YouTube button. A private upload (every upload until the
-    # channel's Google project passes YouTube's API audit) is not recorded: nobody else could watch it, so the button
-    # stays hidden.
+    # Names the new videos in data/youtube.json for the site's two video buttons. A video that others cannot watch yet
+    # (a private upload, or none because its post failed) is not recorded: its button keeps the last one they could,
+    # or opens the channel. Runs when either post was viewable, also when the other failed.
     needs: [update, youtube]
-    if: needs.youtube.outputs.privacy == 'unlisted' || needs.youtube.outputs.privacy == 'public'
+    if: >-
+      ${{ !cancelled() && (
+        needs.youtube.outputs.age_privacy == 'unlisted' || needs.youtube.outputs.age_privacy == 'public' ||
+        needs.youtube.outputs.lthsth_privacy == 'unlisted' || needs.youtube.outputs.lthsth_privacy == 'public') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write   # the commit
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Record the latest video
+      - name: Record the latest videos
         env:
-          ID: ${{ needs.youtube.outputs.id }}
+          AGE_ID: ${{ needs.youtube.outputs.age_id }}
+          AGE_PRIVACY: ${{ needs.youtube.outputs.age_privacy }}
+          LTHSTH_ID: ${{ needs.youtube.outputs.lthsth_id }}
+          LTHSTH_PRIVACY: ${{ needs.youtube.outputs.lthsth_privacy }}
           END: ${{ needs.update.outputs.end }}
         run: |
-          [[ "$ID" =~ ^[A-Za-z0-9_-]{11}$ && "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "id: '$ID' end: '$END'" >&2; exit 1; }
-          ABOUT="The latest video on YouTube, for the site's YouTube button: written by the Daily video workflow once an upload is viewable (unlisted or public); null until then."
-          printf '{\n  "about": "%s",\n  "id": "%s",\n  "end": "%s"\n}\n' "$ABOUT" "$ID" "$END" > data/youtube.json
+          [[ "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "end: '$END'" >&2; exit 1; }
+          # Each video: today's upload if others can watch it, else whatever was recorded for it before. ("end" is
+          # quoted in jq, where a bare end is a keyword.)
+          viewable() { [[ ( "$2" = unlisted || "$2" = public ) && "$1" =~ ^[A-Za-z0-9_-]{11}$ ]]; }
+          if viewable "$AGE_ID" "$AGE_PRIVACY"; then AGE=$(jq -n --arg id "$AGE_ID" --arg day "$END" '{id: $id, "end": $day}')
+          else AGE=$(jq '.age // null' data/youtube.json); fi
+          if viewable "$LTHSTH_ID" "$LTHSTH_PRIVACY"; then LTHSTH=$(jq -n --arg id "$LTHSTH_ID" --arg day "$END" '{id: $id, "end": $day}')
+          else LTHSTH=$(jq '.lthsth // null' data/youtube.json); fi
+          ABOUT="The latest videos on YouTube for the site's two video buttons: age, the bars coloured by age band, and lthsth, by short- and long-term holders. Written by the Daily video workflow once an upload is viewable (unlisted or public); null until then."
+          jq -n --arg about "$ABOUT" --argjson age "$AGE" --argjson lthsth "$LTHSTH" '{about: $about, age: $age, lthsth: $lthsth}' > "$RUNNER_TEMP/youtube.json"
+          mv "$RUNNER_TEMP/youtube.json" data/youtube.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/youtube.json
           if git diff --cached --quiet; then echo "Already recorded."; exit 0; fi
-          git commit -m "Latest video on YouTube: $ID ($END)"
+          git commit -m "Latest videos on YouTube, through $END"
           git pull --rebase --quiet
           git push   # Pages rebuilds the site from this push by itself

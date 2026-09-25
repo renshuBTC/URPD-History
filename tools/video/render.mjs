@@ -1,10 +1,11 @@
-// Renders the full-history video the Daily video workflow posts to YouTube: every day in the store (store.mjs) from the first
+// Renders a full-history video the Daily video workflow posts to YouTube: every day in the store (store.mjs) from the first
 // with anything on the chart (2010-05-18, when the first price comes into view) to the latest, in 5:00 at 60 fps
 // (18,000 frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days
-// there are; the chart is the site's, drawn by page.html.
+// there are; the chart is the site's, drawn by page.html, with its bars coloured one of the site's two ways (looks.mjs).
 //
 //   node tools/video/render.mjs STORE_DIR OUT.mp4
-//   env: FRAMES (18000), WORKERS (browser pages drawing at once: 2 with 12 GB or more, else 1), SEG (frames per segment, 180),
+//   env: LOOK (age, the default: each bar in its 23 age bands; lthsth: in short- and long-term holders),
+//        FRAMES (18000), WORKERS (browser pages drawing at once: 2 with 12 GB or more, else 1), SEG (frames per segment, 180),
 //        TEST_DATES (comma list: write stills of those days as PNG next to OUT instead of a video)
 import fs from "node:fs";
 import os from "node:os";
@@ -13,6 +14,7 @@ import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { readStore, getJSON, firstShownIndex } from "./store.mjs";
+import { look, titleStart } from "./looks.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -23,11 +25,10 @@ if (!STORE || !OUT) throw new Error("usage: render.mjs STORE_DIR OUT.mp4");
 const F = Number(process.env.FRAMES || 18000), FPS = 60, SEG = Number(process.env.SEG || 180);
 const WORKERS = Number(process.env.WORKERS || (os.totalmem() > 12e9 ? 2 : 1));
 const TEST = process.env.TEST_DATES ? process.env.TEST_DATES.split(",") : null;
+const LOOK_NAME = process.env.LOOK || "age", LOOK = look(LOOK_NAME), TITLE = titleStart(LOOK_NAME);
 const NB = 626, A = 23, DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1), BASE = "https://bitview.space";
 const dayIdx = (d) => Math.round((Date.parse(d + "T00:00:00Z") - DAY0) / DAY);
 const idxDay = (i) => new Date(DAY0 + i * DAY).toISOString().slice(0, 10);
-const PALETTE = ["#f8f919", "#ffbc86", "#fe60a4", "#f20bdb", "#cc0ffc", "#b430fe", "#a43afe", "#983ffe", "#8e42fe", "#8046fe", "#6e48fe", "#5a49fe",
-  "#434afe", "#224bfd", "#0353ed", "#0258e0", "#035bd5", "#035dcc", "#035fc5", "#0360bb", "#0361b0", "#0361a5", "#03619a"];
 const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0], ["2013-11-29", "Cycle 2 Top", 1], ["2015-01-14", "Cycle 2 Bottom", 0],
   ["2017-12-17", "Cycle 3 Top", 1], ["2018-12-15", "Cycle 3 Bottom", 0], ["2021-11-10", "Cycle 4 Top", 1], ["2022-11-21", "Cycle 4 Bottom", 0], ["2025-10-06", "Cycle 5 Top", 1]];
 
@@ -88,11 +89,16 @@ function axisLabels(vals) {
 }
 
 // ---- frame t: the state at fractional day u, blended between the two neighbouring days ----------------------
+// cum[k]: the look's layer k, per bar: the age bands before LOOK.ends[k] added up (bands 0 to k for AGE; for LTH/STH
+// the short-term holders' eight, then all 23).
 const DAYCACHE = new Map();
 function dayData(i) {
   if (DAYCACHE.has(i)) return DAYCACHE.get(i);
   const b = bars(i), cum = [], acc = new Float64Array(NB);
-  for (let a = 0; a < A; a++) { for (let j = 0; j < NB; j++) acc[j] += b[a * NB + j]; cum.push(Float64Array.from(acc)); }
+  for (let a = 0, k = 0; a < A; a++) {
+    for (let j = 0; j < NB; j++) acc[j] += b[a * NB + j];
+    if (a + 1 === LOOK.ends[k]) { cum.push(Float64Array.from(acc)); k++; }
+  }
   const d = { ...days[i], cum };
   DAYCACHE.set(i, d); if (DAYCACHE.size > 16) DAYCACHE.delete(DAYCACHE.keys().next().value);
   return d;
@@ -103,7 +109,7 @@ const round5 = (v) => (v === 0 ? 0 : +v.toPrecision(5));
 function spec(t) {
   const [i0, i1, f] = frameDay(t), a = dayData(i0), b = dayData(i1), near = f < 0.5 ? a : b;
   const w = glerp(a.w, b.w, f), cum = [];
-  for (let k = 0; k < A; k++) { const x = a.cum[k], y = b.cum[k], o = new Array(NB); for (let j = 0; j < NB; j++) o[j] = round5(x[j] + (y[j] - x[j]) * f); cum.push(o); }
+  for (let k = 0; k < LOOK.ends.length; k++) { const x = a.cum[k], y = b.cum[k], o = new Array(NB); for (let j = 0; j < NB; j++) o[j] = round5(x[j] + (y[j] - x[j]) * f); cum.push(o); }
   const xSpan = NB * w, xv = axisTicks(xSpan), xt = axisLabels(xv);
   xt[0] = "\u00a0\u00a0" + xt[0];                         // off the corner, clear of the left axis's $0
   const ymax = Y[t], yt = axisTicks(ymax), ytt = axisLabels(yt);
@@ -122,7 +128,8 @@ function spec(t) {
   const spot = a.spot && b.spot ? glerp(a.spot, b.spot, f) : near.spot;
   const redPct = a.redPct !== null && b.redPct !== null ? lerp(a.redPct, b.redPct, f) : near.redPct;
   const dayMs = Date.parse(a.date + "T00:00:00Z") + f * (Date.parse(b.date + "T00:00:00Z") - Date.parse(a.date + "T00:00:00Z"));
-  return { date: near.date, tx: isoAt(dayMs), nb: NB, w, colors: PALETTE, cum, clip: [], xt: { v: xv, t: xt }, ymax, yt, ytt, spot, redPct, pd, pp,
+  return { date: near.date, tx: isoAt(dayMs), nb: NB, w, title: TITLE, labels: LOOK.labels, colors: LOOK.colors, legendSize: LOOK.legendSize,
+    cum, clip: [], xt: { v: xv, t: xt }, ymax, yt, ytt, spot, redPct, pd, pp,
     win: [isoAt(wl), isoAt(wr)], cStr, rStr, pr: M[t] > 0 ? [0, M[t]] : null, lm };
 }
 
@@ -198,4 +205,4 @@ await new Promise((res, rej) => {
   p.on("close", (c) => (c === 0 ? res() : rej(new Error("concat failed: " + c))));
 });
 fs.rmSync(segDir, { recursive: true, force: true });
-console.log(`${OUT}: ${F} frames, ${days[0].date} to ${days[N - 1].date}, ${(fs.statSync(OUT).size / 1e6).toFixed(1)} MB in ${Math.round((Date.now() - t0) / 60000)} min`);
+console.log(`${OUT} (${LOOK.tag}): ${F} frames, ${days[0].date} to ${days[N - 1].date}, ${(fs.statSync(OUT).size / 1e6).toFixed(1)} MB in ${Math.round((Date.now() - t0) / 60000)} min`);
