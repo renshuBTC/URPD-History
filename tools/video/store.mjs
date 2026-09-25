@@ -1,5 +1,5 @@
 // The video's store: every day's bars (23 age bands x 626 bins, in dollars) binned by index.html's own code on the
-// growing price axis of data/scales.json, plus the day's axis end, price and share of value held at a loss. A past day
+// growing price axis of data/scales.json, plus the day's axis end, price and share of value that last moved above that price. A past day
 // never changes (its axis is fixed once the day has passed), so the store only ever gains days. It is kept as
 // meta.json plus one gzipped Float32Array per year (bars-YYYY.f32.gz), and lives as files on the "video-data" release.
 //
