@@ -1,5 +1,5 @@
 // Renders the full-history video the site's download button serves: every day in the store (store.mjs) from the first
-// with bars on the chart (2011-01-31, when coins first last moved at a dollar or more) to the latest, in 5:00 at 60 fps
+// with anything on the chart (2010-05-18, when the first price comes into view) to the latest, in 5:00 at 60 fps
 // (18,000 frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days
 // there are; the chart is the site's, drawn by page.html.
 //
@@ -33,7 +33,7 @@ const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0
 
 // ---- the days, their prices and their price-line windows ----------------------------------------------------
 const { meta, bars: storeBars } = readStore(STORE);
-// Days before the first with bars on the chart are left out: only the price line and the date moved.
+// Days before the first with anything on the chart are left out: an empty chart with only the date moving.
 const S = firstShownIndex(meta, storeBars), bars = (i) => storeBars(i + S);
 const days = meta.days.slice(S).map(([date, X, spot, redPct]) => ({ date, w: X / (NB - 1), spot, redPct })), N = days.length;
 if (N < 2) throw new Error("the store needs at least two days");
