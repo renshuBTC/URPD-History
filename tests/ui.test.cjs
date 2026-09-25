@@ -179,6 +179,11 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
   assert.ok(tablet.title.font.size >= 12, 'never below 12 px');
 });
 
+test('the explainer\'s section headings are underlined', () => {
+  assert.match(decls('#explainPanel h3'), /text-decoration:\s*underline/);
+  assert.match(decls('#explainPanel h3'), /text-underline-offset:\s*3px/);
+});
+
 test('Smoothing and Y-max are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
   for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL']]) {
     const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*><span class="field-unit">([^<]+)</span>\\s*</label>`).exec(html);
