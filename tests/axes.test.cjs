@@ -151,7 +151,7 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
   }
   // the video's chart says the same (USD view; its title is checked in video-looks.test.cjs)
   const video = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8');
-  for (const s of ['"<b>" + sp.title + ', 'title: { text: "Price When Last Moved [USD]", font',
+  for (const s of ['"<b>" + esc(sp.title) + ', 'title: { text: "Price When Last Moved [USD]", font',
     'text: "Value When Last Moved [USD]"', 'USD Value Last Moved In Profit: ', 'USD Value Last Moved In Loss: ',
   ]) assert.ok(video.includes(s), 'video: ' + s);
   assert.doesNotMatch(video, /This Price|Supply Distribution|per bar|perBar|BOTTOM SIGNAL|GLOW|isBottom/);
