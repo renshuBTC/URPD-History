@@ -1,12 +1,9 @@
 name: Site check
 
 # Checks, four times a day, that visitors get exactly what this repository publishes, so tampering anywhere in between
-# (the domain, GitHub Pages or the video release) turns this workflow red and GitHub emails the owner:
+# (the domain or GitHub Pages) turns this workflow red and GitHub emails the owner:
 #   - https://bitcoinsupplychart.com/ serves this repository's index.html, byte for byte, and plain http redirects there
-#   - the file the page's download button links to is on this repository's "video" release, carries
-#     a valid build attestation from its Daily video workflow on main, and is the one whose SHA-256 the notes give
-# The times fall after the daily video is usually out (by about 04:00 UTC); a video met in the middle of its swap is
-# tried again a few minutes later.
+# The page links to no file to download (tests/security.test.cjs), so a live page that is index.html links to none either.
 on:
   schedule:
     - cron: "41 4,10,16,22 * * *"
@@ -14,7 +11,6 @@ on:
 
 permissions:
   contents: read
-  attestations: read
 
 jobs:
   check:
@@ -47,25 +43,3 @@ jobs:
           loc=$(curl -sS --retry 3 --retry-all-errors --max-time 30 -o /dev/null -w '%{redirect_url}' http://bitcoinsupplychart.com/ || true)
           if [ "$loc" = "$SITE" ]; then echo "http redirects to https."
           else echo "::error::http://bitcoinsupplychart.com/ is served without a redirect to https: tick Enforce HTTPS in Settings -> Pages"; exit 1; fi
-
-      - name: The video is the one the Daily video workflow built
-        run: |
-          # The file the live page links to, which must be on this repository's video release.
-          url=$(grep -oE 'id="videoBtn" href="[^"]*"' "$RUNNER_TEMP/live.html" | sed -E 's/.*href="([^"]*)"/\1/')
-          [[ "$url" =~ ^https://github\.com/$GITHUB_REPOSITORY/releases/download/video/[A-Za-z0-9._-]+\.mp4$ ]] || { echo "::error::the button links to '$url'"; exit 1; }
-          echo "The button links to $url"
-          # A new video takes a moment to swap in, and a download can fail on its own, so a mismatch or a failed
-          # download is tried twice more, two minutes apart, before it counts.
-          for k in 1 2 3; do
-            if curl -fsSL --proto '=https' --max-time 900 -o "$RUNNER_TEMP/video.mp4" "$url"; then
-              SHA=$(sha256sum "$RUNNER_TEMP/video.mp4" | cut -d' ' -f1)
-              if gh release view video --json body --jq .body | grep -qF "SHA-256: $SHA"; then echo "SHA-256 $SHA, as in the release notes."; break; fi
-              problem="its SHA-256 ($SHA) is not the one in the release notes"
-            else
-              problem="it could not be downloaded"
-            fi
-            if [ "$k" = 3 ]; then echo "::error::The video at $url: $problem"; exit 1; fi
-            sleep 120
-          done
-          gh attestation verify "$RUNNER_TEMP/video.mp4" --repo "$GITHUB_REPOSITORY" \
-            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/video.yml" --source-ref refs/heads/main --deny-self-hosted-runners

@@ -24,17 +24,16 @@ test('kernel preserves supply and USD at zero and upper boundaries', () => {
 test('zero USD denominator is unavailable while BTC ratio remains valid', async () => {
   const { c, element } = app();
   c.allDates = ['2011-01-30']; c.priceArray = [0.46]; c.priceIndexByDate = { '2011-01-30': 0 };
-  c.bottomThreshold = 0;
   const data = c.buildData('2011-01-30', { all: { 0: 100 }, age: [{ 0: 100 }] });
   assert.equal(data.redPct, null); assert.equal(data.redPctCoin, 0);
   await c.renderChart(data);
   let text = element('chart').layout.annotations.map(a => a.text).join(' ');
-  assert.match(text, /USD Value Last Moved Below This Price: N\/A/);
+  assert.match(text, /USD Value Last Moved In Profit: N\/A/);
   assert.doesNotMatch(text, /BOTTOM SIGNAL|NaN/);
   c.coinMode = true;
   await c.renderChart(data);
   text = element('chart').layout.annotations.map(a => a.text).join(' ');
-  assert.match(text, /BTC Supply Last Moved Below This Price: 100\.0%/);
+  assert.match(text, /BTC Supply Last Moved In Profit: 100\.0%/);
   assert.equal(c.computeRedPct({ 10: 1 }, null), null);
 });
 
@@ -126,12 +125,12 @@ test('render queue skips obsolete draws and only publishes completed data', asyn
   assert.equal(c.lastRenderedData, null);
 });
 
-test('bins and mode toggles coalesce rapid changes', async () => {
+test('smoothing and mode toggles coalesce rapid changes', async () => {
   const { c, element, timers, runTimer } = app(); let draws = 0;
   c.loadAndRender = () => { draws++; return Promise.resolve(); };
-  for (const value of ['5', '50', '500']) element('binsInput').emit('input', { target: { value } });
-  assert.equal(c.NUM_BINS, 625); assert.equal(timers.size, 1);
-  runTimer([...timers.keys()][0]); assert.equal(c.NUM_BINS, 500); assert.equal(draws, 1);
+  for (const value of ['0.1', '0.12', '0.5']) element('smoothInput').emit('input', { target: { value } });
+  assert.equal(c.KERNEL_PCT, 0.24); assert.equal(timers.size, 1);
+  runTimer([...timers.keys()][0]); assert.equal(c.KERNEL_PCT, 0.5); assert.equal(draws, 1);
   c.setViewMode(1); c.setViewMode(0); c.setViewMode(1);
   assert.equal(draws, 1); assert.equal(timers.size, 1);
   runTimer([...timers.keys()][0]); assert.equal(draws, 2); assert.equal(c.coinMode, true);
