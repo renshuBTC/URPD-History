@@ -90,13 +90,27 @@ test('a start-up that could not reach the API says so in whatever language the p
   assert.equal(element('status').style.display, 'block', 'still up: nothing can draw without dates');
 });
 
-test('the toolbar wraps instead of scrolling, with YouTube, ?, language and GitHub kept together at the right, in that order', () => {
+test('the toolbar wraps instead of scrolling; YouTube, How to read and GitHub follow the settings in words, and the language button keeps to the right on its own', () => {
   assert.match(decls('#controls'), /flex-wrap:\s*wrap/);
   assert.match(decls('#toolbarEnd'), /margin-left:\s*auto/);
   assert.doesNotMatch(decls('#githubLink'), /margin-left/);
   const end = html.slice(html.indexOf('<div id="toolbarEnd">'), html.indexOf('<div id="status"'));
-  // The chart's own action first, then help, the page's language, and the link that leaves the site at the far corner.
-  assert.deepEqual([...end.matchAll(/\sid="(githubLink|explainWrap|videoBtn|ytBtn|langBtn)"/g)].map(m => m[1]), ['ytBtn', 'explainWrap', 'langBtn', 'githubLink']);
+  assert.deepEqual([...end.matchAll(/\sid="(\w+)"/g)].map(m => m[1]), ['toolbarEnd', 'langBtn'], 'only the language at the right-hand end');
+  const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
+  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'explainWrap', 'githubLink']);
+  // Each shows its icon and a word, at the weight of the other buttons (the ? used to be bold on its own).
+  for (const [id, word] of [['ytBtn', 'YouTube'], ['githubLink', 'GitHub']]) assert.match(bar, new RegExp(`id="${id}"[^>]*>\\s*<svg[\\s\\S]*?</svg><span class="btn-word">${word}</span>`), id);
+  assert.match(bar, /<button id="explainBtn"[^>]*><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><span id="explainLabel" class="btn-word">How to read<\/span><\/button>/);
+  // Where the words would wrap the bar they give way to the icons: measured against the mark at the start.
+  assert.match(decls('#controls.compact .btn-word'), /display:\s*none/);
+  assert.match(html, /function fitToolbarWords\(\) \{[\s\S]*?bar\.classList\.remove\("compact"\);\s*if \(end\.getBoundingClientRect\(\)\.top - first\.getBoundingClientRect\(\)\.top > 4\) bar\.classList\.add\("compact"\);/);
+  for (const sel of ['#explainBtn', '#ytBtn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
+  const { c, element } = app();
+  for (const [lang, word] of [['zh', '如何看懂'], ['ja', '読み方'], ['en', 'How to read']]) {
+    c.lang = lang; c.applyLang();
+    assert.equal(element('explainLabel').textContent, word, lang);
+    assert.ok(c.t('ariaExplain').startsWith(word) || c.t('ariaExplain').endsWith(word), lang + ': the spoken name holds the visible word');
+  }
 });
 
 test('the chart follows its own box, which the toolbar can change without the window resizing', async () => {
@@ -164,17 +178,17 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
   assert.ok(tablet.title.font.size >= 12, 'never below 12 px');
 });
 
-test('Smoothing and Y-max are framed like the cycle list: label, orange value, unit; the frame turns orange while editing', () => {
+test('Smoothing and Y-max are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
   for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL']]) {
     const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*><span class="field-unit">([^<]+)</span>\\s*</label>`).exec(html);
     assert.ok(m, wrap); assert.equal(m[1], unit);
     assert.doesNotMatch(m[0], /style=/, 'no inline styles');
   }
   const frame = decls('#controls .field');
-  for (const want of [/border:\s*1px solid #555/, /background:\s*#1e1e1e/, /height:\s*24px/, /border-radius:\s*2px/]) assert.match(frame, want);
-  assert.match(decls('#controls .field:focus-within'), /border-color:\s*#ff8c00/);
+  for (const want of [/border:\s*1px solid #595959/, /background:\s*#000/, /height:\s*24px/, /border-radius:\s*0/]) assert.match(frame, want);
+  assert.match(decls('#controls .field:focus-within'), /border-color:\s*#fff;\s*box-shadow:\s*inset 0 0 0 1px #fff/);
   assert.match(decls('#controls .field .field-label'), /text-transform:\s*uppercase/);
-  assert.match(decls('#controls .field input'), /color:\s*#ff8c00/);
+  assert.match(decls('#controls .field input'), /color:\s*#fff/);
   assert.match(decls('#controls .field input'), /border:\s*0/);
 });
 
