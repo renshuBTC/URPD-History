@@ -1,9 +1,11 @@
-name: Daily video
+name: Weekly videos
 
-# Every day, for YouTube and for scrubbing through history, two videos of the whole history, one for each way the site
-# colours its bars (tools/video/looks.mjs): by age band (AGE), and by short- and long-term holders (LTH/STH).
+# Once a week, two videos of the whole history for YouTube, one for each way the site colours its bars
+# (tools/video/looks.mjs): by age band (AGE), and split at 150 days (<150D/>150D). The workflow runs every
+# day all the same, because its first job also keeps the site's axis history current:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
-#               videos' store (the files on the "video-data" release)
+#               videos' store (the files on the "video-data" release), and decides whether new videos are due: once
+#               the store reaches seven days past the published ones, or on a run started by hand
 #   2. render:  draws each 4K video with tools/video, the two on runners of their own
 #   3. vet:     accepts each file only if it is exactly the expected video, and rewrites its container keeping only
 #               the picture
@@ -20,13 +22,13 @@ name: Daily video
 # publish job signs a build attestation for the vetted files, which anyone can check with `gh attestation verify` (see
 # SECURITY.md). New release files replace the old ones only once fully uploaded (tools/video/replace-asset.sh), so
 # the release never holds half a file. Actions are pinned to full commit hashes. Standard GitHub-hosted runners are
-# free for public repositories; the whole run takes about an hour and a half.
+# free for public repositories; a run that draws the videos takes about an hour and a half, any other a minute.
 on:
   schedule:
     # 01:23 UTC, well after yesterday closed and off the top of the hour, when GitHub delays or drops the most
-    # scheduled runs; the new video is usually out by about 04:00 UTC (GitHub can start scheduled runs hours late).
-    # The second run only catches up if the first did not happen or found no new day, and otherwise stops after a
-    # minute.
+    # scheduled runs; on the day new videos are due they are usually out by about 04:00 UTC (GitHub can start
+    # scheduled runs hours late). The second run only catches up if the first did not happen or found no new day, and
+    # otherwise stops after a minute.
     - cron: "23 1 * * *"
     - cron: "23 5 * * *"
   workflow_dispatch:
@@ -39,7 +41,7 @@ concurrency:
 
 env:
   # The videos' file names on the release (each has to end in .mp4: a file ending in .com is a program on Windows): the
-  # bars coloured by age band, and by short- and long-term holders. The render and vet jobs name them again, in their
+  # bars coloured by age band, and split at 150 days (<150D/>150D). The render and vet jobs name them again, in their
   # matrix.
   VIDEO: BitcoinSupplyChart.com.mp4
   VIDEO_LTHSTH: BitcoinSupplyChart.com-LTH-STH.mp4
@@ -108,16 +110,18 @@ jobs:
           START=$(node --input-type=module -e "import { readStore, firstShownIndex } from './tools/video/store.mjs';
             const s = readStore(process.env.RUNNER_TEMP + '/store'); console.log(s.meta.days[firstShownIndex(s.meta, s.bars)][0]);")
           echo "start=$START" >> "$GITHUB_OUTPUT"
-          # The published videos' last day, from their release notes (none before the first videos). New videos only
-          # when the store has gone past it: while a lost store is rebuilt over several runs it stays behind, and
-          # shorter videos must not replace the full ones. A run started by hand redraws the same days too.
+          # The published videos' last day, from their release notes (none before the first videos).
           SHOWN=$(gh release view video --json body --jq .body 2> /dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -n 1 || true)
-          if [[ "$END" > "$SHOWN" ]] || { [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$END" = "$SHOWN" ]; }; then
+          # New videos once a week: when the store reaches seven days past the published ones (at once if there are
+          # none). While a lost store is rebuilt over several runs it stays behind them, and shorter videos must not
+          # replace the full ones. A run started by hand draws new videos whenever the store is not behind.
+          DUE=$([ -n "$SHOWN" ] && date -u -d "$SHOWN + 7 days" +%F || true)
+          if [ -z "$SHOWN" ] || [[ ! "$END" < "$DUE" ]] || { [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [[ ! "$END" < "$SHOWN" ]]; }; then
             echo "render=yes" >> "$GITHUB_OUTPUT"
           elif [[ "$END" < "$SHOWN" ]]; then
-            echo "The store runs to $END, behind the published video ($SHOWN): it keeps catching up."
+            echo "The store runs to $END, behind the published videos ($SHOWN): it keeps catching up."
           else
-            echo "The published video already runs to $END."
+            echo "The published videos run to $SHOWN; the next are drawn once the store reaches $DUE."
           fi
 
       - name: Hand the store to the renderer
@@ -275,7 +279,7 @@ jobs:
           SHA=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO" | cut -d' ' -f1)
           SHA_LTHSTH=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published videos reach.
-          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264, in two videos: $VIDEO with the bars coloured by age band, and $VIDEO_LTHSTH by short- and long-term holders. Rebuilt every day by the Daily video workflow, which posts them to YouTube; the site does not link to these files.
+          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264, in two videos: $VIDEO with the bars coloured by age band, and $VIDEO_LTHSTH split at 150 days (<150D and >150D). Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files.
 
           SHA-256 of $VIDEO: $SHA
           SHA-256 of $VIDEO_LTHSTH: $SHA_LTHSTH
@@ -338,7 +342,7 @@ jobs:
           END: ${{ needs.update.outputs.end }}
         run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO" "$START" "$END" age >> "$GITHUB_OUTPUT"
 
-      - name: Post the LTH/STH video to YouTube
+      - name: Post the <150D/>150D video to YouTube
         id: lthsth
         # Also after the AGE video failed to post: one video's trouble does not keep the other off YouTube.
         if: ${{ !cancelled() && steps.videos.outcome == 'success' }}
@@ -381,7 +385,7 @@ jobs:
           else AGE=$(jq '.age // null' data/youtube.json); fi
           if viewable "$LTHSTH_ID" "$LTHSTH_PRIVACY"; then LTHSTH=$(jq -n --arg id "$LTHSTH_ID" --arg day "$END" '{id: $id, "end": $day}')
           else LTHSTH=$(jq '.lthsth // null' data/youtube.json); fi
-          ABOUT="The latest videos on YouTube for the site's two video buttons: age, the bars coloured by age band, and lthsth, by short- and long-term holders. Written by the Daily video workflow once an upload is viewable (unlisted or public); null until then."
+          ABOUT="The latest videos on YouTube for the site's two video buttons: age, the bars coloured by age band, and lthsth, split at 150 days (<150D/>150D). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
           jq -n --arg about "$ABOUT" --argjson age "$AGE" --argjson lthsth "$LTHSTH" '{about: $about, age: $age, lthsth: $lthsth}' > "$RUNNER_TEMP/youtube.json"
           mv "$RUNNER_TEMP/youtube.json" data/youtube.json
           git config user.name "github-actions[bot]"

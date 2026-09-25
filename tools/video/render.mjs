@@ -1,10 +1,10 @@
-// Renders a full-history video the Daily video workflow posts to YouTube: every day in the store (store.mjs) from the first
+// Renders a full-history video the Weekly videos workflow posts to YouTube: every day in the store (store.mjs) from the first
 // with anything on the chart (2010-05-18, when the first price comes into view) to the latest, in 5:00 at 60 fps
 // (18,000 frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days
 // there are; the chart is the site's, drawn by page.html, with its bars coloured one of the site's two ways (looks.mjs).
 //
 //   node tools/video/render.mjs STORE_DIR OUT.mp4
-//   env: LOOK (age, the default: each bar in its 23 age bands; lthsth: in short- and long-term holders),
+//   env: LOOK (age, the default: each bar in its 23 age bands; lthsth: split at 150 days, <150D and >150D),
 //        FRAMES (18000), WORKERS (browser pages drawing at once: 2 with 12 GB or more, else 1), SEG (frames per segment, 180),
 //        TEST_DATES (comma list: write stills of those days as PNG next to OUT instead of a video)
 import fs from "node:fs";
@@ -89,8 +89,8 @@ function axisLabels(vals) {
 }
 
 // ---- frame t: the state at fractional day u, blended between the two neighbouring days ----------------------
-// cum[k]: the look's layer k, per bar: the age bands before LOOK.ends[k] added up (bands 0 to k for AGE; for LTH/STH
-// the short-term holders' eight, then all 23).
+// cum[k]: the look's layer k, per bar: the age bands before LOOK.ends[k] added up (bands 0 to k for AGE; for
+// <150D/>150D the eight bands under 150 days, then all 23).
 const DAYCACHE = new Map();
 function dayData(i) {
   if (DAYCACHE.has(i)) return DAYCACHE.get(i);
