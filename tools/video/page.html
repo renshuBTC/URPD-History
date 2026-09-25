@@ -14,6 +14,7 @@
 // all 626 bars, painted back to front, instead of 14,000 separate rectangles (the same picture, much faster), with
 // the bar edges on whole device pixels.
 var FONT = "'Source Code Pro', Consolas, monospace";
+var GRID_COLOR = "#272727", WATERMARK_COLOR = "#1a1a1a";   // the site's (index.html, "Grid and watermark")
 var PROFIT = "#00e676", LOSS = "#ff1744", GLOW = "#FFE600", PRICE_LINE = "#ffffff";
 var LABELS = ["<1h","1h-1d","1d-1w","1w-1m","1m-2m","2m-3m","3m-4m","4m-5m","5m-6m","6m-9m","9m-1y","1y-18m","18m-2y","2y-3y","3y-4y","4y-5y","5y-6y","6y-7y","7y-8y","8y-10y","10y-12y","12y-15y",">15y"];
 var TOP_MARGIN = null, ML = 88, MR = 24, PLOT_W = 1920 - ML - MR, BAR_EDGES = null;
@@ -48,8 +49,9 @@ window.drawFrame = function(sp) {
     for (var k = 0; k < n; k++) { ys[4 * k] = 0; ys[4 * k + 1] = c[k]; ys[4 * k + 2] = c[k]; ys[4 * k + 3] = 0; }
     traces.push({ x: xs, y: ys, type: "scatter", mode: "lines", line: { width: 0, color: sp.colors[a2] }, fill: "tozeroy", fillcolor: sp.colors[a2], showlegend: false, hoverinfo: "skip" });
   }
-  var shapes = [], ann = [
-    { xref: "paper", yref: "paper", x: 0.5, y: 0.5, text: "<span style='color:rgba(255,255,255,0.15);font-size:50px;font-weight:bold'>@RenshuBTC</span>", showarrow: false, font: { family: FONT } },
+  // the watermark under the grid and the bars, as on the site
+  var shapes = [{ type: "rect", xref: "paper", yref: "paper", x0: 0, x1: 1, y0: 0, y1: 1, layer: "below", line: { width: 0 }, fillcolor: "rgba(0,0,0,0)",
+    label: { text: "<b>@RenshuBTC</b>", textposition: "middle center", font: { family: FONT, size: 50, color: WATERMARK_COLOR } } }], ann = [
     { xref: "paper", yref: "paper", x: 0, y: 0, yanchor: "bottom", yshift: -38, text: "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_", showarrow: false, font: { size: 11, color: "rgba(255,255,255,0.55)", family: FONT }, xanchor: "left" }
   ];
   ann.push({ xref: "paper", yref: "paper", x: 0, y: 0.5, xanchor: "center", yanchor: "middle", xshift: -(ML - 16), textangle: -90, showarrow: false,
@@ -80,9 +82,9 @@ window.drawFrame = function(sp) {
     font: { family: FONT, color: "#ffffff" }, paper_bgcolor: "#0a0a0a", plot_bgcolor: "#0a0a0a", barmode: "stack", bargap: 0, showlegend: true,
     legend: { orientation: "h", yanchor: "bottom", y: 1, xanchor: "center", x: 0.5, bgcolor: "rgba(0,0,0,0)", font: { family: FONT, size: 9, color: "#ffffff" }, traceorder: "normal" },
     xaxis: { title: { text: "Price [USD]", font: { family: FONT, size: 13, color: "#ffffff" }, standoff: 10 }, range: [0, xSpan], autorange: false,
-      tickvals: sp.xt.v, ticktext: sp.xt.t, tickangle: 0, showgrid: true, gridcolor: "rgba(255,255,255,0.08)", tickfont: { family: FONT, size: 11, color: "#ffffff" }, zeroline: false },
+      tickvals: sp.xt.v, ticktext: sp.xt.t, tickangle: 0, showgrid: true, gridcolor: GRID_COLOR, tickfont: { family: FONT, size: 11, color: "#ffffff" }, zeroline: false },
     yaxis: { title: { text: "" }, automargin: false, side: "left",
-      tickvals: sp.yt, ticktext: sp.ytt || sp.yt.map(yLabel), range: [0, sp.ymax], autorange: false, showgrid: true, gridcolor: "rgba(255,255,255,0.08)", zeroline: false, tickfont: { family: FONT, size: 11, color: "#ffffff" } },
+      tickvals: sp.yt, ticktext: sp.ytt || sp.yt.map(yLabel), range: [0, sp.ymax], autorange: false, showgrid: true, gridcolor: GRID_COLOR, zeroline: false, tickfont: { family: FONT, size: 11, color: "#ffffff" } },
     annotations: ann, shapes: shapes, margin: { l: ML, r: MR, t: TOP_MARGIN === null ? 68 : TOP_MARGIN, b: 44, autoexpand: false }, hovermode: false
   };
   // BTC/USD line over a one-year window, on its own hidden date axis, linear from $0 to the highest close so far
