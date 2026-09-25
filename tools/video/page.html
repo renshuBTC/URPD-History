@@ -68,8 +68,8 @@ window.drawFrame = function(sp) {
     shapes.push({ type: "line", x0: sp.spot, x1: sp.spot, y0: 0, y1: 1, xref: "x", yref: "paper", line: { color: "#ffffff", width: 1, dash: "dash" }, layer: "above" });
     var loss = sp.redPct, profit = loss === null ? null : 100 - loss;
     var txt = "Price: $" + sp.spot.toLocaleString("en-US", { maximumFractionDigits: sp.spot < 10 ? 2 : 0 }) +
-      "<br><span style='color:" + PROFIT + "'>USD Value Last Moved Below This Price: " + (profit === null ? "N/A" : profit.toFixed(1) + "%") + "</span>" +
-      "<br><span style='color:" + LOSS + "'>USD Value Last Moved Above This Price: " + (loss === null ? "N/A" : loss.toFixed(1) + "%") + "</span>";
+      "<br><span style='color:" + PROFIT + "'>USD Value Last Moved In Profit: " + (profit === null ? "N/A" : profit.toFixed(1) + "%") + "</span>" +
+      "<br><span style='color:" + LOSS + "'>USD Value Last Moved In Loss: " + (loss === null ? "N/A" : loss.toFixed(1) + "%") + "</span>";
     var chars = txt.split("<br>").reduce(function(m, s) { return Math.max(m, s.replace(/<[^>]+>/g, "").length); }, 0);
     var flip = sp.spot / xSpan + (chars * 7.9 + 24) / PLOT_W > 0.99;
     var boxF = (chars * 7.9 + 24) / PLOT_W, boxAt = sp.spot / xSpan + (flip ? -6 : 6) / PLOT_W;
