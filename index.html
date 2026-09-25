@@ -80,28 +80,28 @@
   body { background: #0a0a0a; color: #ff8c00; font-family: 'Source Code Pro', Consolas, monospace; overflow: hidden; display: flex; flex-direction: column; }
   /* Where the bar does not fit on one line it wraps onto another rather than scrolling sideways, which hid the
      right-hand buttons behind a scrollbar on every screen up to 1920 px. The chart takes whatever height is left. */
-  #controls { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 4px 6px; padding: 3px 10px; background: #000; border-bottom: 1px solid #311d05; flex-wrap: wrap; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #563309 #000; }
+  #controls { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 4px 6px; padding: 3px 10px; background: #000; border-bottom: 1px solid #333; flex-wrap: wrap; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #595959 #000; }
   #controls > *, #toolbarEnd > * { flex-shrink: 0; }
   /* The language button keeps to the right-hand end of its line, on its own. */
   #toolbarEnd { display: flex; align-items: center; gap: 6px; margin-left: auto; }
-  #controls button, #controls #githubLink, #controls #ytBtn { background: #000; color: #f7931a; border: 1px solid #563309; border-radius: 0; padding: 3px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
-  #controls button:hover, #controls #githubLink:hover, #controls #ytBtn:hover { background: #000; color: #f7931a; border-color: #f7931a; }
+  #controls button, #controls #githubLink, #controls #ytBtn { background: #000; color: #fff; border: 1px solid #595959; border-radius: 0; padding: 3px 10px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
+  #controls button:hover, #controls #githubLink:hover, #controls #ytBtn:hover { background: #000; color: #fff; border-color: #fff; }
   #githubLink { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 0; text-decoration: none; }
-  #githubLink:focus-visible { outline: 2px solid #f7931a; outline-offset: 2px; }
+  #githubLink:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   #githubLink svg { flex-shrink: 0; }
   #ytBtn, #explainBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 0; text-decoration: none; box-sizing: border-box; }
-  #ytBtn:focus-visible { outline: 2px solid #f7931a; outline-offset: 2px; }
+  #ytBtn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   /* Where the words would push the bar onto a second line, the three page buttons show only their icons
      (fitToolbarWords); their tooltips still name them. */
   #controls.compact .btn-word { display: none; }
   .mode-toggle { display: flex; gap: 2px; }
   /* #controls button sets a background with id specificity, so the active state has to outrank it;
      without the prefix the only thing that ever showed was the bold weight. */
-  #controls .mode-toggle button.active { background: #f7931a; color: #000; border-color: #f7931a; font-weight: bold; }
-  #controls .mode-toggle button.active:hover { background: #f7931a; }
+  #controls .mode-toggle button.active { background: #fff; color: #000; border-color: #fff; font-weight: bold; }
+  #controls .mode-toggle button.active:hover { background: #fff; }
   /* The day counter is framed, coloured and weighted like the cycle list (#landmarks). It is not a control, so it has
      no hover state; init() holds its width at that of N/N so the box does not resize as the day number gains digits. */
-  #dateDisplay { display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 8px; background: #000; color: #f7931a; border: 1px solid #563309; border-radius: 0; font-weight: normal; line-height: 1; white-space: nowrap; }
+  #dateDisplay { display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 8px; background: #000; color: #fff; border: 1px solid #595959; border-radius: 0; font-weight: normal; line-height: 1; white-space: nowrap; }
   /* Messages float over the chart near the bottom of the window instead of taking a row of the layout: the row
      pushed the chart down without resizing it, and on a phone it sat above the top of the screen. Clicks and taps
      pass through it. */
@@ -123,42 +123,42 @@
   body.tracer-dragging, body.tracer-dragging * { cursor: grabbing !important; user-select: none; }
   #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 24px; color: #ff8c00; display: none; z-index: 999; }
   /* Smoothing and Y-max: one frame each, drawn like the cycle list beside them (#landmarks): an upper-case label,
-     the value in bitcoin orange, its unit. The whole frame is the click target, and it doubles to a 2px orange frame while the
+     the value in white, its unit. The whole frame is the click target, and it doubles to a 2px white frame while the
      value is being edited. */
   #controls .field { display: inline-flex; align-items: center; gap: 6px; height: 24px; box-sizing: border-box; padding: 0 8px;
-    background: #000; border: 1px solid #563309; border-radius: 0; cursor: text; font-size: 12px; white-space: nowrap; }
-  #controls .field:hover { border-color: #f7931a; }
-  #controls .field:focus-within { border-color: #f7931a; box-shadow: inset 0 0 0 1px #f7931a; }
-  #controls .field .field-label { color: #945810; text-transform: uppercase; letter-spacing: 0.5px; }
-  #controls .field .field-unit { color: #945810; }
-  #controls .field input { height: 22px; padding: 0; border: 0; background: transparent; color: #f7931a; font-family: inherit;
+    background: #000; border: 1px solid #595959; border-radius: 0; cursor: text; font-size: 12px; white-space: nowrap; }
+  #controls .field:hover { border-color: #fff; }
+  #controls .field:focus-within { border-color: #fff; box-shadow: inset 0 0 0 1px #fff; }
+  #controls .field .field-label { color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+  #controls .field .field-unit { color: #999; }
+  #controls .field input { height: 22px; padding: 0; border: 0; background: transparent; color: #fff; font-family: inherit;
     font-size: 12px; font-weight: bold; text-align: right; outline: none; }
   #controls #smoothInput, #controls #ymaxInput { width: 4ch; }
-  #intervalBar { display: flex; gap: 1px; background: #000; padding: 0; border: 1px solid #563309; border-radius: 0; margin-right: 2px; }
-  #intervalBar .iv { background: #000; color: #f7931a; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 0; transition: all 0.15s; }
-  #intervalBar .iv:hover { color: #f7931a; border-color: #f7931a; }
-  #intervalBar .iv.active { background: #f7931a; color: #000; font-weight: bold; }
-  #landmarks { background: #000; color: #f7931a; border: 1px solid #563309; padding: 4px 8px; font-family: inherit; font-size: 12px; border-radius: 0; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23f7931a'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 22px; }
-  #landmarks:hover { border-color: #f7931a; color: #f7931a; }
-  #landmarks option, #landmarks optgroup { background: #000; color: #f7931a; }
-  #landmarks:focus { border-color: #f7931a; box-shadow: inset 0 0 0 1px #f7931a; outline: none; }
+  #intervalBar { display: flex; gap: 1px; background: #000; padding: 0; border: 1px solid #595959; border-radius: 0; margin-right: 2px; }
+  #intervalBar .iv { background: #000; color: #fff; border: 1px solid transparent; padding: 3px 8px; font-family: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 0; transition: all 0.15s; }
+  #intervalBar .iv:hover { color: #fff; border-color: #fff; }
+  #intervalBar .iv.active { background: #fff; color: #000; font-weight: bold; }
+  #landmarks { background: #000; color: #fff; border: 1px solid #595959; padding: 4px 8px; font-family: inherit; font-size: 12px; border-radius: 0; cursor: pointer; width: 140px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23fff'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 22px; }
+  #landmarks:hover { border-color: #fff; color: #fff; }
+  #landmarks option, #landmarks optgroup { background: #000; color: #fff; }
+  #landmarks:focus { border-color: #fff; box-shadow: inset 0 0 0 1px #fff; outline: none; }
   /* background, padding and font-size live on #controls button, which outranks a bare id. */
   #explainBtn, #ytBtn, #githubLink { cursor: pointer; border-radius: 0; white-space: nowrap; }
-  #explainBtn:hover, #ytBtn:hover { background: #000; color: #f7931a; border-color: #f7931a; }
+  #explainBtn:hover, #ytBtn:hover { background: #000; color: #fff; border-color: #fff; }
   /* Open, How to read is inverted like any other button that is on. */
-  #controls #explainBtn[aria-expanded="true"] { background: #f7931a; color: #000; border-color: #f7931a; }
+  #controls #explainBtn[aria-expanded="true"] { background: #fff; color: #000; border-color: #fff; }
   #explainWrap { position:relative; display:inline-block; }
-  #explainPanel { display:none; position:absolute; top:100%; right:0; width:460px; max-height:75vh; overflow-y:auto; background:#000; border:1px solid #563309; border-radius:0; z-index:9999; padding:12px 16px 14px; margin-top:6px; font-size:13px; color:#ffffff; text-align:left; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
+  #explainPanel { display:none; position:absolute; top:100%; right:0; width:460px; max-height:75vh; overflow-y:auto; background:#000; border:1px solid #595959; border-radius:0; z-index:9999; padding:12px 16px 14px; margin-top:6px; font-size:13px; color:#ffffff; text-align:left; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
   #explainPanel::-webkit-scrollbar { width:6px; }
   #explainPanel::-webkit-scrollbar-track { background:#000; }
-  #explainPanel::-webkit-scrollbar-thumb { background:#563309; border-radius:0; }
-  #explainPanel h2 { color:#f7931a; font-size:13px; font-weight:400; letter-spacing:0.5px; text-transform:uppercase; margin:0 0 6px 0; padding-bottom:6px; border-bottom:1px solid #311d05; }
-  #explainPanel h3 { color:#f7931a; font-size:13px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; margin:12px 0 3px 0; padding:0; border:none; }
-  #explainPanel .formula { background:#000; border:1px solid #311d05; border-left:2px solid #f7931a; border-radius:0; padding:5px 8px; margin:5px 0 4px 0; font-size:13px; color:#f7931a; white-space:pre-wrap; line-height:1.5; font-family:inherit; letter-spacing:0.5px; }
+  #explainPanel::-webkit-scrollbar-thumb { background:#595959; border-radius:0; }
+  #explainPanel h2 { color:#ffffff; font-size:13px; font-weight:400; letter-spacing:0.5px; text-transform:uppercase; margin:0 0 6px 0; padding-bottom:6px; border-bottom:1px solid #333; }
+  #explainPanel h3 { color:#ffffff; font-size:13px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; margin:12px 0 3px 0; padding:0; border:none; }
+  #explainPanel .formula { background:#000; border:1px solid #333; border-left:2px solid #fff; border-radius:0; padding:5px 8px; margin:5px 0 4px 0; font-size:13px; color:#fff; white-space:pre-wrap; line-height:1.5; font-family:inherit; letter-spacing:0.5px; }
   #explainPanel .desc { color:#ffffff; margin:2px 0 4px 0; font-size:13px; line-height:1.55; font-weight:400; letter-spacing:0; }
   #langBtn { cursor: pointer; border-radius: 0; }
-  #langBtn:hover { background: #000; color: #f7931a; border-color: #f7931a; }
-  .ctrl-sep { width: 1px; height: 20px; background: #311d05; margin: 0 2px; }
+  #langBtn:hover { background: #000; color: #fff; border-color: #fff; }
+  .ctrl-sep { width: 1px; height: 20px; background: #333; margin: 0 2px; }
   /* one height for every control in the bar, and one gap between them */
   #controls button, #controls #githubLink, #controls #ytBtn, #controls input, #controls select, #controls #intervalBar { height: 24px; line-height: 1; }
   #controls #intervalBar .iv { height: 22px; line-height: 1; }
@@ -170,9 +170,9 @@
   #explainPanel { position: fixed; right: auto; margin-top: 0; max-width: calc(100vw - 20px); overflow-y: auto; }
   #explainPanel:focus { outline: none; }
   /* The explainer ends with the one link the site has to its own privacy page. */
-  #explainFoot { margin: 14px 0 0; padding-top: 8px; border-top: 1px solid #311d05; font-size: 12px; }
-  #explainFoot a { color: #945810; }
-  #explainFoot a:hover { color: #f7931a; }
+  #explainFoot { margin: 14px 0 0; padding-top: 8px; border-top: 1px solid #333; font-size: 12px; }
+  #explainFoot a { color: #999; }
+  #explainFoot a:hover { color: #ffffff; }
   /* The credit line's names (links, see creditLink) are the colour of the rest of the line, and underlined when
      pointed at. */
   #chart .annotation-text a:hover { text-decoration: underline; }
