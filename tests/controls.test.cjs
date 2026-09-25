@@ -102,23 +102,35 @@ test('every text has all three languages', () => {
   for (const l of langs) for (const k of keys) assert.ok(typeof c.T[l][k] === 'string' && c.T[l][k].length, `${l}.${k}`);
 });
 
-test('there is no download button, and the bar keeps the grey-bordered look it had before 2026-09-24', () => {
+test('there is no download button, and the bar is drawn like the favicon: black and white, square, the chosen option inverted', () => {
   assert.doesNotMatch(html, /id="videoBtn"|#videoBtn/, 'no video download (security.test.cjs checks every link)');
-  // Every button and link: a #555 border, #888 under the mouse, orange when on.
-  for (const sel of ['#controls button', '#controls #githubLink', '#controls #ytBtn']) assert.match(decls(sel), /border:\s*1px solid #555/, sel);
-  for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls #ytBtn:hover', '#explainBtn:hover', '#langBtn:hover']) {
-    assert.match(decls(sel), /border-color:\s*#888/, sel);
+  assert.match(decls('#controls'), /background:\s*#000;/);
+  // Every button and link: black, a 1px outline of white at 35% (#595959 on black), solid white under the mouse,
+  // square corners; the chosen option is a white block with black text.
+  for (const sel of ['#controls button', '#controls #githubLink', '#controls #ytBtn']) {
+    assert.match(decls(sel), /background:\s*#000;\s*color:\s*#fff;\s*border:\s*1px solid #595959;\s*border-radius:\s*0;/, sel);
   }
-  assert.match(decls('#controls .mode-toggle button.active'), /background:\s*#ff8c00;.*border-color:\s*#ff8c00/);
-  // The step bar and the cycle list are framed the same way; the list turns orange while it has focus.
-  assert.match(decls('#intervalBar'), /border:\s*1px solid #555/);
-  assert.match(decls('#landmarks'), /background:\s*#1e1e1e;.*border:\s*1px solid #555/);
-  assert.match(decls('#landmarks:hover'), /border-color:\s*#888/);
-  assert.match(decls('#landmarks:focus'), /border-color:\s*#ff8c00/);
-  // Keyboard focus shows as before: the browser's ring on buttons, an orange ring on the links. (A mouse click
-  // lets go of focus, so none of this is ever drawn for the mouse; see ui.test.cjs.)
+  for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls #ytBtn:hover', '#explainBtn:hover', '#langBtn:hover']) {
+    assert.match(decls(sel), /border-color:\s*#fff/, sel);
+  }
+  assert.match(decls('#controls .mode-toggle button.active'), /background:\s*#fff;\s*color:\s*#000;\s*border-color:\s*#fff/);
+  assert.match(decls('#intervalBar .iv.active'), /background:\s*#fff;\s*color:\s*#000/);
+  // The step bar and the cycle list are framed the same way; the list's frame doubles while it has focus.
+  assert.match(decls('#intervalBar'), /border:\s*1px solid #595959;\s*border-radius:\s*0/);
+  assert.match(decls('#landmarks'), /background:\s*#000;.*border:\s*1px solid #595959;.*border-radius:\s*0/);
+  assert.match(decls('#landmarks:hover'), /border-color:\s*#fff/);
+  assert.match(decls('#landmarks:focus'), /border-color:\s*#fff;\s*box-shadow:\s*inset 0 0 0 1px #fff/);
+  // Nothing in the bar is orange, grey-filled or rounded any more.
+  const bar = rules.filter(r => r.sels.some(x => /^(#controls|#intervalBar|#landmarks|#dateDisplay|#ytBtn|#githubLink|#explainBtn|#langBtn|\.ctrl-sep|\.mode-toggle)/.test(x)));
+  for (const r of bar) assert.doesNotMatch(r.body, /#ff8c00|#ffaa33|#3a3a3a|#252525|#1e1e1e|#1a1a1a|#d4d4d4|#555\b|#888|border-radius:\s*[1-9]/, r.sels.join(','));
+  // The favicon is the bar's mark, first in the bar, a picture only.
+  assert.match(html, /<div id="controls">\s*<span id="brandMark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><rect width="24" height="24" fill="#fff"\/><path d="M0 0H24L0 24Z" fill="#000"\/>/);
+  const favicon = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'favicon.svg'), 'utf8');
+  assert.match(favicon, /<rect width="16" height="16" fill="#ffffff"\/><path d="M0 0H16L0 16Z" fill="#000000"\/>/, 'the same picture as the favicon');
+  // Keyboard focus: the browser's ring on buttons, a white ring on the links. (A mouse click lets go of focus, so
+  // none of this is ever drawn for the mouse; see ui.test.cjs.)
   assert.ok(!rules.some(r => r.sels.some(x => /^#controls (button|a|select):focus$/.test(x))), 'focus rings are not switched off');
-  for (const sel of ['#githubLink:focus-visible', '#ytBtn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #ff8c00/, sel);
+  for (const sel of ['#githubLink:focus-visible', '#ytBtn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #fff/, sel);
   assert.equal(rules.filter(r => /background-color:\s*#(4a4a4a|ffc266)/.test(r.body)).length, 0, 'no focus fills');
 });
 
@@ -140,38 +152,52 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the YouTube button, the one way to the video, shows only once there is a video others can watch', async () => {
-  const a = html.match(/<a id="ytBtn" hidden href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\s\S]*?<\/svg>)<\/a>/);
-  assert.ok(a, 'a hidden icon-only link that opens in a new tab, named for screen readers and tooltips');
-  assert.equal(a[1], 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg');
+test('the YouTube button, the one way to the video, always shows: the latest video others can watch, else the channel', async () => {
+  const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
+  const a = html.match(/<a id="ytBtn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\s\S]*?<\/svg>)<span class="btn-word">YouTube<\/span><\/a>/);
+  assert.ok(a, 'a visible link that opens in a new tab: the play symbol and the word, named for screen readers and tooltips');
+  assert.equal(a[1], CHANNEL, 'the channel until the page learns of a video');
+  assert.equal(a[2], 'The renshuBTC channel on YouTube (opens in a new tab)');
   assert.equal(a[2], a[3]);
   assert.match(a[4], /aria-hidden="true"/);
-  assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'no words on the button');
-  assert.match(decls('#ytBtn[hidden]'), /display:\s*none/, 'hidden means hidden, whatever display the button has');
-  assert.match(decls('#controls #ytBtn'), /border:\s*1px solid #555/);
-  assert.match(decls('#controls #ytBtn:hover'), /border-color:\s*#888/);
-  assert.match(decls('#ytBtn:focus-visible'), /outline:\s*2px solid #ff8c00/);
-  // data/youtube.json names the latest video once it is unlisted or public; anything else leaves the button hidden.
+  assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
+  assert.doesNotMatch(html, /#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
+  assert.match(decls('#controls #ytBtn'), /border:\s*1px solid #595959/);
+  assert.match(decls('#controls #ytBtn:hover'), /border-color:\s*#fff/);
+  assert.match(decls('#ytBtn:focus-visible'), /outline:\s*2px solid #fff/);
+  // data/youtube.json names the latest video once it is unlisted or public; anything else leaves the channel.
   const { c, element } = app(), btn = element('ytBtn');
-  btn.hidden = true;
   c.setYouTubeLink({ id: 'dQw4w9WgXcQ', end: '2026-09-24' });
   assert.equal(btn.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  assert.equal(btn.hidden, false);
+  assert.equal(btn.title, 'Watch the latest video on YouTube (opens in a new tab)');
+  assert.equal(btn.getAttribute('aria-label'), btn.title);
+  for (const [lang, want] of [['zh', '在 YouTube 观看最新视频（在新标签页中打开）'], ['ja', 'YouTube で最新の動画を見る（新しいタブで開きます）']]) {
+    c.lang = lang; c.labelYouTube();
+    assert.equal(btn.title, want, lang);
+  }
+  c.lang = 'en';
   for (const bad of [null, {}, { id: null }, { id: 'javascript:x' }, { id: 'short' }, { id: 'dQw4w9WgXcQ"x' }, { id: 12345678901 }, 'dQw4w9WgXcQ']) {
+    c.setYouTubeLink({ id: 'dQw4w9WgXcQ' });
     c.setYouTubeLink(bad);
-    assert.equal(btn.hidden, true, JSON.stringify(bad));
+    assert.equal(btn.href, CHANNEL, JSON.stringify(bad));
+    assert.equal(btn.title, 'The renshuBTC channel on YouTube (opens in a new tab)', JSON.stringify(bad));
+  }
+  for (const [lang, want] of [['zh', 'YouTube 上的 renshuBTC 频道（在新标签页中打开）'], ['ja', 'YouTube の renshuBTC チャンネル（新しいタブで開きます）']]) {
+    c.lang = lang; c.labelYouTube();
+    assert.equal(btn.title, want, lang);
+    assert.equal(btn.getAttribute('aria-label'), want, lang);
   }
   // The page asks for it on its own, and a missing file changes nothing else.
   for (const found of [true, false]) {
     const h = app(), asked = [];
-    h.element('ytBtn').hidden = true;   // as the page starts (the hidden attribute)
+    h.element('ytBtn').href = CHANNEL;   // as the page starts
     const yt = () => (found ? Promise.resolve({ id: 'dQw4w9WgXcQ' }) : Promise.reject(new Error('HTTP 404')));
     h.c.fetchJSON = url => { asked.push(url); return url === 'data/youtube.json' ? yt() : Promise.resolve(url.endsWith('/all/dates') ? days('2026-09-20', '2026-09-24') : null); };
     h.c.loadAndRender = () => Promise.resolve();
     await h.c.init(); await flush();
     assert.equal(asked[0], 'data/youtube.json');
     assert.equal(h.c.allDates.length, 5, 'the chart loads either way');
-    assert.equal(h.element('ytBtn').hidden, !found);
+    assert.equal(h.element('ytBtn').href, found ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : CHANNEL);
   }
 });
 
