@@ -178,6 +178,26 @@ test('Smoothing and Y-max are framed like the cycle list: label, orange value, u
   assert.match(decls('#controls .field input'), /border:\s*0/);
 });
 
+test('the price box says In Profit and In Loss, in every language and for both weightings', async () => {
+  const { c, element } = app();
+  const { dates } = market(c);
+  const data = c.buildData(dates[4], { all: { 10: 1, 90000: 3 }, age: [{ 10: 1, 90000: 3 }] });
+  const want = {
+    en: [['USD Value Last Moved In Profit: ', 'USD Value Last Moved In Loss: '], ['BTC Supply Last Moved In Profit: ', 'BTC Supply Last Moved In Loss: ']],
+    zh: [['最后移动的美元价值处于盈利: ', '最后移动的美元价值处于亏损: '], ['最后移动的 BTC 供应处于盈利: ', '最后移动的 BTC 供应处于亏损: ']],
+    ja: [['含み益の最終移動 USD 評価額: ', '含み損の最終移動 USD 評価額: '], ['含み益の最終移動 BTC 供給量: ', '含み損の最終移動 BTC 供給量: ']],
+  };
+  for (const lang of ['en', 'zh', 'ja']) for (const coin of [false, true]) {
+    c.lang = lang; c.coinMode = coin; await c.renderChart(data);
+    const [profit, loss] = want[lang][+coin];
+    const box = element('chart').layout.annotations.find(a => a.text.includes(profit));
+    assert.ok(box, `${lang} ${coin ? 'BTC' : 'USD'}: ${profit}`);
+    assert.ok(box.text.includes(loss), `${lang} ${coin ? 'BTC' : 'USD'}: ${loss}`);
+  }
+  assert.doesNotMatch(html, /Below This Price|Above This Price|Below %/);
+  assert.match(html, /Profit % = /);
+});
+
 test('no bottom signal and no Bins field: 625 bars, and the price axis title gives the width of one', async () => {
   for (const gone of ['thresholdInput', 'thresholdWrap', 'binsInput', 'binsWrap', 'binsUnit', 'Bottom signal', 'BOTTOM SIGNAL', 'GLOW_COLOR', 'bottomThreshold'])
     assert.ok(!html.includes(gone), gone);
@@ -190,7 +210,7 @@ test('no bottom signal and no Bins field: 625 bars, and the price axis title giv
   const layout = element('chart').layout;
   const spotLine = layout.shapes.find(s => s.type === 'line' && s.xref === 'x');
   assert.equal(spotLine.line.color, '#ffffff', 'the spot line stays white');
-  const box = layout.annotations.find(a => /Below This Price/.test(a.text));
+  const box = layout.annotations.find(a => /In Profit/.test(a.text));
   assert.equal(box.text.split('<br>').length, 3, 'price and the two shares, nothing more');
   assert.equal(box.bordercolor, 'rgba(255,255,255,0.45)');
   assert.match(layout.xaxis.title.text, /^Price When Last Moved \[USD\] \u00b7 \$[\d,.]+ per bar$/);

@@ -153,9 +153,9 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
   // the video's chart says the same (USD view)
   const video = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8');
   for (const s of ['"<b>Bitcoin Supply by Price When Last Moved (USD Value) as of "', 'title: { text: "Price When Last Moved [USD] \\u00b7 " + perBar(w)',
-    'text: "Value When Last Moved [USD]"', 'USD Value Last Moved Below This Price: ', 'USD Value Last Moved Above This Price: ',
+    'text: "Value When Last Moved [USD]"', 'USD Value Last Moved In Profit: ', 'USD Value Last Moved In Loss: ',
   ]) assert.ok(video.includes(s), 'video: ' + s);
-  assert.doesNotMatch(video, /In Profit|In Loss|Supply Distribution|Price \[USD\]"|BOTTOM SIGNAL|GLOW|isBottom/);
+  assert.doesNotMatch(video, /This Price|Supply Distribution|Price \[USD\]"|BOTTOM SIGNAL|GLOW|isBottom/);
 });
 
 test('BTC leaves the first bar out of the axis and prints its height', async () => {
