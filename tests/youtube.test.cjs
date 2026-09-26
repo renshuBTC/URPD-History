@@ -69,20 +69,19 @@ const quiet = { wait: async () => {}, log: () => {} };
 
 test('the title is the chart\'s own title on the video\'s last day, naming its look, and nothing in the text is refused by YouTube', async () => {
   const { videoTitle, metadata } = await load();
-  assert.equal(videoTitle('2026-09-24'), 'Bitcoin Supply by Price When Last Moved (USD Value, AGE) as of 24 Sept 2026');
-  assert.equal(videoTitle('2026-06-07', 'age'), 'Bitcoin Supply by Price When Last Moved (USD Value, AGE) as of 07 Jun 2026');
-  assert.equal(videoTitle('2026-09-24', 'lthsth'), 'Bitcoin Supply by Price When Last Moved (USD Value, Under/Over 150D) as of 24 Sept 2026');
-  assert.equal(videoTitle('2026-10-01', 'raw'), 'Bitcoin Supply by Price When Last Moved (USD Value, RAW) as of 01 Oct 2026');
+  assert.equal(videoTitle('2026-09-24'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of 24 Sept 2026');
+  assert.equal(videoTitle('2026-06-07', 'ath'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of 07 Jun 2026');
+  assert.equal(videoTitle('2026-10-01', 'fit'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Always at 100%) as of 01 Oct 2026');
   const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  for (const [key, look] of [['titleUSDAge', 'age'], ['titleUSDSplit', 'lthsth'], ['titleUSDRaw', 'raw']]) {
-    // The site's own chart title, with <150D/>150D written out, since YouTube takes no < or >.
-    const site = new RegExp(key + ': "([^"]+)"').exec(index)[1].replace('<150D/>150D', 'Under/Over 150D');
+  for (const [key, look] of [['titleUSDAth', 'ath'], ['titleUSDFit', 'fit']]) {
+    const site = new RegExp(key + ': "([^"]+)"').exec(index)[1];
     assert.ok(videoTitle('2026-09-24', look).startsWith(site), look + ': the video is titled with the site\'s own chart title');
   }
-  for (const look of ['age', 'lthsth', 'raw']) {
+  for (const look of ['ath', 'fit']) {
     const m = metadata('2011-01-31', '2026-09-24', look);
     assert.ok(m.snippet.title.length <= 100);
     assert.match(m.snippet.description, /every day from 31 January 2011 to 24 September 2026\./);
+    assert.match(m.snippet.description, /each bar split into 23 age bands by how long its coins have sat unmoved, with the left axis ending at /);
     assert.match(m.snippet.description, /https:\/\/bitcoinsupplychart\.com/);
     for (const text of [m.snippet.title, m.snippet.description, ...m.snippet.tags]) assert.doesNotMatch(text, /[<>]/, 'YouTube refuses < and >');
     assert.ok(Buffer.byteLength(m.snippet.description) < 5000);
@@ -90,11 +89,9 @@ test('the title is the chart\'s own title on the video\'s last day, naming its l
     assert.deepEqual(m.status, { privacyStatus: 'unlisted', selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube' },
       'unlisted: open to anyone with the link, not listed on the channel or in search');
   }
-  assert.match(metadata('2011-01-31', '2026-09-24').snippet.description, /each bar split into 23 age bands/);
-  assert.match(metadata('2011-01-31', '2026-09-24', 'lthsth').snippet.description,
-    /each bar split in two at 150 days, the coins that moved within the last 150 days and the coins unmoved for 150 days or more/);
-  assert.match(metadata('2011-01-31', '2026-09-24', 'raw').snippet.description, /each bar as recorded, with no smoothing, in black on a light chart, every day from/);
-  assert.throws(() => metadata('2011-01-31', '2026-09-24', 'nope'), /no look "nope"/);
+  assert.match(metadata('2011-01-31', '2026-09-24').snippet.description, /with the left axis ending at the tallest bar so far, so it grows only when a bar reaches a new all-time high, every day from/);
+  assert.match(metadata('2011-01-31', '2026-09-24', 'fit').snippet.description, /with the left axis ending at each day's own tallest bar, so the tallest bar always reaches the top, every day from/);
+  for (const look of ['nope', 'age', 'lthsth', 'raw']) assert.throws(() => metadata('2011-01-31', '2026-09-24', look), /no look/, look);
 });
 
 test('a clean upload: token, session, the whole file in one request, and the id and privacy YouTube recorded', async () => {
@@ -108,19 +105,19 @@ test('a clean upload: token, session, the whole file in one request, and the id 
     assert.equal(s.headers.authorization, 'Bearer at');
     assert.equal(Number(s.headers['x-upload-content-length']), fs.statSync(file).size);
     assert.equal(s.headers['x-upload-content-type'], 'video/mp4');
-    assert.equal(s.meta.snippet.title, 'Bitcoin Supply by Price When Last Moved (USD Value, AGE) as of 24 Sept 2026');
+    assert.equal(s.meta.snippet.title, 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of 24 Sept 2026');
     assert.equal(g.seen.puts.length, 1);
     assert.ok(g.received().equals(fs.readFileSync(file)), 'every byte, in order');
   } finally { g.close(); }
 });
 
-test('the <150D/>150D video is posted under its own title, and an unknown look sends nothing at all', async () => {
+test('the Y-MAX ALWAYS AT 100% video is posted under its own title, and an unknown look sends nothing at all', async () => {
   const { post } = await load(), file = video(1000);
   let g = await google({ privacy: 'unlisted' });
   try {
-    const r = await post({ file, start: '2010-05-18', end: '2026-09-24', name: 'lthsth', credentials: CREDS, endpoints: g.endpoints, ...quiet });
+    const r = await post({ file, start: '2010-05-18', end: '2026-09-24', name: 'fit', credentials: CREDS, endpoints: g.endpoints, ...quiet });
     assert.deepEqual(r, { id: 'Abc_123-xyZ', privacy: 'unlisted' });
-    assert.equal(g.seen.start[0].meta.snippet.title, 'Bitcoin Supply by Price When Last Moved (USD Value, Under/Over 150D) as of 24 Sept 2026');
+    assert.equal(g.seen.start[0].meta.snippet.title, 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Always at 100%) as of 24 Sept 2026');
   } finally { g.close(); }
   g = await google();
   try {
