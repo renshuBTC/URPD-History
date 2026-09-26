@@ -1,6 +1,6 @@
-// The chart's two quiet layers, the grid and the watermark: their contrast on the dark background (and on RAW's light
-// one), the watermark's place under the bars, even gridlines at fractional pixel ratios, and the video drawing them the
-// same way.
+// The chart's two quiet layers, the grid and the watermark: their contrast on the dark background, the watermark's
+// place under the bars, even gridlines at fractional pixel ratios, and the video drawing them, and every other colour
+// of the chart, the same way.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -11,7 +11,7 @@ const { html, scripts, app } = require('./helpers.cjs');
 const page = fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8');
 const constant = (src, name) => { const m = new RegExp(`\\b${name}\\s*=\\s*"(#[0-9a-f]{6})"`).exec(src); assert.ok(m, name); return m[1]; };
 const GRID = constant(html, 'GRID_COLOR'), WATERMARK = constant(html, 'WATERMARK_COLOR');
-const THEMES = app().c.CHART_THEMES, BG = THEMES.dark.bg;
+const COLORS = app().c.CHART_COLORS, BG = COLORS.bg;
 
 // CIE L* of a grey sRGB colour, and white at opacity a over the background, as the browser blends it
 const channel = (hex) => parseInt(hex.slice(1, 3), 16);
@@ -40,17 +40,8 @@ test('grid and watermark are greys that sit in the research ranges, the watermar
   assert.ok(dL(WATERMARK) >= 5 && dL(WATERMARK) < dL(GRID), `watermark ΔL* ${dL(WATERMARK).toFixed(1)}, grid ${dL(GRID).toFixed(1)}`);
 });
 
-test('RAW\'s light chart: its grid and watermark are as far from white as the dark ones are from the dark background', () => {
-  const L = THEMES.light;
-  assert.deepEqual([L.bg, L.ink], ['#ffffff', '#000000']);
-  assert.deepEqual([THEMES.dark.grid, THEMES.dark.watermark], [GRID, WATERMARK]);
-  const dLw = (hex) => Lstar(255) - Lstar(channel(hex));
-  for (const hex of [L.grid, L.watermark]) assert.match(hex, /^#([0-9a-f]{2})\1\1$/, hex + ' is a grey');
-  assert.ok(Math.abs(dLw(L.grid) - dL(GRID)) < 3, `grid ΔL* ${dLw(L.grid).toFixed(1)} on white, ${dL(GRID).toFixed(1)} on dark`);
-  assert.ok(Math.abs(dLw(L.watermark) - dL(WATERMARK)) < 3, `watermark ΔL* ${dLw(L.watermark).toFixed(1)} on white, ${dL(WATERMARK).toFixed(1)} on dark`);
-  const black = (255 - channel(L.grid)) / 255;
-  assert.ok(black >= 0.1 && black <= 0.2, `grid is black at ${black.toFixed(3)}`);
-  assert.ok(dLw(L.watermark) < dLw(L.grid), 'the watermark quieter than the grid here too');
+test('the chart is drawn in its one set of colours, the grid and watermark among them', () => {
+  assert.deepEqual([COLORS.bg, COLORS.ink, COLORS.grid, COLORS.watermark], ['#0a0a0a', '#ffffff', GRID, WATERMARK]);
 });
 
 test('the watermark is drawn under the grid and the bars, never as an annotation over them', async () => {
@@ -88,18 +79,17 @@ test('gridlines are anti-aliased only where a CSS pixel is not a whole number of
   }
 });
 
-test('the video draws the grid and the watermark exactly as the site does, in both themes', () => {
+test('the video draws the grid, the watermark and every other colour of the chart exactly as the site does', () => {
   assert.equal(constant(page, 'GRID_COLOR'), GRID);
   assert.equal(constant(page, 'WATERMARK_COLOR'), WATERMARK);
   assert.doesNotMatch(page, /RenshuBTC<\/span>|rgba\(255,255,255,0\.08\)/, 'no old watermark annotation or grid colour');
   assert.match(page, /layer: "below", line: \{ width: 0 \}, fillcolor: "rgba\(0,0,0,0\)",\s*label: \{ text: "<b>@RenshuBTC<\/b>", textposition: "middle center", font: \{ family: FONT, size: 50, color: TH\.watermark \} \}/);
   assert.equal((page.match(/gridcolor: TH\.grid/g) || []).length, 2);
-  // page.html's themes are the site's (index.html CHART_THEMES), colour for colour.
+  // page.html's colours are the site's (index.html CHART_COLORS), colour for colour; only the pin's and the ▲ figure's
+  // backing (tagBg) is the site's alone, since the videos have neither.
   const c = vm.createContext({ window: { devicePixelRatio: 2 }, document: {}, Math, Date, String, Number, JSON });
   vm.runInContext([...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n'), c);
-  for (const theme of ['dark', 'light']) {
-    const video = JSON.parse(JSON.stringify(c.THEMES[theme])), site = THEMES[theme];
-    for (const [k, v] of Object.entries(video)) assert.equal(v, site[k], `${theme}.${k}`);
-    assert.deepEqual(Object.keys(video).sort(), Object.keys(site).filter((k) => !['creditName', 'tagBg'].includes(k)).sort(), theme);
-  }
+  const video = JSON.parse(JSON.stringify(c.TH));
+  for (const [k, v] of Object.entries(video)) assert.equal(v, COLORS[k], k);
+  assert.deepEqual(Object.keys(video).sort(), Object.keys(COLORS).filter((k) => k !== 'tagBg').sort());
 });

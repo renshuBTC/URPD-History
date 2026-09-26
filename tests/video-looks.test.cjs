@@ -1,6 +1,7 @@
-// The two videos, AGE and <150D/>150D: each colours its bars as the site does (tools/video/looks.mjs against index.html),
-// the Weekly videos workflow draws them once a week, renders, publishes and posts both, and its record step keeps
-// each video's last viewable upload in data/youtube.json.
+// The two videos, Y-MAX EXPANDS ON ATH and Y-MAX ALWAYS AT 100%: each ends its left axis as the site does with that
+// button on, colours its bars as the site does and is titled as the site titles that view (tools/video/looks.mjs and
+// render.mjs against index.html); the Weekly videos workflow draws them once a week, renders, publishes and posts both,
+// and its record step keeps each video's last viewable upload in data/youtube.json.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -19,65 +20,61 @@ function job(name) {
   return lines.slice(start, end < 0 ? undefined : end).join('\n');
 }
 
-test('each video colours its bars exactly as the site does, and is titled as the site titles that view in USD', async () => {
-  const { LOOKS, AGE_LABELS, AGE_COLORS, STH_BANDS, titleStart, youtubeTitleStart, look } = await load();
+test('each video colours its bars exactly as the site does, ends its left axis as the site does with its button on, and is titled as the site titles that view in USD', async () => {
+  const { LOOKS, AGE_LABELS, AGE_COLORS, titleStart, look } = await load();
   const { c } = app();
   assert.deepEqual(AGE_LABELS, Array.from(c.AGE_BANDS, b => b.label));
   assert.deepEqual(AGE_COLORS, Array.from(c.AGE_BAND_COLORS));
-  assert.equal(STH_BANDS, c.STH_BANDS);
-  assert.deepEqual(Object.keys(LOOKS), ['age', 'lthsth', 'raw']);
-  assert.deepEqual(LOOKS.age.ends, AGE_LABELS.map((_, k) => k + 1), 'AGE: every band a layer of its own');
-  // RAW: the store's unsmoothed bars, one layer, the site's black on its light chart, and no bar in the legend.
-  assert.deepEqual([LOOKS.raw.source, LOOKS.raw.theme, LOOKS.raw.ends, LOOKS.raw.labels, LOOKS.raw.colors], ['raw', 'light', [1], [], [c.RAW_BAR_COLOR]]);
-  assert.equal(titleStart('raw'), c.T.en.titleUSDRaw);
-  for (const k of ['age', 'lthsth']) assert.equal(LOOKS[k].source, undefined, k + ': the smoothed bands');
-  assert.deepEqual(LOOKS.lthsth.ends, [c.STH_BANDS, c.AGE_BANDS.length], '<150D/>150D: the bands under 150 days, then all of them');
-  assert.deepEqual(LOOKS.lthsth.colors, [c.STH_COLOR, c.LTH_COLOR]);
-  assert.deepEqual(LOOKS.lthsth.labels, [c.T.en.sth, c.T.en.lth]);
-  for (const k of ['age', 'lthsth']) assert.equal(LOOKS[k].labels.length, LOOKS[k].colors.length, k);
-  assert.equal(titleStart('age'), c.T.en.titleUSDAge);
-  assert.equal(titleStart('lthsth'), c.T.en.titleUSDSplit);
-  // YouTube refuses < and >: there the split is written out, and nothing else changes.
-  assert.equal(youtubeTitleStart('age'), titleStart('age'));
-  assert.equal(youtubeTitleStart('lthsth'), titleStart('lthsth').replace('<150D/>150D', 'Under/Over 150D'));
-  for (const k of Object.keys(LOOKS)) assert.doesNotMatch(youtubeTitleStart(k), /[<>]/, k);
+  assert.deepEqual(Object.keys(LOOKS), ['ath', 'fit']);
+  assert.deepEqual([LOOKS.ath.fit, LOOKS.fit.fit], [false, true], 'ath: the tallest bar so far; fit: the frame\'s own');
+  assert.equal(titleStart('ath'), c.T.en.titleUSDAth);
+  assert.equal(titleStart('fit'), c.T.en.titleUSDFit);
+  assert.equal(titleStart('ath'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of ');
+  assert.equal(titleStart('fit'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Always at 100%) as of ');
+  for (const k of Object.keys(LOOKS)) assert.doesNotMatch(titleStart(k), /[<>]/, k + ': nothing YouTube refuses');
   assert.throws(() => look('__proto__'), /no look/);
+  assert.throws(() => look('age'), /no look "age": ath or fit/);
   // The drawing takes its layers, their names and colours and the title from the frame, never a list of its own.
   const page = fs.readFileSync(path.join(ROOT, 'tools', 'video', 'page.html'), 'utf8');
-  assert.doesNotMatch(page, /var LABELS|<1h|Bitcoin Supply by Price/);
-  for (const s of ['sp.labels', 'sp.colors', 'sp.title', 'sp.legendSize']) assert.ok(page.includes(s), s);
+  assert.doesNotMatch(page, /var LABELS|<1h|Bitcoin Supply by Price|THEMES|light/);
+  for (const s of ['sp.labels', 'sp.colors', 'sp.title', 'sp.legendSize', 'sp.ymax']) assert.ok(page.includes(s), s);
   const render = fs.readFileSync(path.join(ROOT, 'tools', 'video', 'render.mjs'), 'utf8');
-  assert.match(render, /const LOOK_NAME = process\.env\.LOOK \|\| "age", LOOK = look\(LOOK_NAME\), TITLE = titleStart\(LOOK_NAME\);/);
-  assert.doesNotMatch(render, /PALETTE|#f8f919/, 'the colours come from looks.mjs');
+  assert.match(render, /const LOOK_NAME = process\.env\.LOOK \|\| "ath", LOOK = look\(LOOK_NAME\), TITLE = titleStart\(LOOK_NAME\);/);
+  assert.match(render, /labels: AGE_LABELS, colors: AGE_COLORS, legendSize: 9,/, 'every bar in its 23 age bands, as the site draws them');
+  assert.doesNotMatch(render, /PALETTE|#f8f919|store\.raw|LOOK\.source|LOOK\.theme/, 'the colours come from looks.mjs; no unsmoothed bars');
+  // The left axis, frame by frame: fit, the frame's own tallest bar (as the site's Y-MAX ALWAYS AT 100%); ath, the
+  // tallest so far (as the site's Y-MAX EXPANDS ON ATH, whose history the store's days follow).
+  assert.ok(render.includes('    Y[t] = LOOK.fit ? (peak > 0 ? peak : 1) : (yRun = Math.max(yRun, peak));\n'));
+  assert.ok(render.includes('  const ymax = exact === undefined ? Y[t] : LOOK.fit ? (dayTop > 0 ? dayTop : 1) : Math.max(Y[t], dayTop), yt = axisTicks(ymax), ytt = axisLabels(yt);\n'), 'a still: the day\'s own tallest bar, or the axis so far raised to it');
 });
 
 test('the workflow renders and vets both videos on runners of their own, publishes them together and posts each on its own', async () => {
   const { LOOKS } = await load();
   const env = Object.fromEntries([...workflow.matchAll(/^ {2}(VIDEO\w*): (\S+)$/gm)].map(m => [m[1], m[2]]));
-  // Each file names its look; the split is written as in its YouTube title, since a file name can hold no < or >.
-  assert.deepEqual(env, { VIDEO: 'BitcoinSupplyChart.com-AGE.mp4', VIDEO_LTHSTH: 'BitcoinSupplyChart.com-Under-Over-150D.mp4', VIDEO_RAW: 'BitcoinSupplyChart.com-RAW.mp4' });
-  assert.doesNotMatch(workflow, /BitcoinSupplyChart\.com\.mp4|LTH-STH/);
+  // Each file names its look, with % written Percent (a link to the file would have to write it %25).
+  assert.deepEqual(env, { VIDEO_ATH: 'BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4', VIDEO_FIT: 'BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4' });
+  assert.doesNotMatch(workflow, /BitcoinSupplyChart\.com\.mp4|-AGE\.mp4|Under-Over-150D|-RAW\.mp4|lthsth|VIDEO_RAW|VIDEO_LTHSTH|youtube-age|youtube-raw/);
   // One leg a video, from the update job (the looks the run draws, named as in env); one failing leg does not cancel
-  // the others.
+  // the other.
   const matrix = `      fail-fast: false
       matrix:
         include: \${{ fromJSON(needs.update.outputs.include) }}
 `;
   for (const name of ['render', 'vet']) assert.ok(job(name).includes(matrix), name);
   assert.match(job('vet'), /needs: \[update, render\]/);
-  // Scheduled: all three. By hand: all three, or only the one asked for; anything else stops the run.
-  for (const [ONLY, looks] of [['', ['age', 'lthsth', 'raw']], ['all', ['age', 'lthsth', 'raw']], ['raw', ['raw']], ['age', ['age']], ['lthsth', ['lthsth']]]) {
+  // Scheduled: both. By hand: both, or only the one asked for; anything else stops the run.
+  for (const [ONLY, looks] of [['', ['ath', 'fit']], ['all', ['ath', 'fit']], ['ath', ['ath']], ['fit', ['fit']]]) {
     const out = only(ONLY, env);
     assert.equal(out.status, 0, ONLY);
     assert.deepEqual(JSON.parse(out.looks), looks, ONLY);
-    assert.deepEqual(JSON.parse(out.include), looks.map((l) => ({ look: l, file: { age: env.VIDEO, lthsth: env.VIDEO_LTHSTH, raw: env.VIDEO_RAW }[l] })), ONLY);
+    assert.deepEqual(JSON.parse(out.include), looks.map((l) => ({ look: l, file: { ath: env.VIDEO_ATH, fit: env.VIDEO_FIT }[l] })), ONLY);
     assert.equal(out.only, ONLY || 'all');
   }
-  assert.notEqual(only('everything', env).status, 0, 'no such video');
-  assert.match(workflow, /workflow_dispatch:\n\s+inputs:\n\s+only:\n\s+description: .*\n\s+type: choice\n\s+options: \[all, age, lthsth, raw\]\n\s+default: all\n/);
+  for (const bad of ['everything', 'age', 'raw', 'lthsth']) assert.notEqual(only(bad, env).status, 0, bad + ': no such video');
+  assert.match(workflow, /workflow_dispatch:\n\s+inputs:\n\s+only:\n\s+description: .*\n\s+type: choice\n\s+options: \[all, ath, fit\]\n\s+default: all\n/);
   // A run for one video leaves the release, and so the week, as they are.
   assert.match(job('publish'), /- name: Publish the videos\n\s+if: needs\.update\.outputs\.only == 'all'\n/);
-  assert.deepEqual(Object.keys(LOOKS), ['age', 'lthsth', 'raw']);
+  assert.deepEqual(Object.keys(LOOKS), ['ath', 'fit']);
   const render = job('render');
   assert.match(render, /LOOK: \$\{\{ matrix\.look \}\}/);
   assert.match(render, /run: node tools\/video\/render\.mjs "\$RUNNER_TEMP\/store" "\$RUNNER_TEMP\/\$FILE"/);
@@ -87,10 +84,11 @@ test('the workflow renders and vets both videos on runners of their own, publish
   // matched, and the render job (third-party code) could have made one to replace a vetted file.
   assert.doesNotMatch(workflow, /pattern:|merge-multiple/);
   const downloads = (block) => [...block.matchAll(/uses: actions\/download-artifact@\S+ # v[\d.]+\n(?:\s+if: .*\n)?\s+with:\n\s+name: (\S+)\n\s+path: (\S+)/g)].map(m => m[1] + ' -> ' + m[2]);
-  assert.deepEqual(downloads(job('publish')), ['video-vetted-age -> ${{', 'video-vetted-lthsth -> ${{', 'video-vetted-raw -> ${{']);
-  assert.match(job('publish'), /name: video-vetted-age\n\s+path: \$\{\{ runner\.temp \}\}\/vetted\n[\s\S]*name: video-vetted-lthsth\n\s+path: \$\{\{ runner\.temp \}\}\/vetted\n/);
+  assert.deepEqual(downloads(job('publish')), ['video-vetted-ath -> ${{', 'video-vetted-fit -> ${{']);
+  assert.match(job('publish'), /name: video-vetted-ath\n\s+path: \$\{\{ runner\.temp \}\}\/vetted\n[\s\S]*name: video-vetted-fit\n\s+path: \$\{\{ runner\.temp \}\}\/vetted\n/);
+  assert.match(job('publish'), /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO_ATH" "\$RUNNER_TEMP\/vetted\/\$VIDEO_FIT"\n/, 'both, together');
   // Each video posted from a job of its own with its own look and file, so a failed post can be run again alone.
-  for (const [look, file] of [['age', 'VIDEO'], ['lthsth', 'VIDEO_LTHSTH'], ['raw', 'VIDEO_RAW']]) {
+  for (const [look, file] of [['ath', 'VIDEO_ATH'], ['fit', 'VIDEO_FIT']]) {
     const yt = job('youtube-' + look);
     assert.match(yt, new RegExp(`needs: \\[update, publish\\]\\n\\s+if: contains\\(fromJSON\\(needs\\.update\\.outputs\\.looks\\), '${look}'\\)\\n`), look + ': posted when the run drew it');
     assert.match(job('publish'), new RegExp(`if: contains\\(fromJSON\\(needs\\.update\\.outputs\\.looks\\), '${look}'\\)\\n\\s+with:\\n\\s+name: video-vetted-${look}\\n`), look + ': downloaded when the run drew it');
@@ -98,21 +96,19 @@ test('the workflow renders and vets both videos on runners of their own, publish
     assert.equal((yt.match(/run: node tools\/video\/youtube\.mjs /g) || []).length, 1, look);
     assert.ok(yt.includes(`run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$${file}" "$START" "$END" ${look} >> "$GITHUB_OUTPUT"`), look);
     assert.match(yt, /outputs:\n\s+id: \$\{\{ steps\.post\.outputs\.id \}\}\n\s+privacy: \$\{\{ steps\.post\.outputs\.privacy \}\}\n/, look);
-    assert.match(yt, /- name: Post the \S+ video to YouTube\n\s+id: post\n\s+if: steps\.creds\.outputs\.found == 'yes'\n/, look);
+    assert.match(yt, /- name: Post the Y-MAX [A-Z0-9 %]+ video to YouTube\n\s+id: post\n\s+if: steps\.creds\.outputs\.found == 'yes'\n/, look);
   }
   assert.doesNotMatch(workflow, /^ {2}youtube:$/m, 'no job posts both');
   // The record job runs once either video is viewable, also when the other's post failed, never on a cancelled run,
   // and names each from its own job's outputs; it starts from the latest main.
   const record = job('record');
-  assert.ok(record.includes(`    needs: [update, youtube-age, youtube-lthsth, youtube-raw]
+  assert.ok(record.includes(`    needs: [update, youtube-ath, youtube-fit]
     if: >-
       \${{ !cancelled() && (
-        needs.youtube-age.outputs.privacy == 'unlisted' || needs.youtube-age.outputs.privacy == 'public' ||
-        needs.youtube-lthsth.outputs.privacy == 'unlisted' || needs.youtube-lthsth.outputs.privacy == 'public' ||
-        needs.youtube-raw.outputs.privacy == 'unlisted' || needs.youtube-raw.outputs.privacy == 'public') }}
+        needs.youtube-ath.outputs.privacy == 'unlisted' || needs.youtube-ath.outputs.privacy == 'public' ||
+        needs.youtube-fit.outputs.privacy == 'unlisted' || needs.youtube-fit.outputs.privacy == 'public') }}
 `), 'the whole condition');
-  for (const [v, out] of [['AGE_ID', 'youtube-age.outputs.id'], ['AGE_PRIVACY', 'youtube-age.outputs.privacy'], ['LTHSTH_ID', 'youtube-lthsth.outputs.id'], ['LTHSTH_PRIVACY', 'youtube-lthsth.outputs.privacy'],
-    ['RAW_ID', 'youtube-raw.outputs.id'], ['RAW_PRIVACY', 'youtube-raw.outputs.privacy']])
+  for (const [v, out] of [['ATH_ID', 'youtube-ath.outputs.id'], ['ATH_PRIVACY', 'youtube-ath.outputs.privacy'], ['FIT_ID', 'youtube-fit.outputs.id'], ['FIT_PRIVACY', 'youtube-fit.outputs.privacy']])
     assert.ok(record.includes(`          ${v}: \${{ needs.${out} }}\n`), v);
   assert.match(record, /uses: actions\/checkout@\S+ # v[\d.]+\n\s+with:\n\s+ref: main\n/);
   // Only runs on main wait for each other; a run by hand on another branch (which does nothing) has a group of its own.
@@ -153,32 +149,33 @@ function haveJq() { try { execFileSync('jq', ['--version'], { stdio: 'ignore' })
 
 test('the record step writes both videos, and keeps a video\'s last viewable upload when today\'s is not', { skip: !haveJq() && 'needs bash and jq' }, () => {
   const before = fs.readFileSync(path.join(ROOT, 'data', 'youtube.json'), 'utf8');
-  const all3 = { END: '2026-09-25', AGE_ID: 'AAAAAAAAAAA', AGE_PRIVACY: 'unlisted', LTHSTH_ID: 'BBBBBBBBBBB', LTHSTH_PRIVACY: 'public', RAW_ID: 'CCCCCCCCCCC', RAW_PRIVACY: 'unlisted' };
-  const both = JSON.parse(record(all3, before));
-  assert.deepEqual(Object.keys(both), ['about', 'age', 'lthsth', 'raw'], 'the committed file\'s layout');
-  assert.match(both.about, /^The latest videos on YouTube for the site's three video buttons: .* Written by \.github\/workflows\/video\.yml /);
-  assert.deepEqual({ age: both.age, lthsth: both.lthsth, raw: both.raw }, { age: { id: 'AAAAAAAAAAA', end: '2026-09-25' }, lthsth: { id: 'BBBBBBBBBBB', end: '2026-09-25' }, raw: { id: 'CCCCCCCCCCC', end: '2026-09-25' } });
-  const written = record(all3, before);
+  const both2 = { END: '2026-09-25', ATH_ID: 'AAAAAAAAAAA', ATH_PRIVACY: 'unlisted', FIT_ID: 'BBBBBBBBBBB', FIT_PRIVACY: 'public' };
+  const both = JSON.parse(record(both2, before));
+  assert.deepEqual(Object.keys(both), ['about', 'ath', 'fit'], 'the committed file\'s layout');
+  assert.match(both.about, /^The latest videos on YouTube for the site's two video buttons: .* Written by \.github\/workflows\/video\.yml /);
+  assert.deepEqual({ ath: both.ath, fit: both.fit }, { ath: { id: 'AAAAAAAAAAA', end: '2026-09-25' }, fit: { id: 'BBBBBBBBBBB', end: '2026-09-25' } });
+  const written = record(both2, before);
   assert.equal(written, JSON.stringify(both, null, 2) + '\n', 'the same layout as the committed file');
-  // The committed file is what the step writes, the RAW video not yet posted.
+  // The committed file is what the step writes: the Y-MAX EXPANDS ON ATH video (the one the file called "age" while
+  // there were three), the Y-MAX ALWAYS AT 100% one not yet posted.
   const now = JSON.parse(before);
-  assert.equal(record({ END: '2026-09-24', AGE_ID: now.age.id, AGE_PRIVACY: 'unlisted', LTHSTH_ID: now.lthsth.id, LTHSTH_PRIVACY: 'unlisted' }, before), before);
-  // A file from before RAW, without a "raw" entry: RAW recorded once viewable, null until then.
-  const two = JSON.stringify({ about: 'x', age: now.age, lthsth: now.lthsth });
-  assert.equal(JSON.parse(record({ END: '2026-10-01', AGE_ID: 'AAAAAAAAAAA', AGE_PRIVACY: 'unlisted' }, two)).raw, null);
+  assert.equal(record({ END: now.ath.end, ATH_ID: now.ath.id, ATH_PRIVACY: 'unlisted' }, before), before);
+  assert.equal(now.fit, null);
   // A private upload, a failed post and a malformed id all leave that video's entry as it was.
-  const earlier = JSON.stringify({ about: 'x', age: { id: 'OldAgeVideo', end: '2026-09-24' }, lthsth: { id: 'OldSplitVid', end: '2026-09-24' } });
-  for (const [age, split] of [[['CCCCCCCCCCC', 'private'], ['', '']], [['', ''], ['DDDDDDDDDDD', 'unlisted']], [['EEEEEEEEEE"', 'unlisted'], ['bad', 'public']]]) {
-    const r = JSON.parse(record({ END: '2026-09-25', AGE_ID: age[0], AGE_PRIVACY: age[1], LTHSTH_ID: split[0], LTHSTH_PRIVACY: split[1] }, earlier));
-    assert.deepEqual(r.age, age[1] === 'unlisted' && /^[A-Za-z0-9_-]{11}$/.test(age[0]) ? { id: age[0], end: '2026-09-25' } : { id: 'OldAgeVideo', end: '2026-09-24' }, JSON.stringify(age));
-    assert.deepEqual(r.lthsth, split[1] === 'unlisted' ? { id: split[0], end: '2026-09-25' } : { id: 'OldSplitVid', end: '2026-09-24' }, JSON.stringify(split));
+  const earlier = JSON.stringify({ about: 'x', ath: { id: 'OldAthVideo', end: '2026-09-24' }, fit: { id: 'OldFitVideo', end: '2026-09-24' } });
+  for (const [ath, fit] of [[['CCCCCCCCCCC', 'private'], ['', '']], [['', ''], ['DDDDDDDDDDD', 'unlisted']], [['EEEEEEEEEE"', 'unlisted'], ['bad', 'public']]]) {
+    const r = JSON.parse(record({ END: '2026-09-25', ATH_ID: ath[0], ATH_PRIVACY: ath[1], FIT_ID: fit[0], FIT_PRIVACY: fit[1] }, earlier));
+    assert.deepEqual(r.ath, ath[1] === 'unlisted' && /^[A-Za-z0-9_-]{11}$/.test(ath[0]) ? { id: ath[0], end: '2026-09-25' } : { id: 'OldAthVideo', end: '2026-09-24' }, JSON.stringify(ath));
+    assert.deepEqual(r.fit, fit[1] === 'unlisted' ? { id: fit[0], end: '2026-09-25' } : { id: 'OldFitVideo', end: '2026-09-24' }, JSON.stringify(fit));
   }
-  assert.throws(() => record({ END: 'x', AGE_ID: 'AAAAAAAAAAA', AGE_PRIVACY: 'unlisted' }, before), 'a day that is not a date stops it');
+  // A file with nothing for a video yet keeps null there until one is viewable.
+  assert.equal(JSON.parse(record({ END: '2026-10-01', ATH_ID: 'AAAAAAAAAAA', ATH_PRIVACY: 'unlisted' }, JSON.stringify({ about: 'x', ath: null, fit: null }))).fit, null);
+  assert.throws(() => record({ END: 'x', ATH_ID: 'AAAAAAAAAAA', ATH_PRIVACY: 'unlisted' }, before), 'a day that is not a date stops it');
 });
 
 // The publish job's release notes for videos from START to END, as it writes them (bash, sha256sum).
 function notes(START, END) {
-  const block = job('publish'), a = block.indexOf('          SHA=$(sha256sum'), b = block.indexOf('(see SECURITY.md)"\n', a);
+  const block = job('publish'), a = block.indexOf('          SHA_ATH=$(sha256sum'), b = block.indexOf('(see SECURITY.md)"\n', a);
   assert.ok(a > 0 && b > a, 'the notes');
   const script = block.slice(a, b + '(see SECURITY.md)"\n'.length).split('\n').map(l => l.slice(10)).join('\n') + 'printf "%s" "$NOTES"\n';
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'notes-'));
@@ -229,8 +226,8 @@ test('new videos are drawn once a week: seven days after the published ones, at 
 test('the published videos\' day is the last date in the notes the publish job writes, whatever else they hold', { skip: !haveGnuDate() && 'needs GNU date' }, () => {
   const text = notes('2010-05-18', '2026-09-24');
   assert.match(text, /^Every day from 2010-05-18 \(the first with anything on the chart\) to 2026-09-24, /);
-  assert.match(text, /in three videos: BitcoinSupplyChart\.com-AGE\.mp4 with the bars coloured by age band, BitcoinSupplyChart\.com-Under-Over-150D\.mp4 split at 150 days \(<150D and >150D\), and BitcoinSupplyChart\.com-RAW\.mp4 as recorded, unsmoothed, black on a light chart\./);
-  assert.match(text, /\nSHA-256 of BitcoinSupplyChart\.com-AGE\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinSupplyChart\.com-Under-Over-150D\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinSupplyChart\.com-RAW\.mp4: [0-9a-f]{64}\n/);
+  assert.match(text, /in two videos: BitcoinSupplyChart\.com-Y-Max-Expands-On-ATH\.mp4 with the left axis at the tallest bar so far \(Y-MAX EXPANDS ON ATH\), and BitcoinSupplyChart\.com-Y-Max-Always-At-100-Percent\.mp4 with it at each day's own tallest bar \(Y-MAX ALWAYS AT 100%\)\./);
+  assert.match(text, /\nSHA-256 of BitcoinSupplyChart\.com-Y-Max-Expands-On-ATH\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinSupplyChart\.com-Y-Max-Always-At-100-Percent\.mp4: [0-9a-f]{64}\nCheck either: /);
   const r = due({ END: '2026-09-30', NOTES: text });
   assert.deepEqual([r.render, r.calls], [false, ['api repos/o/r/releases/tags/video --jq .body']]);
   assert.match(r.said, /The published videos run to 2026-09-24;/, 'the last date, not the first');

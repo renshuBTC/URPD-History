@@ -10,25 +10,17 @@
 </head><body><div id="chart"></div>
 <script>
 // The site's chart (index.html drawChart, USD view) for one frame of the video. Axes, labels, landmarks, colours and
-// the title follow the site and come from render.mjs, with the bars coloured by age band (AGE) or split at 150 days
-// (<150D/>150D): looks.mjs. Text for Plotly is escaped (esc), since Plotly reads <...> as markup. The one deliberate
-// difference: each layer (an age band, or one side of 150 days) is one filled outline of all 626 bars, painted back to
-// front, instead of up to 14,000 separate rectangles (the same picture, much faster), with the bar edges on whole
-// device pixels.
+// the title follow the site and come from render.mjs, which ends the left axis one of the site's two ways
+// (looks.mjs). Text for Plotly is escaped (esc), since Plotly reads <...> as markup. The one deliberate difference:
+// each layer (an age band) is one filled outline of all 626 bars, painted back to front, instead of up to 14,000
+// separate rectangles (the same picture, much faster), with the bar edges on whole device pixels.
 var FONT = "'Source Code Pro', Consolas, monospace";
 var GRID_COLOR = "#272727", WATERMARK_COLOR = "#1a1a1a";   // the site's (index.html, "Grid and watermark")
 var PROFIT = "#00e676", LOSS = "#ff1744", PRICE_LINE = "#ffffff";
-// The chart's colours, the site's own (index.html, CHART_THEMES): dark for AGE and <150D/>150D, light for RAW, whose
-// bars are black, so the price line and the dashed line there get a white casing to show over them.
-var THEMES = {
-  dark: { bg: "#0a0a0a", ink: "#ffffff", grid: GRID_COLOR, watermark: WATERMARK_COLOR, credit: "rgba(255,255,255,0.55)",
-    line: PRICE_LINE, casing: "rgba(10,10,10,0.8)", dash: "#ffffff", dashCasing: null, boxBg: "rgba(0,0,0,0.92)",
-    boxBorder: "rgba(255,255,255,0.45)", labelBg: "rgba(10,10,10,0.75)", profit: PROFIT, loss: LOSS },
-  light: { bg: "#ffffff", ink: "#000000", grid: "#dfdfdf", watermark: "#f0f0f0", credit: "rgba(0,0,0,0.55)",
-    line: "#000000", casing: "rgba(255,255,255,0.9)", dash: "#000000", dashCasing: "rgba(255,255,255,0.9)", boxBg: "rgba(255,255,255,0.92)",
-    boxBorder: "rgba(0,0,0,0.45)", labelBg: "rgba(255,255,255,0.8)", profit: "#00873c", loss: "#e0002b" }
-};
-function themeOf(sp) { return THEMES[sp.theme] || THEMES.dark; }
+// The chart's colours, the site's own (index.html drawChart).
+var TH = { bg: "#0a0a0a", ink: "#ffffff", grid: GRID_COLOR, watermark: WATERMARK_COLOR, credit: "rgba(255,255,255,0.55)",
+  line: PRICE_LINE, casing: "rgba(10,10,10,0.8)", dash: "#ffffff", boxBg: "rgba(0,0,0,0.92)",
+  boxBorder: "rgba(255,255,255,0.45)", labelBg: "rgba(10,10,10,0.75)", profit: PROFIT, loss: LOSS };
 var TOP_MARGIN = null, ML = 88, MR = 24, PLOT_W = 1920 - ML - MR, BAR_EDGES = null;
 // bar edges as fractions of the x-axis, snapped to device pixels, 2 px gap; computed from the real plot width
 function barEdges(plotW) { var dpr = window.devicePixelRatio || 1, len = plotW * dpr, n = 626, e = [], out = [];
@@ -51,7 +43,7 @@ function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").
 var DOT_R = 9;
 function priceBox(sp) {
   if (!(sp.spot > 0)) return null;
-  var xSpan = sp.nb * sp.w, loss = sp.redPct, profit = loss === null ? null : 100 - loss, TH = themeOf(sp);
+  var xSpan = sp.nb * sp.w, loss = sp.redPct, profit = loss === null ? null : 100 - loss;
   var txt = "Price: $" + sp.spot.toLocaleString("en-US", { maximumFractionDigits: sp.spot < 10 ? 2 : 0 }) +
     "<br><span style='color:" + TH.profit + "'>USD Value Last Moved In Profit: " + (profit === null ? "N/A" : profit.toFixed(1) + "%") + "</span>" +
     "<br><span style='color:" + TH.loss + "'>USD Value Last Moved In Loss: " + (loss === null ? "N/A" : loss.toFixed(1) + "%") + "</span>";
@@ -72,12 +64,11 @@ window.boxNeeds = function(frames) {
   return frames.map(function(sp) { var pb = priceBox(sp); return pb && dotUnderBox(pb) ? Math.ceil(pb.dot.y + DOT_R + 4) : 0; });
 };
 window.drawFrame = function(sp) {
-  var n = sp.nb, w = sp.w, xSpan = n * w, A = sp.cum.length, TH = themeOf(sp);
-  document.body.style.background = TH.bg;
+  var n = sp.nb, w = sp.w, xSpan = n * w, A = sp.cum.length;
   var traces = [];
-  // legend entries: bar swatches from the youngest coins to the oldest, exactly as the site lists them (RAW: none)
+  // legend entries: bar swatches from the youngest coins to the oldest, exactly as the site lists them
   for (var a = 0; a < sp.labels.length; a++) traces.push({ x: [null], y: [null], type: "bar", name: esc(sp.labels[a]), marker: { color: sp.colors[a], line: { width: 0 } }, hoverinfo: "skip" });
-  // bars: one filled outline per cumulative layer (RAW: the one), oldest (top of the stack) first, each painted from zero, so
+  // bars: one filled outline per cumulative layer, oldest (top of the stack) first, each painted from zero, so
   // every layer's visible band is exactly its own share of the bar. Bar edges sit on whole device pixels with a 2 px gap
   // (1 px at 1080p), the site's "one pixel narrower than the pitch"; the grid never moves because the bars
   // always span the whole axis, so the gaps stay crisp while the axis grows.
@@ -101,8 +92,6 @@ window.drawFrame = function(sp) {
   // over a few frames and held through short gaps (sp.drop), so the box slides rather than jumps at 60 fps.
   var pb = priceBox(sp), dot = pb && pb.dot, spotBox = null;
   if (pb) {
-    // A casing under the dashed line where the bars are black (RAW), so it still shows over them.
-    if (TH.dashCasing) shapes.push({ type: "line", x0: sp.spot, x1: sp.spot, y0: 0, y1: 1, xref: "x", yref: "paper", line: { color: TH.dashCasing, width: 3 }, layer: "above" });
     shapes.push({ type: "line", x0: sp.spot, x1: sp.spot, y0: 0, y1: 1, xref: "x", yref: "paper", line: { color: TH.dash, width: 1, dash: "dash" }, layer: "above" });
     var drop = sp.drop > 0 ? sp.drop : 0;
     spotBox = { x0: pb.box.x0, x1: pb.box.x1, y0: drop, h: pb.box.h };

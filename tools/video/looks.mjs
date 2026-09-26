@@ -1,32 +1,27 @@
-// The three videos, one for each way the site draws its bars (index.html, the AGE, <150D/>150D and RAW switches):
-//   age     each bar in its 23 age bands (AGE_BANDS and AGE_BAND_COLORS there)
-//   lthsth  the same bands added up in two at 150 days: <150D, the first STH_BANDS of them (coins that moved within the
-//           last 150 days), and >150D, the rest (STH_BANDS, STH_COLOR and LTH_COLOR there)
-//   raw     the whole bar, unsmoothed (the store's raw bars, not its smoothed bands), in black on a light chart
-//           (RAW_BAR_COLOR and CHART_THEMES.light there); no bar in the legend, as on the site
-// A look's layer k is its source's bands before ends[k] added up (the raw bars are one band); page.html paints the
-// layers from the last back to the first, each from zero, so every layer shows only its own share of the bar.
+// The two videos, one for each place the site can end its left axis (index.html, the Y-MAX EXPANDS ON ATH and Y-MAX ALWAYS AT 100%
+// buttons: setYMaxMode):
+//   ath  Y-MAX EXPANDS ON ATH: the axis at the tallest bar shown so far, which grows only when a bar reaches a new all-time
+//        high and never shrinks
+//   fit  Y-MAX ALWAYS AT 100%: the axis at each frame's own tallest bar, so that bar always reaches the top
+// Both draw every bar in its 23 age bands (AGE_BANDS and AGE_BAND_COLORS there), stacked from the youngest coins up.
 // tests/video-looks.test.cjs holds all of this to the site's own values.
 export const AGE_LABELS = ["<1h", "1h-1d", "1d-1w", "1w-1m", "1m-2m", "2m-3m", "3m-4m", "4m-5m", "5m-6m", "6m-9m", "9m-1y", "1y-18m",
   "18m-2y", "2y-3y", "3y-4y", "4y-5y", "5y-6y", "6y-7y", "7y-8y", "8y-10y", "10y-12y", "12y-15y", ">15y"];
 export const AGE_COLORS = ["#f8f919", "#ffbc86", "#fe60a4", "#f20bdb", "#cc0ffc", "#b430fe", "#a43afe", "#983ffe", "#8e42fe", "#8046fe",
   "#6e48fe", "#5a49fe", "#434afe", "#224bfd", "#0353ed", "#0258e0", "#035bd5", "#035dcc", "#035fc5", "#0360bb", "#0361b0", "#0361a5", "#03619a"];
-export const STH_BANDS = 8;   // <1h to 4m-5m: under 150 days, Bitcoin Research Kit's line between short- and long-term holders
 
 export const LOOKS = {
-  // tag: the look's name, as the site's switch and titles write it; youtubeTag: the same for YouTube, which refuses < and >
-  age: { tag: "AGE", youtubeTag: "AGE", labels: AGE_LABELS, colors: AGE_COLORS, ends: AGE_LABELS.map((_, k) => k + 1), legendSize: 9 },
-  lthsth: { tag: "<150D/>150D", youtubeTag: "Under/Over 150D", labels: ["<150D", ">150D"], colors: ["#e6a817", "#5599ff"],
-    ends: [STH_BANDS, AGE_LABELS.length], legendSize: 12 },
-  raw: { tag: "RAW", youtubeTag: "RAW", labels: [], colors: ["#000000"], ends: [1], legendSize: 12, source: "raw", theme: "light" },
+  // tag: the look's name as the site's titles write it (titleUSDAth and titleUSDFit there), on the video and on YouTube;
+  // fit: whether the left axis ends at each frame's own tallest bar rather than the tallest so far
+  ath: { tag: "Y-Max Expands on ATH", fit: false },
+  fit: { tag: "Y-Max Always at 100%", fit: true },
 };
 
 export function look(name) {
-  if (!Object.hasOwn(LOOKS, name)) throw new Error(`no look "${name}": age, lthsth or raw`);
+  if (!Object.hasOwn(LOOKS, name)) throw new Error(`no look "${name}": ath or fit`);
   return LOOKS[name];
 }
 
-// The chart's title up to its date, worded as the site's English titles (titleUSDAge, titleUSDSplit and titleUSDRaw
-// there): the videos are drawn in USD. On YouTube the look is named by youtubeTag instead.
+// The chart's title up to its date, worded as the site's English titles (titleUSDAth and titleUSDFit there): the
+// videos are drawn in USD. YouTube takes it as it is.
 export const titleStart = (name) => `Bitcoin Supply by Price When Last Moved (USD Value, ${look(name).tag}) as of `;
-export const youtubeTitleStart = (name) => `Bitcoin Supply by Price When Last Moved (USD Value, ${look(name).youtubeTag}) as of `;
