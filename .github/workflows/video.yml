@@ -1,9 +1,8 @@
 name: Weekly videos
 
-# Once a week, three videos of the whole history for YouTube, one for each way the site draws its bars
-# (tools/video/looks.mjs): by age band (AGE), split at 150 days (<150D/>150D), and as recorded, unsmoothed and black
-# on a light chart (RAW). The workflow runs every day all the same, because its first job also keeps the site's axis
-# history current:
+# Once a week, two videos of the whole history for YouTube, one for each place the site can end its left axis
+# (tools/video/looks.mjs): at the tallest bar so far (Y-MAX EXPANDS ON ATH) and at each day's own tallest bar (Y-MAX ALWAYS AT 100%).
+# The workflow runs every day all the same, because its first job also keeps the site's axis history current:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
 #               videos' store (the files on the "video-data" release), and decides whether new videos are due: once
 #               the store reaches seven days past the published ones, or on a run started by hand
@@ -12,13 +11,13 @@ name: Weekly videos
 #               the picture
 #   4. publish: attests where the videos were built and keeps them on the "video" release, whose notes tell the next
 #               run which day they reach (the site does not link to them)
-#   5. youtube-age, youtube-lthsth, youtube-raw: post each to YouTube, unlisted (tools/video/youtube.mjs), once the
-#               channel's credentials are set up, each from a job of its own
-#   6. record:  names them in data/youtube.json for the site's three video buttons, once YouTube lets others watch them
+#   5. youtube-ath, youtube-fit: post each to YouTube, unlisted (tools/video/youtube.mjs), once the channel's
+#               credentials are set up, each from a job of its own
+#   6. record:  names them in data/youtube.json for the site's two video buttons, once YouTube lets others watch them
 #
-# A run started by hand draws all three at once, or with "only" just one of them, outside the weekly cycle: that one is
+# A run started by hand draws both at once, or with "only" just one of them, outside the weekly cycle: that one is
 # vetted, attested, posted and named for its button as usual, but the release and its notes (which set the week) are
-# left as they are, and the next weekly run draws all three together again.
+# left as they are, and the next weekly run draws both together again.
 #
 # The jobs are split by trust. Only this repository's own code runs with a token that can write (update, publish,
 # record), and none of them ever parses a video. The YouTube credentials are seen only by the two steps of each
@@ -42,9 +41,9 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Draw and post all three videos, or only one of them now, outside the weekly cycle (the release and its week stay as they are)"
+        description: "Draw and post both videos, or only one of them now, outside the weekly cycle (the release and its week stay as they are)"
         type: choice
-        options: [all, age, lthsth, raw]
+        options: [all, ath, fit]
         default: all
 
 permissions: {}   # each job asks for exactly what it needs
@@ -56,13 +55,12 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # The videos' file names on the release, each naming its look: the bars coloured by age band (AGE), split at 150
-  # days (<150D/>150D), written Under-Over-150D as in its YouTube title, since a file name can hold no < or > (Windows
-  # refuses them) nor / (a folder), and unsmoothed (RAW). Each ends in .mp4: a file ending in .com is a program on
-  # Windows. The update job hands the render and vet jobs the ones a run draws, as their matrix.
-  VIDEO: BitcoinSupplyChart.com-AGE.mp4
-  VIDEO_LTHSTH: BitcoinSupplyChart.com-Under-Over-150D.mp4
-  VIDEO_RAW: BitcoinSupplyChart.com-RAW.mp4
+  # The videos' file names on the release, each naming its look: the left axis at the tallest bar so far (Y-MAX
+  # EXPANDS ON ATH) and at each day's own tallest bar (Y-MAX ALWAYS AT 100%, with % written Percent: in a link to the
+  # file it would have to be written %25). Each ends in .mp4: a file ending in .com is a program on Windows. The update
+  # job hands the render and vet jobs the ones a run draws, as their matrix.
+  VIDEO_ATH: BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4
+  VIDEO_FIT: BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4
 
 jobs:
   update:
@@ -107,7 +105,7 @@ jobs:
       - name: Add the finished days to the video's store
         id: store
         env:
-          ONLY: ${{ inputs.only }}   # empty on a scheduled run: all three
+          ONLY: ${{ inputs.only }}   # empty on a scheduled run: both
         run: |
           mkdir -p "$RUNNER_TEMP/store"
           # An empty release (the store lost) is a store to rebuild, not an error, though gh refuses to download
@@ -162,16 +160,16 @@ jobs:
           else
             echo "The published videos run to $SHOWN; the next are drawn once the store reaches $DUE."
           fi
-          # Which videos: all three, or on a run by hand the one asked for, with their file names (env above).
+          # Which videos: both, or on a run by hand the one asked for, with their file names (env above).
           case "${ONLY:-all}" in
-            all) LOOKS='["age","lthsth","raw"]' ;;
-            age|lthsth|raw) LOOKS="[\"$ONLY\"]" ;;
+            all) LOOKS='["ath","fit"]' ;;
+            ath|fit) LOOKS="[\"$ONLY\"]" ;;
             *) echo "only: '$ONLY'" >&2; exit 1 ;;
           esac
           {
             echo "only=${ONLY:-all}"
             echo "looks=$LOOKS"
-            echo "include=$(jq -c --arg age "$VIDEO" --arg lthsth "$VIDEO_LTHSTH" --arg raw "$VIDEO_RAW" 'map({look: ., file: {age: $age, lthsth: $lthsth, raw: $raw}[.]})' <<< "$LOOKS")"
+            echo "include=$(jq -c --arg ath "$VIDEO_ATH" --arg fit "$VIDEO_FIT" 'map({look: ., file: {ath: $ath, fit: $fit}[.]})' <<< "$LOOKS")"
           } >> "$GITHUB_OUTPUT"
 
       - name: Hand the store to the renderer
@@ -191,8 +189,8 @@ jobs:
     # ffmpeg's output is checked exactly, so moving to a new Ubuntu is done on purpose.
     runs-on: ubuntu-24.04
     timeout-minutes: 240
-    # One runner for each video the run draws: its look (tools/video/looks.mjs) and its file name (VIDEO, VIDEO_LTHSTH,
-    # VIDEO_RAW), from the update job. One that fails does not cancel the others, so Re-run failed jobs draws only the
+    # One runner for each video the run draws: its look (tools/video/looks.mjs) and its file name (VIDEO_ATH,
+    # VIDEO_FIT), from the update job. One that fails does not cancel the others, so Re-run failed jobs draws only the
     # failed one again.
     strategy:
       fail-fast: false
@@ -296,19 +294,14 @@ jobs:
       # Each vetted video the run drew, by its exact name. A pattern would also take in any other artifact of this run
       # whose name matched, and one made by the render job (third-party code) could then have replaced a vetted file.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: contains(fromJSON(needs.update.outputs.looks), 'age')
+        if: contains(fromJSON(needs.update.outputs.looks), 'ath')
         with:
-          name: video-vetted-age
+          name: video-vetted-ath
           path: ${{ runner.temp }}/vetted
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: contains(fromJSON(needs.update.outputs.looks), 'lthsth')
+        if: contains(fromJSON(needs.update.outputs.looks), 'fit')
         with:
-          name: video-vetted-lthsth
-          path: ${{ runner.temp }}/vetted
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: contains(fromJSON(needs.update.outputs.looks), 'raw')
-        with:
-          name: video-vetted-raw
+          name: video-vetted-fit
           path: ${{ runner.temp }}/vetted
 
       - name: Look at the files without parsing them
@@ -333,7 +326,7 @@ jobs:
         with:
           subject-path: ${{ runner.temp }}/vetted/*.mp4
 
-      # The release holds the three videos of one week together, and its notes set the next week's date: a run by hand
+      # The release holds the two videos of one week together, and its notes set the next week's date: a run by hand
       # for one video leaves both as they are (its video is attested above and posted to YouTube below).
       - name: Publish the videos
         if: needs.update.outputs.only == 'all'
@@ -342,31 +335,29 @@ jobs:
           END: ${{ needs.update.outputs.end }}
         run: |
           [[ "$START" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "days: '$START' '$END'" >&2; exit 1; }
-          SHA=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO" | cut -d' ' -f1)
-          SHA_LTHSTH=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" | cut -d' ' -f1)
-          SHA_RAW=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_RAW" | cut -d' ' -f1)
+          SHA_ATH=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_ATH" | cut -d' ' -f1)
+          SHA_FIT=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_FIT" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published videos reach.
-          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264, in three videos: $VIDEO with the bars coloured by age band, $VIDEO_LTHSTH split at 150 days (<150D and >150D), and $VIDEO_RAW as recorded, unsmoothed, black on a light chart. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files.
+          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264, in two videos: $VIDEO_ATH with the left axis at the tallest bar so far (Y-MAX EXPANDS ON ATH), and $VIDEO_FIT with it at each day's own tallest bar (Y-MAX ALWAYS AT 100%). Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files.
 
-          SHA-256 of $VIDEO: $SHA
-          SHA-256 of $VIDEO_LTHSTH: $SHA_LTHSTH
-          SHA-256 of $VIDEO_RAW: $SHA_RAW
-          Check any: gh attestation verify FILE --repo $GITHUB_REPOSITORY (see SECURITY.md)"
+          SHA-256 of $VIDEO_ATH: $SHA_ATH
+          SHA-256 of $VIDEO_FIT: $SHA_FIT
+          Check either: gh attestation verify FILE --repo $GITHUB_REPOSITORY (see SECURITY.md)"
           gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history videos (4K)" --notes "$NOTES"
-          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO" "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" "$RUNNER_TEMP/vetted/$VIDEO_RAW"
+          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO_ATH" "$RUNNER_TEMP/vetted/$VIDEO_FIT"
           # Retried: notes left behind would name the old files' SHA-256.
           for k in 1 2 3 4 5; do gh release edit video --notes "$NOTES" && break; [ "$k" = 5 ] && exit 1; sleep $((k * 5)); done
 
-  youtube-age:
-    # Posts the AGE video to YouTube, unlisted: anyone with the link can watch it (the site's video button links it),
-    # but it is shown neither on the channel nor in search. Its title is the chart's own title on its last day, which
-    # names its look. The channel's OAuth credentials are three repository secrets (see README), seen only by the two
-    # steps that use them. Without them the job does nothing, so the videos are published the same before YouTube is
-    # set up. A job of its own, as are the <150D/>150D and RAW ones: one video's trouble does not keep the others off
-    # YouTube, and a failed post can be run again (Re-run failed jobs) without posting the others twice. Only when the
+  youtube-ath:
+    # Posts the Y-MAX EXPANDS ON ATH video to YouTube, unlisted: anyone with the link can watch it (the site's video button
+    # links it), but it is shown neither on the channel nor in search. Its title is the chart's own title on its last
+    # day, which names its look. The channel's OAuth credentials are three repository secrets (see README), seen only by
+    # the two steps that use them. Without them the job does nothing, so the videos are published the same before
+    # YouTube is set up. A job of its own, as is the Y-MAX ALWAYS AT 100% one: one video's trouble does not keep the other off
+    # YouTube, and a failed post can be run again (Re-run failed jobs) without posting the other twice. Only when the
     # run drew this video.
     needs: [update, publish]
-    if: contains(fromJSON(needs.update.outputs.looks), 'age')
+    if: contains(fromJSON(needs.update.outputs.looks), 'ath')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -395,10 +386,10 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: steps.creds.outputs.found == 'yes'
         with:
-          name: video-vetted-age
+          name: video-vetted-ath
           path: ${{ runner.temp }}/vetted
 
-      - name: Post the AGE video to YouTube
+      - name: Post the Y-MAX EXPANDS ON ATH video to YouTube
         id: post
         if: steps.creds.outputs.found == 'yes'
         env:
@@ -407,13 +398,13 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           START: ${{ needs.update.outputs.start }}
           END: ${{ needs.update.outputs.end }}
-        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO" "$START" "$END" age >> "$GITHUB_OUTPUT"
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_ATH" "$START" "$END" ath >> "$GITHUB_OUTPUT"
 
-  youtube-lthsth:
-    # Posts the <150D/>150D video to YouTube, as youtube-age posts the AGE one (see there), under the title the chart
-    # has in that view, with <150D/>150D written Under/Over 150D: YouTube takes no < or > in a title.
+  youtube-fit:
+    # Posts the Y-MAX ALWAYS AT 100% video to YouTube, as youtube-ath posts the Y-MAX EXPANDS ON ATH one (see there), under the title
+    # the chart has with that button on.
     needs: [update, publish]
-    if: contains(fromJSON(needs.update.outputs.looks), 'lthsth')
+    if: contains(fromJSON(needs.update.outputs.looks), 'fit')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -442,10 +433,10 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: steps.creds.outputs.found == 'yes'
         with:
-          name: video-vetted-lthsth
+          name: video-vetted-fit
           path: ${{ runner.temp }}/vetted
 
-      - name: Post the <150D/>150D video to YouTube
+      - name: Post the Y-MAX ALWAYS AT 100% video to YouTube
         id: post
         if: steps.creds.outputs.found == 'yes'
         env:
@@ -454,65 +445,17 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           START: ${{ needs.update.outputs.start }}
           END: ${{ needs.update.outputs.end }}
-        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" "$START" "$END" lthsth >> "$GITHUB_OUTPUT"
-
-  youtube-raw:
-    # Posts the RAW video to YouTube, as youtube-age posts the AGE one (see there), under the title the chart has in
-    # that view.
-    needs: [update, publish]
-    if: contains(fromJSON(needs.update.outputs.looks), 'raw')
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    permissions:
-      contents: read
-    outputs:
-      id: ${{ steps.post.outputs.id }}
-      privacy: ${{ steps.post.outputs.privacy }}
-    steps:
-      - name: Look for the YouTube credentials
-        id: creds
-        env:
-          ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          REFRESH: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: |
-          if [ -n "$ID" ] && [ -n "$SECRET" ] && [ -n "$REFRESH" ]; then echo "found=yes" >> "$GITHUB_OUTPUT"
-          else echo "No YouTube credentials in this repository's secrets (see README): not posting."; fi
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: steps.creds.outputs.found == 'yes'
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        if: steps.creds.outputs.found == 'yes'
-        with:
-          node-version: 24
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: steps.creds.outputs.found == 'yes'
-        with:
-          name: video-vetted-raw
-          path: ${{ runner.temp }}/vetted
-
-      - name: Post the RAW video to YouTube
-        id: post
-        if: steps.creds.outputs.found == 'yes'
-        env:
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          START: ${{ needs.update.outputs.start }}
-          END: ${{ needs.update.outputs.end }}
-        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_RAW" "$START" "$END" raw >> "$GITHUB_OUTPUT"
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_FIT" "$START" "$END" fit >> "$GITHUB_OUTPUT"
 
   record:
-    # Names the new videos in data/youtube.json for the site's three video buttons. A video that others cannot watch
-    # yet (a private upload, or none because its post failed) is not recorded: its button keeps the last one they
-    # could, or opens the channel. Runs when any post was viewable, also when the others failed.
-    needs: [update, youtube-age, youtube-lthsth, youtube-raw]
+    # Names the new videos in data/youtube.json for the site's two video buttons. A video that others cannot watch yet
+    # (a private upload, or none because its post failed) is not recorded: its button keeps the last one they could, or
+    # opens the channel. Runs when either post was viewable, also when the other failed.
+    needs: [update, youtube-ath, youtube-fit]
     if: >-
       ${{ !cancelled() && (
-        needs.youtube-age.outputs.privacy == 'unlisted' || needs.youtube-age.outputs.privacy == 'public' ||
-        needs.youtube-lthsth.outputs.privacy == 'unlisted' || needs.youtube-lthsth.outputs.privacy == 'public' ||
-        needs.youtube-raw.outputs.privacy == 'unlisted' || needs.youtube-raw.outputs.privacy == 'public') }}
+        needs.youtube-ath.outputs.privacy == 'unlisted' || needs.youtube-ath.outputs.privacy == 'public' ||
+        needs.youtube-fit.outputs.privacy == 'unlisted' || needs.youtube-fit.outputs.privacy == 'public') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -525,26 +468,22 @@ jobs:
           ref: main
       - name: Record the latest videos
         env:
-          AGE_ID: ${{ needs.youtube-age.outputs.id }}
-          AGE_PRIVACY: ${{ needs.youtube-age.outputs.privacy }}
-          LTHSTH_ID: ${{ needs.youtube-lthsth.outputs.id }}
-          LTHSTH_PRIVACY: ${{ needs.youtube-lthsth.outputs.privacy }}
-          RAW_ID: ${{ needs.youtube-raw.outputs.id }}
-          RAW_PRIVACY: ${{ needs.youtube-raw.outputs.privacy }}
+          ATH_ID: ${{ needs.youtube-ath.outputs.id }}
+          ATH_PRIVACY: ${{ needs.youtube-ath.outputs.privacy }}
+          FIT_ID: ${{ needs.youtube-fit.outputs.id }}
+          FIT_PRIVACY: ${{ needs.youtube-fit.outputs.privacy }}
           END: ${{ needs.update.outputs.end }}
         run: |
           [[ "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "end: '$END'" >&2; exit 1; }
           # Each video: today's upload if others can watch it, else whatever was recorded for it before. ("end" is
           # quoted in jq, where a bare end is a keyword.)
           viewable() { [[ ( "$2" = unlisted || "$2" = public ) && "$1" =~ ^[A-Za-z0-9_-]{11}$ ]]; }
-          if viewable "$AGE_ID" "$AGE_PRIVACY"; then AGE=$(jq -n --arg id "$AGE_ID" --arg day "$END" '{id: $id, "end": $day}')
-          else AGE=$(jq '.age // null' data/youtube.json); fi
-          if viewable "$LTHSTH_ID" "$LTHSTH_PRIVACY"; then LTHSTH=$(jq -n --arg id "$LTHSTH_ID" --arg day "$END" '{id: $id, "end": $day}')
-          else LTHSTH=$(jq '.lthsth // null' data/youtube.json); fi
-          if viewable "$RAW_ID" "$RAW_PRIVACY"; then RAW=$(jq -n --arg id "$RAW_ID" --arg day "$END" '{id: $id, "end": $day}')
-          else RAW=$(jq '.raw // null' data/youtube.json); fi
-          ABOUT="The latest videos on YouTube for the site's three video buttons: age, the bars coloured by age band, lthsth, split at 150 days (<150D/>150D), and raw, unsmoothed in black on a light chart. Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
-          jq -n --arg about "$ABOUT" --argjson age "$AGE" --argjson lthsth "$LTHSTH" --argjson raw "$RAW" '{about: $about, age: $age, lthsth: $lthsth, raw: $raw}' > "$RUNNER_TEMP/youtube.json"
+          if viewable "$ATH_ID" "$ATH_PRIVACY"; then ATH=$(jq -n --arg id "$ATH_ID" --arg day "$END" '{id: $id, "end": $day}')
+          else ATH=$(jq '.ath // null' data/youtube.json); fi
+          if viewable "$FIT_ID" "$FIT_PRIVACY"; then FIT=$(jq -n --arg id "$FIT_ID" --arg day "$END" '{id: $id, "end": $day}')
+          else FIT=$(jq '.fit // null' data/youtube.json); fi
+          ABOUT="The latest videos on YouTube for the site's two video buttons: ath, the left axis at the tallest bar so far (Y-MAX EXPANDS ON ATH), and fit, at each day's own tallest bar (Y-MAX ALWAYS AT 100%). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
+          jq -n --arg about "$ABOUT" --argjson ath "$ATH" --argjson fit "$FIT" '{about: $about, ath: $ath, fit: $fit}' > "$RUNNER_TEMP/youtube.json"
           mv "$RUNNER_TEMP/youtube.json" data/youtube.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
