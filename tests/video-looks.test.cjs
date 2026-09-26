@@ -156,11 +156,15 @@ test('the record step writes both videos, and keeps a video\'s last viewable upl
   assert.deepEqual({ ath: both.ath, fit: both.fit }, { ath: { id: 'AAAAAAAAAAA', end: '2026-09-25' }, fit: { id: 'BBBBBBBBBBB', end: '2026-09-25' } });
   const written = record(both2, before);
   assert.equal(written, JSON.stringify(both, null, 2) + '\n', 'the same layout as the committed file');
-  // The committed file is what the step writes: the Y-MAX EXPANDS ON ATH video (the one the file called "age" while
-  // there were three), the Y-MAX ALWAYS AT 100% one not yet posted.
+  // The committed file is what the step writes: recording again any video it names leaves it byte for byte as it is
+  // (whichever videos it names at the time: the record job commits it after every post).
   const now = JSON.parse(before);
-  assert.equal(record({ END: now.ath.end, ATH_ID: now.ath.id, ATH_PRIVACY: 'unlisted' }, before), before);
-  assert.equal(now.fit, null);
+  assert.ok(now.ath || now.fit, 'it names a video');
+  for (const k of ['ath', 'fit']) {
+    if (!now[k]) continue;
+    const K = k.toUpperCase();
+    assert.equal(record({ END: now[k].end, [K + '_ID']: now[k].id, [K + '_PRIVACY']: 'unlisted' }, before), before, k);
+  }
   // A private upload, a failed post and a malformed id all leave that video's entry as it was.
   const earlier = JSON.stringify({ about: 'x', ath: { id: 'OldAthVideo', end: '2026-09-24' }, fit: { id: 'OldFitVideo', end: '2026-09-24' } });
   for (const [ath, fit] of [[['CCCCCCCCCCC', 'private'], ['', '']], [['', ''], ['DDDDDDDDDDD', 'unlisted']], [['EEEEEEEEEE"', 'unlisted'], ['bad', 'public']]]) {
