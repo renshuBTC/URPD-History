@@ -1,11 +1,12 @@
 // Renders a full-history video the Weekly videos workflow posts to YouTube: every day in the store (store.mjs) from the first
 // with anything on the chart (2010-05-18, when the first price comes into view) to the latest, in 5:00 at 60 fps
 // (18,000 frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days
-// there are; the chart is the site's, drawn by page.html, with its bars coloured one of the site's two ways (looks.mjs).
+// there are; the chart is the site's, drawn by page.html, with its left axis ending one of the site's two ways
+// (looks.mjs).
 //
 //   node tools/video/render.mjs STORE_DIR OUT.mp4
-//   env: LOOK (age, the default: each bar in its 23 age bands; lthsth: split at 150 days, <150D and >150D; raw: the
-//        store's unsmoothed bars, black on a light chart),
+//   env: LOOK (ath, the default: Y-MAX EXPANDS ON ATH, the left axis at the tallest bar so far; fit: Y-MAX ALWAYS AT 100%, at each
+//        frame's own tallest bar),
 //        FRAMES (18000), WORKERS (browser pages drawing at once: 2 with 12 GB or more, else 1), SEG (frames per segment,
 //        180: a whole number of microseconds long, so at 60 fps a multiple of 3),
 //        TEST_DATES (comma list: write a still of each of those days, drawn as recorded, as PNG next to OUT instead of a
@@ -20,7 +21,7 @@ import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { readStore, firstShownIndex } from "./store.mjs";
-import { look, titleStart } from "./looks.mjs";
+import { AGE_LABELS, AGE_COLORS, look, titleStart } from "./looks.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -35,9 +36,9 @@ for (const [k, v] of [["FRAMES", F], ["SEG", SEG], ["WORKERS", WORKERS]]) if (!(
 // of them was cut short at every join, and the video's frame rate came out a hair off 60 (which check-video.sh refuses).
 if ((SEG * 1e6) % FPS !== 0) throw new Error(`SEG=${SEG}: ${SEG} frames at ${FPS} fps is not a whole number of microseconds (use a multiple of 3)`);
 const TEST = process.env.TEST_DATES ? process.env.TEST_DATES.split(",") : null;
-const LOOK_NAME = process.env.LOOK || "age", LOOK = look(LOOK_NAME), TITLE = titleStart(LOOK_NAME);
-// A: the bands a day's source holds, the 23 age bands of the smoothed bars, or the one unsmoothed bar (RAW).
-const NB = 626, A = LOOK.source === "raw" ? 1 : 23, DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1);
+const LOOK_NAME = process.env.LOOK || "ath", LOOK = look(LOOK_NAME), TITLE = titleStart(LOOK_NAME);
+// NB bars of A age bands a day, as the store holds them.
+const NB = 626, A = AGE_LABELS.length, DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1);
 const dayIdx = (d) => Math.round((Date.parse(d + "T00:00:00Z") - DAY0) / DAY);
 const idxDay = (i) => new Date(DAY0 + i * DAY).toISOString().slice(0, 10);
 const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0], ["2013-11-29", "Cycle 2 Top", 1], ["2015-01-14", "Cycle 2 Bottom", 0],
@@ -47,9 +48,7 @@ const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0
 const store = readStore(STORE), { meta } = store;
 // Days before the first with anything on the chart are left out: an empty chart with only the date moving.
 const S = firstShownIndex(meta, store.bars);
-// RAW draws the store's unsmoothed bars, which every day in the video must have (store.mjs adds any that are missing).
-if (LOOK.source === "raw") for (let i = S; i < meta.days.length; i++) if (!store.raw(i)) throw new Error(`the store has no unsmoothed bars for ${meta.days[i][0]}: run store.mjs on it first`);
-const bars = LOOK.source === "raw" ? (i) => store.raw(i + S) : (i) => store.bars(i + S);
+const bars = (i) => store.bars(i + S);
 const days = meta.days.slice(S).map(([date, X, spot, redPct]) => ({ date, w: X / (NB - 1), spot, redPct })), N = days.length;
 if (N < 2) throw new Error("the store needs at least two days");
 // The price line: every day's close as the store recorded it with the day's bars (store.mjs, from the closes
@@ -62,9 +61,11 @@ for (const [date, , spot] of meta.days) if (spot > 0) close[dayIdx(date)] = spot
 const tip = Date.parse(days[N - 1].date + "T00:00:00Z");
 days.forEach((d) => { const sel = Date.parse(d.date + "T00:00:00Z"); d.wr = Math.min(tip + 7 * DAY, sel + 90 * DAY); d.wl = d.wr - 365 * DAY; });
 
-// ---- per-frame axes: both only grow ---------------------------------------------------------------------------
-//   Y(t): the tallest bar shown so far (the displayed bars are blends of two days)
-//   M(t): the price line's top: the highest close the line has passed through so far, and the blended edge itself
+// ---- per-frame axes --------------------------------------------------------------------------------------------
+//   Y(t): the left axis's top. ath: the tallest bar shown so far, which only grows; fit: the frame's own tallest bar,
+//         so it always reaches the top (the displayed bars are blends of two days either way)
+//   M(t): the price line's top, which only grows: the highest close the line has passed through so far, and the
+//         blended edge itself
 const totals = (i) => { const b = bars(i), t = new Float64Array(NB); for (let a = 0; a < A; a++) for (let j = 0; j < NB; j++) t[j] += b[a * NB + j]; return t; };
 const frameDay = (t) => { const u = F > 1 ? t * (N - 1) / (F - 1) : 0, i0 = Math.min(N - 1, Math.floor(u + 1e-9)), i1 = Math.min(N - 1, i0 + 1); return [i0, i1, i1 === i0 ? 0 : u - i0]; };
 const priceAt = (ms) => { const x = (ms - DAY0) / DAY, k = Math.floor(x), fr = x - k, a = close[k], b = close[k + 1];
@@ -78,7 +79,8 @@ const Y = new Float64Array(F), M = new Float64Array(F);
     const [i0, i1, f] = frameDay(t);
     if (i0 !== loaded) { c0 = loaded === i0 - 1 && c1 ? c1 : totals(i0); c1 = totals(i1); loaded = i0; }
     let peak = 0; for (let j = 0; j < NB; j++) { const v = c0[j] + (c1[j] - c0[j]) * f; if (v > peak) peak = v; }
-    Y[t] = yRun = Math.max(yRun, peak);
+    // (Before any bar has a height the axis reads $0 to $1, as on the site.)
+    Y[t] = LOOK.fit ? (peak > 0 ? peak : 1) : (yRun = Math.max(yRun, peak));
     const wr = days[i0].wr + (days[i1].wr - days[i0].wr) * f, kr = Math.floor((wr - DAY0) / DAY);
     while (pk <= kr && pk < close.length) { if (close[pk] > pmax) pmax = close[pk]; pk++; }
     M[t] = mRun = Math.max(mRun, priceAt(wr), pmax);
@@ -103,15 +105,14 @@ function axisLabels(vals) {
 }
 
 // ---- frame t: the state at fractional day u, blended between the two neighbouring days ----------------------
-// cum[k]: the look's layer k, per bar: the age bands before LOOK.ends[k] added up (bands 0 to k for AGE; for
-// <150D/>150D the eight bands under 150 days, then all 23).
+// cum[a]: the age bands 0 to a added up, per bar (so cum[A - 1] is the whole bar).
 const DAYCACHE = new Map();
 function dayData(i) {
   if (DAYCACHE.has(i)) return DAYCACHE.get(i);
   const b = bars(i), cum = [], acc = new Float64Array(NB);
-  for (let a = 0, k = 0; a < A; a++) {
+  for (let a = 0; a < A; a++) {
     for (let j = 0; j < NB; j++) acc[j] += b[a * NB + j];
-    if (a + 1 === LOOK.ends[k]) { cum.push(Float64Array.from(acc)); k++; }
+    cum.push(Float64Array.from(acc));
   }
   const d = { ...days[i], cum };
   DAYCACHE.set(i, d); if (DAYCACHE.size > 16) DAYCACHE.delete(DAYCACHE.keys().next().value);
@@ -128,13 +129,15 @@ function frameFacts(t, exact) {
   return { i0, i1, f, date: near.date, w: glerp(a.w, b.w, f), wl: lerp(a.wl, b.wl, f), wr: lerp(a.wr, b.wr, f), tx: isoAt(dayMs),
     spot: a.spot && b.spot ? glerp(a.spot, b.spot, f) : near.spot, redPct: a.redPct !== null && b.redPct !== null ? lerp(a.redPct, b.redPct, f) : near.redPct };
 }
-// spec(t, i): frame t, or with i the day i itself unblended (a still), on frame t's axes raised to fit the day's bars.
+// spec(t, i): frame t, or with i the day i itself unblended (a still), on frame t's axes raised to fit the day's bars
+// (fit: on the day's own tallest bar).
 function spec(t, exact) {
   const g = frameFacts(t, exact), { f, w, wl, wr, spot, redPct } = g, a = dayData(g.i0), b = dayData(g.i1), cum = [];
-  for (let k = 0; k < LOOK.ends.length; k++) { const x = a.cum[k], y = b.cum[k], o = new Array(NB); for (let j = 0; j < NB; j++) o[j] = round5(x[j] + (y[j] - x[j]) * f); cum.push(o); }
+  for (let k = 0; k < A; k++) { const x = a.cum[k], y = b.cum[k], o = new Array(NB); for (let j = 0; j < NB; j++) o[j] = round5(x[j] + (y[j] - x[j]) * f); cum.push(o); }
   const xSpan = NB * w, xv = axisTicks(xSpan), xt = axisLabels(xv);
   xt[0] = "\u00a0\u00a0" + xt[0];                         // off the corner, clear of the left axis's $0
-  const ymax = exact === undefined ? Y[t] : Math.max(Y[t], ...a.cum[a.cum.length - 1]), yt = axisTicks(ymax), ytt = axisLabels(yt);
+  const dayTop = exact === undefined ? 0 : Math.max(...a.cum[A - 1]);
+  const ymax = exact === undefined ? Y[t] : LOOK.fit ? (dayTop > 0 ? dayTop : 1) : Math.max(Y[t], dayTop), yt = axisTicks(ymax), ytt = axisLabels(yt);
   const cStr = idxDay(Math.floor((wl - DAY0) / DAY) - 1), rStr = idxDay(Math.ceil((wr - DAY0) / DAY) + 1), pd = [], pp = [];
   for (let k = Math.max(0, dayIdx(cStr)); k <= Math.min(dayIdx(rStr), close.length - 1); k++) if (close[k] > 0) { pd.push(idxDay(k)); pp.push(close[k]); }
   // as on the site: each marker on the line's own highest (lowest) close within a week of its date, inside the window
@@ -146,7 +149,7 @@ function spec(t, exact) {
       if (close[k] > 0 && (best < 0 || (top ? close[k] > close[best] : close[k] < close[best]))) best = k;
     if (best >= 0) lm.push({ d: idxDay(best), p: close[best], l, top: !!top });
   }
-  return { date: g.date, tx: g.tx, nb: NB, w, title: TITLE, labels: LOOK.labels, colors: LOOK.colors, legendSize: LOOK.legendSize, theme: LOOK.theme || "dark",
+  return { date: g.date, tx: g.tx, nb: NB, w, title: TITLE, labels: AGE_LABELS, colors: AGE_COLORS, legendSize: 9,
     cum, xt: { v: xv, t: xt }, ymax, yt, ytt, spot, redPct, pd, pp,
     win: [isoAt(wl), isoAt(wr)], cStr, rStr, pr: M[t] > 0 ? [0, M[t]] : null, lm, drop: DROP ? DROP[t] : 0 };
 }
@@ -160,7 +163,7 @@ function spec(t, exact) {
 let DROP = null, dropping = null;
 async function boxDrops(page) {
   const facts = Array.from({ length: F }, (_, t) => { const g = frameFacts(t);
-    return { spot: g.spot, redPct: g.redPct, nb: NB, w: g.w, win: [isoAt(g.wl), isoAt(g.wr)], tx: g.tx, date: g.date, pr: M[t] > 0 ? [0, M[t]] : null, theme: LOOK.theme || "dark" }; });
+    return { spot: g.spot, redPct: g.redPct, nb: NB, w: g.w, win: [isoAt(g.wl), isoAt(g.wr)], tx: g.tx, date: g.date, pr: M[t] > 0 ? [0, M[t]] : null }; });
   const need = await page.evaluate((fr) => window.boxNeeds(fr), facts);
   const HOLD = 60, EASE = 10, held = new Float64Array(F), drop = new Float64Array(F);
   for (let t = 0; t < F; t++) if (need[t] > 0) for (let s = Math.max(0, t - HOLD); s <= Math.min(F - 1, t + HOLD); s++) if (need[t] > held[s]) held[s] = need[t];
