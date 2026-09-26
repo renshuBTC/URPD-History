@@ -145,7 +145,7 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
     cd.forEach((p, i) => { assert.equal(p[0], totals[i]); if (i) assert.ok(p[1] >= cd[i - 1][1]); });
     assert.ok(Math.abs(cd.at(-1)[1] - 100) < 1e-9);
     assert.equal(graph.data.some(t => t.meta === 'pct' || t.yaxis === 'y2'), false);
-    assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin Supply by Price When Last Moved \(BTC, AGE\) as of / : /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, AGE\) as of /);
+    assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin Supply by Price When Last Moved \(BTC, Y-Max Expands on ATH\) as of / : /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, Y-Max Expands on ATH\) as of /);
     assert.equal(graph.layout.xaxis.title.text, 'Price When Last Moved [USD]', 'the title names the axis and nothing else');
     assert.equal(graph.layout.yaxis.title.text, coin ? 'Supply [BTC]' : 'Value When Last Moved [USD]');
   }

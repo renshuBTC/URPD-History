@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-lps0kQKpM1aZk89zAqfdscn1xRuQsgWVs1qsUc0I74g=' 'sha256-4CRr7cXjShi0/kuK4Gg2NFF+L2lYror7NaOW4aggYPE=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-yiDKrUEM+CwI7TQhraynu52dGNulaPPlpXcP3bwqypU=' 'sha256-mFHgYnKKkxsMG/6+4PZ/qAJCxcN3Szpp1AOuoFgMduQ=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -93,17 +93,18 @@
   #githubLink svg { flex-shrink: 0; }
   .yt-btn, #explainBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 0; text-decoration: none; box-sizing: border-box; }
   .yt-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-  /* The three video buttons: FULL HISTORY IN 5 MIN, then which video in brackets, (AGE), (<150D/>150D) or (RAW). */
+  /* The two video buttons: FULL HISTORY, then which video in brackets, (Y-MAX EXPANDS ON ATH) or
+     (Y-MAX ALWAYS AT 100%), named after the two ways the left axis can end (see setYMaxMode). */
   #controls .yt-tag::before { content: "("; }
   #controls .yt-tag::after { content: ")"; }
   /* Where the bar would not fit on its one row, the spacing tightens first (dense), the type goes a size down (tight),
-     then the video buttons drop FULL HISTORY IN 5 MIN and keep AGE, 150D and RAW, which tell them apart (compact), and
-     past that the whole bar is drawn smaller (see fitToolbarWords). Every tooltip still names its button in full. */
+     the video buttons' names drop the Y-MAX that the two Y-MAX buttons already say (short), then the video buttons drop
+     FULL HISTORY and keep EXPANDS ON ATH and ALWAYS AT 100%, which tell them apart (compact), and past that
+     the whole bar is drawn smaller (see fitToolbarWords). Every tooltip still names its button in full. */
+  #controls .yt-tag-short, #controls.short .yt-tag-full { display: none; }
+  #controls.short .yt-tag-short { display: inline; }
   #controls.compact .yt-word { display: none; }
   #controls.compact .yt-tag::before, #controls.compact .yt-tag::after { content: none; }
-  /* ... where <150D/>150D, the longest, reads 150D. */
-  #controls .yt-tag-short, #controls.compact .yt-tag-full { display: none; }
-  #controls.compact .yt-tag-short { display: inline; }
   /* (The bar's buttons animate only their colours: a padding in transition would be measured half-way.) */
   #controls.dense { column-gap: 4px; padding-left: 6px; padding-right: 6px; }
   #controls.dense .ctrl-sep { margin: 0; }
@@ -147,9 +148,6 @@
   #controls .field { display: inline-flex; align-items: center; gap: 6px; height: 24px; box-sizing: border-box; padding: 0 8px;
     background: #1a1a1a; border: 1px solid #595959; border-radius: 0; cursor: text; font-size: 12px; white-space: nowrap; }
   #controls .field:hover { border-color: #fff; }
-  /* Smoothing while RAW is on: shown, at 0, but not to be changed (its tooltip says why). */
-  #controls .field.locked { opacity: 0.5; cursor: not-allowed; }
-  #controls .field.locked:hover { border-color: #595959; }
   #controls .field:focus-within { border-color: #fff; box-shadow: inset 0 0 0 1px #fff; }
   #controls .field .field-label { color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
   #controls .field .field-unit { color: #999; }
@@ -193,8 +191,6 @@
   /* A bar drawn smaller (--bar-zoom, see fitToolbarWords) would shrink the panel inside it too, and place it by the
      smaller measure: the panel undoes the zoom, so it opens full size exactly where it is put. */
   #explainPanel { zoom: calc(1 / var(--bar-zoom, 1)); }
-  /* RAW draws the chart light: the page around it goes white with it (the bar keeps its own colours). */
-  body.raw-chart { background: #ffffff; }
   #explainPanel:focus { outline: none; }
   /* The explainer ends with the one link the site has to its own privacy page. */
   #explainFoot { margin: 14px 0 0; padding-top: 8px; border-top: 1px solid #333; font-size: 12px; }
@@ -241,9 +237,8 @@
   </div>
   <div class="ctrl-sep"></div>
   <div class="mode-toggle">
-    <button id="btnAge" class="active" aria-pressed="true" title="AGE: each bar stacked out of 23 age bands, by how long its coins have sat unmoved">AGE</button>
-    <button id="btnSplit" aria-pressed="false" title="&lt;150D/&gt;150D: each bar split at 150 days: coins that moved within the last 150 days (&lt;150D), and coins unmoved for 150 days or more (&gt;150D)">&lt;150D/&gt;150D</button>
-    <button id="btnRaw" aria-pressed="false" title="RAW: the bars as recorded, with no smoothing and no colours: every bar in black, on a light chart">RAW</button>
+    <button id="btnAth" class="active" aria-pressed="true" title="Y-max expands on ATH: the left axis ends at the tallest bar so far; it grows when a bar reaches a new all-time high and never shrinks">Y-max expands on ATH</button>
+    <button id="btnFit" aria-pressed="false" title="Y-max always at 100%: the left axis ends at each day's own tallest bar, so the tallest bar always reaches the top">Y-max always at 100%</button>
   </div>
   <div class="ctrl-sep"></div>
   <div class="mode-toggle">
@@ -258,11 +253,10 @@
     <span class="field-label">Y-max</span><input type="text" id="ymaxInput" value="100" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="field-unit">PCTL</span>
   </label>
   <div class="ctrl-sep"></div>
-  <!-- The chart's three videos (on YouTube: the site offers no file to download), each named in words; help and the
+  <!-- The chart's two videos (on YouTube: the site offers no file to download), each named in words; help and the
        code, as icons, and the page's language keep together at the right-hand end. -->
-  <a id="ytBtn" class="yt-btn" href="https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg" target="_blank" rel="noopener noreferrer" aria-label="Full history in 5 min (AGE): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)" title="Full history in 5 min (AGE): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg><span id="ytLabel" class="yt-word">Full history in 5 min</span><span id="ytTag" class="yt-tag">AGE</span></a>
-  <a id="ytSplitBtn" class="yt-btn" href="https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg" target="_blank" rel="noopener noreferrer" aria-label="Full history in 5 min (&lt;150D/&gt;150D): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)" title="Full history in 5 min (&lt;150D/&gt;150D): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg><span id="ytSplitLabel" class="yt-word">Full history in 5 min</span><span class="yt-tag"><span id="ytSplitTag" class="yt-tag-full">&lt;150D/&gt;150D</span><span class="yt-tag-short">150D</span></span></a>
-  <a id="ytRawBtn" class="yt-btn" href="https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg" target="_blank" rel="noopener noreferrer" aria-label="Full history in 5 min (RAW): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)" title="Full history in 5 min (RAW): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg><span id="ytRawLabel" class="yt-word">Full history in 5 min</span><span id="ytRawTag" class="yt-tag">RAW</span></a>
+  <a id="ytBtn" class="yt-btn" href="https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg" target="_blank" rel="noopener noreferrer" aria-label="Full history (Y-max expands on ATH): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)" title="Full history (Y-max expands on ATH): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg><span id="ytLabel" class="yt-word">Full history</span><span class="yt-tag"><span id="ytTag" class="yt-tag-full">Y-max expands on ATH</span><span id="ytTagShort" class="yt-tag-short">expands on ATH</span></span></a>
+  <a id="ytFitBtn" class="yt-btn" href="https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg" target="_blank" rel="noopener noreferrer" aria-label="Full history (Y-max always at 100%): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)" title="Full history (Y-max always at 100%): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg><span id="ytFitLabel" class="yt-word">Full history</span><span class="yt-tag"><span id="ytFitTag" class="yt-tag-full">Y-max always at 100%</span><span id="ytFitTagShort" class="yt-tag-short">always at 100%</span></span></a>
   <div id="toolbarEnd">
   <div id="explainWrap"><button id="explainBtn" aria-label="How to read this chart" title="How to read this chart" aria-expanded="false"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.92 6.085h.001a.749.749 0 1 1-1.342-.67c.169-.339.436-.701.849-.977C6.845 4.16 7.369 4 8 4a2.756 2.756 0 0 1 1.637.525c.503.377.863.965.863 1.725 0 .448-.115.83-.329 1.15-.205.307-.47.513-.692.662-.109.072-.22.138-.313.195l-.006.004a6.24 6.24 0 0 0-.26.16.952.952 0 0 0-.276.245.75.75 0 0 1-1.248-.832c.184-.264.42-.489.692-.661.103-.067.207-.132.313-.195l.007-.004c.1-.061.182-.11.258-.161a.969.969 0 0 0 .277-.245C8.96 6.514 9 6.427 9 6.25a.612.612 0 0 0-.262-.525A1.27 1.27 0 0 0 8 5.5c-.369 0-.595.09-.74.187a1.01 1.01 0 0 0-.34.398ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg></button><div id="explainPanel" tabindex="-1">
 <h2 id="explainTitle"></h2>
@@ -293,16 +287,6 @@ var SMOOTH_WINDOW = 1; // smoothing now happens in aggregate() (kernel binning);
 var PROFIT_COLOR = "#00e676";   // spot label: share held in profit
 var LOSS_COLOR = "#ff1744";     // spot label: share held in loss
 var FALLBACK_COLOR = "#8a94b8"; // single-colour histogram if the age cohorts cannot be fetched
-// ---- <150D/>150D ----------------------------------------------------------------------------------------------
-// The bars' second colouring: the same 23 age bands (below) added up into two at 150 days, <150D, the coins that moved
-// within the last 150 days, and >150D, the coins unmoved for 150 days or more. The names say only how long coins have
-// sat still: 150 days is the line Bitcoin Research Kit draws between what it calls short- and long-term holders
-// (Glassnode draws it at 155), but nothing here assumes who holds a coin. The first eight bands, under an hour to
-// 4m-5m, are <150D: checked against BRK's own sth and lth series for 2025-10-06, their sum is its short-term holders'
-// supply exactly, and the other fifteen bands its long-term holders'. Amber and blue are the colours this view had
-// before it was taken out (as LTH/STH), young coins warm and old ones blue as in AGE.
-var STH_BANDS = 8;
-var STH_COLOR = "#e6a817", LTH_COLOR = "#5599ff";
 var AGE_BANDS = [
   {cohort:"utxos_under_1h_old", label:"<1h"}, {cohort:"utxos_1h_to_1d_old", label:"1h-1d"}, {cohort:"utxos_1d_to_1w_old", label:"1d-1w"},
   {cohort:"utxos_1w_to_1m_old", label:"1w-1m"}, {cohort:"utxos_1m_to_2m_old", label:"1m-2m"}, {cohort:"utxos_2m_to_3m_old", label:"2m-3m"},
@@ -355,10 +339,9 @@ var currentIdx = 0;
 var priceArray = null;
 var showPriceOverlay = true;
 var coinMode = false;
-var splitMode = false; // the bars by age band (AGE) or split at 150 days (<150D/>150D); see setBarsMode
-// RAW: the recorded prices with no smoothing, every bar black, on a light chart. smoothingBeforeRaw is the smoothing
-// it set aside, given back when AGE or <150D/>150D is chosen again.
-var rawMode = false, smoothingBeforeRaw = null;
+// Where the left axis ends (see setYMaxMode): false, Y-MAX EXPANDS ON ATH, at the tallest bar so far; true, Y-MAX
+// ALWAYS AT 100%, at the day's own tallest bar.
+var yFit = false;
 var legendHidden = {}; // legend toggles, carried from one draw to the next by trace name (see drawChart)
 var yMaxPct = 100;
 // A per-mode default: 100 in both, since the left axis now leaves out the one bar that used to need clipping
@@ -467,15 +450,12 @@ var lang = "en";
 var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
-    landmarks: "CYCLE TOP/BTM",     yMaxLabel: "Y-max", yMaxUnit: "PCTL", smoothLabel: "Smoothing", smoothUnit: "%", smoothTitle: "Smoothing: how far each recorded price is blurred, as a percentage of the price (0 = none)", yMaxTitle: "Y-max: where the left axis ends, as a percentile of the day's bar heights (100 = the tallest bar so far)", 
-        titleUSDAge: "Bitcoin Supply by Price When Last Moved (USD Value, AGE) as of ", titleBTCAge: "Bitcoin Supply by Price When Last Moved (BTC, AGE) as of ",
-    titleUSDSplit: "Bitcoin Supply by Price When Last Moved (USD Value, <150D/>150D) as of ", titleBTCSplit: "Bitcoin Supply by Price When Last Moved (BTC, <150D/>150D) as of ",
-    titleUSDRaw: "Bitcoin Supply by Price When Last Moved (USD Value, RAW) as of ", titleBTCRaw: "Bitcoin Supply by Price When Last Moved (BTC, RAW) as of ",
-    age: "AGE", lthsth: "<150D/>150D", raw: "RAW", sth: "<150D", lth: ">150D",
-    rawTitle: "RAW: the bars as recorded, with no smoothing and no colours: every bar in black, on a light chart",
-    smoothTitleRaw: "Smoothing: none in RAW, which draws the recorded prices as they are (choose AGE or <150D/>150D to smooth them again)",
-    ageTitle: "AGE: each bar stacked out of 23 age bands, by how long its coins have sat unmoved",
-    splitTitle: "<150D/>150D: each bar split at 150 days: coins that moved within the last 150 days (<150D), and coins unmoved for 150 days or more (>150D)",
+    landmarks: "CYCLE TOP/BTM",     yMaxLabel: "Y-max", yMaxUnit: "PCTL", smoothLabel: "Smoothing", smoothUnit: "%", smoothTitle: "Smoothing: how far each recorded price is blurred, as a percentage of the price (0 = none)", yMaxTitle: "Y-max: where the left axis ends, as a percentile of the day's bar heights (100 = the tallest bar, so far or the day's own, as the Y-MAX buttons say)", 
+        titleUSDAth: "Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of ", titleBTCAth: "Bitcoin Supply by Price When Last Moved (BTC, Y-Max Expands on ATH) as of ",
+    titleUSDFit: "Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Always at 100%) as of ", titleBTCFit: "Bitcoin Supply by Price When Last Moved (BTC, Y-Max Always at 100%) as of ",
+    ath: "Y-max expands on ATH", fit: "Y-max always at 100%", athShort: "expands on ATH", fitShort: "always at 100%",
+    athTitle: "Y-max expands on ATH: the left axis ends at the tallest bar so far; it grows when a bar reaches a new all-time high and never shrinks",
+    fitTitle: "Y-max always at 100%: the left axis ends at each day's own tallest bar, so the tallest bar always reaches the top",
     priceUSD: "Price When Last Moved [USD]", usdInvested: "Value When Last Moved [USD]", btcSupply: "Supply [BTC]",
     hoverPrice: "Price: $", hoverPctTotal: "Cumulative % of Total: ", hoverTotalUSD: "Total Value When Last Moved: ", hoverTotalBTC: "Total Supply: ", hoverDate: "Date: ", usdProfit: "USD Value Last Moved In Profit: ", usdLoss: "USD Value Last Moved In Loss: ", btcProfit: "BTC Supply Last Moved In Profit: ", btcLoss: "BTC Supply Last Moved In Loss: ",
     langBtn: "\u4e2d\u6587",
@@ -491,15 +471,12 @@ var T = {
   },
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
-    landmarks: "周期顶部/底部",     yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "百分位", smoothLabel: "\u5e73\u6ed1", smoothUnit: "%", smoothTitle: "平滑：每个记录价格被模糊的程度，占价格的百分比（0 = 不平滑）", yMaxTitle: "Y 轴上限：左轴的终点，按当天柱高的百分位计（100 = 迄今最高的柱子）", 
-        titleUSDAge: "按最后移动时价格划分的比特币供应（美元价值，年龄）截至 ", titleBTCAge: "按最后移动时价格划分的比特币供应（BTC，年龄）截至 ",
-    titleUSDSplit: "按最后移动时价格划分的比特币供应（美元价值，<150D/>150D）截至 ", titleBTCSplit: "按最后移动时价格划分的比特币供应（BTC，<150D/>150D）截至 ",
-    titleUSDRaw: "按最后移动时价格划分的比特币供应（美元价值，RAW）截至 ", titleBTCRaw: "按最后移动时价格划分的比特币供应（BTC，RAW）截至 ",
-    age: "年龄", lthsth: "<150D/>150D", raw: "RAW", sth: "<150D", lth: ">150D",
-    rawTitle: "RAW：按记录的原样绘制柱子，不平滑、不着色：所有柱子都是黑色，图表为浅色",
-    smoothTitleRaw: "平滑：RAW 模式不平滑，按记录的价格原样绘制（选择年龄或 <150D/>150D 即可恢复平滑）",
-    ageTitle: "年龄：每根柱子按币静止的时长，分成 23 个年龄层堆叠",
-    splitTitle: "<150D/>150D：每根柱子以 150 天为界分成两部分：过去 150 天内移动过的币（<150D），与 150 天或更久未移动的币（>150D）",
+    landmarks: "周期顶部/底部",     yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "百分位", smoothLabel: "\u5e73\u6ed1", smoothUnit: "%", smoothTitle: "平滑：每个记录价格被模糊的程度，占价格的百分比（0 = 不平滑）", yMaxTitle: "Y 轴上限：左轴的终点，按当天柱高的百分位计（100 = 最高的柱子：迄今的或当天的，由两个 Y 轴上限按钮决定）", 
+        titleUSDAth: "按最后移动时价格划分的比特币供应（美元价值，Y 轴上限随历史新高扩展）截至 ", titleBTCAth: "按最后移动时价格划分的比特币供应（BTC，Y 轴上限随历史新高扩展）截至 ",
+    titleUSDFit: "按最后移动时价格划分的比特币供应（美元价值，Y 轴上限始终 100%）截至 ", titleBTCFit: "按最后移动时价格划分的比特币供应（BTC，Y 轴上限始终 100%）截至 ",
+    ath: "Y 轴上限随历史新高扩展", fit: "Y 轴上限始终 100%", athShort: "随历史新高扩展", fitShort: "始终 100%",
+    athTitle: "Y 轴上限随历史新高扩展：左轴停在迄今最高的柱子，只有柱子创历史新高时才扩大，永不缩小",
+    fitTitle: "Y 轴上限始终 100%：左轴停在当天自己最高的柱子，最高的柱子始终顶到图表顶部",
     priceUSD: "最后移动时的价格 [美元]", usdInvested: "最后移动时的价值 [美元]", btcSupply: "供应量 [BTC]",
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "累计占总量百分比: ", hoverTotalUSD: "最后移动时的总价值: ", hoverTotalBTC: "总供应量: ", hoverDate: "日期: ", usdProfit: "最后移动的美元价值处于盈利: ", usdLoss: "最后移动的美元价值处于亏损: ", btcProfit: "最后移动的 BTC 供应处于盈利: ", btcLoss: "最后移动的 BTC 供应处于亏损: ",
     langBtn: "日本語",
@@ -520,18 +497,14 @@ var T = {
     yMaxLabel: "Y軸上限",
     yMaxUnit: "パーセンタイル",
     smoothLabel: "スムージング",
-    smoothUnit: "%", smoothTitle: "スムージング：記録された各価格をぼかす幅（価格に対する %、0 = なし）", yMaxTitle: "Y 軸上限：左軸の上端（その日の棒の高さのパーセンタイル。100 = それまでで最も高い棒）",
-    titleUSDAge: "最終移動時の価格別ビットコイン供給量（USD 評価額、年齢） 基準日 ",
-    titleBTCAge: "最終移動時の価格別ビットコイン供給量（BTC、年齢） 基準日 ",
-    titleUSDSplit: "最終移動時の価格別ビットコイン供給量（USD 評価額、<150D/>150D） 基準日 ",
-    titleBTCSplit: "最終移動時の価格別ビットコイン供給量（BTC、<150D/>150D） 基準日 ",
-    titleUSDRaw: "最終移動時の価格別ビットコイン供給量（USD 評価額、RAW） 基準日 ",
-    titleBTCRaw: "最終移動時の価格別ビットコイン供給量（BTC、RAW） 基準日 ",
-    age: "年齢", lthsth: "<150D/>150D", raw: "RAW", sth: "<150D", lth: ">150D",
-    rawTitle: "RAW：記録されたままの棒を、スムージングなし・色分けなしで描きます。すべての棒が黒、チャートは明るい背景です",
-    smoothTitleRaw: "スムージング：RAW ではなし。記録された価格をそのまま描きます（年齢か <150D/>150D を選ぶと元に戻ります）",
-    ageTitle: "年齢：各棒を、コインが動かずにいた期間で 23 の年齢帯に分けて積み上げます",
-    splitTitle: "<150D/>150D：各棒を 150 日で二つに分けます。過去 150 日以内に動いたコイン（<150D）と、150 日以上動いていないコイン（>150D）です",
+    smoothUnit: "%", smoothTitle: "スムージング：記録された各価格をぼかす幅（価格に対する %、0 = なし）", yMaxTitle: "Y 軸上限：左軸の上端（その日の棒の高さのパーセンタイル。100 = 最も高い棒。それまでのものか、その日のものかは Y 軸上限の 2 つのボタンで決まります）",
+    titleUSDAth: "最終移動時の価格別ビットコイン供給量（USD 評価額、Y軸上限は過去最高で拡大） 基準日 ",
+    titleBTCAth: "最終移動時の価格別ビットコイン供給量（BTC、Y軸上限は過去最高で拡大） 基準日 ",
+    titleUSDFit: "最終移動時の価格別ビットコイン供給量（USD 評価額、Y軸上限は常に 100%） 基準日 ",
+    titleBTCFit: "最終移動時の価格別ビットコイン供給量（BTC、Y軸上限は常に 100%） 基準日 ",
+    ath: "Y軸上限は過去最高で拡大", fit: "Y軸上限は常に 100%", athShort: "過去最高で拡大", fitShort: "常に 100%",
+    athTitle: "Y軸上限は過去最高で拡大：左軸はそれまでで最も高い棒で止まり、棒が過去最高を更新したときだけ広がり、縮むことはありません",
+    fitTitle: "Y軸上限は常に 100%：左軸をその日の最も高い棒に合わせるので、最も高い棒が常に上端に届きます",
     priceUSD: "最終移動時の価格 [USD]",
     usdInvested: "最終移動時の評価額 [USD]",
     btcSupply: "供給量 [BTC]",
@@ -570,57 +543,46 @@ function t(key) { return T[lang][key] || T.en[key] || key; }
 var CREDIT_X = { "Bitview.space": "_bitview_", "Bitcoin Core": "bitcoincoreorg", "Antoine Le Calvez": "khannib",
   "Renato Shirakashi": "renato_shira", "James Check": "_Checkmatey_", "@_nym21_": "_nym21_" };
 var CREDIT_NAME_COLOR = "#ffffff";
-// The chart's colours. AGE and <150D/>150D are drawn dark. RAW is drawn light and its bars black, so the price line,
-// the dashed lines and the labels drawn over the bars take a white casing or backing that keeps them clear of them.
-// The toolbar keeps its own colours either way.
-var CHART_THEMES = {
-  dark: { bg: "#0a0a0a", ink: "#ffffff", grid: GRID_COLOR, watermark: WATERMARK_COLOR, credit: "rgba(255,255,255,0.55)",
-    creditName: CREDIT_NAME_COLOR, line: PRICE_LINE_COLOR, casing: "rgba(10,10,10,0.8)", dash: "#ffffff", dashCasing: null,
-    boxBg: "rgba(0,0,0,0.92)", boxBorder: "rgba(255,255,255,0.45)", tagBg: "rgba(0,0,0,0.75)", labelBg: "rgba(10,10,10,0.75)",
-    profit: PROFIT_COLOR, loss: LOSS_COLOR },
-  // Grid and watermark as far from white as the dark ones are from #0a0a0a (1.32:1 and 1.14:1); profit and loss
-  // darkened to read on white (4.6:1 and 5.0:1).
-  light: { bg: "#ffffff", ink: "#000000", grid: "#dfdfdf", watermark: "#f0f0f0", credit: "rgba(0,0,0,0.55)",
-    creditName: "#000000", line: "#000000", casing: "rgba(255,255,255,0.9)", dash: "#000000", dashCasing: "rgba(255,255,255,0.9)",
-    boxBg: "rgba(255,255,255,0.92)", boxBorder: "rgba(0,0,0,0.45)", tagBg: "rgba(255,255,255,0.8)", labelBg: "rgba(255,255,255,0.8)",
-    profit: "#00873c", loss: "#e0002b" }
-};
-var RAW_BAR_COLOR = "#000000";   // RAW: every bar one colour
-function creditLink(name, color) { return '<a href="https://x.com/' + CREDIT_X[name] + '" style="color:' + (color || CREDIT_NAME_COLOR) + '">' + name + "</a>"; }
-// The three video buttons go to the latest videos, which the Weekly videos workflow posts unlisted once a week (not
-// shown on the channel or in search, but open to anyone with the link) and names in data/youtube.json: "age", the bars
-// coloured by age band, "lthsth", split at 150 days (<150D/>150D), and "raw", unsmoothed and black on a light chart. A
-// button whose video others cannot watch yet (an upload YouTube kept private, say, or none yet) opens the channel.
+// The chart's colours, in one place: tools/video/page.html draws the videos in the same ones (tests/grid-watermark).
+// The toolbar keeps its own.
+var CHART_COLORS = { bg: "#0a0a0a", ink: "#ffffff", grid: GRID_COLOR, watermark: WATERMARK_COLOR, credit: "rgba(255,255,255,0.55)",
+  line: PRICE_LINE_COLOR, casing: "rgba(10,10,10,0.8)", dash: "#ffffff", boxBg: "rgba(0,0,0,0.92)", boxBorder: "rgba(255,255,255,0.45)",
+  tagBg: "rgba(0,0,0,0.75)", labelBg: "rgba(10,10,10,0.75)", profit: PROFIT_COLOR, loss: LOSS_COLOR };
+function creditLink(name) { return '<a href="https://x.com/' + CREDIT_X[name] + '" style="color:' + CREDIT_NAME_COLOR + '">' + name + "</a>"; }
+// The two video buttons go to the latest videos, which the Weekly videos workflow posts unlisted once a week (not shown
+// on the channel or in search, but open to anyone with the link) and names in data/youtube.json: "ath", drawn with
+// Y-MAX EXPANDS ON ATH (the left axis at the tallest bar so far), and "fit", with Y-MAX ALWAYS AT 100% (at each day's
+// own tallest bar). A button whose video others cannot watch yet (an upload YouTube kept private, say, or none yet)
+// opens the channel.
 var YT_CHANNEL = "https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg";
-var ytVideos = { age: null, lthsth: null, raw: null };
+var ytVideos = { ath: null, fit: null };
 function youTubeId(v) { return v && typeof v.id === "string" && /^[A-Za-z0-9_-]{11}$/.test(v.id) ? v.id : null; }
 function setYouTubeLinks(json) {
-  // Before the <150D/>150D video the file named one video, the AGE one, at its top level.
-  ytVideos.age = (json && youTubeId(json.age)) || youTubeId(json);
-  ytVideos.lthsth = json ? youTubeId(json.lthsth) : null;
-  ytVideos.raw = json ? youTubeId(json.raw) : null;
+  // The "ath" video is the one the file called "age" while the bars could also be split at 150 days or drawn RAW, and
+  // before that named at its top level: the same video, with the left axis only growing.
+  ytVideos.ath = json ? youTubeId(json.ath) || youTubeId(json.age) || youTubeId(json) : null;
+  ytVideos.fit = json ? youTubeId(json.fit) : null;
   labelYouTube();
 }
-// [link, its words, its bracketed name, the video in data/youtube.json]
-var YT_BUTTONS = [["ytBtn", "ytLabel", "ytTag", "age"], ["ytSplitBtn", "ytSplitLabel", "ytSplitTag", "lthsth"], ["ytRawBtn", "ytRawLabel", "ytRawTag", "raw"]];
+// [link, its words, its bracketed name, the same shortened, the video in data/youtube.json]
+var YT_BUTTONS = [["ytBtn", "ytLabel", "ytTag", "ytTagShort", "ath"], ["ytFitBtn", "ytFitLabel", "ytFitTag", "ytFitTagShort", "fit"]];
 function labelYouTube() {
   YT_BUTTONS.forEach(function(b) {
     var el = document.getElementById(b[0]);
     if (!el) return;
-    var id = ytVideos[b[3]], words = L3("Full history in 5 min", "5 分钟看完整历史", "全期間を5分で"), tag = t(b[3]);
+    var id = ytVideos[b[4]], words = L3("Full history", "完整历史", "全期間"), tag = t(b[4]);
     el.href = id ? "https://www.youtube.com/watch?v=" + id : YT_CHANNEL;
-    // Each button says what it gives you, the whole history in five minutes, and which of the three it is; where it
-    // opens is left to its tooltip.
-    var word = document.getElementById(b[1]), tagEl = document.getElementById(b[2]);
+    // Each button says what it gives you, the whole history, and which of the two it is; how long it is and where it
+    // opens are left to its tooltip.
+    var word = document.getElementById(b[1]), tagEl = document.getElementById(b[2]), shortEl = document.getElementById(b[3]);
     if (word) word.textContent = words;
     if (tagEl) tagEl.textContent = tag;
+    if (shortEl) shortEl.textContent = t(b[4] + "Short");
     var about = !id
       ? L3("on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)", "YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）", "YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）")
-      : b[3] === "age"
-      ? L3("every day since 2010 as one 4K video, the bars coloured by age band, on YouTube (opens in a new tab)", "2010 年以来的每一天，一段 4K 视频，柱子按币龄层着色，在 YouTube 上观看（在新标签页中打开）", "2010年以降の毎日を 1 本の 4K 動画にまとめ、棒を年齢帯で色分けして YouTube で（新しいタブで開きます）")
-      : b[3] === "lthsth"
-      ? L3("every day since 2010 as one 4K video, the bars split at 150 days, on YouTube (opens in a new tab)", "2010 年以来的每一天，一段 4K 视频，柱子以 150 天为界分成两部分，在 YouTube 上观看（在新标签页中打开）", "2010年以降の毎日を 1 本の 4K 動画にまとめ、棒を 150 日で二つに分けて YouTube で（新しいタブで開きます）")
-      : L3("every day since 2010 as one 4K video, the bars as recorded, unsmoothed, black on a light chart, on YouTube (opens in a new tab)", "2010 年以来的每一天，一段 4K 视频，柱子按记录原样绘制、不平滑，浅色图表上的黑色柱子，在 YouTube 上观看（在新标签页中打开）", "2010年以降の毎日を 1 本の 4K 動画にまとめ、棒を記録されたままスムージングなしで、明るい背景に黒で描いて YouTube で（新しいタブで開きます）");
+      : b[4] === "ath"
+      ? L3("every day since 2010 as one 5-minute 4K video, the left axis ending at the tallest bar so far, on YouTube (opens in a new tab)", "2010 年以来的每一天，一段 5 分钟的 4K 视频，左轴停在迄今最高的柱子，在 YouTube 上观看（在新标签页中打开）", "2010年以降の毎日を 5 分の 4K 動画 1 本にまとめ、左軸をそれまでで最も高い棒で止めて YouTube で（新しいタブで開きます）")
+      : L3("every day since 2010 as one 5-minute 4K video, the left axis ending at each day's own tallest bar, on YouTube (opens in a new tab)", "2010 年以来的每一天，一段 5 分钟的 4K 视频，左轴停在每天自己最高的柱子，在 YouTube 上观看（在新标签页中打开）", "2010年以降の毎日を 5 分の 4K 動画 1 本にまとめ、左軸をその日の最も高い棒に合わせて YouTube で（新しいタブで開きます）");
     var label = words + L3(" (" + tag + "): ", "（" + tag + "）：", "（" + tag + "）：") + about;
     el.title = label;
     el.setAttribute("aria-label", label);
@@ -633,12 +595,10 @@ function applyLang() {
   document.getElementById("githubLink").title = githubLabel;
   document.getElementById("githubLink").setAttribute("aria-label", githubLabel);
   labelYouTube();
-  document.getElementById("btnAge").textContent = t("age");
-  document.getElementById("btnAge").title = t("ageTitle");
-  document.getElementById("btnSplit").textContent = t("lthsth");
-  document.getElementById("btnSplit").title = t("splitTitle");
-  document.getElementById("btnRaw").textContent = t("raw");
-  document.getElementById("btnRaw").title = t("rawTitle");
+  document.getElementById("btnAth").textContent = t("ath");
+  document.getElementById("btnAth").title = t("athTitle");
+  document.getElementById("btnFit").textContent = t("fit");
+  document.getElementById("btnFit").title = t("fitTitle");
   // How to read and GitHub are icons: their tooltips name them.
   document.getElementById("explainBtn").title = t("ariaExplain");
   // What a screen reader announces for the icon-only controls, in the page's language too.
@@ -681,7 +641,6 @@ function applyLang() {
     if (unit) unit.textContent = t(f[2]);
     wrap.title = t(f[3]);
   });
-  syncSettingFields();   // the smoothing field's tooltip, which RAW changes
   // While no day is drawn the date box says why ("Loading dates...", or the error), in the language just chosen.
   if (dateBoxWords && !allDates.length) document.getElementById("dateDisplay").textContent = dateBoxWords();
   fitToolbarWords();   // after every label has its new words; it also places an open panel
@@ -699,12 +658,13 @@ function positionToolbarPanels() {
   panel.style.maxHeight = Math.max(0, Math.min(window.innerHeight * 0.75, window.innerHeight - top - 10)) + "px";
 }
 window.addEventListener("resize", positionToolbarPanels);
-// The bar is one row, always, and never scrolls. The three video buttons carry words beside their icons where there is
+// The bar is one row, always, and never scrolls. The two video buttons carry words beside their icons where there is
 // room; where the row would run past the window, the spacing tightens first (dense), then the type goes a size down
-// (tight: every word still there at 1920 px), then the video buttons go down to AGE, 150D and RAW (compact; their
-// tooltips still name them in full), and if it still does not fit, the whole bar is drawn smaller, as much as it takes
-// (CSS zoom, kept in --bar-zoom for the How to read panel). Each step is taken only if the row does not fit without it.
-var TOOLBAR_FITS = ["dense", "tight", "compact"];
+// (tight), then the video buttons' names drop their Y-MAX (short), then the buttons go down to EXPANDS ON ATH and
+// ALWAYS AT 100% (compact; their tooltips still name them in full), and if it still does not fit, the whole bar is
+// drawn smaller, as much as it takes (CSS zoom, kept in --bar-zoom for the How to read panel). Each step is taken only
+// if the row does not fit without it.
+var TOOLBAR_FITS = ["dense", "tight", "short", "compact"];
 function fitToolbarWords() {
   var bar = document.getElementById("controls");
   if (!bar) return;
@@ -896,7 +856,9 @@ function priceRunMax(idx) {
 // The chart is read by scrubbing through time, so both axes are a function of the date alone. On any day each
 // ends exactly at the largest extent the data had reached by then: moving forward an axis grows only when the
 // data runs past it and never comes back down, and moving back you see it as it stood on that day, whatever
-// route you took to get there. That takes the whole history, which no single day's download contains, so
+// route you took to get there. (The left axis does this with Y-MAX EXPANDS ON ATH, the default; with Y-MAX ALWAYS
+// AT 100% it ends at each day's own tallest bar instead, which depends on the date alone as well: see setYMaxMode.)
+// That takes the whole history, which no single day's download contains, so
 // data/scales.json carries it, built by tools/build-scales.cjs with this file's own binning (run again, it adds
 // each finished day). Each series is a list of [day, value] steps, day 0 being "start":
 //   x    the right end of the price axis: the highest stamp so far, plus half its rounding step, plus two kernel
@@ -1118,28 +1080,25 @@ function setViewMode(idx) {
   }, 100);
 }
 
-// AGE, <150D/>150D or RAW: how the bars are drawn. AGE and <150D/>150D colour the same bars (the two groups are the
-// age bands added up), so switching between them only draws the day on screen again, from the cache. RAW draws the
-// recorded prices as they are: it sets the smoothing to 0 for as long as it is on (the field shows it, locked) and
-// gives the smoothing it set aside back when AGE or <150D/>150D is chosen again, so the day is binned again either
-// way; its bars are black, on a light chart.
-function barsMode() { return rawMode ? "raw" : splitMode ? "split" : "age"; }
-function setBarsMode(mode) {
-  if (mode !== "age" && mode !== "split" && mode !== "raw") return;
-  if (mode === barsMode()) return;
-  var wasRaw = rawMode;
-  splitMode = mode === "split"; rawMode = mode === "raw";
-  if (rawMode && !wasRaw) { smoothingBeforeRaw = KERNEL_PCT; KERNEL_PCT = 0; }
-  else if (wasRaw && !rawMode) { KERNEL_PCT = smoothingBeforeRaw === null ? KERNEL_DEFAULT : smoothingBeforeRaw; smoothingBeforeRaw = null; }
-  syncBarsButtons();
-  syncSettingFields();
-  if (rawMode === wasRaw) { rerenderCurrent(); return; }
-  clearTimeout(smoothInputTimer); smoothInputTimer = null;   // a smoothing still being typed is overtaken
-  loadAndRender();
+// Y-MAX EXPANDS ON ATH or Y-MAX ALWAYS AT 100%: where the left axis ends, on every day drawn, whether you step, drag
+// the dot, jump to a cycle or to either end. EXPANDS ON ATH, the default, ends it at the tallest bar so far (see "Axes
+// that only grow"): it grows when a bar reaches a new all-time high and never shrinks, so moving forward you watch the
+// market outgrow the scale, and every day looks the same however you reached it. ALWAYS AT 100% ends it at the day's
+// own tallest bar, so that bar always reaches the top and every day's shape fills the same frame; the scale changes
+// from day to day. Either way the axis is a function of the day alone. The bars and their binning are the same in
+// both, so switching only draws the day on screen again, from the cache. A Y-max typed below 100 and a pinned Y-axis
+// work the same in both.
+function yMaxMode() { return yFit ? "fit" : "ath"; }
+function setYMaxMode(mode) {
+  if (mode !== "ath" && mode !== "fit") return;
+  if (mode === yMaxMode()) return;
+  yFit = mode === "fit";
+  syncYMaxButtons();
+  rerenderCurrent();
 }
-function syncBarsButtons() {
-  [["btnAge", "age"], ["btnSplit", "split"], ["btnRaw", "raw"]].forEach(function(b) {
-    var el = document.getElementById(b[0]), on = barsMode() === b[1];
+function syncYMaxButtons() {
+  [["btnAth", "ath"], ["btnFit", "fit"]].forEach(function(b) {
+    var el = document.getElementById(b[0]), on = yMaxMode() === b[1];
     el.classList.toggle("active", on);
     el.setAttribute("aria-pressed", String(on));
   });
@@ -1148,13 +1107,13 @@ function syncBarsButtons() {
 function captureChartSettings() {
   return { viewIdx: viewIdx, coinMode: coinMode, bins: NUM_BINS, smoothing: KERNEL_PCT,
     yMax: yMaxPct, yMaxByMode: yMaxByMode.slice(), yMaxExplicit: yMaxExplicit.slice(),
-    priceOverlay: showPriceOverlay, bars: barsMode(), smoothingBeforeRaw: smoothingBeforeRaw };
+    priceOverlay: showPriceOverlay, yFit: yFit };
 }
 function restoreChartSettings(s) {
   viewIdx = s.viewIdx; coinMode = s.coinMode; NUM_BINS = s.bins; KERNEL_PCT = s.smoothing;
   yMaxPct = s.yMax; yMaxByMode = s.yMaxByMode.slice(); yMaxExplicit = s.yMaxExplicit.slice();
   showPriceOverlay = s.priceOverlay;
-  if (s.bars) { splitMode = s.bars === "split"; rawMode = s.bars === "raw"; smoothingBeforeRaw = s.smoothingBeforeRaw === undefined ? null : s.smoothingBeforeRaw; }
+  if (typeof s.yFit === "boolean") yFit = s.yFit;
 }
 // Make the toolbar show the settings in force (after a change that could not be drawn is rolled back).
 function syncControls() {
@@ -1162,7 +1121,7 @@ function syncControls() {
   document.getElementById("btnBTC").classList.toggle("active", coinMode);
   document.getElementById("btnUSD").setAttribute("aria-pressed", String(!coinMode));
   document.getElementById("btnBTC").setAttribute("aria-pressed", String(coinMode));
-  syncBarsButtons();
+  syncYMaxButtons();
   syncSettingFields();
   if (window.placeTracer) placeTracer();
 }
@@ -1253,25 +1212,9 @@ function buildData(dateStr, raw) {
   return data;
 }
 
-// The age bands added up, bar by bar, into <150D (the first STH_BANDS bands) and >150D (the rest), in the order they
-// are stacked, young coins at the bottom as in AGE. Worked out once for each day's data.
-// Text for Plotly, which reads <...> in what it draws as markup: escaped, a name with < or > in it is always drawn
-// exactly as written, whatever follows it.
+// Text for Plotly, which reads <...> in what it draws as markup: escaped, words with < or > in them are always drawn
+// exactly as written, whatever follows them.
 function plotlyText(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-function holderGroups(data) {
-  if (!data.holders) {
-    var group = function(young) {
-      var out = data.aggAll.map(function(b) { return { price: b.price, supply: 0, invested: 0 }; });
-      data.aggAge.forEach(function(c) {
-        if ((c.band < STH_BANDS) !== young) return;
-        c.agg.forEach(function(b, i) { out[i].supply += b.supply; out[i].invested += b.invested; });
-      });
-      return out;
-    };
-    data.holders = [{ key: "sth", color: STH_COLOR, agg: group(true) }, { key: "lth", color: LTH_COLOR, agg: group(false) }];
-  }
-  return data.holders;
-}
 
 function showData(data) {
   var shownSeq = renderSeq;
@@ -1401,9 +1344,7 @@ function renderChart(data) {
 }
 
 function drawChart(data, plotSeq, navigationSeq) {
-  var drawnSettings = captureChartSettings();
-  // RAW: the recorded prices unsmoothed, black bars on a light chart (see setBarsMode and CHART_THEMES).
-  var isRaw = rawMode, TH = isRaw ? CHART_THEMES.light : CHART_THEMES.dark;
+  var drawnSettings = captureChartSettings(), TH = CHART_COLORS;
   var renderedPeakKey = peakKey(data);
   var dateStr = data.dateStr, spot = data.spot, aggAll = data.aggAll, binWidth = data.binWidth;
   // ---- Bar separators -------------------------------------------------------------------------------
@@ -1423,8 +1364,8 @@ function drawChart(data, plotSeq, navigationSeq) {
   // Measured from the text (monospace: 0.6 em a character, a full em for CJK), since a fixed width stopped
   // being enough the day the credit line grew and the two overlapped at 1600 px.
   // Every name in it links to its X account (creditLink: Plotly draws an <a> in an annotation as a link).
-  var BV = creditLink("Bitview.space", TH.creditName), BC = creditLink("Bitcoin Core", TH.creditName);
-  var creditNames = ["Antoine Le Calvez", "Renato Shirakashi", "James Check", "@_nym21_"].map(function(n) { return creditLink(n, TH.creditName); });
+  var BV = creditLink("Bitview.space"), BC = creditLink("Bitcoin Core");
+  var creditNames = ["Antoine Le Calvez", "Renato Shirakashi", "James Check", "@_nym21_"].map(creditLink);
   var creditLinked = [L3("Powered by " + BV + " & " + BC + ".", "由 " + BV + " 和 " + BC + " 提供支持。", BV + " と " + BC + " を利用。"),
     L3("Credits: " + creditNames.join(", "), "鸣谢：" + creditNames.join("、"), "クレジット：" + creditNames.join("、"))];
   var creditParts = creditLinked.map(function(part) { return part.replace(/<[^>]*>/g, ""); });   // what is measured
@@ -1442,7 +1383,6 @@ function drawChart(data, plotSeq, navigationSeq) {
   var creditSize = creditWidest > creditRoom ? Math.max(8, Math.floor(110 * creditRoom / creditWidest) / 10) : 11;
   var bottomMargin = creditRow ? 44 : creditWrap ? 78 : 64;
   var isAge = !!(data.aggAge && data.aggAge.length > 0); // false only if every cohort fetch failed
-  var isSplit = isAge && splitMode;                      // the bands added up in two at 150 days
   var isCoin = coinMode;
 
   var dateText = (allDates.indexOf(dateStr) + 1) + "/" + allDates.length;
@@ -1465,18 +1405,7 @@ function drawChart(data, plotSeq, navigationSeq) {
   var totLbl = isCoin ? t("hoverTotalBTC") : t("hoverTotalUSD");
   var hoverTail = "<br>" + totLbl + (isCoin ? "%{customdata[0]:,.2f} BTC" : "%{customdata[0]:$,.0f}") +
     "<br>" + hpt + "%{customdata[1]:.1f}%<extra></extra>";
-  if (isRaw) {
-    // RAW: the whole bar in one colour, with the whole bar's hover. No legend entry: the title names the view, and
-    // hiding the only bars would leave nothing to read.
-    traces.push({x:chartPrices,y:valuesForAxis,type:"bar",meta:"raw",name:t("raw"),showlegend:false,width:Array(chartPrices.length).fill(barW),marker:{color:RAW_BAR_COLOR,line:{width:0}},customdata:hoverData,hovertemplate:hp+"%{x:"+xFmt+"}"+hoverTail});
-  } else if (isSplit) {
-    // Two stacked traces, <150D under >150D, each with the whole bar's hover as below. Their key (meta) carries a
-    // hidden legend entry across languages; their names are escaped, since Plotly reads "<" as the start of markup.
-    holderGroups(data).forEach(function(g) {
-      var vals = smooth(g.agg.map(function(b){ return isCoin ? b.supply : b.invested; })), name = plotlyText(t(g.key));
-      traces.push({x:chartPrices,y:vals,type:"bar",meta:g.key,name:name,width:Array(chartPrices.length).fill(barW),marker:{color:g.color,line:{width:0}},customdata:hoverData,hovertemplate:hp+"%{x:"+xFmt+"}<br>"+name+": "+(isCoin?"%{y:,.2f} BTC":"%{y:$,.0f}")+hoverTail});
-    });
-  } else if (isAge) {
+  if (isAge) {
     // Each cohort is its own stacked trace, so hovering a bar only told you what that one age band holds. The
     // number people read a URPD for is the whole bar, so every band's hover also gives the whole bar's total
     // and its running share. Plotly reads customdata positionally against x, so one array serves every
@@ -1490,8 +1419,9 @@ function drawChart(data, plotSeq, navigationSeq) {
   }
 
   // ---- Left axis -------------------------------------------------------------------------------------
-  // It ends exactly at the tallest bar so far (see "Axes that only grow"), so it moves only when a bar goes
-  // above it, never comes down, and on any date shows what it showed the first time you were there. In BTC
+  // With Y-MAX EXPANDS ON ATH it ends exactly at the tallest bar so far (see "Axes that only grow"), so it moves
+  // only when a bar goes above it, never comes down, and on any date shows what it showed the first time you were
+  // there; with Y-MAX ALWAYS AT 100% at the day's own tallest bar (see setYMaxMode). In BTC
   // the first bar (from $0 to one bar width) does not count: it holds every coin last moved while bitcoin
   // was worth less than that, 1.85M BTC of it from before bitcoin traded above 50 cents, around ten times any
   // other bar, and counting it would flatten the whole history under one bar. It runs off the top with its
@@ -1505,8 +1435,10 @@ function drawChart(data, plotSeq, navigationSeq) {
     // A Y-max typed below 100 fits each day on its own: a percentile is a deliberate zoom into the day in view.
     maxVal = axisLevel(valuesForAxis, skipFirst, yMaxPct);
     yClipped = maxVal < dayTop;
+  } else if (yFit) {
+    maxVal = dayTop;   // Y-MAX ALWAYS AT 100%: the day's own tallest bar reaches the top
   } else {
-    maxVal = Math.max(yAxisSoFar(dateStr, isCoin), dayTop);
+    maxVal = Math.max(yAxisSoFar(dateStr, isCoin), dayTop);   // Y-MAX EXPANDS ON ATH: the tallest bar so far
   }
   // A pin fixes the axis at that day's tallest bar: the scale stops moving altogether, so heights can be
   // compared directly with that day's, and a day taller than the pin runs into the top of the plot instead of
@@ -1531,13 +1463,13 @@ function drawChart(data, plotSeq, navigationSeq) {
 
   var d = new Date(dateStr + "T00:00:00");
   var titleDate = d.toLocaleDateString(L3("en-GB","zh-CN","ja-JP"), {day:"2-digit",month:"short",year:"numeric"});
-  // The title names both choices: USD Value or BTC, and AGE, <150D/>150D or RAW (escaped for Plotly).
-  var titleWords = t((isCoin ? "titleBTC" : "titleUSD") + (isRaw ? "Raw" : splitMode ? "Split" : "Age")) + titleDate;
+  // The title names both choices: USD Value or BTC, and Y-MAX EXPANDS ON ATH or Y-MAX ALWAYS AT 100% (escaped for Plotly).
+  var titleWords = t((isCoin ? "titleBTC" : "titleUSD") + (yFit ? "Fit" : "Ath")) + titleDate;
   var titleText = "<b>" + plotlyText(titleWords) + "</b>";
   // 20 px unless that is wider than the plot it is centred over, where it was cut off at both ends; then as large
-  // as fits, down to 12 px. Measured on the words as drawn: the escaped text counted each < and > as four letters,
-  // which shrank the <150D/>150D title a size or two early.
-  var titleSize = Math.max(12, Math.min(20, Math.floor(20 * (plotW - 8) / (textPx(titleWords, 20) * 1.03))));
+  // as fits, down to 10 px (a 600 px plot takes either English title at 10). Measured on the words as drawn, not the escaped
+  // text.
+  var titleSize = Math.max(10, Math.min(20, Math.floor(20 * (plotW - 8) / (textPx(titleWords, 20) * 1.03))));
 
   // The watermark is the label of an invisible shape in the layer under the grid and the bars. An annotation, which
   // it used to be, is always drawn over the bars: at 15 % white it lightened every bar it crossed, and while you
@@ -1551,14 +1483,9 @@ function drawChart(data, plotSeq, navigationSeq) {
   // Spot line and its label are drawn above everything else so they stay readable while navigating. The line
   // is a 1 px white dash, thinner than a bar, so it never hides a tall bar behind it.
   var spotLineColor = TH.dash;
-  // A dashed line over the bars, with a casing in the page's colour where the bars are black (RAW) so it still shows.
-  var dashedLine = function(line) {
-    if (TH.dashCasing) shapes.push(Object.assign({}, line, {line:{color:TH.dashCasing,width:3}}));
-    shapes.push(line);
-  };
   var spotBox = null, spotAnn = null; // where the spot price box sits: plot fractions across, pixels down from the top
   if (spot && spot > 0) {
-    dashedLine({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});
+    shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});
   }
   if (spot && spot > 0) {
     // The printed split comes from the recorded prices, not from the drawn bars. A bin that straddles spot was
@@ -1584,7 +1511,7 @@ function drawChart(data, plotSeq, navigationSeq) {
 
   // Same 1 px white dash as the spot line, labelled at the left edge with the value and the day that set it.
   if (peakVal > 0) {
-    dashedLine({type:"line",x0:0,x1:1,xref:"paper",y0:peakVal,y1:peakVal,yref:"y",line:{color:TH.dash,width:1,dash:"dash"},layer:"above"});
+    shapes.push({type:"line",x0:0,x1:1,xref:"paper",y0:peakVal,y1:peakVal,yref:"y",line:{color:TH.dash,width:1,dash:"dash"},layer:"above"});
     var peakDate = new Date(peak[0] + "T00:00:00").toLocaleDateString(L3("en-GB","zh-CN","ja-JP"), {day:"2-digit",month:"short",year:"numeric"});
     var peakText = t("peakLabel") + (isCoin ? peakCompact(peakVal) + " BTC" : "$" + peakCompact(peakVal)) + " \u00b7 " + peakDate;
     annotations.push({x:0,xref:"paper",xanchor:"left",xshift:4,y:peakVal,yref:"y",yanchor:"top",yshift:-2,text:peakText,showarrow:false,font:{color:TH.ink,size:11,family:FONT},bgcolor:TH.tagBg,borderpad:2});
@@ -1614,7 +1541,7 @@ function drawChart(data, plotSeq, navigationSeq) {
   // view; the plot starts right below the legend. The legend height is measured after the first draw of
   // each view at each width and the chart is drawn once more if the guess was off, so no pixel is left idle
   // above the bars.
-  var legendKey = (isRaw ? "raw|" : isSplit ? "split|" : "age|") + Math.round(plotW);
+  var legendKey = "age|" + Math.round(plotW);
   var ld = legendDims[legendKey] || { h: 29 };
   var topMargin = 13 + Math.round(26 * titleSize / 20) + ld.h; // the 13 is the title's clearance below the toolbar and must
   // match title.pad.t, otherwise the title slides down into the legend instead of the whole block moving together;
@@ -1626,7 +1553,7 @@ function drawChart(data, plotSeq, navigationSeq) {
     font:{family:FONT,color:TH.ink}, // inherited by the legend, the axis titles and every tick label
     paper_bgcolor:TH.bg,plot_bgcolor:TH.bg,
     barmode:isAge?"stack":"overlay",bargap:0,
-    legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:"center",x:0.5,font:{family:FONT,size:isAge&&!isSplit&&!isRaw?9.5:12,color:TH.ink},traceorder:isAge?"normal":undefined},
+    legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:"center",x:0.5,font:{family:FONT,size:isAge?9.5:12,color:TH.ink},traceorder:isAge?"normal":undefined},
     xaxis:{title:{text:xTitle,font:{family:FONT,size:13,color:TH.ink},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,tickangle:0,showgrid:true,gridcolor:TH.grid,tickfont:{family:FONT,size:11,color:TH.ink}},
     // One gridline per left-axis label, twenty intervals.
     yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:TH.ink},standoff:8},automargin:true,side:"left",tickvals:yTickvals,ticktext:yTicktext,range:[0,maxVal],autorange:false,showgrid:true,gridcolor:TH.grid,tickfont:{family:FONT,size:11,color:TH.ink}},
@@ -1770,8 +1697,6 @@ function drawChart(data, plotSeq, navigationSeq) {
       if (traces[hw].name && traces[hw].name !== "BTC/USD" && legendHidden[traces[hw].meta || traces[hw].name]) traces[hw].visible = "legendonly";
     }
   }
-  // The page around the chart takes its background (RAW: white), the bar above keeps its own.
-  document.body.classList[isRaw ? "add" : "remove"]("raw-chart");
   if (IS_MOBILE) {
     // A picture, not a control surface. Drag-zoom and hover are turned off rather than
     // left to compete with the edge tap for the same touch.
@@ -1818,7 +1743,7 @@ function drawChart(data, plotSeq, navigationSeq) {
       return false;
     }
     });
-    // Double-clicking an age band (or <150D or >150D) isolates it (again brings every one back), as Plotly does by
+    // Double-clicking an age band isolates it (again brings every one back), as Plotly does by
     // default, but among the bars only: Plotly's own version also hid the BTC/USD line and left its dot floating.
     gdEl.removeAllListeners("plotly_legenddoubleclick");
     gdEl.on("plotly_legenddoubleclick", function(evtData) {
@@ -1871,9 +1796,8 @@ document.getElementById("btnPeak").onclick = function(){
 };
 document.getElementById("btnUSD").onclick = function(){ setViewMode(0); };
 document.getElementById("btnBTC").onclick = function(){ setViewMode(1); };
-document.getElementById("btnRaw").onclick = function(){ setBarsMode("raw"); };
-document.getElementById("btnAge").onclick = function(){ setBarsMode("age"); };
-document.getElementById("btnSplit").onclick = function(){ setBarsMode("split"); };
+document.getElementById("btnAth").onclick = function(){ setYMaxMode("ath"); };
+document.getElementById("btnFit").onclick = function(){ setYMaxMode("fit"); };
 
 // Language toggle
 
@@ -1903,7 +1827,6 @@ var smoothInputTimer = null;
 // in the time a stamp can hide); anything above 1 blurs the distribution too much to be useful, so the value is
 // capped at 1.
 function applySmoothing(v) {
-  if (rawMode) return;   // RAW has none (the field is locked)
   if (isNaN(v) || v < 0) return;
   if (v > 1) v = 1;
   if (v === KERNEL_PCT) return;
@@ -1950,9 +1873,6 @@ document.getElementById("ymaxInput").addEventListener("change", function(e){
 function syncSettingFields() {
   var smoothEl = document.getElementById("smoothInput");
   smoothEl.value = KERNEL_PCT.toFixed(2);
-  smoothEl.disabled = rawMode;   // RAW draws the recorded prices unsmoothed; its tooltip says how to smooth again
-  document.getElementById("smoothWrap").classList.toggle("locked", rawMode);
-  document.getElementById("smoothWrap").title = t(rawMode ? "smoothTitleRaw" : "smoothTitle");
   document.getElementById("ymaxInput").value = String(yMaxPct);
 }
 // The Enter that confirms an input method's composition (and the Escape that cancels one) belongs to it.
@@ -2009,7 +1929,7 @@ document.addEventListener("keydown", function(e){
   if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); goTo(stepTarget(currentIdx, -1)); }
   else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); goTo(stepTarget(currentIdx, 1)); }
   // Up and Down change the step size one at a time, 1D -> 1W -> 1M -> 1Y and round again (Down the other way), as 1
-  // to 4 pick it directly. USD/BTC and AGE/<150D/>150D are switched from the toolbar.
+  // to 4 pick it directly. USD/BTC and the two Y-MAX buttons are switched from the toolbar.
   else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") { e.preventDefault(); setInterval1((stepIdx + 1) % STEP_SIZES); }
   else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); setInterval1((stepIdx + STEP_SIZES - 1) % STEP_SIZES); }
   else if (e.key === "Home") { e.preventDefault(); goTo(0); }
@@ -2187,9 +2107,9 @@ window.tracerDragWindow = null;
   el.addEventListener("dblclick", function(e){ e.preventDefault(); });
 })();
 var EXPLAINER = {
-  en: {"title": "How to read this chart", "sections": [["Start here", "Ask every bitcoin in existence one question: what was bitcoin worth the last time you moved? Sort the answers into price buckets and add up the supply in each. That is this chart. A tall bar is a price where a lot of supply last changed position. A gap is a price where almost none did. The formal name for it is URPD, the UTXO Realised Price Distribution."], ["What a UTXO is", "Bitcoin has no account balances. It works like cash in a pocket: you hold separate notes, and to pay 12 dollars with a 20 you hand over the whole note and take 8 back as change. Each note is a UTXO, an Unspent Transaction Output. Your wallet balance is only the sum of the notes you happen to hold, and every bar on this chart is built out of them."], ["Why every coin carries a price", "A UTXO is created inside a block, that block has a timestamp, and that moment has a bitcoin price. So every coin alive today has a price attached to it: the price on the day it last moved. Nothing is surveyed or estimated, the chain records it. That attached price is the coin's realised price, also called its cost basis. It is the closest thing on-chain to what the current holder paid."], ["Reading the axes", "Along the bottom is that attached price in dollars, not today's price. Up the left is how much supply sits in each price bucket. Both axes are marked at twenty equal steps from zero to their very end, with the labels rounded to two significant figures. Neither axis is refitted to each day. Each ends at the furthest the data had reached by the day you are viewing, the highest price and the tallest bar so far, grows only when the data goes past it, and never shrinks. Moving forward you watch the market outgrow the old scale; moving back you see every day exactly as it looked at the time, however you got there. In BTC mode the first bar is left out of this: it holds every coin last moved for less than one bar's width, about 1.85M BTC of it from before bitcoin traded above 50 cents, so it runs off the top with its height printed there."], ["The colours: how old the coins are", "With AGE on, every bar is stacked out of 23 age bands, set by how long the coin has sat unmoved: under an hour at one end, over fifteen years at the other. Yellow is fresh, deep blue is ancient, and the steps between are logarithmic, so equal colour distance is equal multiples of age. The colours follow one path through a perceptual colour space (OKLCH), spaced so that every step looks the same size, with brightness falling steadily from young to old, so the order still reads in greyscale, and every band keeps at least 3:1 contrast against the dark background. A tall bar in one colour is a single cohort. A tall bar in many colours is a price that generations of holders share."], ["AGE, <150D/>150D or RAW", "The second group of switches picks how the bars are drawn. AGE stacks each one out of the 23 age bands above. <150D/>150D adds those bands up into two at 150 days: <150D, in amber, is the coins that moved within the last 150 days (every band up to 4m-5m), and >150D, in blue, the coins that have not moved for 150 days or more (5m-6m and older). The split says only how long coins have sat still, nothing about who holds them. 150 days is the line Bitcoin Research Kit draws between what it calls short- and long-term holders (Glassnode draws it at 155), on the reasoning that coins which have sat still for about five months become much less likely to move. The bars, the axes and a pinned Y-axis are the same either way; only the colours change. The two together are the whole supply. RAW draws the bars as recorded instead: no smoothing (see Smoothing; the field shows 0 and is locked while RAW is on) and no colours, every bar in black on a light chart, so the plain distribution shows, rounding spikes and all. Choosing AGE or <150D/>150D again gives the smoothing back.", "<150D = { utxo | age(utxo) < 150 days }\n>150D = { utxo | age(utxo) ≥ 150 days }\nRAW    = every utxo, one colour, S = 0"], ["The white line: bitcoin's price", "Bitcoin's own price, as daily closes (drawn in black on RAW's light chart). It has its own hidden axes: left to right is time here rather than price, a year running from 275 days before the selected day to 90 days after it (near the latest day it ends a week past that day and starts further back instead), and the height runs linearly from $0 to the highest close shown so far, so the line fills the chart and the same dollar move is always the same height. That scale grows only when the price makes a new high. The orange dot sits on the selected day and past cycle tops and bottoms are marked. Drag the dot to move through history. Click BTC/USD in the legend to hide the line."], ["Hovering a bar", "Hover over a bar to read its price, what its age band (or, in <150D/>150D, its side of 150 days; RAW has neither) holds there, the whole bar's total (Total Value When Last Moved, or Total Supply in BTC mode) and Cumulative % of Total. That last one is a running share: of all the day's supply, or value in USD mode, the part that last moved at or below this price. It is counted from the recorded prices themselves, not the smoothed bars, so at the dashed line it meets the box's In Profit share. Where it climbs quickly from bar to bar, supply is dense.", "Cumulative % of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["The dashed line: today's price", "The spot price on the selected day. Supply to its left last moved below this price, so it is in profit; supply to its right last moved above it, so it is in loss. The box gives the price and both shares. Profit and loss are counted from the price when last moved, which is what someone paid only if that move was a purchase (see What this chart cannot tell you).", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["What people look for", "A thick cluster of bars marks a price where a lot of supply settled. Above today's price such a cluster is often read as overhead resistance, on the reasoning that holders who last moved coins there may sell near break-even. Below today's price the same cluster is read as support. A wide gap is a stretch with little supply to slow a move through it. Treat all of it as a map of where supply sits, not a forecast of where price goes."], ["What this chart cannot tell you", "A coin moving on-chain is not always a sale. Exchanges shuffle their own coins, people consolidate their own UTXOs, custodians rotate wallets, and each of those restamps coins at that day's price with no buyer and no seller. The reverse is also true: a trade matched inside an exchange never touches the chain, so both sides keep their old stamp. Coins whose keys are lost keep theirs forever. Read a bar as supply that last moved here, not as proof that someone paid this."], ["Moving through time", "Published versions of this chart usually show only today. This one steps through the whole history, day by day, back to 2009-01-03. 1D/1W/1M/1Y sets the step size and the arrow buttons move one step; Left and Right or A and D do the same from the keyboard. 1 to 4 pick the step size, and Up and Down or W and S move it one size up or down (1D, 1W, 1M, 1Y, and round again); Home and End jump to the first and last day. You can also pick a cycle top or bottom from CYCLE TOP/BTM. If the keys stop responding, click the chart once to take focus off a toolbar field."], ["USD mode and BTC mode", "BTC counts each coin by how much bitcoin it is. USD counts it by what it was worth in dollars at the moment it last moved, so one coin last moved at 100,000 dollars outweighs the same coin last moved at 100. BTC shows where the coins are. USD shows where the money went in.", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nValue When Last Moved(P) = P · S(P)"], ["Pin Y-axis", "The left axis only ever grows, so nearby days usually share a scale already. PIN Y-AXIS freezes it outright at the tallest bar of the day you are viewing, marked with a dashed line, so every other day is drawn against that one height, and taller bars run off the top instead of moving the axis. Press it again to release. Pins are kept separately for each weighting and smoothing, because a height only means the same thing under the same settings, and they survive a reload."], ["Bars", "The price axis is cut into 626 equal-width bars from zero to its right-hand end: 625 up to the highest cost basis so far plus a sliver for the smoothing (see Reading the axes), and one more past it, which catches the smoothing's farthest reach. Across a 126,000 dollar axis that is about 200 dollars a bar. Bar widths change only when the axis grows. Bars are drawn on whole pixels with a one-pixel gap so neighbours stay distinct, and are drawn solid once they would be thinner than two pixels.", "ΔP = price axis end / 626"], ["Smoothing", "The source data is rounded: every coin carries its block's price to the nearest dollar below 100,000 dollars and the nearest ten dollars above, so each recorded price really stands for a small range, and a single large transfer can pile onto one exact figure and throw up a spike that is an artefact of the rounding. Smoothing spreads each recorded price evenly back over the range it was rounded from, then blurs it with a bell curve, the Gaussian, the one blur that never invents a peak or a gap. Its width is a percentage of the price and never less than about four tenths of a bar, and each bar receives exactly its share. 0.24, the default, is how far bitcoin's price typically moves in the few minutes a recorded price can hide, measured over the whole history. 0 gives the raw buckets, which RAW draws (see AGE, <150D/>150D or RAW). Total supply and total value are preserved exactly.", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y-max", "At 100, the default, the left axis ends at the tallest bar so far and only grows (see Reading the axes). A lower value zooms into the day in view instead: the axis ends at that percentile of the day's bar heights, follows the day as you move, and clips what pokes above. An explicit Y-max overrides a pinned Y-axis.", "y-max = tallest bar so far             (at 100)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["Watch the videos", "FULL HISTORY IN 5 MIN (AGE), (<150D/>150D) and (RAW) in the toolbar each open the whole history as one video on YouTube, the bars coloured by age band, split at 150 days, or as recorded, unsmoothed and black on a light chart: every day from 18 May 2010, when the first bitcoin price comes onto the chart (it is empty before that), to the latest, with neighbouring days blended so it runs smoothly, 5 minutes at 60 frames a second in 4K (3840 × 2160). All three are drawn in USD with this page's default settings (RAW without smoothing). A GitHub workflow draws them again once a week, taking in the week just ended, and posts them to the renshuBTC channel. Until YouTube lets others watch a video, its button opens the renshuBTC channel instead. This site offers no file to download (the camera icon on the chart only saves a PNG picture of it, made in your own browser), and never asks you to install anything, connect a wallet or type a seed phrase. Anything that does is not this site."], ["Where the data comes from", "Distributions and prices come from the Bitcoin Research Kit, which derives them from a full Bitcoin Core node, served through bitview.space. URPD was introduced by Renato Shirakashi in April 2020. This version adds the daily history and the age colouring."]]},
-  zh: {"title": "如何看懂这张图", "sections": [["先看这里", "向现存的每一枚比特币问同一个问题：你上一次移动时，比特币值多少钱？把答案按价格区间归类，再把各区间的供应量加总，就得到这张图。柱子越高，说明有越多供应最后一次移动发生在那个价位；出现空档，说明几乎没有。它的正式名称是 URPD，即 UTXO 已实现价格分布。"], ["什么是 UTXO", "比特币没有账户余额，它更像口袋里的现金：你手上是一张张钞票，用 20 元付 12 元时，要把整张递出去，再收回 8 元找零。每一张这样的钞票就是一个 UTXO，即未花费交易输出。钱包余额只是你手上这些钞票的总和，而这张图里的每一根柱子都由它们堆叠而成。"], ["为什么每枚币都带着一个价格", "UTXO 诞生在某个区块里，区块带有时间戳，那一刻又对应一个比特币价格。所以今天存在的每一枚币身上都贴着一个价格：它最后一次移动那天的价格。这不是问卷调查，也不是估算，而是链上如实记录的。这个价格就是该币的已实现价格，也叫成本基础，是链上最接近“当前持有者付出了多少”的量。"], ["坐标轴怎么读", "横轴是上面那个贴在币上的价格（美元），不是今天的价格。纵轴是每个价格区间里有多少供应量。两条轴都从零到末端分成二十等份标注，标签取两位有效数字。两条轴都不会按每一天重新缩放：它们停在截至所看那天、数据到达过的最远处，也就是迄今最高的价格和最高的柱子；只有数据越过时才会扩大，而且永远不会缩小。向后推进时，你会看到市场撑大原来的刻度；往回看时，每一天都和当时的样子完全相同，不论你是怎么走到那一天的。BTC 模式下的第一根柱子不参与定轴：它装着所有最后移动价格低于一根柱宽的币，其中约 185 万枚来自比特币价格还不到 0.5 美元的年代，因此会冲出顶部，并在顶端标出它的高度。"], ["颜色：币有多老", "选择“年龄”时，每根柱子由 23 个币龄分层堆成，依据是这枚币静止了多久，一端不到一小时，另一端超过十五年。黄色最新，深蓝最老，中间按对数分级，所以相同的颜色距离对应相同的年龄倍数。颜色沿感知均匀色彩空间（OKLCH）中的一条路径排列，每一级看起来一样大，亮度从新到旧稳定下降，因此在灰度下也能读出顺序；每个分层与深色背景的对比度都不低于 3:1。整根柱子只有一种颜色，说明是单一群体；颜色斑驳，说明这个价位上聚集着好几代持有者。"], ["年龄、<150D/>150D 或 RAW", "第二组切换决定柱子如何绘制。“年龄”按上面的 23 个币龄分层堆叠；“<150D/>150D”以 150 天为界把这些分层加总成两组：琥珀色的 <150D 是过去 150 天内移动过的币（4m-5m 及更年轻的各层），蓝色的 >150D 是 150 天或更久没有移动的币（5m-6m 及更老的各层）。这一划分只说明币静止了多久，并不推断是谁持有它们。150 天是 Bitcoin Research Kit 用来区分所谓短期与长期持有者的分界（Glassnode 用 155 天），理由是静止约五个月之后，币再次移动的可能性会大大降低。无论选哪种，柱子、坐标轴和已固定的 Y 轴都完全相同，变的只是颜色。两组合起来就是全部供应。RAW 则按记录的原样绘制柱子：不平滑（见“平滑”；RAW 开启时该栏显示 0 并锁定），也不着色，所有柱子都是浅色图表上的黑色，呈现最原始的分布，连取整造成的尖峰也原样保留。再选年龄或 <150D/>150D 即恢复原来的平滑。", "<150D = { utxo | age(utxo) < 150 days }\n>150D = { utxo | age(utxo) ≥ 150 days }\nRAW    = every utxo, one colour, S = 0"], ["白线：比特币价格", "比特币自身的价格，按日收盘价绘制（在 RAW 的浅色图表上为黑色）。它用的是另一套隐藏坐标：这里的左右方向是时间而不是价格，范围是一年：从所选日期之前 275 天到之后 90 天（接近最新一天时，窗口止于最新一天之后一周，起点相应提前）；高度按线性刻度从 0 美元到迄今显示过的最高收盘价，所以这条线填满图表，同样的美元涨跌始终是同样的高度。只有价格创新高时，这个刻度才会扩大。橙色圆点标出所选当天，历史上的周期顶部与底部也已标注。拖动圆点即可在历史中移动。点击图例中的 BTC/USD 可以隐藏这条线。"], ["悬停查看柱子", "把鼠标停在柱子上，可以看到它的价格、该币龄层（<150D/>150D 模式下为它所在的 150 天一侧；RAW 模式没有分层）在那里的数量、整根柱子的合计（最后移动时的总价值；BTC 模式下为总供应量），以及累计占总量百分比。最后这一项是累计占比：当天全部供应（USD 模式下为全部价值）中，最后一次在该价格或更低价格移动的部分。它按记录的价格本身计算，而不是按平滑后的柱子，因此在虚线处与方框中的盈利占比一致。相邻柱子之间它上升得越快，那里的供应越密集。", "Cumulative % of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["虚线：当天价格", "所选当天的现价。它左边的供应最后一次移动时的价格低于此价格，因此处于盈利；右边的高于此价格，处于亏损。方框中给出价格以及这两个比例。这里的盈亏以最后一次移动时的价格为基准，只有当那次移动是一次买入时，它才是买入价（见“这张图不能告诉你什么”）。", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["大家在看什么", "密集成团的柱子代表大量供应沉淀在那个价位。若它位于今天价格之上，常被解读为上方阻力，理由是当初在那里移动过币的持有者可能在回本附近卖出；若位于下方，同一团柱子则被解读为支撑。宽阔的空档意味着这一段几乎没有供应去减缓价格穿越。这些都应当视为供应分布的地图，而不是价格走向的预测。"], ["这张图不能告诉你什么", "链上的一次移动并不等于一次成交。交易所在内部调拨自有币，用户合并自己的 UTXO，托管方轮换钱包，这些都会以当天价格重新打上标记，却没有买方也没有卖方。反过来同样成立：在交易所内部撮合的成交根本不上链，买卖双方身上的旧标记原封不动。私钥丢失的币则会永远保留它们的标记。请把一根柱子读作“供应最后一次在此移动”，而不是“有人以此价成交”。"], ["在历史中移动", "公开发布的同类图表通常只显示当天。这张图可以逐日回溯整段历史，一直回到 2009-01-03。1D/1W/1M/1Y 设定步长，箭头按钮移动一步，键盘上的左右方向键或 A/D 同样可用。1 到 4 选择步长，上下方向键或 W/S 把步长加大或减小一级（1D、1W、1M、1Y 循环）；Home/End 跳到最早与最新一天。你也可以从“周期顶部/底部”中选择某个周期顶部或底部。若按键失灵，在图表上点一下，把焦点从工具栏输入框移开即可。"], ["美元模式与 BTC 模式", "BTC 模式按币的数量计量。USD 模式按它最后一次移动那一刻的美元价值计量，因此一枚在 10 万美元处最后移动的币，远重于同样一枚在 100 美元处移动的币。BTC 模式显示币在哪里，USD 模式显示钱投在哪里。", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nValue When Last Moved(P) = P · S(P)"], ["固定 Y 轴 (PIN Y-AXIS)", "左轴只会扩大、不会缩小，所以相近日子的柱子通常已经处在同一刻度上。“固定 Y 轴”则把左轴直接锁定在当前这一天最高的那根柱子，并用虚线标出，之后其他日期都按这一高度绘制，更高的柱子会冲出顶部，而不会改变刻度。再按一次即可解除。固定值按加权方式与平滑度分别保存，因为只有在相同设置下柱高才具有相同含义；刷新页面后依然保留。"], ["柱宽", "价格轴从 0 到右端被切成 626 根等宽的柱子：前 625 根一直到迄今最高的成本基础再加上平滑所需的一小段（见“坐标轴怎么读”），最后一根在它之外，接住平滑延伸得最远的部分。在约 12.6 万美元的轴上，每根柱子约 200 美元。只有轴扩大时，柱宽才会改变。柱子对齐到整像素，相邻之间留出一像素间隙以便区分；当柱宽不足两像素时则实心绘制。", "ΔP = price axis end / 626"], ["平滑 (Smoothing)", "源数据经过取整：每枚币记录的是其区块的价格，10 万美元以下取整到 1 美元，以上取整到 10 美元，所以每个记录的价格其实代表一小段价格；一笔大额转账可能全部压在同一个精确数字上，形成一根由取整造成的假尖峰。平滑先把每个记录的价格均匀摊回它被取整之前的那一小段，再用钟形曲线加以模糊。这条曲线是高斯曲线，唯一不会凭空制造峰或缺口的模糊方式；它的宽度是价格的一个百分比，且不小于约十分之四根柱宽，每根柱子精确地分得属于自己的那一份。默认值 0.24，是在整段历史中，比特币价格在一个记录价格所能掩盖的几分钟内通常移动的幅度。设为 0 则显示原始分箱，RAW 即按此绘制（见“年龄、<150D/>150D 或 RAW”）。总供应量与总价值完全保持不变。", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y 轴上限 (Y-max)", "默认值 100 时，左轴停在迄今最高的柱子，只增不减（见“坐标轴怎么读”）。调低则改为放大当前这一天：轴的上限取当天柱高的该百分位数，随日期变化，超出的部分会被截断。显式设定的 Y-max 优先于已固定的 Y 轴。", "y-max = tallest bar so far             (at 100)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["观看视频", "工具栏中的“5 分钟看完整历史 (年龄)”“(<150D/>150D)”和“(RAW)”按钮，各在 YouTube 上打开一段整段历史的视频：柱子分别按币龄层着色、以 150 天为界分成两色，或按记录原样、不平滑地以黑色画在浅色图表上：从 2010 年 5 月 18 日（第一个比特币价格出现在图上，此前图表是空的）到最新一天，相邻日期平滑过渡，时长 5 分钟，每秒 60 帧，4K（3840 × 2160）。三段视频都以美元模式和本页的默认设置绘制（RAW 不平滑），由 GitHub 工作流每周重新生成一次（加入刚结束的一周），并发布到 renshuBTC 频道。在 YouTube 允许其他人观看某段视频之前，它的按钮会打开 renshuBTC 频道。本站不提供任何文件下载（图表上的相机图标只是把图表存成一张 PNG 图片，由你自己的浏览器生成），也从不要求你安装软件、连接钱包或输入助记词；凡是这样做的，都不是本站。"], ["数据来源", "分布与价格数据来自 Bitcoin Research Kit，由完整的 Bitcoin Core 节点推导而来，经 bitview.space 提供。URPD 由 Renato Shirakashi 于 2020 年 4 月提出，本版本在其基础上加入了逐日历史与币龄着色。"]]},
-  ja: {"title": "このチャートの読み方", "sections": [["まずはここから", "いま存在するすべてのビットコインに同じ質問をします。「最後に動いたとき、ビットコインはいくらでしたか」。その答えを価格帯ごとにまとめ、各帯の供給量を合計したものがこのチャートです。棒が高い価格帯は、多くの供給が最後に動いた場所。空白の価格帯は、ほとんど動かなかった場所です。正式には URPD（UTXO 実現価格分布）と呼ばれます。"], ["UTXO とは", "ビットコインに口座残高はありません。仕組みはポケットの中の現金に近く、手元にあるのは一枚ずつの紙幣です。20 ドル札で 12 ドル払うには札ごと渡し、8 ドルをお釣りとして受け取ります。この一枚一枚が UTXO、すなわち未使用トランザクションアウトプットです。ウォレットの残高は手元にある札の合計にすぎず、このチャートの棒はすべてそれを積み上げたものです。"], ["すべてのコインが価格を持つ理由", "UTXO はあるブロックの中で生まれ、そのブロックにはタイムスタンプがあり、その時点にはビットコイン価格があります。つまり今日存在するすべてのコインには価格が刻まれています。最後に動いた日の価格です。アンケートでも推計でもなく、チェーンがそのまま記録しています。この刻まれた価格がそのコインの実現価格、別名コストベーシスで、「現在の保有者がいくら払ったか」にオンチェーンで最も近い値です。"], ["軸の読み方", "横軸はいま説明した「コインに刻まれた価格」（ドル）で、今日の価格ではありません。縦軸は各価格帯にどれだけの供給があるかです。どちらの軸も 0 から端までを 20 等分して目盛りを付け、ラベルは有効数字 2 桁に丸めています。どちらの軸も日ごとに合わせ直すことはしません。表示中の日までにデータが到達した最も遠いところ、つまりそれまでの最高価格と最も高い棒で止まり、データがそこを越えたときだけ広がり、決して縮みません。先へ進めば市場が古い目盛りからはみ出していく様子が見え、戻れば、どうたどり着いても各日が当時とまったく同じ姿で表示されます。BTC モードの最初の棒はこの決定に加えません。最後に動いた価格が棒 1 本分の幅に満たないコインがすべて入っており、そのうち約 185 万 BTC はビットコインが 50 セントを超える前のものです。上端を突き抜けるため、その高さを上端に表示します。"], ["色：コインの古さ", "「年齢」では、どの棒も 23 段階の年齢帯を積み重ねたものです。基準はそのコインが動かずにいた期間で、片端は 1 時間未満、もう片端は 15 年超。黄色が新しく、濃い青が古く、その間は対数で刻まれているため、同じ色の隔たりは同じ年齢の倍率にあたります。色は知覚的に均等な色空間（OKLCH）の一本の経路に沿って並び、どの段差も同じ大きさに見えるよう配置され、明るさは新しいものから古いものへ一様に下がるので、グレースケールでも順序が読み取れます。どの帯も暗い背景に対して 3:1 以上のコントラストを保ちます。単色の高い棒は単一の層、色とりどりの高い棒は世代の異なる保有者が重なっている価格です。"], ["年齢、<150D/>150D、RAW", "2 組目の切り替えで、棒の描き方を選びます。「年齢」は上の 23 の年齢帯で積み上げます。「<150D/>150D」はそれらを 150 日を境に二つに合計します。琥珀色の <150D は過去 150 日以内に動いたコイン（4m-5m までの各帯）、青の >150D は 150 日以上動いていないコイン（5m-6m 以降の各帯）です。この区分はコインが動かずにいた期間だけを表し、誰が保有しているかは何も仮定しません。150 日は Bitcoin Research Kit がいわゆる短期保有者と長期保有者を分ける境界で（Glassnode は 155 日）、約 5 か月動かなかったコインは再び動く可能性が大きく下がる、というのが一般的な根拠です。どちらを選んでも棒、軸、固定した Y 軸は同じで、変わるのは色だけです。二つを合わせると供給全体になります。RAW は棒を記録されたまま描きます。スムージングなし（「スムージング」を参照。RAW の間は欄が 0 のまま固定されます）、色分けなしで、すべての棒を明るい背景に黒で描き、丸めによる尖りも含めたありのままの分布を見せます。年齢か <150D/>150D を選び直すと、元のスムージングに戻ります。", "<150D = { utxo | age(utxo) < 150 days }\n>150D = { utxo | age(utxo) ≥ 150 days }\nRAW    = every utxo, one colour, S = 0"], ["白い線：ビットコイン価格", "ビットコイン自身の価格を日足終値で描いたものです（RAW の明るいチャートでは黒）。この線だけは別の（非表示の）軸を使っており、左右方向は価格ではなく時間で、選択日の 275 日前から 90 日後までの 1 年間を表します（最新日に近いときは、最新日の 1 週間後で終わり、その分だけ前から始まります）。高さは 0 ドルからそれまでに表示された最高終値までの線形目盛りなので、線はチャートいっぱいに広がり、同じドル幅の値動きは常に同じ高さになります。この目盛りが広がるのは価格が高値を更新したときだけです。オレンジの点が選択日で、過去のサイクル天井と大底も示してあります。点をドラッグすれば履歴をたどれます。凡例の BTC/USD をクリックすると線を隠せます。"], ["棒にカーソルを合わせる", "棒にカーソルを合わせると、その価格、その年齢帯（<150D/>150D では 150 日のどちら側か。RAW には帯がありません）がそこに持つ量、棒全体の合計（最終移動時の評価額の合計。BTC モードでは供給量の合計）、そして全体に占める累積割合が表示されます。最後の値は累計の割合で、その日の供給全体（USD モードでは価値全体）のうち、その価格以下で最後に動いた部分です。平滑化した棒ではなく記録された価格そのものから数えるので、破線の位置ではボックスの含み益の割合と一致します。棒から棒へ急に増えるところは供給が密集しています。", "Cumulative % of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["破線：その日の価格", "選択した日の現在値です。その左側の供給はこの価格より安く最後に動いたので含み益、右側は高く動いたので含み損です。ボックスに価格と両方の割合が出ます。ここでの損益は最後に動いたときの価格が基準で、その移動が購入だった場合にだけ購入価格と一致します（「このチャートで分からないこと」を参照）。", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["何を読み取るのか", "棒が厚く固まっている価格は、多くの供給が滞留した場所です。今日の価格より上にあれば、そこで最後に動かした保有者が損益分岐付近で売るかもしれない、という理由から上値抵抗と読まれることが多く、下にあれば同じ塊が支持と読まれます。広い空白は、値動きを鈍らせる供給が乏しい区間です。いずれも供給の分布図であって、価格の予測ではありません。"], ["このチャートで分からないこと", "オンチェーンの移動が必ず売買とは限りません。取引所が自社のコインを動かし、利用者が自分の UTXO をまとめ、カストディアンがウォレットを入れ替える。そのたびにコインはその日の価格で刻み直されますが、買い手も売り手もいません。逆もまた同じで、取引所の内部で約定した取引はチェーンに触れないため、双方とも古い刻印のままです。鍵を失ったコインは永遠にその刻印を保ちます。棒は「供給が最後にここで動いた」ことを示すもので、「誰かがこの値段で買った」証拠ではありません。"], ["履歴をたどる", "公開されている同種のチャートは通常その日だけを表示します。これは 2009-01-03 まで一日ずつさかのぼれます。1D/1W/1M/1Y が刻み幅、矢印ボタンが 1 刻みの移動で、キーボードの左右または A/D でも同じ操作ができます。1〜4 で刻み幅を選び、上下または W/S で刻み幅を一段ずつ上げ下げし（1D・1W・1M・1Y を循環）、Home/End で最初と最後の日へ飛びます。天井/大底からサイクルの天井・大底を選ぶこともできます。キーが効かなくなったら、チャートを一度クリックしてツールバーの入力欄からフォーカスを外してください。"], ["USD モードと BTC モード", "BTC はコインをビットコインの量で数えます。USD は最後に動いた時点のドル価値で数えるため、10 万ドルで最後に動いた 1 枚は、同じ 1 枚でも 100 ドルで動いたものよりはるかに重くなります。BTC はコインの在処を、USD は資金の入った場所を示します。", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nValue When Last Moved(P) = P · S(P)"], ["Y 軸を固定 (PIN Y-AXIS)", "左軸は広がるだけで縮まないため、近い日どうしはたいてい同じ目盛りで比べられます。「Y 軸を固定」はさらに、表示中の日の最も高い棒で左軸をそのまま固定し、破線で示します。以後どの日もその高さを基準に描かれ、それより高い棒は軸を動かさずに上端を突き抜けます。もう一度押せば解除されます。固定値は重み付けとスムージングごとに別々に保存されます。高さが同じ意味を持つのは設定が同じときだけだからです。再読み込みしても残ります。"], ["棒の幅", "価格軸は 0 から右端まで 626 本の等幅の棒に区切られます。625 本目までが、それまでの最高コストベーシスにスムージングの分をわずかに足したところまで（「軸の読み方」を参照）で、最後の 1 本はその先、スムージングが最も遠くまで届く分を受け止めます。約 12.6 万ドルの軸なら 1 本あたり約 200 ドルです。棒の幅が変わるのは軸が広がったときだけです。棒はピクセル単位に揃え、隣とは 1 ピクセル空けて描き分けますが、幅が 2 ピクセルを切る場合は塗りつぶしで描きます。", "ΔP = price axis end / 626"], ["スムージング (Smoothing)", "元データは丸められています。各コインにはブロックの価格が、10 万ドル未満は 1 ドル単位、以上は 10 ドル単位で記録されているため、記録された一つの価格は実際には小さな価格幅を表します。大口の送金ひとつが同じ数字に集中すると、丸めが生んだだけの尖りが現れます。スムージングは記録された各価格を、丸められる前の幅に均等に戻したうえで、ベル型の曲線でぼかします。これはガウス曲線で、山や谷を新たに作り出さない唯一のぼかし方です。幅は価格に対する割合で、棒の幅のおよそ 10 分の 4 を下回らず、各棒には自分の取り分が正確に配分されます。既定値の 0.24 は、記録された一つの価格に隠れうる数分の間にビットコイン価格が通常動く幅を、全履歴にわたって測ったものです。0 にすると生のビンになり、RAW はこれで描きます（「年齢、<150D/>150D、RAW」を参照）。総供給量と総額は厳密に保たれます。", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y軸上限 (Y-max)", "既定の 100 では、左軸はそれまでで最も高い棒で止まり、広がるだけです（「軸の読み方」を参照）。値を下げると、表示中の日を拡大する表示に切り替わります。軸の上限はその日の棒の高さのそのパーセンタイルになり、日付に合わせて変わり、はみ出した分は切り取られます。明示した Y-max は Y 軸の固定より優先されます。", "y-max = tallest bar so far             (at 100)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["動画を見る", "ツールバーの「全期間を5分で (年齢)」「(<150D/>150D)」「(RAW)」ボタンで、全期間を 1 本にまとめた動画をそれぞれ YouTube で見られます。棒を年齢帯で色分けしたもの、150 日を境に色分けしたもの、記録されたままスムージングなしで明るい背景に黒で描いたものです。最初のビットコイン価格がチャートに現れる2010年5月18日（それ以前のチャートは空です）から最新日まで、隣り合う日をなめらかにつなぎ、5分・毎秒60フレーム・4K（3840 × 2160）です。いずれも USD モードと本ページの既定の設定（RAW はスムージングなし）で描かれ、GitHub のワークフローが週に一度、終わったばかりの一週間を加えて作り直し、renshuBTC チャンネルに投稿します。YouTube で動画を他の人が見られるようになるまでは、そのボタンは renshuBTC チャンネルを開きます。このサイトはファイルのダウンロードを提供しません（チャート上のカメラアイコンは、チャートを PNG 画像として保存するだけで、画像はお使いのブラウザーの中で作られます）。ソフトのインストール、ウォレットの接続、シードフレーズの入力を求めることもありません。そうするものは、このサイトではありません。"], ["データの出所", "分布と価格は Bitcoin Research Kit によるもので、フルの Bitcoin Core ノードから導出され、bitview.space 経由で提供されています。URPD は 2020 年 4 月に Renato Shirakashi 氏が考案しました。本版はそこに日次の履歴と年齢による配色を加えたものです。"]]}
+  en: {"title": "How to read this chart", "sections": [["Start here", "Ask every bitcoin in existence one question: what was bitcoin worth the last time you moved? Sort the answers into price buckets and add up the supply in each. That is this chart. A tall bar is a price where a lot of supply last changed position. A gap is a price where almost none did. The formal name for it is URPD, the UTXO Realised Price Distribution."], ["What a UTXO is", "Bitcoin has no account balances. It works like cash in a pocket: you hold separate notes, and to pay 12 dollars with a 20 you hand over the whole note and take 8 back as change. Each note is a UTXO, an Unspent Transaction Output. Your wallet balance is only the sum of the notes you happen to hold, and every bar on this chart is built out of them."], ["Why every coin carries a price", "A UTXO is created inside a block, that block has a timestamp, and that moment has a bitcoin price. So every coin alive today has a price attached to it: the price on the day it last moved. Nothing is surveyed or estimated, the chain records it. That attached price is the coin's realised price, also called its cost basis. It is the closest thing on-chain to what the current holder paid."], ["Reading the axes", "Along the bottom is that attached price in dollars, not today's price. Up the left is how much supply sits in each price bucket. Both axes are marked at twenty equal steps from zero to their very end, with the labels rounded to two significant figures. The price axis is not refitted to each day: it ends at the highest price the data had reached by the day you are viewing, grows only when the data goes past it, and never shrinks. Where the left axis ends is yours to choose (see Y-MAX EXPANDS ON ATH or Y-MAX ALWAYS AT 100%). In BTC mode the first bar is left out of the left axis: it holds every coin last moved for less than one bar's width, about 1.85M BTC of it from before bitcoin traded above 50 cents, so it runs off the top with its height printed there."], ["The colours: how old the coins are", "Every bar is stacked out of 23 age bands, set by how long the coin has sat unmoved: under an hour at one end, over fifteen years at the other. Yellow is fresh, deep blue is ancient, and the steps between are logarithmic, so equal colour distance is equal multiples of age. The colours follow one path through a perceptual colour space (OKLCH), spaced so that every step looks the same size, with brightness falling steadily from young to old, so the order still reads in greyscale, and every band keeps at least 3:1 contrast against the dark background. A tall bar in one colour is a single cohort. A tall bar in many colours is a price that generations of holders share."], ["Y-MAX EXPANDS ON ATH or Y-MAX ALWAYS AT 100%", "These two buttons set where the left axis ends on every day you look at, however you get there: stepping, dragging the dot, jumping to a cycle top or bottom, or to either end. Y-MAX EXPANDS ON ATH, the default, ends it at the tallest bar so far: it grows only when a bar grows taller than any before it, an all-time high, and never shrinks. Moving forward you watch the market outgrow the old scale and can compare heights directly from day to day; moving back you see every day exactly as it looked at the time. Y-MAX ALWAYS AT 100% ends it at the day's own tallest bar instead, so that bar always reaches the top and every day's distribution fills the same frame. The scale then changes from one day to the next, so the bars bounce as you move, but each day's shape is always drawn at full height. Either way a day's scale depends on that day alone, not on the route you took to it, and the bars, their colours, the price axis, a Y-max below 100 and a pinned Y-axis work the same.", "EXPANDS ON ATH:  y-max = tallest bar so far\nALWAYS AT 100%:  y-max = this day's tallest bar"], ["The white line: bitcoin's price", "Bitcoin's own price, as daily closes. It has its own hidden axes: left to right is time here rather than price, a year running from 275 days before the selected day to 90 days after it (near the latest day it ends a week past that day and starts further back instead), and the height runs linearly from $0 to the highest close shown so far, so the line fills the chart and the same dollar move is always the same height. That scale grows only when the price makes a new high. The orange dot sits on the selected day and past cycle tops and bottoms are marked. Drag the dot to move through history. Click BTC/USD in the legend to hide the line."], ["Hovering a bar", "Hover over a bar to read its price, what its age band holds there, the whole bar's total (Total Value When Last Moved, or Total Supply in BTC mode) and Cumulative % of Total. That last one is a running share: of all the day's supply, or value in USD mode, the part that last moved at or below this price. It is counted from the recorded prices themselves, not the smoothed bars, so at the dashed line it meets the box's In Profit share. Where it climbs quickly from bar to bar, supply is dense.", "Cumulative % of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["The dashed line: today's price", "The spot price on the selected day. Supply to its left last moved below this price, so it is in profit; supply to its right last moved above it, so it is in loss. The box gives the price and both shares. Profit and loss are counted from the price when last moved, which is what someone paid only if that move was a purchase (see What this chart cannot tell you).", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["What people look for", "A thick cluster of bars marks a price where a lot of supply settled. Above today's price such a cluster is often read as overhead resistance, on the reasoning that holders who last moved coins there may sell near break-even. Below today's price the same cluster is read as support. A wide gap is a stretch with little supply to slow a move through it. Treat all of it as a map of where supply sits, not a forecast of where price goes."], ["What this chart cannot tell you", "A coin moving on-chain is not always a sale. Exchanges shuffle their own coins, people consolidate their own UTXOs, custodians rotate wallets, and each of those restamps coins at that day's price with no buyer and no seller. The reverse is also true: a trade matched inside an exchange never touches the chain, so both sides keep their old stamp. Coins whose keys are lost keep theirs forever. Read a bar as supply that last moved here, not as proof that someone paid this."], ["Moving through time", "Published versions of this chart usually show only today. This one steps through the whole history, day by day, back to 2009-01-03. 1D/1W/1M/1Y sets the step size and the arrow buttons move one step; Left and Right or A and D do the same from the keyboard. 1 to 4 pick the step size, and Up and Down or W and S move it one size up or down (1D, 1W, 1M, 1Y, and round again); Home and End jump to the first and last day. You can also pick a cycle top or bottom from CYCLE TOP/BTM. Wherever you go, the left axis follows the Y-MAX button that is on (see Y-MAX EXPANDS ON ATH or Y-MAX ALWAYS AT 100%). If the keys stop responding, click the chart once to take focus off a toolbar field."], ["USD mode and BTC mode", "BTC counts each coin by how much bitcoin it is. USD counts it by what it was worth in dollars at the moment it last moved, so one coin last moved at 100,000 dollars outweighs the same coin last moved at 100. BTC shows where the coins are. USD shows where the money went in.", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nValue When Last Moved(P) = P · S(P)"], ["Pin Y-axis", "With Y-MAX EXPANDS ON ATH the left axis only ever grows, so nearby days usually share a scale already; with Y-MAX ALWAYS AT 100% it changes every day. In either, PIN Y-AXIS freezes it outright at the tallest bar of the day you are viewing, marked with a dashed line, so every other day is drawn against that one height, and taller bars run off the top instead of moving the axis. Press it again to release. Pins are kept separately for each weighting and smoothing, because a height only means the same thing under the same settings, and they survive a reload."], ["Bars", "The price axis is cut into 626 equal-width bars from zero to its right-hand end: 625 up to the highest cost basis so far plus a sliver for the smoothing (see Reading the axes), and one more past it, which catches the smoothing's farthest reach. Across a 126,000 dollar axis that is about 200 dollars a bar. Bar widths change only when the axis grows. Bars are drawn on whole pixels with a one-pixel gap so neighbours stay distinct, and are drawn solid once they would be thinner than two pixels.", "ΔP = price axis end / 626"], ["Smoothing", "The source data is rounded: every coin carries its block's price to the nearest dollar below 100,000 dollars and the nearest ten dollars above, so each recorded price really stands for a small range, and a single large transfer can pile onto one exact figure and throw up a spike that is an artefact of the rounding. Smoothing spreads each recorded price evenly back over the range it was rounded from, then blurs it with a bell curve, the Gaussian, the one blur that never invents a peak or a gap. Its width is a percentage of the price and never less than about four tenths of a bar, and each bar receives exactly its share. 0.24, the default, is how far bitcoin's price typically moves in the few minutes a recorded price can hide, measured over the whole history. 0 gives the raw buckets. Total supply and total value are preserved exactly.", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y-max", "At 100, the default, the left axis ends where the Y-MAX buttons put it: at the tallest bar so far, or at the day's own tallest bar (see Y-MAX EXPANDS ON ATH or Y-MAX ALWAYS AT 100%). A lower value zooms into the day in view instead: the axis ends at that percentile of the day's bar heights, follows the day as you move, and clips what pokes above. An explicit Y-max overrides a pinned Y-axis.", "y-max = tallest bar so far             (at 100, EXPANDS ON ATH)\ny-max = this day's tallest bar          (at 100, ALWAYS AT 100%)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["Watch the videos", "FULL HISTORY (Y-MAX EXPANDS ON ATH) and (Y-MAX ALWAYS AT 100%) in the toolbar each open the whole history as one video on YouTube, its left axis ending at the tallest bar so far, or at each day's own tallest bar: every day from 18 May 2010, when the first bitcoin price comes onto the chart (it is empty before that), to the latest, with neighbouring days blended so it runs smoothly, 5 minutes at 60 frames a second in 4K (3840 × 2160). Both are drawn in USD with this page's default settings. A GitHub workflow draws them again once a week, taking in the week just ended, and posts them to the renshuBTC channel. Until YouTube lets others watch a video, its button opens the renshuBTC channel instead. This site offers no file to download (the camera icon on the chart only saves a PNG picture of it, made in your own browser), and never asks you to install anything, connect a wallet or type a seed phrase. Anything that does is not this site."], ["Where the data comes from", "Distributions and prices come from the Bitcoin Research Kit, which derives them from a full Bitcoin Core node, served through bitview.space. URPD was introduced by Renato Shirakashi in April 2020. This version adds the daily history and the age colouring."]]},
+  zh: {"title": "如何看懂这张图", "sections": [["先看这里", "向现存的每一枚比特币问同一个问题：你上一次移动时，比特币值多少钱？把答案按价格区间归类，再把各区间的供应量加总，就得到这张图。柱子越高，说明有越多供应最后一次移动发生在那个价位；出现空档，说明几乎没有。它的正式名称是 URPD，即 UTXO 已实现价格分布。"], ["什么是 UTXO", "比特币没有账户余额，它更像口袋里的现金：你手上是一张张钞票，用 20 元付 12 元时，要把整张递出去，再收回 8 元找零。每一张这样的钞票就是一个 UTXO，即未花费交易输出。钱包余额只是你手上这些钞票的总和，而这张图里的每一根柱子都由它们堆叠而成。"], ["为什么每枚币都带着一个价格", "UTXO 诞生在某个区块里，区块带有时间戳，那一刻又对应一个比特币价格。所以今天存在的每一枚币身上都贴着一个价格：它最后一次移动那天的价格。这不是问卷调查，也不是估算，而是链上如实记录的。这个价格就是该币的已实现价格，也叫成本基础，是链上最接近“当前持有者付出了多少”的量。"], ["坐标轴怎么读", "横轴是上面那个贴在币上的价格（美元），不是今天的价格。纵轴是每个价格区间里有多少供应量。两条轴都从零到末端分成二十等份标注，标签取两位有效数字。价格轴不会按每一天重新缩放：它停在截至所看那天、数据到达过的最高价格；只有数据越过时才会扩大，而且永远不会缩小。左轴停在哪里由你选择（见“Y 轴上限随历史新高扩展或始终 100%”）。BTC 模式下的第一根柱子不参与左轴定轴：它装着所有最后移动价格低于一根柱宽的币，其中约 185 万枚来自比特币价格还不到 0.5 美元的年代，因此会冲出顶部，并在顶端标出它的高度。"], ["颜色：币有多老", "每根柱子由 23 个币龄分层堆成，依据是这枚币静止了多久，一端不到一小时，另一端超过十五年。黄色最新，深蓝最老，中间按对数分级，所以相同的颜色距离对应相同的年龄倍数。颜色沿感知均匀色彩空间（OKLCH）中的一条路径排列，每一级看起来一样大，亮度从新到旧稳定下降，因此在灰度下也能读出顺序；每个分层与深色背景的对比度都不低于 3:1。整根柱子只有一种颜色，说明是单一群体；颜色斑驳，说明这个价位上聚集着好几代持有者。"], ["Y 轴上限随历史新高扩展或始终 100%", "这两个按钮决定你看到的每一天左轴停在哪里，无论你是怎么到达那一天的：逐步移动、拖动圆点、跳到周期顶部或底部，或跳到最早或最新一天。默认的“Y 轴上限随历史新高扩展”让左轴停在迄今最高的柱子：只有某根柱子高过以往任何一根，即创历史新高时，它才会扩大，而且永远不会缩小。向后推进时，你会看到市场撑大原来的刻度，并能直接比较不同日子的柱高；往回看时，每一天都和当时的样子完全相同。“Y 轴上限始终 100%”则让左轴停在当天自己最高的柱子，所以那根柱子总是顶到图表顶部，每一天的分布都填满同一个画框。这时刻度每天都在变，移动时柱子会上下跳动，但每一天的形状总是以完整高度呈现。无论哪一种，某一天的刻度只取决于那一天，与你走到那里的路径无关；柱子、颜色、价格轴、低于 100 的 Y 轴上限和已固定的 Y 轴都照常起作用。", "EXPANDS ON ATH:  y-max = tallest bar so far\nALWAYS AT 100%:  y-max = this day's tallest bar"], ["白线：比特币价格", "比特币自身的价格，按日收盘价绘制。它用的是另一套隐藏坐标：这里的左右方向是时间而不是价格，范围是一年：从所选日期之前 275 天到之后 90 天（接近最新一天时，窗口止于最新一天之后一周，起点相应提前）；高度按线性刻度从 0 美元到迄今显示过的最高收盘价，所以这条线填满图表，同样的美元涨跌始终是同样的高度。只有价格创新高时，这个刻度才会扩大。橙色圆点标出所选当天，历史上的周期顶部与底部也已标注。拖动圆点即可在历史中移动。点击图例中的 BTC/USD 可以隐藏这条线。"], ["悬停查看柱子", "把鼠标停在柱子上，可以看到它的价格、该币龄层在那里的数量、整根柱子的合计（最后移动时的总价值；BTC 模式下为总供应量），以及累计占总量百分比。最后这一项是累计占比：当天全部供应（USD 模式下为全部价值）中，最后一次在该价格或更低价格移动的部分。它按记录的价格本身计算，而不是按平滑后的柱子，因此在虚线处与方框中的盈利占比一致。相邻柱子之间它上升得越快，那里的供应越密集。", "Cumulative % of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["虚线：当天价格", "所选当天的现价。它左边的供应最后一次移动时的价格低于此价格，因此处于盈利；右边的高于此价格，处于亏损。方框中给出价格以及这两个比例。这里的盈亏以最后一次移动时的价格为基准，只有当那次移动是一次买入时，它才是买入价（见“这张图不能告诉你什么”）。", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["大家在看什么", "密集成团的柱子代表大量供应沉淀在那个价位。若它位于今天价格之上，常被解读为上方阻力，理由是当初在那里移动过币的持有者可能在回本附近卖出；若位于下方，同一团柱子则被解读为支撑。宽阔的空档意味着这一段几乎没有供应去减缓价格穿越。这些都应当视为供应分布的地图，而不是价格走向的预测。"], ["这张图不能告诉你什么", "链上的一次移动并不等于一次成交。交易所在内部调拨自有币，用户合并自己的 UTXO，托管方轮换钱包，这些都会以当天价格重新打上标记，却没有买方也没有卖方。反过来同样成立：在交易所内部撮合的成交根本不上链，买卖双方身上的旧标记原封不动。私钥丢失的币则会永远保留它们的标记。请把一根柱子读作“供应最后一次在此移动”，而不是“有人以此价成交”。"], ["在历史中移动", "公开发布的同类图表通常只显示当天。这张图可以逐日回溯整段历史，一直回到 2009-01-03。1D/1W/1M/1Y 设定步长，箭头按钮移动一步，键盘上的左右方向键或 A/D 同样可用。1 到 4 选择步长，上下方向键或 W/S 把步长加大或减小一级（1D、1W、1M、1Y 循环）；Home/End 跳到最早与最新一天。你也可以从“周期顶部/底部”中选择某个周期顶部或底部。无论走到哪里，左轴都按当前开启的 Y 轴上限按钮变化（见“Y 轴上限随历史新高扩展或始终 100%”）。若按键失灵，在图表上点一下，把焦点从工具栏输入框移开即可。"], ["美元模式与 BTC 模式", "BTC 模式按币的数量计量。USD 模式按它最后一次移动那一刻的美元价值计量，因此一枚在 10 万美元处最后移动的币，远重于同样一枚在 100 美元处移动的币。BTC 模式显示币在哪里，USD 模式显示钱投在哪里。", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nValue When Last Moved(P) = P · S(P)"], ["固定 Y 轴 (PIN Y-AXIS)", "在“Y 轴上限随历史新高扩展”下，左轴只会扩大、不会缩小，所以相近日子的柱子通常已经处在同一刻度上；在“Y 轴上限始终 100%”下，它每天都在变。无论哪一种，“固定 Y 轴”都会把左轴直接锁定在当前这一天最高的那根柱子，并用虚线标出，之后其他日期都按这一高度绘制，更高的柱子会冲出顶部，而不会改变刻度。再按一次即可解除。固定值按加权方式与平滑度分别保存，因为只有在相同设置下柱高才具有相同含义；刷新页面后依然保留。"], ["柱宽", "价格轴从 0 到右端被切成 626 根等宽的柱子：前 625 根一直到迄今最高的成本基础再加上平滑所需的一小段（见“坐标轴怎么读”），最后一根在它之外，接住平滑延伸得最远的部分。在约 12.6 万美元的轴上，每根柱子约 200 美元。只有轴扩大时，柱宽才会改变。柱子对齐到整像素，相邻之间留出一像素间隙以便区分；当柱宽不足两像素时则实心绘制。", "ΔP = price axis end / 626"], ["平滑 (Smoothing)", "源数据经过取整：每枚币记录的是其区块的价格，10 万美元以下取整到 1 美元，以上取整到 10 美元，所以每个记录的价格其实代表一小段价格；一笔大额转账可能全部压在同一个精确数字上，形成一根由取整造成的假尖峰。平滑先把每个记录的价格均匀摊回它被取整之前的那一小段，再用钟形曲线加以模糊。这条曲线是高斯曲线，唯一不会凭空制造峰或缺口的模糊方式；它的宽度是价格的一个百分比，且不小于约十分之四根柱宽，每根柱子精确地分得属于自己的那一份。默认值 0.24，是在整段历史中，比特币价格在一个记录价格所能掩盖的几分钟内通常移动的幅度。设为 0 则显示原始分箱。总供应量与总价值完全保持不变。", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y 轴上限 (Y-max)", "默认值 100 时，左轴停在两个 Y 轴上限按钮所定的位置：迄今最高的柱子，或当天自己最高的柱子（见“Y 轴上限随历史新高扩展或始终 100%”）。调低则改为放大当前这一天：轴的上限取当天柱高的该百分位数，随日期变化，超出的部分会被截断。显式设定的 Y-max 优先于已固定的 Y 轴。", "y-max = tallest bar so far             (at 100, EXPANDS ON ATH)\ny-max = this day's tallest bar          (at 100, ALWAYS AT 100%)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["观看视频", "工具栏中的“完整历史（Y 轴上限随历史新高扩展）”和“（Y 轴上限始终 100%）”按钮，各在 YouTube 上打开一段整段历史的视频，左轴分别停在迄今最高的柱子，或每天自己最高的柱子：从 2010 年 5 月 18 日（第一个比特币价格出现在图上，此前图表是空的）到最新一天，相邻日期平滑过渡，时长 5 分钟，每秒 60 帧，4K（3840 × 2160）。两段视频都以美元模式和本页的默认设置绘制，由 GitHub 工作流每周重新生成一次（加入刚结束的一周），并发布到 renshuBTC 频道。在 YouTube 允许其他人观看某段视频之前，它的按钮会打开 renshuBTC 频道。本站不提供任何文件下载（图表上的相机图标只是把图表存成一张 PNG 图片，由你自己的浏览器生成），也从不要求你安装软件、连接钱包或输入助记词；凡是这样做的，都不是本站。"], ["数据来源", "分布与价格数据来自 Bitcoin Research Kit，由完整的 Bitcoin Core 节点推导而来，经 bitview.space 提供。URPD 由 Renato Shirakashi 于 2020 年 4 月提出，本版本在其基础上加入了逐日历史与币龄着色。"]]},
+  ja: {"title": "このチャートの読み方", "sections": [["まずはここから", "いま存在するすべてのビットコインに同じ質問をします。「最後に動いたとき、ビットコインはいくらでしたか」。その答えを価格帯ごとにまとめ、各帯の供給量を合計したものがこのチャートです。棒が高い価格帯は、多くの供給が最後に動いた場所。空白の価格帯は、ほとんど動かなかった場所です。正式には URPD（UTXO 実現価格分布）と呼ばれます。"], ["UTXO とは", "ビットコインに口座残高はありません。仕組みはポケットの中の現金に近く、手元にあるのは一枚ずつの紙幣です。20 ドル札で 12 ドル払うには札ごと渡し、8 ドルをお釣りとして受け取ります。この一枚一枚が UTXO、すなわち未使用トランザクションアウトプットです。ウォレットの残高は手元にある札の合計にすぎず、このチャートの棒はすべてそれを積み上げたものです。"], ["すべてのコインが価格を持つ理由", "UTXO はあるブロックの中で生まれ、そのブロックにはタイムスタンプがあり、その時点にはビットコイン価格があります。つまり今日存在するすべてのコインには価格が刻まれています。最後に動いた日の価格です。アンケートでも推計でもなく、チェーンがそのまま記録しています。この刻まれた価格がそのコインの実現価格、別名コストベーシスで、「現在の保有者がいくら払ったか」にオンチェーンで最も近い値です。"], ["軸の読み方", "横軸はいま説明した「コインに刻まれた価格」（ドル）で、今日の価格ではありません。縦軸は各価格帯にどれだけの供給があるかです。どちらの軸も 0 から端までを 20 等分して目盛りを付け、ラベルは有効数字 2 桁に丸めています。価格軸は日ごとに合わせ直すことはしません。表示中の日までにデータが到達した最高価格で止まり、データがそこを越えたときだけ広がり、決して縮みません。左軸の上端は選べます（「Y軸上限は過去最高で拡大／常に 100%」を参照）。BTC モードの最初の棒は左軸の決定に加えません。最後に動いた価格が棒 1 本分の幅に満たないコインがすべて入っており、そのうち約 185 万 BTC はビットコインが 50 セントを超える前のものです。上端を突き抜けるため、その高さを上端に表示します。"], ["色：コインの古さ", "どの棒も 23 段階の年齢帯を積み重ねたものです。基準はそのコインが動かずにいた期間で、片端は 1 時間未満、もう片端は 15 年超。黄色が新しく、濃い青が古く、その間は対数で刻まれているため、同じ色の隔たりは同じ年齢の倍率にあたります。色は知覚的に均等な色空間（OKLCH）の一本の経路に沿って並び、どの段差も同じ大きさに見えるよう配置され、明るさは新しいものから古いものへ一様に下がるので、グレースケールでも順序が読み取れます。どの帯も暗い背景に対して 3:1 以上のコントラストを保ちます。単色の高い棒は単一の層、色とりどりの高い棒は世代の異なる保有者が重なっている価格です。"], ["Y軸上限は過去最高で拡大／常に 100%", "この 2 つのボタンで、表示するすべての日の左軸の上端を決めます。1 刻みずつ進んでも、点をドラッグしても、サイクルの天井・大底や最初・最後の日へ飛んでも同じです。既定の「Y軸上限は過去最高で拡大」では、左軸はそれまでで最も高い棒で止まり、それまでのどの棒よりも高い棒、つまり過去最高が現れたときだけ広がり、決して縮みません。先へ進めば市場が古い目盛りからはみ出していく様子が見え、日ごとの高さをそのまま比べられます。戻れば各日が当時とまったく同じ姿で表示されます。「Y軸上限は常に 100%」では、左軸をその日の最も高い棒に合わせるので、その棒が常に上端に届き、毎日の分布が同じ枠いっぱいに描かれます。目盛りが日ごとに変わるため、動かすと棒が上下に弾みますが、各日の形はいつも最大の高さで見られます。どちらでも、ある日の目盛りはその日だけで決まり、そこへどうたどり着いたかには左右されません。棒、色、価格軸、100 未満の Y軸上限、Y 軸の固定はどちらでも同じように働きます。", "EXPANDS ON ATH:  y-max = tallest bar so far\nALWAYS AT 100%:  y-max = this day's tallest bar"], ["白い線：ビットコイン価格", "ビットコイン自身の価格を日足終値で描いたものです。この線だけは別の（非表示の）軸を使っており、左右方向は価格ではなく時間で、選択日の 275 日前から 90 日後までの 1 年間を表します（最新日に近いときは、最新日の 1 週間後で終わり、その分だけ前から始まります）。高さは 0 ドルからそれまでに表示された最高終値までの線形目盛りなので、線はチャートいっぱいに広がり、同じドル幅の値動きは常に同じ高さになります。この目盛りが広がるのは価格が高値を更新したときだけです。オレンジの点が選択日で、過去のサイクル天井と大底も示してあります。点をドラッグすれば履歴をたどれます。凡例の BTC/USD をクリックすると線を隠せます。"], ["棒にカーソルを合わせる", "棒にカーソルを合わせると、その価格、その年齢帯がそこに持つ量、棒全体の合計（最終移動時の評価額の合計。BTC モードでは供給量の合計）、そして全体に占める累積割合が表示されます。最後の値は累計の割合で、その日の供給全体（USD モードでは価値全体）のうち、その価格以下で最後に動いた部分です。平滑化した棒ではなく記録された価格そのものから数えるので、破線の位置ではボックスの含み益の割合と一致します。棒から棒へ急に増えるところは供給が密集しています。", "Cumulative % of Total(P) = Σ W(p ≤ P) / Σ W × 100"], ["破線：その日の価格", "選択した日の現在値です。その左側の供給はこの価格より安く最後に動いたので含み益、右側は高く動いたので含み損です。ボックスに価格と両方の割合が出ます。ここでの損益は最後に動いたときの価格が基準で、その移動が購入だった場合にだけ購入価格と一致します（「このチャートで分からないこと」を参照）。", "Profit % = Σ W(P) for P ≤ Spot / Σ W(P) × 100"], ["何を読み取るのか", "棒が厚く固まっている価格は、多くの供給が滞留した場所です。今日の価格より上にあれば、そこで最後に動かした保有者が損益分岐付近で売るかもしれない、という理由から上値抵抗と読まれることが多く、下にあれば同じ塊が支持と読まれます。広い空白は、値動きを鈍らせる供給が乏しい区間です。いずれも供給の分布図であって、価格の予測ではありません。"], ["このチャートで分からないこと", "オンチェーンの移動が必ず売買とは限りません。取引所が自社のコインを動かし、利用者が自分の UTXO をまとめ、カストディアンがウォレットを入れ替える。そのたびにコインはその日の価格で刻み直されますが、買い手も売り手もいません。逆もまた同じで、取引所の内部で約定した取引はチェーンに触れないため、双方とも古い刻印のままです。鍵を失ったコインは永遠にその刻印を保ちます。棒は「供給が最後にここで動いた」ことを示すもので、「誰かがこの値段で買った」証拠ではありません。"], ["履歴をたどる", "公開されている同種のチャートは通常その日だけを表示します。これは 2009-01-03 まで一日ずつさかのぼれます。1D/1W/1M/1Y が刻み幅、矢印ボタンが 1 刻みの移動で、キーボードの左右または A/D でも同じ操作ができます。1〜4 で刻み幅を選び、上下または W/S で刻み幅を一段ずつ上げ下げし（1D・1W・1M・1Y を循環）、Home/End で最初と最後の日へ飛びます。天井/大底からサイクルの天井・大底を選ぶこともできます。どこへ移動しても、左軸はそのとき選んでいる Y軸上限のボタンに従います（「Y軸上限は過去最高で拡大／常に 100%」を参照）。キーが効かなくなったら、チャートを一度クリックしてツールバーの入力欄からフォーカスを外してください。"], ["USD モードと BTC モード", "BTC はコインをビットコインの量で数えます。USD は最後に動いた時点のドル価値で数えるため、10 万ドルで最後に動いた 1 枚は、同じ 1 枚でも 100 ドルで動いたものよりはるかに重くなります。BTC はコインの在処を、USD は資金の入った場所を示します。", "S(P) = Σ utxo.value where utxo.price ∈ [P, P + ΔP)\nValue When Last Moved(P) = P · S(P)"], ["Y 軸を固定 (PIN Y-AXIS)", "「Y軸上限は過去最高で拡大」では左軸は広がるだけで縮まないため、近い日どうしはたいてい同じ目盛りで比べられます。「Y軸上限は常に 100%」では毎日変わります。どちらでも「Y 軸を固定」は、表示中の日の最も高い棒で左軸をそのまま固定し、破線で示します。以後どの日もその高さを基準に描かれ、それより高い棒は軸を動かさずに上端を突き抜けます。もう一度押せば解除されます。固定値は重み付けとスムージングごとに別々に保存されます。高さが同じ意味を持つのは設定が同じときだけだからです。再読み込みしても残ります。"], ["棒の幅", "価格軸は 0 から右端まで 626 本の等幅の棒に区切られます。625 本目までが、それまでの最高コストベーシスにスムージングの分をわずかに足したところまで（「軸の読み方」を参照）で、最後の 1 本はその先、スムージングが最も遠くまで届く分を受け止めます。約 12.6 万ドルの軸なら 1 本あたり約 200 ドルです。棒の幅が変わるのは軸が広がったときだけです。棒はピクセル単位に揃え、隣とは 1 ピクセル空けて描き分けますが、幅が 2 ピクセルを切る場合は塗りつぶしで描きます。", "ΔP = price axis end / 626"], ["スムージング (Smoothing)", "元データは丸められています。各コインにはブロックの価格が、10 万ドル未満は 1 ドル単位、以上は 10 ドル単位で記録されているため、記録された一つの価格は実際には小さな価格幅を表します。大口の送金ひとつが同じ数字に集中すると、丸めが生んだだけの尖りが現れます。スムージングは記録された各価格を、丸められる前の幅に均等に戻したうえで、ベル型の曲線でぼかします。これはガウス曲線で、山や谷を新たに作り出さない唯一のぼかし方です。幅は価格に対する割合で、棒の幅のおよそ 10 分の 4 を下回らず、各棒には自分の取り分が正確に配分されます。既定値の 0.24 は、記録された一つの価格に隠れうる数分の間にビットコイン価格が通常動く幅を、全履歴にわたって測ったものです。0 にすると生のビンになります。総供給量と総額は厳密に保たれます。", "σ = √((S% × price)² + ΔP²/6)   (S = 0: raw)\nbar = the part of [stamp ± step/2] ∗ N(0, σ) inside the bar"], ["Y軸上限 (Y-max)", "既定の 100 では、左軸は Y軸上限の 2 つのボタンが決める位置、つまりそれまでで最も高い棒か、その日の最も高い棒で止まります（「Y軸上限は過去最高で拡大／常に 100%」を参照）。値を下げると、表示中の日を拡大する表示に切り替わります。軸の上限はその日の棒の高さのそのパーセンタイルになり、日付に合わせて変わり、はみ出した分は切り取られます。明示した Y-max は Y 軸の固定より優先されます。", "y-max = tallest bar so far             (at 100, EXPANDS ON ATH)\ny-max = this day's tallest bar          (at 100, ALWAYS AT 100%)\ny-max = percentileₙ(this day's bars)   (below 100)"], ["動画を見る", "ツールバーの「全期間（Y軸上限は過去最高で拡大）」「（Y軸上限は常に 100%）」ボタンで、全期間を 1 本にまとめた動画をそれぞれ YouTube で見られます。左軸をそれまでで最も高い棒で止めたものと、その日ごとの最も高い棒に合わせたものです。最初のビットコイン価格がチャートに現れる2010年5月18日（それ以前のチャートは空です）から最新日まで、隣り合う日をなめらかにつなぎ、5分・毎秒60フレーム・4K（3840 × 2160）です。どちらも USD モードと本ページの既定の設定で描かれ、GitHub のワークフローが週に一度、終わったばかりの一週間を加えて作り直し、renshuBTC チャンネルに投稿します。YouTube で動画を他の人が見られるようになるまでは、そのボタンは renshuBTC チャンネルを開きます。このサイトはファイルのダウンロードを提供しません（チャート上のカメラアイコンは、チャートを PNG 画像として保存するだけで、画像はお使いのブラウザーの中で作られます）。ソフトのインストール、ウォレットの接続、シードフレーズの入力を求めることもありません。そうするものは、このサイトではありません。"], ["データの出所", "分布と価格は Bitcoin Research Kit によるもので、フルの Bitcoin Core ノードから導出され、bitview.space 経由で提供されています。URPD は 2020 年 4 月に Renato Shirakashi 氏が考案しました。本版はそこに日次の履歴と年齢による配色を加えたものです。"]]}
 };
 function updateExplainerLang() {
   var ex = EXPLAINER[lang] || EXPLAINER.en;

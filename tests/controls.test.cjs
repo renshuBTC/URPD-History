@@ -1,5 +1,5 @@
-// The toolbar's controls: the date box, the step sizes, the settings fields, pins, AGE or <150D/>150D, the two video
-// buttons and the languages. Each test here pins down a bug the 2026-09-24 audit found.
+// The toolbar's controls: the date box, the step sizes, the settings fields, pins, the two video buttons and the
+// languages (the two Y-MAX buttons: ymax-modes.test.cjs). Each test here pins down a bug the 2026-09-24 audit found.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
@@ -88,7 +88,7 @@ test('Up and Down, or W and S, change the step size one at a time, round and rou
   assert.deepEqual(down, [3, 2, 1, 0], '1Y, 1M, 1W, 1D');
   assert.equal(c.coinMode, false, 'USD/BTC is left to its buttons');
   assert.equal(c.viewIdx, 0);
-  assert.equal(c.splitMode, false);
+  assert.equal(c.yFit, false, 'and the Y-MAX buttons to theirs');
   // The browser keeps its own shortcuts (Ctrl+S saves the page).
   assert.equal(press('s', { ctrlKey: true }), false);
   assert.equal(c.stepIdx, 0);
@@ -168,174 +168,105 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the three video buttons always show: FULL HISTORY IN 5 MIN (AGE), (<150D/>150D) and (RAW), each its latest video others can watch, else the channel', async () => {
+test('the two video buttons always show: FULL HISTORY (Y-MAX EXPANDS ON ATH) and (Y-MAX ALWAYS AT 100%), each its latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
-  // as the markup writes them: the <150D/>150D button also holds the short name its tag gives way to in a narrow bar
-  const BUTTONS = [['ytBtn', 'ytLabel', '<span id="ytTag" class="yt-tag">([^<]+)</span>', 'AGE'],
-    ['ytSplitBtn', 'ytSplitLabel', '<span class="yt-tag"><span id="ytSplitTag" class="yt-tag-full">([^<]+)</span><span class="yt-tag-short">150D</span></span>', '&lt;150D/&gt;150D'],
-    ['ytRawBtn', 'ytRawLabel', '<span id="ytRawTag" class="yt-tag">([^<]+)</span>', 'RAW']];
-  for (const [id, label, tag, name] of BUTTONS) {
-    const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${label}" class="yt-word">Full history in 5 min</span>${tag}</a>`));
+  // as the markup writes them: which video, in brackets, and the short name it gives way to in a narrow bar
+  const BUTTONS = [['ytBtn', 'ytLabel', 'ytTag', 'ytTagShort', 'Y-max expands on ATH', 'expands on ATH'], ['ytFitBtn', 'ytFitLabel', 'ytFitTag', 'ytFitTagShort', 'Y-max always at 100%', 'always at 100%']];
+  for (const [id, label, tag, short, name, shortName] of BUTTONS) {
+    const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${label}" class="yt-word">Full history</span><span class="yt-tag"><span id="${tag}" class="yt-tag-full">([^<]+)</span><span id="${short}" class="yt-tag-short">([^<]+)</span></span></a>`));
     assert.ok(a, id + ': a visible link that opens in a new tab: the play symbol, the words and which video, named for screen readers and tooltips');
     assert.equal(a[1], CHANNEL, 'the channel until the page learns of a video');
-    assert.equal(a[5], name);
-    assert.equal(a[2], `Full history in 5 min (${name}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`);
+    assert.deepEqual([a[5], a[6]], [name, shortName]);
+    assert.equal(a[2], `Full history (${name}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`);
     assert.equal(a[2], a[3]);
     assert.match(a[4], /aria-hidden="true"/);
     assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   }
-  assert.ok(html.indexOf('id="ytBtn"') < html.indexOf('id="ytSplitBtn"') && html.indexOf('id="ytSplitBtn"') < html.indexOf('id="ytRawBtn"'), 'AGE first, <150D/>150D on its right, then RAW');
+  assert.ok(html.indexOf('id="ytBtn"') < html.indexOf('id="ytFitBtn"'), 'Y-MAX EXPANDS ON ATH first, Y-MAX ALWAYS AT 100% on its right, as the Y-MAX buttons');
+  assert.doesNotMatch(html, /ytSplitBtn|ytRawBtn/, 'no <150D/>150D or RAW video');
   assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
   assert.match(decls('#controls .yt-btn'), /border:\s*1px solid #595959/);
   assert.match(decls('#controls .yt-btn:hover'), /border-color:\s*#fff/);
   assert.match(decls('.yt-btn:focus-visible'), /outline:\s*2px solid #fff/);
-  // The bracketed name: (AGE), (<150D/>150D) and (RAW) beside the words, and on their own where the words give way.
+  // The bracketed name beside the words, and on its own where the words give way.
   assert.match(decls('#controls .yt-tag::before'), /content:\s*"\("/);
   assert.match(decls('#controls .yt-tag::after'), /content:\s*"\)"/);
   assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
   assert.match(decls('#controls.compact .yt-tag::before'), /content:\s*none/);
   // data/youtube.json names each video once others can watch it; anything else leaves that button on the channel.
-  const { c, element } = app(), age = element('ytBtn'), split = element('ytSplitBtn'), raw = element('ytRawBtn');
-  c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, lthsth: { id: 'Abc_123-xyZ', end: '2026-09-24' }, raw: { id: 'Raw_567-abC', end: '2026-10-01' } });
-  assert.equal(age.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  assert.equal(split.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
-  assert.equal(raw.href, 'https://www.youtube.com/watch?v=Raw_567-abC');
-  assert.equal(age.title, 'Full history in 5 min (AGE): every day since 2010 as one 4K video, the bars coloured by age band, on YouTube (opens in a new tab)');
-  assert.equal(split.title, 'Full history in 5 min (<150D/>150D): every day since 2010 as one 4K video, the bars split at 150 days, on YouTube (opens in a new tab)');
-  assert.equal(raw.title, 'Full history in 5 min (RAW): every day since 2010 as one 4K video, the bars as recorded, unsmoothed, black on a light chart, on YouTube (opens in a new tab)');
-  for (const el of [age, split, raw]) assert.equal(el.getAttribute('aria-label'), el.title);
-  for (const [lang, words, ageTag, splitTag, want] of [
-    ['zh', '5 分钟看完整历史', '年龄', '<150D/>150D', '5 分钟看完整历史（年龄）：2010 年以来的每一天，一段 4K 视频，柱子按币龄层着色，在 YouTube 上观看（在新标签页中打开）'],
-    ['ja', '全期間を5分で', '年齢', '<150D/>150D', '全期間を5分で（年齢）：2010年以降の毎日を 1 本の 4K 動画にまとめ、棒を年齢帯で色分けして YouTube で（新しいタブで開きます）']]) {
+  const { c, element } = app(), ath = element('ytBtn'), fit = element('ytFitBtn');
+  c.setYouTubeLinks({ ath: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, fit: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
+  assert.equal(ath.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  assert.equal(fit.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  assert.equal(ath.title, 'Full history (Y-max expands on ATH): every day since 2010 as one 5-minute 4K video, the left axis ending at the tallest bar so far, on YouTube (opens in a new tab)');
+  assert.equal(fit.title, "Full history (Y-max always at 100%): every day since 2010 as one 5-minute 4K video, the left axis ending at each day's own tallest bar, on YouTube (opens in a new tab)");
+  for (const el of [ath, fit]) assert.equal(el.getAttribute('aria-label'), el.title);
+  assert.deepEqual([element('ytTag').textContent, element('ytTagShort').textContent, element('ytFitTag').textContent, element('ytFitTagShort').textContent],
+    ['Y-max expands on ATH', 'expands on ATH', 'Y-max always at 100%', 'always at 100%']);
+  for (const [lang, words, athTag, fitTag, want] of [
+    ['zh', '完整历史', 'Y 轴上限随历史新高扩展', 'Y 轴上限始终 100%', '完整历史（Y 轴上限随历史新高扩展）：2010 年以来的每一天，一段 5 分钟的 4K 视频，左轴停在迄今最高的柱子，在 YouTube 上观看（在新标签页中打开）'],
+    ['ja', '全期間', 'Y軸上限は過去最高で拡大', 'Y軸上限は常に 100%', '全期間（Y軸上限は過去最高で拡大）：2010年以降の毎日を 5 分の 4K 動画 1 本にまとめ、左軸をそれまでで最も高い棒で止めて YouTube で（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
-    assert.equal(age.title, want, lang);
+    assert.equal(ath.title, want, lang);
     assert.equal(element('ytLabel').textContent, words, lang);
-    assert.equal(element('ytSplitLabel').textContent, words, lang);
-    assert.equal(element('ytTag').textContent, ageTag, lang);
-    assert.equal(element('ytSplitTag').textContent, splitTag, lang);
-    assert.equal(element('ytRawLabel').textContent, words, lang);
-    assert.equal(element('ytRawTag').textContent, 'RAW', lang);
-    assert.ok(age.title.startsWith(words) && split.title.startsWith(words) && raw.title.startsWith(words), lang + ': the spoken name starts with the words on the button');
-    assert.ok(split.title.includes(splitTag), lang);
+    assert.equal(element('ytFitLabel').textContent, words, lang);
+    assert.equal(element('ytTag').textContent, athTag, lang);
+    assert.equal(element('ytFitTag').textContent, fitTag, lang);
+    assert.equal(element('ytTagShort').textContent, c.T[lang].athShort, lang);
+    assert.equal(element('ytFitTagShort').textContent, c.T[lang].fitShort, lang);
+    assert.ok(ath.title.startsWith(words) && fit.title.startsWith(words), lang + ': the spoken name starts with the words on the button');
+    assert.ok(fit.title.includes(fitTag), lang);
   }
   c.lang = 'en'; c.labelYouTube();
-  assert.equal(element('ytTag').textContent, 'AGE');
-  assert.equal(element('ytSplitTag').textContent, '<150D/>150D');
-  const channel = n => `Full history in 5 min (${n}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`;
+  const channel = n => `Full history (${n}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`;
   for (const bad of [null, {}, { id: null }, { id: 'javascript:x' }, { id: 'short' }, { id: 'dQw4w9WgXcQ"x' }, { id: 12345678901 }, 'dQw4w9WgXcQ']) {
-    c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ' }, lthsth: { id: 'dQw4w9WgXcQ' }, raw: { id: 'dQw4w9WgXcQ' } });
-    c.setYouTubeLinks({ age: bad, lthsth: bad, raw: bad });
-    assert.equal(age.href, CHANNEL, JSON.stringify(bad));
-    assert.equal(split.href, CHANNEL, JSON.stringify(bad));
-    assert.equal(raw.href, CHANNEL, JSON.stringify(bad));
-    assert.equal(raw.title, channel('RAW'), JSON.stringify(bad));
-    assert.equal(age.title, channel('AGE'), JSON.stringify(bad));
-    assert.equal(split.title, channel('<150D/>150D'), JSON.stringify(bad));
+    c.setYouTubeLinks({ ath: { id: 'dQw4w9WgXcQ' }, fit: { id: 'dQw4w9WgXcQ' } });
+    c.setYouTubeLinks({ ath: bad, fit: bad });
+    assert.equal(ath.href, CHANNEL, JSON.stringify(bad));
+    assert.equal(fit.href, CHANNEL, JSON.stringify(bad));
+    assert.equal(ath.title, channel('Y-max expands on ATH'), JSON.stringify(bad));
+    assert.equal(fit.title, channel('Y-max always at 100%'), JSON.stringify(bad));
   }
-  for (const bad of [null, 'x', 5, []]) { c.setYouTubeLinks(bad); assert.equal(age.href, CHANNEL); assert.equal(split.href, CHANNEL); }
-  // One video without the others: each button on its own (the file before RAW had no "raw" at all).
-  c.setYouTubeLinks({ age: null, lthsth: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
-  assert.equal(age.href, CHANNEL);
-  assert.equal(split.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
-  assert.equal(raw.href, CHANNEL);
-  // The one-video file from before (its id at the top level) was the AGE video.
+  for (const bad of [null, 'x', 5, []]) { c.setYouTubeLinks(bad); assert.equal(ath.href, CHANNEL); assert.equal(fit.href, CHANNEL); }
+  // One video without the other: each button on its own.
+  c.setYouTubeLinks({ ath: null, fit: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
+  assert.equal(ath.href, CHANNEL);
+  assert.equal(fit.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  // The files from before name the same Y-MAX EXPANDS ON ATH video as "age" (and, before that, at their top level).
+  c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, lthsth: { id: 'Abc_123-xyZ' }, raw: { id: 'Raw_567-abC' } });
+  assert.equal(ath.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  assert.equal(fit.href, CHANNEL, 'no other video stands in for Y-MAX ALWAYS AT 100%');
   c.setYouTubeLinks({ id: 'dQw4w9WgXcQ', end: '2026-09-24' });
-  assert.equal(age.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  assert.equal(split.href, CHANNEL);
-  for (const [lang, want] of [['zh', '5 分钟看完整历史（<150D/>150D）：YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）'], ['ja', '全期間を5分で（<150D/>150D）：YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）']]) {
+  assert.equal(ath.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  assert.equal(fit.href, CHANNEL);
+  for (const [lang, want] of [['zh', '完整历史（Y 轴上限始终 100%）：YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）'], ['ja', '全期間（Y軸上限は常に 100%）：YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
-    assert.equal(split.title, want, lang);
-    assert.equal(split.getAttribute('aria-label'), want, lang);
+    assert.equal(fit.title, want, lang);
+    assert.equal(fit.getAttribute('aria-label'), want, lang);
   }
   // The page asks for it on its own, and a missing file changes nothing else.
   for (const found of [true, false]) {
     const h = app(), asked = [];
-    h.element('ytBtn').href = CHANNEL; h.element('ytSplitBtn').href = CHANNEL;   // as the page starts
-    const yt = () => (found ? Promise.resolve({ age: { id: 'dQw4w9WgXcQ' }, lthsth: { id: 'Abc_123-xyZ' } }) : Promise.reject(new Error('HTTP 404')));
+    h.element('ytBtn').href = CHANNEL; h.element('ytFitBtn').href = CHANNEL;   // as the page starts
+    const yt = () => (found ? Promise.resolve({ ath: { id: 'dQw4w9WgXcQ' }, fit: { id: 'Abc_123-xyZ' } }) : Promise.reject(new Error('HTTP 404')));
     h.c.fetchJSON = url => { asked.push(url); return url === 'data/youtube.json' ? yt() : Promise.resolve(url.endsWith('/all/dates') ? days('2026-09-20', '2026-09-24') : null); };
     h.c.loadAndRender = () => Promise.resolve();
     await h.c.init(); await flush();
     assert.equal(asked[0], 'data/youtube.json');
     assert.equal(h.c.allDates.length, 5, 'the chart loads either way');
     assert.equal(h.element('ytBtn').href, found ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : CHANNEL);
-    assert.equal(h.element('ytSplitBtn').href, found ? 'https://www.youtube.com/watch?v=Abc_123-xyZ' : CHANNEL);
+    assert.equal(h.element('ytFitBtn').href, found ? 'https://www.youtube.com/watch?v=Abc_123-xyZ' : CHANNEL);
   }
 });
 
 test('data/youtube.json names each video by its YouTube id, or none yet', () => {
   const fs = require('node:fs'), path = require('node:path');
   const yt = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'youtube.json'), 'utf8'));
-  assert.deepEqual(Object.keys(yt), ['about', 'age', 'lthsth', 'raw']);
-  for (const k of ['age', 'lthsth', 'raw']) {
+  assert.deepEqual(Object.keys(yt), ['about', 'ath', 'fit']);
+  for (const k of ['ath', 'fit']) {
     if (yt[k] === null) continue;
     assert.deepEqual(Object.keys(yt[k]), ['id', 'end'], k);
     assert.match(yt[k].id, /^[A-Za-z0-9_-]{11}$/, k);
     assert.match(yt[k].end, /^\d{4}-\d{2}-\d{2}$/, k);
   }
-});
-
-test('AGE | <150D/>150D | RAW sits right of USD | BTC; <150D/>150D only recolours the bars: <150D amber under >150D blue', async () => {
-  // The markup: its own group, after the weighting and before Pin Y-axis, AGE chosen at first.
-  const group = html.match(/<div class="mode-toggle">\s*<button id="btnUSD"[\s\S]*?<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*(<button id="btnAge"[^>]*>AGE<\/button>)\s*(<button id="btnSplit"[^>]*>&lt;150D\/&gt;150D<\/button>)\s*(<button id="btnRaw"[^>]*>RAW<\/button>)\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*<button id="btnPeak"/);
-  assert.ok(group, 'USD | BTC, then AGE | <150D/>150D | RAW, then Pin Y-axis');
-  assert.match(group[1], /class="active" aria-pressed="true"/);
-  assert.match(group[2], /aria-pressed="false"/);
-  assert.match(group[3], /aria-pressed="false" title="RAW: the bars as recorded, with no smoothing and no colours: every bar in black, on a light chart"/);
-  const { c, element } = app();
-  assert.equal(c.STH_BANDS, 8, '<1h to 4m-5m: the coins that moved within 150 days');
-  assert.deepEqual([c.AGE_BANDS[7].label, c.AGE_BANDS[8].label], ['4m-5m', '5m-6m']);
-  assert.equal(c.STH_COLOR, '#e6a817');
-  assert.equal(c.LTH_COLOR, '#5599ff');
-  // A day whose coins sit in three bands: two young (bands 0 and 7), one old (band 8).
-  const dates = days('2026-09-20', '2026-09-24');
-  c.allDates = dates; c.priceDates = dates.slice(); c.priceIndexByDate = Object.fromEntries(dates.map((d, i) => [d, i]));
-  c.priceArray = dates.map(() => 60000); c.currentIdx = 4;
-  const age = c.AGE_BANDS.map(() => ({}));
-  age[0] = { 50000: 1 }; age[7] = { 50000: 2, 70000: 1 }; age[8] = { 50000: 4 };
-  const all = { 50000: 7, 70000: 1 };
-  let fetched = 0;
-  c.fetchRaw = () => { fetched++; return Promise.resolve({ all, age }); };
-  await c.loadAndRender();
-  let graph = element('chart'), bars = graph.data.filter(t => t.type === 'bar');
-  assert.equal(bars.length, 23, 'AGE: one trace a band');
-  assert.match(graph.layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, AGE\) as of /);
-  const ageTotals = bars[0].y.map((_, i) => bars.reduce((s, b) => s + b.y[i], 0));
-  // <150D/>150D: the same day drawn again from the cache, with two traces that add up to the same bars.
-  element('btnSplit').onclick();
-  await c.chartRenderPromise;
-  assert.equal(c.splitMode, true);
-  assert.equal(fetched, 1, 'nothing fetched again');
-  assert.equal(element('btnSplit').getAttribute('aria-pressed'), 'true');
-  assert.equal(element('btnAge').getAttribute('aria-pressed'), 'false');
-  graph = element('chart'); bars = graph.data.filter(t => t.type === 'bar');
-  assert.deepEqual(plain(bars.map(b => [b.meta, b.name, b.marker.color])), [['sth', '&lt;150D', '#e6a817'], ['lth', '&gt;150D', '#5599ff']], 'escaped: Plotly reads < as markup');
-  assert.equal(graph.layout.barmode, 'stack');
-  assert.equal(graph.layout.legend.font.size, 12);
-  assert.match(graph.layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, &lt;150D\/&gt;150D\) as of /);
-  const sth = bars[0].y.reduce((s, v) => s + v, 0), lth = bars[1].y.reduce((s, v) => s + v, 0);
-  assert.ok(Math.abs(sth - (50000 * 3 + 70000)) < 1e-3, 'bands 0 and 7, in dollars');
-  assert.ok(Math.abs(lth - 50000 * 4) < 1e-3, 'band 8');
-  bars[0].y.forEach((v, i) => assert.ok(Math.abs(v + bars[1].y[i] - ageTotals[i]) < 1e-6 * (1 + ageTotals[i]), 'the same bars'));
-  assert.match(bars[0].hovertemplate, /<br>&lt;150D: %\{y:\$,\.0f\}<br>Total Value When Last Moved: /);
-  assert.equal(bars[0].customdata, bars[1].customdata, 'the whole bar\'s hover, shared');
-  // Each weighting has its title in each language.
-  c.coinMode = true; await c.rerenderCurrent();
-  assert.match(element('chart').layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(BTC, &lt;150D\/&gt;150D\) as of /);
-  for (const [lang, want] of [['zh', '（BTC，&lt;150D/&gt;150D）截至 '], ['ja', '（BTC、&lt;150D/&gt;150D） 基準日 ']]) {
-    c.lang = lang; await c.rerenderCurrent();
-    assert.ok(element('chart').layout.title.text.includes(want), lang);
-    assert.deepEqual(plain(element('chart').data.filter(t => t.type === 'bar').map(b => b.name)), [c.plotlyText(c.T[lang].sth), c.plotlyText(c.T[lang].lth)], lang);
-  }
-  c.lang = 'en'; c.coinMode = false;
-  // Back to AGE; a second press of the same button changes nothing.
-  element('btnAge').onclick(); await c.chartRenderPromise;
-  assert.equal(element('chart').data.filter(t => t.type === 'bar').length, 23);
-  const before = c.chartRenderSeq;
-  element('btnAge').onclick();
-  assert.equal(c.chartRenderSeq, before, 'already AGE: no redraw');
-  // The buttons are named in the page's language.
-  c.lang = 'ja'; c.applyLang();
-  assert.equal(element('btnAge').textContent, '年齢');
-  assert.equal(element('btnSplit').textContent, '<150D/>150D');
-  assert.equal(element('btnSplit').title, c.T.ja.splitTitle);
 });

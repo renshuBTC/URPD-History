@@ -164,13 +164,12 @@ test('the jobs that run third-party code or parse its output can read the reposi
   assert.match(publish, /\[ "\$\(find "\$RUNNER_TEMP\/vetted" -type f \| wc -l\)" = "\$\{#FILES\[@\]\}" \]/, 'and nothing else in the folder');
   assert.ok(publish.indexOf('Look at the files without parsing them') < publish.indexOf('actions/attest@'), 'looked at before they are attested');
   assert.ok(publish.indexOf('actions/attest@') < publish.indexOf('replace-asset.sh video'), 'attest before publishing');
-  assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO" "\$RUNNER_TEMP\/vetted\/\$VIDEO_LTHSTH" "\$RUNNER_TEMP\/vetted\/\$VIDEO_RAW"/);
+  assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO_ATH" "\$RUNNER_TEMP\/vetted\/\$VIDEO_FIT"/);
   // The YouTube credentials reach two steps of each youtube job (the check for them and its one post) and nothing
   // else in the workflow; the steps that hold them run this repository's own code.
-  assert.equal((video.match(/secrets\./g) || []).length, 18);
-  const POSTS = { 'youtube-age': 'name: Post the AGE video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO" "$START" "$END" age >> "$GITHUB_OUTPUT"',
-    'youtube-lthsth': 'name: Post the <150D/>150D video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_LTHSTH" "$START" "$END" lthsth >> "$GITHUB_OUTPUT"',
-    'youtube-raw': 'name: Post the RAW video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_RAW" "$START" "$END" raw >> "$GITHUB_OUTPUT"' };
+  assert.equal((video.match(/secrets\./g) || []).length, 12);
+  const POSTS = { 'youtube-ath': 'name: Post the Y-MAX EXPANDS ON ATH video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_ATH" "$START" "$END" ath >> "$GITHUB_OUTPUT"',
+    'youtube-fit': 'name: Post the Y-MAX ALWAYS AT 100% video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_FIT" "$START" "$END" fit >> "$GITHUB_OUTPUT"' };
   for (const name of Object.keys(POSTS)) {
     const youtube = job(video, name);
     assert.equal((youtube.match(/secrets\.YOUTUBE_/g) || []).length, 6, name);
