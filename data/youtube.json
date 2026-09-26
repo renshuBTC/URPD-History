@@ -1,8 +1,11 @@
 {
   "about": "The latest videos on YouTube for the site's two video buttons: ath, the left axis at the tallest bar so far (Y-MAX EXPANDS ON ATH), and fit, at each day's own tallest bar (Y-MAX ALWAYS AT 100%). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then.",
   "ath": {
-    "id": "vg0tVLozJXo",
-    "end": "2026-09-24"
+    "id": "sgHdoOUBwZE",
+    "end": "2026-09-25"
   },
-  "fit": null
+  "fit": {
+    "id": "XnyUtV_-t1I",
+    "end": "2026-09-25"
+  }
 }
