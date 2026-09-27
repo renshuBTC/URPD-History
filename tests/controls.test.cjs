@@ -246,9 +246,8 @@ test('the four video buttons always show: HISTORY (USD VALUE), (BTC), (% USD VAL
   for (const k in ids) assert.equal(el[k].href, 'https://www.youtube.com/watch?v=' + ids[k], k);
   assert.equal(el.usd.title, "History (USD Value): every day since 31 January 2011 as one 5-minute 4K video, the bars in dollars with the left axis at each day's own tallest bar, on YouTube (opens in a new tab)");
   assert.equal(el.btc.title, "History (BTC): every day since 18 May 2010 as one 5-minute 4K video, the bars in coins with the left axis at each day's own tallest bar, on YouTube (opens in a new tab)");
-  assert.equal(el.pctusd.title, "History (% USD Value): every day since 31 January 2011 as one 5-minute 4K video, each bar as its percent of the day's realized cap with the left axis at each day's own tallest bar, on YouTube (opens in a new tab)");
-  assert.equal(el.pctbtc.title, "History (% BTC): every day since 18 May 2010 as one 5-minute 4K video, each bar as its percent of the day's supply with the left axis at each day's own tallest bar, on YouTube (opens in a new tab)");
-  assert.doesNotMatch(html, /0-4%|0〜4%|固定为 0-4%/, 'no video on a fixed axis');
+  assert.equal(el.pctusd.title, "History (% USD Value): every day since 31 January 2011 as one 5-minute 4K video, each bar as its percent of the day's realized cap on the fixed 0-4% axis, on YouTube (opens in a new tab)");
+  assert.equal(el.pctbtc.title, "History (% BTC): every day since 18 May 2010 as one 5-minute 4K video, each bar as its percent of the day's supply on the fixed 0-4% axis, on YouTube (opens in a new tab)");
   for (const k in el) assert.equal(el[k].getAttribute('aria-label'), el[k].title);
   assert.deepEqual(BUTTONS.map(b => element(b[2]).textContent), ['USD Value', 'BTC', '% USD Value', '% BTC']);
   for (const [lang, words, tags] of [['zh', '历史', ['美元价值', 'BTC', '% 美元价值', '% BTC']], ['ja', '履歴', ['USD 評価額', 'BTC', '% USD 評価額', '% BTC']]]) {

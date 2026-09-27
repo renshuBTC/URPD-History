@@ -65,7 +65,7 @@ test('the price axis comes from the history on days it covers, and only grows af
   assert.equal(c.SCALES, null, 'a malformed file is ignored');
 });
 
-test('every view ends the left axis at the day\'s own tallest bar; % USD and % BTC draw every bar as its percent of the day', async () => {
+test('USD and BTC end the left axis at the day\'s own tallest bar; % USD and % BTC draw every bar as its percent of the day on 0 to 4%', async () => {
   const { c, element } = app();
   const peaks = [3, 5, 4, 9, 2, 2, 7, 12, 1, 6];
   const { dates, raws } = market(c, { n: 10, cohorts: i => [{ 950: peaks[i], 1005: 1 }, { 990: 1 }] });
@@ -78,16 +78,17 @@ test('every view ends the left axis at the day\'s own tallest bar; % USD and % B
       const abs = c.barValues(data, coin), total = abs.reduce((a, b) => a + b, 0);
       const drawn = abs.map((_, k) => bars.reduce((s, b) => s + b.y[k], 0));
       if (pct) {
+        assert.deepEqual(Array.from(graph.layout.yaxis.range), [0, 4], `${view} ${dates[i]}: the same axis on every day`);
         drawn.forEach((v, k) => assert.ok(Math.abs(v - abs[k] * 100 / total) < 1e-9, 'each bar is its percent of the day\'s total'));
         assert.ok(Math.abs(drawn.reduce((a, b) => a + b, 0) - 100) < 1e-9, 'every day\'s bars add up to 100%');
       } else {
         drawn.forEach((v, k) => assert.ok(Math.abs(v - abs[k]) <= 1e-9 * Math.max(1, abs[k]), 'the bars in dollars or coins'));
+        const top = Math.max(...drawn);
+        assert.ok(Math.abs(graph.layout.yaxis.range[1] - top) <= 1e-9 * top, `${view} ${dates[i]}: the day's own tallest bar reaches the top`);
       }
-      const top = Math.max(...drawn);
-      assert.ok(Math.abs(graph.layout.yaxis.range[1] - top) <= 1e-9 * top, `${view} ${dates[i]}: the day's own tallest bar reaches the top`);
     }
   }
-  assert.equal(c.PCT_TOP, undefined, 'no fixed top for the percent views');
+  assert.equal(c.PCT_TOP, 4);
 });
 
 test('a day whose coins all last moved below $0.50 has nothing to draw in USD and % USD; in BTC and % BTC it is all the first bar', async () => {
@@ -97,7 +98,7 @@ test('a day whose coins all last moved below $0.50 has nothing to draw in USD an
   for (const [view, pct] of [[0, false], [2, true]]) {
     const graph = await draw(view, false, pct);
     assert.ok(graph.data.filter(t => t.type === 'bar').every(t => t.y.every(v => v === 0)), 'no bars');
-    assert.deepEqual(Array.from(graph.layout.yaxis.range), [0, 1], 'a placeholder axis');
+    assert.deepEqual(Array.from(graph.layout.yaxis.range), [0, pct ? 4 : 1], pct ? 'the fixed axis' : 'a placeholder axis');
   }
   const whole = (graph) => { const bars = graph.data.filter(t => t.type === 'bar'); return bars[0].y.map((_, k) => bars.reduce((s, b) => s + b.y[k], 0)); };
   let graph = await draw(1, true, false);
@@ -105,7 +106,7 @@ test('a day whose coins all last moved below $0.50 has nothing to draw in USD an
   assert.equal(graph.layout.yaxis.range[1], 50, 'and the axis ends at it');
   graph = await draw(3, true, true);
   assert.equal(whole(graph)[0], 100, '% BTC: 100% of the supply');
-  assert.equal(graph.layout.yaxis.range[1], 100, 'and the axis ends at it too');
+  assert.deepEqual(Array.from(graph.layout.yaxis.range), [0, 4], 'running off the fixed top');
   for (const g of [await draw(1, true, false), graph]) assert.ok(!g.layout.annotations.some(a => /▲/.test(a.text)), 'with nothing printed over it');
 });
 
@@ -140,10 +141,9 @@ test('both axes are labelled at twenty equal steps from 0 to their very end, to 
   c.coinMode = false; c.pctMode = true; c.viewIdx = 2;
   await c.renderChart(c.buildData(dates[2], raws[2]));
   L = element('chart').layout; y = L.yaxis;
-  assert.deepEqual(Array.from(y.ticktext), Array.from(c.axisLabels(y.tickvals, 'pct')), '% USD: percents');
-  assert.equal(y.tickvals[20], y.range[1], 'to the day\'s tallest bar, labelled');
-  assert.deepEqual(Array.from(c.axisLabels(c.axisTicks(4), 'pct')), ['0%', '0.2%', '0.4%', '0.6%', '0.8%', '1%', '1.2%', '1.4%', '1.6%', '1.8%', '2%',
-    '2.2%', '2.4%', '2.6%', '2.8%', '3%', '3.2%', '3.4%', '3.6%', '3.8%', '4%'], 'a percent axis to 4%, in steps of 0.2');
+  assert.deepEqual(Array.from(y.ticktext), Array.from(c.axisLabels(y.tickvals, 'pct')));
+  assert.deepEqual(Array.from(y.ticktext), ['0%', '0.2%', '0.4%', '0.6%', '0.8%', '1%', '1.2%', '1.4%', '1.6%', '1.8%', '2%',
+    '2.2%', '2.4%', '2.6%', '2.8%', '3%', '3.2%', '3.4%', '3.6%', '3.8%', '4%'], 'the percent axis, 0 to 4% in steps of 0.2');
   assert.equal(x.ticktext[0].trim(), '$0'); assert.ok(x.ticktext[0].length > 2, 'the price axis $0 is nudged off the corner');
   assert.equal(y.showgrid, true, 'each label has its own gridline');
   assert.equal(L.yaxis2, undefined, 'no % of Total axis');
@@ -215,27 +215,30 @@ test('Cumulative % of Total meets the price box at the dashed line: at most In P
   }
 });
 
-test('every bar counts for the left axis, the first one too: in BTC and % BTC it sets the axis, and only Y-max cuts it; nothing is printed over it', async () => {
+test('every bar counts for the left axis, the first one too: in BTC it sets the axis, and only Y-max cuts it; nothing is printed over it', async () => {
   const { c, element } = app();
   const { dates, raws } = market(c, { cohorts: () => [{ 0: 5000, 950: 2000, 1000: 1500 }] });
-  for (const [view, pct] of [[1, false], [3, true]]) {
-    c.coinMode = true; c.pctMode = pct; c.viewIdx = view; c.yMaxPct = 100;
-    await c.renderChart(c.buildData(dates[4], raws[4]));
-    let graph = element('chart');
-    const bars = c.barValues(c.lastRenderedData, true), first = pct ? 100 * 5000 / bars.reduce((a, b) => a + b, 0) : 5000;
-    assert.equal(bars[0], 5000);
-    assert.ok(Math.abs(graph.layout.yaxis.range[1] - first) < 1e-9, view + ': the $0 pile sets the axis');
-    assert.ok(!graph.layout.annotations.some(a => /▲/.test(a.text)), view + ': and nothing is printed over it');
-    // A Y-max below 100 cuts it like any other bar: the axis ends at that percentile of the day's bars.
-    c.yMaxPct = 90;
-    await c.renderChart(c.lastRenderedData);
-    graph = element('chart');
-    const values = pct ? bars.map(v => v * first / 5000) : bars;
-    assert.ok(Math.abs(graph.layout.yaxis.range[1] - c.axisLevel(values, 90)) < 1e-9, view);
-    assert.ok(graph.layout.yaxis.range[1] < first, view + ': the first bar runs off the top');
-    assert.ok(!graph.layout.annotations.some(a => /▲/.test(a.text)), view + ': still with nothing printed over it');
-    c.yMaxPct = 100;
-  }
+  c.coinMode = true; c.viewIdx = 1;
+  await c.renderChart(c.buildData(dates[4], raws[4]));
+  let graph = element('chart');
+  const bars = c.barValues(c.lastRenderedData, true);
+  assert.equal(bars[0], 5000);
+  assert.equal(graph.layout.yaxis.range[1], 5000, 'the $0 pile sets the axis');
+  assert.ok(!graph.layout.annotations.some(a => /▲/.test(a.text)), 'and nothing is printed over it');
+  // A Y-max below 100 cuts it like any other bar: the axis ends at that percentile of the day's bars.
+  c.yMaxPct = 90;
+  await c.renderChart(c.lastRenderedData);
+  graph = element('chart');
+  assert.equal(graph.layout.yaxis.range[1], c.axisLevel(bars, 90));
+  assert.ok(graph.layout.yaxis.range[1] < 5000, 'the first bar runs off the top');
+  assert.ok(!graph.layout.annotations.some(a => /▲/.test(a.text)), 'still with nothing printed over it');
+  c.yMaxPct = 100;
+  // % BTC: the fixed top, which the first bar runs past.
+  c.pctMode = true; c.viewIdx = 3;
+  await c.renderChart(c.buildData(dates[4], raws[4]));
+  graph = element('chart');
+  assert.deepEqual(Array.from(graph.layout.yaxis.range), [0, 4]);
+  assert.ok(!graph.layout.annotations.some(a => /▲/.test(a.text)));
   // In USD the $0 pile is worth nothing.
   for (const [view, pct] of [[0, false], [2, true]]) {
     c.coinMode = false; c.pctMode = pct; c.viewIdx = view;
@@ -249,16 +252,16 @@ test('every bar counts for the left axis, the first one too: in BTC and % BTC it
   assert.equal(c.axisLevel.length, 2, '(values, percentile): there is no first bar to leave out');
 });
 
-test('a typed Y-max below 100 zooms into the day in view; at 100 the top is the day\'s tallest bar, in every view', async () => {
+test('a typed Y-max below 100 zooms into the day in view; at 100 the top is the day\'s tallest bar, or 4%', async () => {
   const { c, element } = app();
   const { dates, raws } = market(c, { cohorts: () => [{ 900: 1, 950: 2, 1000: 40 }] });
   c.setScales({ start: dates[0], end: dates.at(-1), x: [[0, 1100]] });
   const data = c.buildData(dates[5], raws[5]);
   const abs = c.barValues(data, false), toPct = 100 / abs.reduce((a, b) => a + b, 0), pct = abs.map(v => v * toPct);
-  for (const [view, pctView, values] of [[0, false, abs], [2, true, pct]]) {
+  for (const [view, pctView, values, top] of [[0, false, abs, Math.max(...abs)], [2, true, pct, 4]]) {
     c.pctMode = pctView; c.viewIdx = view; c.yMaxPct = 100;
     await c.renderChart(data);
-    assert.equal(element('chart').layout.yaxis.range[1], Math.max(...values), view + ': the default, 100');
+    assert.equal(element('chart').layout.yaxis.range[1], top, view + ': the default, 100');
     c.yMaxPct = 90;
     await c.renderChart(data);
     const zoomed = element('chart').layout.yaxis.range[1];
