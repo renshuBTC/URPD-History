@@ -71,7 +71,8 @@ the whole history as one video on YouTube, drawn as the page draws that choice b
 each day’s tallest bar (each frame’s, as the days blend into each other), from 2011-01-31, the first day with any value
 on the chart, and BTC with Y-max at 99.8, its first bar running off the top with its height printed, from 2010-05-18,
 when the first price comes onto the chart; the bars in their 23 age bands (AGE) or as short- and long-term holders
-(LTH/STH); all four to the latest day, 5:00 at 60 fps in 4K (3840×2160).
+(LTH/STH); the bottom signal at its default threshold (80% in loss in USD, 50% in BTC); all four to the latest day,
+5:00 at 60 fps in 4K (3840×2160).
 The **Weekly videos** workflow draws all four again once a week on GitHub’s runners, one runner each, taking in the week
 just ended, and posts them to YouTube (see [Posting to YouTube](#posting-to-youtube)). Run by hand (**Actions → Weekly
 videos → Run workflow**), it draws all four at once, or with **only** (`usd-age`, `btc-age`, `usd-lthsth` or

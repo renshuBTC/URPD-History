@@ -166,6 +166,7 @@ function spec(t, exact) {
     if (best >= 0) lm.push({ d: idxDay(best), p: close[best], l, top: !!top });
   }
   return { date: g.date, tx: g.tx, nb: NB, w, title: TITLE, yTitle: LOOK.yTitle, profitLabel: LOOK.profit, lossLabel: LOOK.loss,
+    signalAt: LOOK.bottom, signalText: LOOK.signal,
     labels: LOOK.split ? HOLDER_LABELS : AGE_LABELS, colors: LOOK.split ? HOLDER_COLORS : AGE_COLORS, legendSize: LOOK.split ? 12 : 9,
     cum, xt: { v: xv, t: xt }, ymax, yt, ytt, cut: cutText(cn, cv), spot, redPct, pd, pp,
     win: [isoAt(wl), isoAt(wr)], cStr, rStr, pr: M[t] > 0 ? [0, M[t]] : null, lm, drop: DROP ? DROP[t] : 0 };
@@ -180,7 +181,7 @@ function spec(t, exact) {
 let DROP = null, dropping = null;
 async function boxDrops(page) {
   const facts = Array.from({ length: F }, (_, t) => { const g = frameFacts(t);
-    return { spot: g.spot, redPct: g.redPct, profitLabel: LOOK.profit, lossLabel: LOOK.loss, nb: NB, w: g.w,
+    return { spot: g.spot, redPct: g.redPct, profitLabel: LOOK.profit, lossLabel: LOOK.loss, signalAt: LOOK.bottom, signalText: LOOK.signal, nb: NB, w: g.w,
       win: [isoAt(g.wl), isoAt(g.wr)], tx: g.tx, date: g.date, pr: M[t] > 0 ? [0, M[t]] : null, cut: cutText(CUTN[t], CUTV[t]) }; });
   const need = await page.evaluate((fr) => window.boxNeeds(fr), facts);
   const HOLD = 60, EASE = 10, held = new Float64Array(F), drop = new Float64Array(F);
