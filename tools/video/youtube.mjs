@@ -1,18 +1,17 @@
-// Posts one of the week's two videos to the channel on YouTube: its left axis at the tallest bar so far (Y-MAX EXPANDS ON ATH)
-// or at each day's own tallest bar (Y-MAX ALWAYS AT 100%; looks.mjs). The Weekly videos workflow's two youtube jobs run it,
-// one for each video, once they are published on GitHub. It speaks the YouTube Data API's resumable upload itself
+// Posts one of the week's two videos to the channel on YouTube: every bar as its percent of the day's realized cap (usd)
+// or of its supply (btc; looks.mjs), on the left axis fixed at 0 to 4%. The Weekly videos workflow's two youtube jobs run
+// it, one for each video, once they are published on GitHub. It speaks the YouTube Data API's resumable upload itself
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
 // so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
 //
 // The video goes up unlisted: anyone with the link can watch it (the site's video buttons), but it is shown neither
-// on the channel nor in search. Its title is the chart's own title for its last day, which names its look. Until the
-// Google Cloud project
-// behind the credentials passes YouTube's API audit, YouTube records every upload as private instead, whatever is
-// asked for here.
+// on the channel nor in search. Its title is the chart's own title for its last day, which names its weighting. Until
+// the Google Cloud project behind the credentials passes YouTube's API audit, YouTube records every upload as private
+// instead, whatever is asked for here.
 //
 //   YOUTUBE_CLIENT_ID=… YOUTUBE_CLIENT_SECRET=… YOUTUBE_REFRESH_TOKEN=… node tools/video/youtube.mjs FILE START END [LOOK]
 //
-// (LOOK: ath, the default, or fit) prints id=<the video's id> and privacy=<the privacy YouTube recorded> for
+// (LOOK: usd, the default, or btc) prints id=<the video's id> and privacy=<the privacy YouTube recorded> for
 // $GITHUB_OUTPUT. With --check instead of FILE START END it only asks Google for an access token with the three secrets
 // and says whether that worked.
 // The secrets are trimmed first: a token pasted with a line break after it is, to Google, a token it never issued.
@@ -28,26 +27,27 @@ const PRIVACY = new Set(["private", "unlisted", "public"]);
 
 const day = (d, opts) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
 
-// The chart's title on the video's last day, as the site and the video print it ("… (USD Value, Y-Max Expands on ATH) as of
-// 24 Sept 2026").
-export function videoTitle(end, name = "ath") {
+// The chart's title on the video's last day, as the site and the video print it ("Bitcoin: Percent of Realized Cap by
+// Price When Last Moved as of 26 Sept 2026").
+export function videoTitle(end, name = "usd") {
   return titleStart(name) + day(end, { day: "2-digit", month: "short", year: "numeric" });
 }
 
-// Where each look ends the left axis, in the description's words.
-const AXIS = {
-  ath: "the left axis ending at the tallest bar so far, so it grows only when a bar reaches a new all-time high",
-  fit: "the left axis ending at each day's own tallest bar, so the tallest bar always reaches the top",
+// What each look weighs the coins by and what its bars are a percent of, in the description's words.
+const WEIGHT = {
+  usd: "weighed by what it was worth then, each bar drawn as its percent of that day's total value when last moved (the realized cap)",
+  btc: "counted in coins, each bar drawn as its percent of that day's supply",
 };
-const TAGS = { ath: ["all-time high"], fit: ["100%"] };
+const TAGS = { usd: ["realized cap", "percent"], btc: ["bitcoin supply distribution", "percent"] };
 
-export function videoDescription(start, end, name = "ath") {
+export function videoDescription(start, end, name = "usd") {
   look(name);
   const long = (d) => day(d, { day: "numeric", month: "long", year: "numeric" });
   return [
-    "Every bitcoin last moved at some price. This is the whole supply sorted by that price and weighed by what it was " +
-      "worth then (the URPD, UTXO Realised Price Distribution), each bar split into 23 age bands by how long its coins " +
-      "have sat unmoved, with " + AXIS[name] + ", every day from " + long(start) + " to " + long(end) + ".",
+    "Every bitcoin last moved at some price. This is the whole supply sorted by that price (the URPD, UTXO Realised " +
+      "Price Distribution) and " + WEIGHT[name] + ", on a left axis fixed at 0 to 4% so the bars cover the same area of " +
+      "the chart every day, each bar split into 23 age bands by how long its coins have sat unmoved, every day from " +
+      long(start) + " to " + long(end) + ".",
     "",
     "Any day, in your browser: https://bitcoinsupplychart.com",
     "",
@@ -56,7 +56,7 @@ export function videoDescription(start, end, name = "ath") {
 }
 
 // The video resource sent with the upload (snippet and status parts).
-export function metadata(start, end, name = "ath") {
+export function metadata(start, end, name = "usd") {
   return {
     snippet: {
       title: videoTitle(end, name),
@@ -177,7 +177,7 @@ export async function checkToken({ credentials, endpoints = ENDPOINTS, tries = 3
   return true;
 }
 
-export async function post({ file, start, end, name = "ath", credentials, endpoints = ENDPOINTS, tries = 8, wait = backoff, log = console.error }) {
+export async function post({ file, start, end, name = "usd", credentials, endpoints = ENDPOINTS, tries = 8, wait = backoff, log = console.error }) {
   const o = { endpoints, tries, wait, log };
   const meta = metadata(start, end, name);   // an unknown look stops here, before anything is sent
   const size = fs.statSync(file).size;
@@ -194,10 +194,10 @@ export async function post({ file, start, end, name = "ath", credentials, endpoi
 export const githubOutput = ({ id, privacy }) => `id=${id}\nprivacy=${privacy}\n`;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])) {
-  const [file, start, end, name = "ath"] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
+  const [file, start, end, name = "usd"] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
   const check = file === "--check";
-  if (!check && (!file || !isDay(start) || !isDay(end) || !Object.hasOwn(AXIS, name))) {
-    console.error("usage: node tools/video/youtube.mjs FILE START END [ath|fit] | --check"); process.exit(2);
+  if (!check && (!file || !isDay(start) || !isDay(end) || !Object.hasOwn(WEIGHT, name))) {
+    console.error("usage: node tools/video/youtube.mjs FILE START END [usd|btc] | --check"); process.exit(2);
   }
   const { credentials, padded } = credentialsFrom(process.env);
   if (!credentials.clientId || !credentials.clientSecret || !credentials.refreshToken) {
