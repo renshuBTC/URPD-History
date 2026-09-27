@@ -69,7 +69,7 @@ test('ALWAYS AT 100%, the default, ends the left axis at the day\'s own tallest 
   assert.ok(close(Math.max(...values), top(h)), 'no bar is cut off, and the tallest touches the top');
   let bars = element('chart').data.filter((t) => t.type === 'bar');
   assert.equal(bars.length, 23);
-  assert.match(element('chart').layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, Y-Max Always at 100%\) as of 05 Jan 2020<\/b>$/);
+  assert.match(element('chart').layout.title.text, /^<b>Bitcoin URPD \(USD Value, Y-Max Always at 100%\) as of 05 Jan 2020<\/b>$/);
   assert.equal(element('chart').layout.yaxis.tickvals.length, 21, 'twenty labelled steps');
   element('btnAth').onclick();
   assert.deepEqual([c.yFit, element('btnAth').getAttribute('aria-pressed'), element('btnFit').getAttribute('aria-pressed')], [false, 'true', 'false']);
@@ -79,7 +79,7 @@ test('ALWAYS AT 100%, the default, ends the left axis at the day\'s own tallest 
   assert.ok(top(h) > m.dayTop(4) * 2, 'a short day after a tall one keeps the taller axis');
   bars = element('chart').data.filter((t) => t.type === 'bar');
   assert.equal(bars.length, 23, 'the same bars, coloured by age band');
-  assert.match(element('chart').layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, Y-Max Expands on ATH\) as of 05 Jan 2020<\/b>$/);
+  assert.match(element('chart').layout.title.text, /^<b>Bitcoin URPD \(USD Value, Y-Max Expands on ATH\) as of 05 Jan 2020<\/b>$/);
   assert.equal(element('chart').layout.yaxis.tickvals.length, 21, 'still twenty labelled steps');
   // A second press of the button that is on changes nothing.
   const before = c.chartRenderSeq;

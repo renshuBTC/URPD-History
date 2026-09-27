@@ -69,9 +69,9 @@ const quiet = { wait: async () => {}, log: () => {} };
 
 test('the title is the chart\'s own title on the video\'s last day, naming its look, and nothing in the text is refused by YouTube', async () => {
   const { videoTitle, metadata } = await load();
-  assert.equal(videoTitle('2026-09-24'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of 24 Sept 2026');
-  assert.equal(videoTitle('2026-06-07', 'ath'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of 07 Jun 2026');
-  assert.equal(videoTitle('2026-10-01', 'fit'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Always at 100%) as of 01 Oct 2026');
+  assert.equal(videoTitle('2026-09-24'), 'Bitcoin URPD (USD Value, Y-Max Expands on ATH) as of 24 Sept 2026');
+  assert.equal(videoTitle('2026-06-07', 'ath'), 'Bitcoin URPD (USD Value, Y-Max Expands on ATH) as of 07 Jun 2026');
+  assert.equal(videoTitle('2026-10-01', 'fit'), 'Bitcoin URPD (USD Value, Y-Max Always at 100%) as of 01 Oct 2026');
   const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   for (const [key, look] of [['titleUSDAth', 'ath'], ['titleUSDFit', 'fit']]) {
     const site = new RegExp(key + ': "([^"]+)"').exec(index)[1];
@@ -105,7 +105,7 @@ test('a clean upload: token, session, the whole file in one request, and the id 
     assert.equal(s.headers.authorization, 'Bearer at');
     assert.equal(Number(s.headers['x-upload-content-length']), fs.statSync(file).size);
     assert.equal(s.headers['x-upload-content-type'], 'video/mp4');
-    assert.equal(s.meta.snippet.title, 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of 24 Sept 2026');
+    assert.equal(s.meta.snippet.title, 'Bitcoin URPD (USD Value, Y-Max Expands on ATH) as of 24 Sept 2026');
     assert.equal(g.seen.puts.length, 1);
     assert.ok(g.received().equals(fs.readFileSync(file)), 'every byte, in order');
   } finally { g.close(); }
@@ -117,7 +117,7 @@ test('the Y-MAX ALWAYS AT 100% video is posted under its own title, and an unkno
   try {
     const r = await post({ file, start: '2010-05-18', end: '2026-09-24', name: 'fit', credentials: CREDS, endpoints: g.endpoints, ...quiet });
     assert.deepEqual(r, { id: 'Abc_123-xyZ', privacy: 'unlisted' });
-    assert.equal(g.seen.start[0].meta.snippet.title, 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Always at 100%) as of 24 Sept 2026');
+    assert.equal(g.seen.start[0].meta.snippet.title, 'Bitcoin URPD (USD Value, Y-Max Always at 100%) as of 24 Sept 2026');
   } finally { g.close(); }
   g = await google();
   try {

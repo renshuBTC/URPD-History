@@ -24,4 +24,4 @@ export function look(name) {
 
 // The chart's title up to its date, worded as the site's English titles (titleUSDAth and titleUSDFit there): the
 // videos are drawn in USD. YouTube takes it as it is.
-export const titleStart = (name) => `Bitcoin Supply by Price When Last Moved (USD Value, ${look(name).tag}) as of `;
+export const titleStart = (name) => `Bitcoin URPD (USD Value, ${look(name).tag}) as of `;
