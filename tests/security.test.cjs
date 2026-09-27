@@ -164,14 +164,15 @@ test('the jobs that run third-party code or parse its output can read the reposi
   assert.match(publish, /\[ "\$\(find "\$RUNNER_TEMP\/vetted" -type f \| wc -l\)" = "\$\{#FILES\[@\]\}" \]/, 'and nothing else in the folder');
   assert.ok(publish.indexOf('Look at the files without parsing them') < publish.indexOf('actions/attest@'), 'looked at before they are attested');
   assert.ok(publish.indexOf('actions/attest@') < publish.indexOf('replace-asset.sh video'), 'attest before publishing');
-  assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO_USD" "\$RUNNER_TEMP\/vetted\/\$VIDEO_BTC"\n/, 'these two and no other');
+  assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO_USD_AGE" "\$RUNNER_TEMP\/vetted\/\$VIDEO_BTC_AGE" \\\n\s+"\$RUNNER_TEMP\/vetted\/\$VIDEO_USD_LTHSTH" "\$RUNNER_TEMP\/vetted\/\$VIDEO_BTC_LTHSTH"\n/, 'these four and no other');
   assert.equal((publish.match(/replace-asset\.sh video /g) || []).length, 1);
   // The YouTube credentials reach two steps of each youtube job (the check for them and its one post) and nothing
   // else in the workflow; the steps that hold them run this repository's own code.
-  assert.equal((video.match(/secrets\./g) || []).length, 12);
-  const POSTS = { 'youtube-usd': 'name: Post the USD video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_USD" "$START" "$END" usd >> "$GITHUB_OUTPUT"',
-    'youtube-btc': 'name: Post the BTC video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_BTC" "$START" "$END" btc >> "$GITHUB_OUTPUT"' };
-  assert.deepEqual([...video.matchAll(/^ {2}(youtube[\w-]*):$/gm)].map(m => m[1]), Object.keys(POSTS), 'these two youtube jobs and no other');
+  assert.equal((video.match(/secrets\./g) || []).length, 24);
+  const post = (tag, env, look) => `name: Post the ${tag} video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$${env}" "$START" "$END" ${look} >> "$GITHUB_OUTPUT"`;
+  const POSTS = { 'youtube-usd-age': post('USD-AGE', 'VIDEO_USD_AGE', 'usd-age'), 'youtube-btc-age': post('BTC-AGE', 'VIDEO_BTC_AGE', 'btc-age'),
+    'youtube-usd-lthsth': post('USD-LTH/STH', 'VIDEO_USD_LTHSTH', 'usd-lthsth'), 'youtube-btc-lthsth': post('BTC-LTH/STH', 'VIDEO_BTC_LTHSTH', 'btc-lthsth') };
+  assert.deepEqual([...video.matchAll(/^ {2}(youtube[\w-]*):$/gm)].map(m => m[1]), Object.keys(POSTS), 'these four youtube jobs and no other');
   for (const name of Object.keys(POSTS)) {
     const youtube = job(video, name);
     assert.equal((youtube.match(/secrets\.YOUTUBE_/g) || []).length, 6, name);
