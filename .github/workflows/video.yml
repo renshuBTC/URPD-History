@@ -1,18 +1,19 @@
 name: Weekly videos
 
-# Once a week, two videos of the whole history for YouTube, one for each place the site can end its left axis
-# (tools/video/looks.mjs): at the tallest bar so far (Y-MAX EXPANDS ON ATH) and at each day's own tallest bar (Y-MAX ALWAYS AT 100%).
+# Once a week, two videos of the whole history for YouTube, one for each weighting the site draws, as it draws it by
+# default (tools/video/looks.mjs): the bars in dollars (USD) with the left axis at each day's tallest bar, and in coins
+# (BTC) with it at the 99.8th percentile of each day's bars.
 # The workflow runs every day all the same, because its first job also keeps the site's axis history current:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
-#               videos' store (the files on the "video-store" release), and decides whether new videos are due: once
+#               videos' store (the files on the "video-store-2" release), and decides whether new videos are due: once
 #               the store reaches seven days past the published ones, or on a run started by hand
 #   2. render:  draws each 4K video with tools/video, each on a runner of its own
 #   3. vet:     accepts each file only if it is exactly the expected video, and rewrites its container keeping only
 #               the picture
 #   4. publish: attests where the videos were built and keeps them on the "video" release, whose notes tell the next
 #               run which day they reach (the site does not link to them)
-#   5. youtube-ath, youtube-fit: post each to YouTube, unlisted (tools/video/youtube.mjs), once the channel's
-#               credentials are set up, each from a job of its own
+#   5. youtube-usd, youtube-btc: post each to YouTube, unlisted
+#               (tools/video/youtube.mjs), once the channel's credentials are set up, each from a job of its own
 #   6. record:  names them in data/youtube.json for the site's two video buttons, once YouTube lets others watch them
 #
 # A run started by hand draws both at once, or with "only" just one of them, outside the weekly cycle: that one is
@@ -28,13 +29,13 @@ name: Weekly videos
 # job could have made, is never read). The publish job signs a build attestation for the vetted files, which anyone
 # can check with `gh attestation verify` (see SECURITY.md). New release files replace the old ones only once fully
 # uploaded (tools/video/replace-asset.sh), so the release never holds half a file. Actions are pinned to full commit
-# hashes. Standard GitHub-hosted runners are free for public repositories; a run that draws the videos takes about an
-# hour and a half, any other a minute.
+# hashes. Standard GitHub-hosted runners are free for public repositories; a run that draws the videos takes about two
+# hours (each video on a runner of its own), any other a minute.
 on:
   schedule:
     # 01:23 UTC, well after yesterday closed and off the top of the hour, when GitHub delays or drops the most
-    # scheduled runs (it can still start them hours late); on the day new videos are due they are out about an hour
-    # and a half after the run starts. The second run only catches up if the first did not happen or found no new
+    # scheduled runs (it can still start them hours late); on the day new videos are due they are out about two hours
+    # after the run starts. The second run only catches up if the first did not happen or found no new
     # day, and otherwise stops after a minute.
     - cron: "23 1 * * *"
     - cron: "23 5 * * *"
@@ -43,7 +44,7 @@ on:
       only:
         description: "Draw and post both videos, or only one of them now, outside the weekly cycle (the release and its week stay as they are)"
         type: choice
-        options: [all, ath, fit]
+        options: [all, usd, btc]
         default: all
 
 permissions: {}   # each job asks for exactly what it needs
@@ -55,12 +56,12 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # The videos' file names on the release, each naming its look: the left axis at the tallest bar so far (Y-MAX
-  # EXPANDS ON ATH) and at each day's own tallest bar (Y-MAX ALWAYS AT 100%, with % written Percent: in a link to the
-  # file it would have to be written %25). Each ends in .mp4: a file ending in .com is a program on Windows. The update
-  # job hands the render and vet jobs the ones a run draws, as their matrix.
-  VIDEO_ATH: BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4
-  VIDEO_FIT: BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4
+  # The videos' file names on the release, each naming its weighting. Each ends in .mp4: a file ending in .com is a
+  # program on Windows. The update job hands the render and vet jobs the ones a run draws, as their matrix. (The videos
+  # drawn before them, BitcoinSupplyChart.com-*.mp4, stay on the release under their own names: nothing here replaces
+  # them.)
+  VIDEO_USD: BitcoinURPD.com-USD.mp4
+  VIDEO_BTC: BitcoinURPD.com-BTC.mp4
 
 jobs:
   update:
@@ -73,7 +74,8 @@ jobs:
       contents: write   # the axis-history commit and the release files
     outputs:
       render: ${{ steps.store.outputs.render }}
-      start: ${{ steps.store.outputs.start }}
+      start: ${{ steps.store.outputs.start }}           # the BTC video's first day
+      start_usd: ${{ steps.store.outputs.start_usd }}   # the USD video's
       end: ${{ steps.store.outputs.end }}
       only: ${{ steps.store.outputs.only }}         # all, or the one look a run by hand draws
       looks: ${{ steps.store.outputs.looks }}       # the looks this run draws, as a JSON list
@@ -110,7 +112,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/store"
           # An empty release (the store lost) is a store to rebuild, not an error, though gh refuses to download
           # nothing; a missing release still stops the run.
-          gh release download video-store --dir "$RUNNER_TEMP/store" || [ "$(gh release view video-store --json assets --jq '.assets | length')" = 0 ]
+          gh release download video-store-2 --dir "$RUNNER_TEMP/store" || [ "$(gh release view video-store-2 --json assets --jq '.assets | length')" = 0 ]
           # A run stopped between the two halves of a swap (replace-asset.sh) can leave a file only under its
           # temporary name. Take it back under its real name rather than stall every run after it; a year file that
           # has run ahead of meta.json is read only as far as meta.json goes (store.mjs).
@@ -124,13 +126,16 @@ jobs:
           # The year files first and meta.json last (store.mjs lists them in that order), so a run stopped part way
           # leaves a store the next run can still read.
           mapfile -t CHANGED < "$RUNNER_TEMP/changed.txt"
-          [ "${#CHANGED[@]}" = 0 ] || bash tools/video/replace-asset.sh video-store "${CHANGED[@]}"
+          [ "${#CHANGED[@]}" = 0 ] || bash tools/video/replace-asset.sh video-store-2 "${CHANGED[@]}"
           END=$(node -p "require(process.env.RUNNER_TEMP + '/store/meta.json').days.at(-1)[0]")
           echo "end=$END" >> "$GITHUB_OUTPUT"
-          # The video's first day: the first with anything on the chart (tools/video/store.mjs firstShownIndex).
-          START=$(node --input-type=module -e "import { readStore, firstShownIndex } from './tools/video/store.mjs';
-            const s = readStore(process.env.RUNNER_TEMP + '/store'); console.log(s.meta.days[firstShownIndex(s.meta, s.bars)][0]);")
+          # Each video's first day (tools/video/store.mjs startIndex): in coins (BTC) the first with anything on
+          # the chart, in dollars (USD) the first with a realized cap above zero.
+          STARTS=$(node --input-type=module -e "import { readStore, startIndex } from './tools/video/store.mjs';
+            const s = readStore(process.env.RUNNER_TEMP + '/store'); console.log(s.meta.days[startIndex(s, 'btc')][0], s.meta.days[startIndex(s, 'usd')][0]);")
+          read -r START START_USD <<< "$STARTS"
           echo "start=$START" >> "$GITHUB_OUTPUT"
+          echo "start_usd=$START_USD" >> "$GITHUB_OUTPUT"
           # The published videos' last day: the last date in their release notes (see publish), none before the first
           # videos. Only a 404, no such release, means none: any other failure to read them, after a few tries, stops
           # the run rather than pass for "no videos yet" and draw new ones at once. (gh release view is not asked: it
@@ -162,14 +167,15 @@ jobs:
           fi
           # Which videos: both, or on a run by hand the one asked for, with their file names (env above).
           case "${ONLY:-all}" in
-            all) LOOKS='["ath","fit"]' ;;
-            ath|fit) LOOKS="[\"$ONLY\"]" ;;
+            all) LOOKS='["usd","btc"]' ;;
+            usd|btc) LOOKS="[\"$ONLY\"]" ;;
             *) echo "only: '$ONLY'" >&2; exit 1 ;;
           esac
           {
             echo "only=${ONLY:-all}"
             echo "looks=$LOOKS"
-            echo "include=$(jq -c --arg ath "$VIDEO_ATH" --arg fit "$VIDEO_FIT" 'map({look: ., file: {ath: $ath, fit: $fit}[.]})' <<< "$LOOKS")"
+            echo "include=$(jq -c --arg usd "$VIDEO_USD" --arg btc "$VIDEO_BTC" \
+              'map({look: ., file: {usd: $usd, btc: $btc}[.]})' <<< "$LOOKS")"
           } >> "$GITHUB_OUTPUT"
 
       - name: Hand the store to the renderer
@@ -189,8 +195,8 @@ jobs:
     # ffmpeg's output is checked exactly, so moving to a new Ubuntu is done on purpose.
     runs-on: ubuntu-24.04
     timeout-minutes: 240
-    # One runner for each video the run draws: its look (tools/video/looks.mjs) and its file name (VIDEO_ATH,
-    # VIDEO_FIT), from the update job. One that fails does not cancel the others, so Re-run failed jobs draws only the
+    # One runner for each video the run draws: its look (tools/video/looks.mjs) and its file name (VIDEO_USD, VIDEO_BTC),
+    # from the update job. One that fails does not cancel the others, so Re-run failed jobs draws only the
     # failed one again.
     strategy:
       fail-fast: false
@@ -294,14 +300,14 @@ jobs:
       # Each vetted video the run drew, by its exact name. A pattern would also take in any other artifact of this run
       # whose name matched, and one made by the render job (third-party code) could then have replaced a vetted file.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: contains(fromJSON(needs.update.outputs.looks), 'ath')
+        if: contains(fromJSON(needs.update.outputs.looks), 'usd')
         with:
-          name: video-vetted-ath
+          name: video-vetted-usd
           path: ${{ runner.temp }}/vetted
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: contains(fromJSON(needs.update.outputs.looks), 'fit')
+        if: contains(fromJSON(needs.update.outputs.looks), 'btc')
         with:
-          name: video-vetted-fit
+          name: video-vetted-btc
           path: ${{ runner.temp }}/vetted
 
       - name: Look at the files without parsing them
@@ -327,37 +333,39 @@ jobs:
           subject-path: ${{ runner.temp }}/vetted/*.mp4
 
       # The release holds the two videos of one week together, and its notes set the next week's date: a run by hand
-      # for one video leaves both as they are (its video is attested above and posted to YouTube below).
+      # for one video leaves them all as they are (its video is attested above and posted to YouTube below).
       - name: Publish the videos
         if: needs.update.outputs.only == 'all'
         env:
           START: ${{ needs.update.outputs.start }}
+          START_USD: ${{ needs.update.outputs.start_usd }}
           END: ${{ needs.update.outputs.end }}
         run: |
-          [[ "$START" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "days: '$START' '$END'" >&2; exit 1; }
-          SHA_ATH=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_ATH" | cut -d' ' -f1)
-          SHA_FIT=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_FIT" | cut -d' ' -f1)
-          # The last date in these notes is how the next run knows which day the published videos reach.
-          NOTES="Every day from $START (the first with anything on the chart) to $END, 5 minutes at 60 fps, 3840x2160, H.264, in two videos: $VIDEO_ATH with the left axis at the tallest bar so far (Y-MAX EXPANDS ON ATH), and $VIDEO_FIT with it at each day's own tallest bar (Y-MAX ALWAYS AT 100%). Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files.
+          for d in "$START" "$START_USD" "$END"; do [[ "$d" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "day: '$d'" >&2; exit 1; }; done
+          SHA_USD=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_USD" | cut -d' ' -f1)
+          SHA_BTC=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_BTC" | cut -d' ' -f1)
+          # The last date in these notes is how the next run knows which day the published videos reach: none may
+          # follow $END.
+          NOTES="Two videos, one for each of the site's weightings, as the site draws it by default: $VIDEO_USD (the bars in dollars, the left axis at each day's tallest bar), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC (the bars in coins, the left axis at the 99.8th percentile of each day's bars, the first bar running off the top with its height printed there), every day from $START (the first with anything on the chart), both to $END. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The videos drawn before them (BitcoinSupplyChart.com-*.mp4) are kept here as they were.
 
-          SHA-256 of $VIDEO_ATH: $SHA_ATH
-          SHA-256 of $VIDEO_FIT: $SHA_FIT
-          Check either: gh attestation verify FILE --repo $GITHUB_REPOSITORY (see SECURITY.md)"
+          SHA-256 of $VIDEO_USD: $SHA_USD
+          SHA-256 of $VIDEO_BTC: $SHA_BTC
+          Check any file here: gh attestation verify FILE --repo $GITHUB_REPOSITORY (see SECURITY.md)"
           gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history videos (4K)" --notes "$NOTES"
-          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO_ATH" "$RUNNER_TEMP/vetted/$VIDEO_FIT"
+          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO_USD" "$RUNNER_TEMP/vetted/$VIDEO_BTC"
           # Retried: notes left behind would name the old files' SHA-256.
           for k in 1 2 3 4 5; do gh release edit video --notes "$NOTES" && break; [ "$k" = 5 ] && exit 1; sleep $((k * 5)); done
 
-  youtube-ath:
-    # Posts the Y-MAX EXPANDS ON ATH video to YouTube, unlisted: anyone with the link can watch it (the site's video button
-    # links it), but it is shown neither on the channel nor in search. Its title is the chart's own title on its last
-    # day, which names its look. The channel's OAuth credentials are three repository secrets (see README), seen only by
-    # the two steps that use them. Without them the job does nothing, so the videos are published the same before
-    # YouTube is set up. A job of its own, as is the Y-MAX ALWAYS AT 100% one: one video's trouble does not keep the other off
-    # YouTube, and a failed post can be run again (Re-run failed jobs) without posting the other twice. Only when the
-    # run drew this video.
+  youtube-usd:
+    # Posts the USD video (the bars in dollars) to YouTube, unlisted: anyone with the link can watch it (the site's
+    # video button links it), but it is shown neither on the channel nor in search. Its title is the chart's own title on
+    # its last day, which names its weighting. The channel's OAuth credentials are three repository secrets (see README), seen
+    # only by the two steps that use them. Without them the job does nothing, so the videos are published the same
+    # before YouTube is set up. A job of its own, as is each of the others: one video's trouble does not keep the others
+    # off YouTube, and a failed post can be run again (Re-run failed jobs) without posting the others twice. Only when
+    # the run drew this video.
     needs: [update, publish]
-    if: contains(fromJSON(needs.update.outputs.looks), 'ath')
+    if: contains(fromJSON(needs.update.outputs.looks), 'usd')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -386,25 +394,24 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: steps.creds.outputs.found == 'yes'
         with:
-          name: video-vetted-ath
+          name: video-vetted-usd
           path: ${{ runner.temp }}/vetted
 
-      - name: Post the Y-MAX EXPANDS ON ATH video to YouTube
+      - name: Post the USD video to YouTube
         id: post
         if: steps.creds.outputs.found == 'yes'
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          START: ${{ needs.update.outputs.start }}
+          START: ${{ needs.update.outputs.start_usd }}
           END: ${{ needs.update.outputs.end }}
-        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_ATH" "$START" "$END" ath >> "$GITHUB_OUTPUT"
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_USD" "$START" "$END" usd >> "$GITHUB_OUTPUT"
 
-  youtube-fit:
-    # Posts the Y-MAX ALWAYS AT 100% video to YouTube, as youtube-ath posts the Y-MAX EXPANDS ON ATH one (see there), under the title
-    # the chart has with that button on.
+  youtube-btc:
+    # Posts the BTC video (the bars in coins) to YouTube, as youtube-usd posts the USD one (see there).
     needs: [update, publish]
-    if: contains(fromJSON(needs.update.outputs.looks), 'fit')
+    if: contains(fromJSON(needs.update.outputs.looks), 'btc')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -433,10 +440,10 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: steps.creds.outputs.found == 'yes'
         with:
-          name: video-vetted-fit
+          name: video-vetted-btc
           path: ${{ runner.temp }}/vetted
 
-      - name: Post the Y-MAX ALWAYS AT 100% video to YouTube
+      - name: Post the BTC video to YouTube
         id: post
         if: steps.creds.outputs.found == 'yes'
         env:
@@ -445,17 +452,17 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           START: ${{ needs.update.outputs.start }}
           END: ${{ needs.update.outputs.end }}
-        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_FIT" "$START" "$END" fit >> "$GITHUB_OUTPUT"
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_BTC" "$START" "$END" btc >> "$GITHUB_OUTPUT"
 
   record:
     # Names the new videos in data/youtube.json for the site's two video buttons. A video that others cannot watch yet
     # (a private upload, or none because its post failed) is not recorded: its button keeps the last one they could, or
-    # opens the channel. Runs when either post was viewable, also when the other failed.
-    needs: [update, youtube-ath, youtube-fit]
+    # opens the channel. Runs when any post was viewable, also when others failed.
+    needs: [update, youtube-usd, youtube-btc]
     if: >-
       ${{ !cancelled() && (
-        needs.youtube-ath.outputs.privacy == 'unlisted' || needs.youtube-ath.outputs.privacy == 'public' ||
-        needs.youtube-fit.outputs.privacy == 'unlisted' || needs.youtube-fit.outputs.privacy == 'public') }}
+        needs.youtube-usd.outputs.privacy == 'unlisted' || needs.youtube-usd.outputs.privacy == 'public' ||
+        needs.youtube-btc.outputs.privacy == 'unlisted' || needs.youtube-btc.outputs.privacy == 'public') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -468,22 +475,25 @@ jobs:
           ref: main
       - name: Record the latest videos
         env:
-          ATH_ID: ${{ needs.youtube-ath.outputs.id }}
-          ATH_PRIVACY: ${{ needs.youtube-ath.outputs.privacy }}
-          FIT_ID: ${{ needs.youtube-fit.outputs.id }}
-          FIT_PRIVACY: ${{ needs.youtube-fit.outputs.privacy }}
+          USD_ID: ${{ needs.youtube-usd.outputs.id }}
+          USD_PRIVACY: ${{ needs.youtube-usd.outputs.privacy }}
+          BTC_ID: ${{ needs.youtube-btc.outputs.id }}
+          BTC_PRIVACY: ${{ needs.youtube-btc.outputs.privacy }}
           END: ${{ needs.update.outputs.end }}
         run: |
           [[ "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "end: '$END'" >&2; exit 1; }
           # Each video: today's upload if others can watch it, else whatever was recorded for it before. ("end" is
           # quoted in jq, where a bare end is a keyword.)
           viewable() { [[ ( "$2" = unlisted || "$2" = public ) && "$1" =~ ^[A-Za-z0-9_-]{11}$ ]]; }
-          if viewable "$ATH_ID" "$ATH_PRIVACY"; then ATH=$(jq -n --arg id "$ATH_ID" --arg day "$END" '{id: $id, "end": $day}')
-          else ATH=$(jq '.ath // null' data/youtube.json); fi
-          if viewable "$FIT_ID" "$FIT_PRIVACY"; then FIT=$(jq -n --arg id "$FIT_ID" --arg day "$END" '{id: $id, "end": $day}')
-          else FIT=$(jq '.fit // null' data/youtube.json); fi
-          ABOUT="The latest videos on YouTube for the site's two video buttons: ath, the left axis at the tallest bar so far (Y-MAX EXPANDS ON ATH), and fit, at each day's own tallest bar (Y-MAX ALWAYS AT 100%). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
-          jq -n --arg about "$ABOUT" --argjson ath "$ATH" --argjson fit "$FIT" '{about: $about, ath: $ath, fit: $fit}' > "$RUNNER_TEMP/youtube.json"
+          entry() {   # entry KEY ID PRIVACY
+            if viewable "$2" "$3"; then jq -n --arg id "$2" --arg day "$END" '{id: $id, "end": $day}'
+            else jq --arg k "$1" '.[$k] // null' data/youtube.json; fi
+          }
+          USD=$(entry usd "$USD_ID" "$USD_PRIVACY")
+          BTC=$(entry btc "$BTC_ID" "$BTC_PRIVACY")
+          ABOUT="The latest videos on YouTube for the site's two video buttons, one for each weighting: usd, the bars in dollars (FULL HISTORY VIDEO (USD)), and btc, in coins (FULL HISTORY VIDEO (BTC)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
+          jq -n --arg about "$ABOUT" --argjson usd "$USD" --argjson btc "$BTC" \
+            '{about: $about, usd: $usd, btc: $btc}' > "$RUNNER_TEMP/youtube.json"
           mv "$RUNNER_TEMP/youtube.json" data/youtube.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
