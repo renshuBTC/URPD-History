@@ -1,18 +1,20 @@
-// Posts one of the week's two videos to the channel on YouTube, one for each of the site's weightings (looks.mjs): the
-// bars in dollars (usd), with the left axis at each day's tallest bar, or in coins (btc), with it at the 99.8th
-// percentile of each day's bars. The Weekly videos workflow's two youtube jobs run it, one for each video, once they are
-// published on GitHub. It speaks the YouTube Data API's resumable upload itself
+// Posts one of the week's four videos to the channel on YouTube, one for each of the site's weightings and colourings
+// (looks.mjs): the bars in dollars (usd-), with the left axis at each day's tallest bar, or in coins (btc-), with it at
+// the 99.8th percentile of each day's bars, in their 23 age bands (-age) or split into short- and long-term holders
+// (-lthsth). The Weekly videos workflow's four youtube jobs run it, one for each video, once they are published on
+// GitHub. It speaks the YouTube Data API's resumable upload itself
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
 // so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
 //
 // The video goes up unlisted: anyone with the link can watch it (the site's video buttons), but it is shown neither
-// on the channel nor in search. Its title is the chart's own title for its last day, which names its weighting. Until
+// on the channel nor in search. Its title is the chart's own title for its last day, which names its weighting and
+// colouring. Until
 // the Google Cloud project behind the credentials passes YouTube's API audit, YouTube records every upload as private
 // instead, whatever is asked for here.
 //
 //   YOUTUBE_CLIENT_ID=… YOUTUBE_CLIENT_SECRET=… YOUTUBE_REFRESH_TOKEN=… node tools/video/youtube.mjs FILE START END [LOOK]
 //
-// (LOOK: usd, the default, or btc) prints id=<the video's id> and privacy=<the privacy YouTube recorded> for
+// (LOOK: usd-age, the default, btc-age, usd-lthsth or btc-lthsth) prints id=<the video's id> and privacy=<the privacy YouTube recorded> for
 // $GITHUB_OUTPUT. With --check instead of FILE START END it only asks Google for an access token with the three secrets
 // and says whether that worked.
 // The secrets are trimmed first: a token pasted with a line break after it is, to Google, a token it never issued.
@@ -20,7 +22,7 @@ import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import { fileURLToPath } from "node:url";
-import { look, titleStart } from "./looks.mjs";
+import { LOOKS, look, titleStart } from "./looks.mjs";
 
 export const ENDPOINTS = { token: "https://oauth2.googleapis.com/token", upload: "https://www.googleapis.com/upload/youtube/v3/videos" };
 const RETRY = new Set([500, 502, 503, 504]);   // the answers YouTube says to retry (with backoff)
@@ -28,27 +30,33 @@ const PRIVACY = new Set(["private", "unlisted", "public"]);
 
 const day = (d, opts) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
 
-// The chart's title on the video's last day, as the site and the video print it ("Bitcoin URPD (USD Value) as of
-// 26 Sept 2026", "Bitcoin URPD (BTC) as of 26 Sept 2026").
-export function videoTitle(end, name = "usd") {
+// The chart's title on the video's last day, as the site and the video print it ("Bitcoin URPD (USD Value, AGE) as of
+// 26 Sept 2026", "Bitcoin URPD (BTC, LTH/STH) as of 26 Sept 2026").
+export function videoTitle(end, name = "usd-age") {
   return titleStart(name) + day(end, { day: "2-digit", month: "short", year: "numeric" });
 }
 
-// What each look weighs the coins by and where its left axis ends, in the description's words.
+// What a look weighs the coins by and where its left axis ends, and how its bars are split, in the description's words.
 const WEIGHT = {
   usd: "weighed by what it was worth then, with the left axis at each day's own tallest bar",
   btc: "counted in coins, with the left axis at the 99.8th percentile of each day's bars, so the first bar (every coin " +
     "last moved for less than one bar's width, around ten times any other) runs off the top with its height printed there",
 };
-const TAGS = { usd: ["realized cap"], btc: ["bitcoin supply distribution"] };
+const SPLIT = {
+  age: "each bar split into 23 age bands by how long its coins have sat unmoved",
+  lthsth: "each bar split into short-term holders (STH, the coins that moved within the last 150 days) and long-term " +
+    "holders (LTH, the coins unmoved for 150 days or more)",
+};
+const TAGS = { usd: ["realized cap"], btc: ["bitcoin supply distribution"], age: [], lthsth: ["long-term holders", "short-term holders", "LTH", "STH"] };
+const parts = (name) => { const l = look(name); return [l.coin ? "btc" : "usd", l.split ? "lthsth" : "age"]; };
 
-export function videoDescription(start, end, name = "usd") {
-  look(name);
+export function videoDescription(start, end, name = "usd-age") {
+  const [weight, split] = parts(name);
   const long = (d) => day(d, { day: "numeric", month: "long", year: "numeric" });
   return [
     "Every bitcoin last moved at some price. This is the whole supply sorted by that price (the URPD, UTXO Realised " +
-      "Price Distribution) and " + WEIGHT[name] + ", each bar split into 23 age bands by how long its coins have sat " +
-      "unmoved, every day from " + long(start) + " to " + long(end) + ".",
+      "Price Distribution) and " + WEIGHT[weight] + ", " + SPLIT[split] + ", every day from " + long(start) + " to " +
+      long(end) + ".",
     "",
     "Any day, in your browser: https://www.bitcoinurpd.com",
     "",
@@ -57,12 +65,12 @@ export function videoDescription(start, end, name = "usd") {
 }
 
 // The video resource sent with the upload (snippet and status parts).
-export function metadata(start, end, name = "usd") {
+export function metadata(start, end, name = "usd-age") {
   return {
     snippet: {
       title: videoTitle(end, name),
       description: videoDescription(start, end, name),
-      tags: ["bitcoin", "URPD", "UTXO", "on-chain", "bitcoin supply", "realized price", "cost basis", "UTXO age", "coin age", ...TAGS[name]],
+      tags: ["bitcoin", "URPD", "UTXO", "on-chain", "bitcoin supply", "realized price", "cost basis", "UTXO age", "coin age", ...parts(name).flatMap((p) => TAGS[p])],
       categoryId: "28",   // Science & Technology
       defaultLanguage: "en",
     },
@@ -178,7 +186,7 @@ export async function checkToken({ credentials, endpoints = ENDPOINTS, tries = 3
   return true;
 }
 
-export async function post({ file, start, end, name = "usd", credentials, endpoints = ENDPOINTS, tries = 8, wait = backoff, log = console.error }) {
+export async function post({ file, start, end, name = "usd-age", credentials, endpoints = ENDPOINTS, tries = 8, wait = backoff, log = console.error }) {
   const o = { endpoints, tries, wait, log };
   const meta = metadata(start, end, name);   // an unknown look stops here, before anything is sent
   const size = fs.statSync(file).size;
@@ -195,10 +203,10 @@ export async function post({ file, start, end, name = "usd", credentials, endpoi
 export const githubOutput = ({ id, privacy }) => `id=${id}\nprivacy=${privacy}\n`;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])) {
-  const [file, start, end, name = "usd"] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
+  const [file, start, end, name = "usd-age"] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
   const check = file === "--check";
-  if (!check && (!file || !isDay(start) || !isDay(end) || !Object.hasOwn(WEIGHT, name))) {
-    console.error("usage: node tools/video/youtube.mjs FILE START END [usd|btc] | --check"); process.exit(2);
+  if (!check && (!file || !isDay(start) || !isDay(end) || !Object.hasOwn(LOOKS, name))) {
+    console.error(`usage: node tools/video/youtube.mjs FILE START END [${Object.keys(LOOKS).join("|")}] | --check`); process.exit(2);
   }
   const { credentials, padded } = credentialsFrom(process.env);
   if (!credentials.clientId || !credentials.clientSecret || !credentials.refreshToken) {
