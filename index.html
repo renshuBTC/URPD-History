@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-/9jJuBdQlp83ROjb4oROiICqIUjfdDGGRDtwjzV46x8=' 'sha256-lwsCv4BVHSG0aZYDWPgyebOfKoXHaNiTHYUanzK6wfc=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-4Te4/ozG0uOV8F3586Eq6V7cm9o3VSxVEOz+8vFKE+Y=' 'sha256-lwsCv4BVHSG0aZYDWPgyebOfKoXHaNiTHYUanzK6wfc=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -567,7 +567,7 @@ var CREDIT_NAME_COLOR = "#ffffff";
 // The toolbar keeps its own.
 var CHART_COLORS = { bg: "#0a0a0a", ink: "#ffffff", grid: GRID_COLOR, watermark: WATERMARK_COLOR, credit: "rgba(255,255,255,0.55)",
   line: PRICE_LINE_COLOR, casing: "rgba(10,10,10,0.8)", dash: "#ffffff", boxBg: "rgba(0,0,0,0.92)", boxBorder: "rgba(255,255,255,0.45)",
-  tagBg: "rgba(0,0,0,0.75)", labelBg: "rgba(10,10,10,0.75)", profit: PROFIT_COLOR, loss: LOSS_COLOR };
+  tagBg: "rgba(0,0,0,0.75)", labelBg: "rgba(10,10,10,0.75)", profit: PROFIT_COLOR, loss: LOSS_COLOR, signal: SIGNAL_COLOR };
 function creditLink(name) { return '<a href="https://x.com/' + CREDIT_X[name] + '" style="color:' + CREDIT_NAME_COLOR + '">' + name + "</a>"; }
 // The four video buttons go to the latest videos, which the Weekly videos workflow posts unlisted once a week (not shown
 // on the channel or in search, but open to anyone with the link) and names in data/youtube.json: "usd-age" and
@@ -1518,7 +1518,7 @@ function drawChart(data, plotSeq, navigationSeq) {
   var dayLoss = (isCoin ? data.profitPctCoin : data.profitPct);
   dayLoss = dayLoss === null || dayLoss === undefined ? null : Number((100 - dayLoss).toFixed(1));
   var isBottom = dayLoss !== null && dayLoss >= bottomByMode[viewIdx];
-  var spotLineColor = isBottom ? SIGNAL_COLOR : TH.dash;
+  var spotLineColor = isBottom ? TH.signal : TH.dash;
   var spotBox = null, spotAnn = null; // where the spot price box sits: plot fractions across, pixels down from the top
   if (spot && spot > 0) {
     shapes.push({type:"line",x0:spot,x1:spot,y0:0,y1:1,xref:"x",yref:"paper",line:{color:spotLineColor,width:1,dash:"dash"},layer:"above"});
@@ -1534,7 +1534,7 @@ function drawChart(data, plotSeq, navigationSeq) {
     var lossPct = spotCumul === null ? unavailable : lossShare.toFixed(1) + "%";
     var labelText = hp + spot.toLocaleString("en-US",{maximumFractionDigits: spot < 10 ? 2 : 0}) + "<br><span style='color:" + TH.profit + "'>" + (isCoin ? t("btcProfit") : t("usdProfit")) + profitPct + "</span><br><span style='color:" + TH.loss + "'>" + (isCoin ? t("btcLoss") : t("usdLoss")) + lossPct + "</span>";
     // The bottom signal: a fourth line in the same yellow, naming the threshold it reached, and the box's border too.
-    if (isBottom) labelText += "<br><span style='color:" + SIGNAL_COLOR + "'>" + t("bottomSignal") + bottomByMode[viewIdx] + "%</span>";
+    if (isBottom) labelText += "<br><span style='color:" + TH.signal + "'>" + t("bottomSignal") + bottomByMode[viewIdx] + "%</span>";
     // The label sits to the right of the spot line unless it would run past the plot edge, in which
     // case it flips to the left of the line (estimate: 13px monospace ~7.9px per character, plus box).
     var plotPx = Math.max(200, plotWidthPx());
@@ -1543,7 +1543,7 @@ function drawChart(data, plotSeq, navigationSeq) {
     var flipLabel = (spot / xSpan) + labelFrac > 0.99;
     var boxAt = spot / xSpan + (flipLabel ? -6 : 6) / plotPx;
     spotBox = { x0: flipLabel ? boxAt - labelFrac : boxAt, x1: flipLabel ? boxAt : boxAt + labelFrac, h: labelText.split("<br>").length * 17 + 12 };
-    spotAnn = {x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:flipLabel?"right":"left",xshift:flipLabel?-6:6,yanchor:"top",align:"left",font:{color:TH.ink,size:13,family:FONT},bgcolor:TH.boxBg,bordercolor:isBottom ? SIGNAL_COLOR : TH.boxBorder,borderwidth:1,borderpad:5};
+    spotAnn = {x:spot,y:1,xref:"x",yref:"paper",text:labelText,showarrow:false,xanchor:flipLabel?"right":"left",xshift:flipLabel?-6:6,yanchor:"top",align:"left",font:{color:TH.ink,size:13,family:FONT},bgcolor:TH.boxBg,bordercolor:isBottom ? TH.signal : TH.boxBorder,borderwidth:1,borderpad:5};
     annotations.push(spotAnn);
   }
 
