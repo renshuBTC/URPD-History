@@ -67,34 +67,41 @@ function video(bytes = 3 * 1024 * 1024 + 17) {
 }
 const quiet = { wait: async () => {}, log: () => {} };
 
-test('the title is the chart\'s own title on the video\'s last day, naming its look, and nothing in the text is refused by YouTube', async () => {
+test('the title is the chart\'s own title on the video\'s last day, naming its view, and nothing in the text is refused by YouTube', async () => {
   const { videoTitle, metadata } = await load();
-  assert.equal(videoTitle('2026-09-24'), 'Bitcoin: Percent of Realized Cap by Price When Last Moved as of 24 Sept 2026');
-  assert.equal(videoTitle('2026-06-07', 'usd'), 'Bitcoin: Percent of Realized Cap by Price When Last Moved as of 07 Jun 2026');
-  assert.equal(videoTitle('2026-10-01', 'btc'), 'Bitcoin: Percent of Supply by Price When Last Moved as of 01 Oct 2026');
+  assert.equal(videoTitle('2026-09-24'), 'Bitcoin Supply by Price When Last Moved (USD Value) as of 24 Sept 2026');
+  assert.equal(videoTitle('2026-06-07', 'usd'), 'Bitcoin Supply by Price When Last Moved (USD Value) as of 07 Jun 2026');
+  assert.equal(videoTitle('2026-10-01', 'btc'), 'Bitcoin Supply by Price When Last Moved (BTC) as of 01 Oct 2026');
+  assert.equal(videoTitle('2026-09-24', 'pctusd'), 'Bitcoin: Percent of Realized Cap by Price When Last Moved as of 24 Sept 2026');
+  assert.equal(videoTitle('2026-09-24', 'pctbtc'), 'Bitcoin: Percent of Supply by Price When Last Moved as of 24 Sept 2026');
   const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  for (const [key, look] of [['titleUSD', 'usd'], ['titleBTC', 'btc']]) {
+  for (const [key, look] of [['titleUSD', 'usd'], ['titleBTC', 'btc'], ['titlePctUSD', 'pctusd'], ['titlePctBTC', 'pctbtc']]) {
     const site = new RegExp(key + ': "([^"]+)"').exec(index)[1];
     assert.ok(videoTitle('2026-09-24', look).startsWith(site), look + ': the video is titled with the site\'s own chart title');
   }
-  for (const [look, start, from] of [['usd', '2011-01-31', '31 January 2011'], ['btc', '2010-05-18', '18 May 2010']]) {
-    const m = metadata(start, '2026-09-24', look);
+  const DRAWN = {
+    usd: "and weighed by what it was worth then, with the left axis at each day's own tallest bar, each bar split into 23 age bands",
+    btc: "and counted in coins, with the left axis at each day's own tallest bar, each bar split into 23 age bands",
+    pctusd: "and weighed by what it was worth then, each bar drawn as its percent of that day's total value when last moved (the realized cap), on a left axis fixed at 0 to 4% so the bars cover the same area of the chart every day, each bar split into 23 age bands",
+    pctbtc: "and counted in coins, each bar drawn as its percent of that day's supply, on a left axis fixed at 0 to 4% so the bars cover the same area of the chart every day, each bar split into 23 age bands" };
+  for (const [look, start, from, tag] of [['usd', '2011-01-31', '31 January 2011', 'realized cap'], ['btc', '2010-05-18', '18 May 2010', 'bitcoin supply distribution'],
+    ['pctusd', '2011-01-31', '31 January 2011', 'realized cap'], ['pctbtc', '2010-05-18', '18 May 2010', 'bitcoin supply distribution']]) {
+    const m = metadata(start, '2026-09-24', look), pct = look.startsWith('pct');
     assert.ok(m.snippet.title.length <= 100);
     assert.match(m.snippet.description, new RegExp(`every day from ${from} to 24 September 2026\\.`));
-    assert.match(m.snippet.description, /, on a left axis fixed at 0 to 4% so the bars cover the same area of the chart every day, each bar split into 23 age bands by how long its coins have sat unmoved, /);
+    assert.ok(m.snippet.description.includes(DRAWN[look] + ' by how long its coins have sat unmoved, '), look);
     assert.match(m.snippet.description, /https:\/\/bitcoinsupplychart\.com/);
-    assert.ok(m.snippet.tags.includes('percent'), look);
+    assert.ok(m.snippet.tags.includes(tag), look);
+    assert.equal(m.snippet.tags.includes('percent'), pct, look);
     for (const text of [m.snippet.title, m.snippet.description, ...m.snippet.tags]) assert.doesNotMatch(text, /[<>]/, 'YouTube refuses < and >');
     assert.ok(Buffer.byteLength(m.snippet.description) < 5000);
     assert.ok(m.snippet.tags.join(',').length <= 500, 'YouTube\'s limit on tags');
     assert.deepEqual(m.status, { privacyStatus: 'unlisted', selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube' },
       'unlisted: open to anyone with the link, not listed on the channel or in search');
-    assert.doesNotMatch(m.snippet.description, /Y-max|tallest bar|all-time high/i, 'nothing of the Y-MAX videos');
+    assert.doesNotMatch(m.snippet.description, /Y-max|all-time high|so far/i, 'nothing of the Y-MAX videos');
   }
-  assert.match(metadata('2011-01-31', '2026-09-24').snippet.description, /and weighed by what it was worth then, each bar drawn as its percent of that day's total value when last moved \(the realized cap\), on a left axis/);
-  assert.match(metadata('2010-05-18', '2026-09-24', 'btc').snippet.description, /and counted in coins, each bar drawn as its percent of that day's supply, on a left axis/);
-  assert.ok(metadata('2011-01-31', '2026-09-24').snippet.tags.includes('realized cap'));
-  for (const look of ['nope', 'age', 'lthsth', 'raw', 'ath', 'fit']) assert.throws(() => metadata('2011-01-31', '2026-09-24', look), /no look/, look);
+  assert.equal(metadata('2011-01-31', '2026-09-24').snippet.title, videoTitle('2026-09-24', 'usd'), 'usd unless told otherwise');
+  for (const look of ['nope', 'age', 'lthsth', 'raw', 'ath', 'fit', 'pct']) assert.throws(() => metadata('2011-01-31', '2026-09-24', look), /no look/, look);
 });
 
 test('a clean upload: token, session, the whole file in one request, and the id and privacy YouTube recorded', async () => {
@@ -108,24 +115,28 @@ test('a clean upload: token, session, the whole file in one request, and the id 
     assert.equal(s.headers.authorization, 'Bearer at');
     assert.equal(Number(s.headers['x-upload-content-length']), fs.statSync(file).size);
     assert.equal(s.headers['x-upload-content-type'], 'video/mp4');
-    assert.equal(s.meta.snippet.title, 'Bitcoin: Percent of Realized Cap by Price When Last Moved as of 24 Sept 2026', 'USD VALUE unless told otherwise');
+    assert.equal(s.meta.snippet.title, 'Bitcoin Supply by Price When Last Moved (USD Value) as of 24 Sept 2026', 'USD VALUE unless told otherwise');
     assert.equal(g.seen.puts.length, 1);
     assert.ok(g.received().equals(fs.readFileSync(file)), 'every byte, in order');
   } finally { g.close(); }
 });
 
-test('the BTC video is posted under its own title, and an unknown look sends nothing at all', async () => {
+test('each video is posted under its own title, and an unknown look sends nothing at all', async () => {
   const { post } = await load(), file = video(1000);
-  let g = await google({ privacy: 'unlisted' });
+  for (const [name, start, from, title] of [['btc', '2010-05-18', '18 May 2010', 'Bitcoin Supply by Price When Last Moved (BTC) as of 24 Sept 2026'],
+    ['pctusd', '2011-01-31', '31 January 2011', 'Bitcoin: Percent of Realized Cap by Price When Last Moved as of 24 Sept 2026'],
+    ['pctbtc', '2010-05-18', '18 May 2010', 'Bitcoin: Percent of Supply by Price When Last Moved as of 24 Sept 2026']]) {
+    const g = await google({ privacy: 'unlisted' });
+    try {
+      const r = await post({ file, start, end: '2026-09-24', name, credentials: CREDS, endpoints: g.endpoints, ...quiet });
+      assert.deepEqual(r, { id: 'Abc_123-xyZ', privacy: 'unlisted' }, name);
+      assert.equal(g.seen.start[0].meta.snippet.title, title, name);
+      assert.match(g.seen.start[0].meta.snippet.description, new RegExp(`every day from ${from} to 24 September 2026\\.`), name);
+    } finally { g.close(); }
+  }
+  const g = await google();
   try {
-    const r = await post({ file, start: '2010-05-18', end: '2026-09-24', name: 'btc', credentials: CREDS, endpoints: g.endpoints, ...quiet });
-    assert.deepEqual(r, { id: 'Abc_123-xyZ', privacy: 'unlisted' });
-    assert.equal(g.seen.start[0].meta.snippet.title, 'Bitcoin: Percent of Supply by Price When Last Moved as of 24 Sept 2026');
-    assert.match(g.seen.start[0].meta.snippet.description, /every day from 18 May 2010 to 24 September 2026\./);
-  } finally { g.close(); }
-  g = await google();
-  try {
-    for (const name of ['toString', 'fit']) await assert.rejects(post({ file, start: '2010-05-18', end: '2026-09-24', name, credentials: CREDS, endpoints: g.endpoints, ...quiet }), /no look/, name);
+    for (const name of ['toString', 'fit', 'pct']) await assert.rejects(post({ file, start: '2010-05-18', end: '2026-09-24', name, credentials: CREDS, endpoints: g.endpoints, ...quiet }), /no look/, name);
     assert.equal(g.seen.token.length, 0, 'not even a token asked for');
   } finally { g.close(); }
 });

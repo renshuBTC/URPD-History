@@ -85,8 +85,8 @@ test('the video draws the grid, the watermark and every other colour of the char
   assert.doesNotMatch(page, /RenshuBTC<\/span>|rgba\(255,255,255,0\.08\)/, 'no old watermark annotation or grid colour');
   assert.match(page, /layer: "below", line: \{ width: 0 \}, fillcolor: "rgba\(0,0,0,0\)",\s*label: \{ text: "<b>@RenshuBTC<\/b>", textposition: "middle center", font: \{ family: FONT, size: 50, color: TH\.watermark \} \}/);
   assert.equal((page.match(/gridcolor: TH\.grid/g) || []).length, 2);
-  // page.html's colours are the site's (index.html CHART_COLORS), colour for colour, the backing of the readout and of
-  // the ▲ figure (tagBg) among them.
+  // page.html's colours are the site's (index.html CHART_COLORS), colour for colour, all of them: the backing of the pin's
+  // label (tagBg), which only the site draws, too.
   const c = vm.createContext({ window: { devicePixelRatio: 2 }, document: {}, Math, Date, String, Number, JSON });
   vm.runInContext([...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n'), c);
   const video = JSON.parse(JSON.stringify(c.TH));
