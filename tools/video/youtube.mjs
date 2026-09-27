@@ -1,6 +1,6 @@
 // Posts one of the week's four videos to the channel on YouTube, one for each of the site's views (looks.mjs): the bars
-// in dollars (usd) or coins (btc) with the left axis at each day's own tallest bar, or every bar as its percent of the
-// day's realized cap (pctusd) or supply (pctbtc) on the left axis fixed at 0 to 4%. The Weekly videos workflow's four
+// in dollars (usd) or coins (btc), or every bar as its percent of the day's realized cap (pctusd) or supply (pctbtc), all
+// four with the left axis at each day's own tallest bar. The Weekly videos workflow's four
 // youtube jobs run it, one for each video, once they are published on GitHub. It speaks the YouTube Data API's resumable upload itself
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
 // so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
@@ -35,12 +35,12 @@ export function videoTitle(end, name = "usd") {
 }
 
 // What each look weighs the coins by and how it draws its bars and left axis, in the description's words.
-const SAME_AREA = "on a left axis fixed at 0 to 4% so the bars cover the same area of the chart every day";
+const TALLEST = "with the left axis at each day's own tallest bar";
 const WEIGHT = {
-  usd: "weighed by what it was worth then, with the left axis at each day's own tallest bar",
-  btc: "counted in coins, with the left axis at each day's own tallest bar",
-  pctusd: "weighed by what it was worth then, each bar drawn as its percent of that day's total value when last moved (the realized cap), " + SAME_AREA,
-  pctbtc: "counted in coins, each bar drawn as its percent of that day's supply, " + SAME_AREA,
+  usd: "weighed by what it was worth then, " + TALLEST,
+  btc: "counted in coins, " + TALLEST,
+  pctusd: "weighed by what it was worth then, each bar drawn as its percent of that day's total value when last moved (the realized cap), " + TALLEST,
+  pctbtc: "counted in coins, each bar drawn as its percent of that day's supply, " + TALLEST,
 };
 const TAGS = { usd: ["realized cap"], btc: ["bitcoin supply distribution"], pctusd: ["realized cap", "percent"], pctbtc: ["bitcoin supply distribution", "percent"] };
 

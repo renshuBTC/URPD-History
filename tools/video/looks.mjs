@@ -1,8 +1,8 @@
 // The four videos, one for each view the site draws (index.html, the USD, BTC, % USD and % BTC buttons: setViewMode):
 //   usd     the bars in dollars (every coin's value when it last moved), the left axis at each frame's own tallest bar
 //   btc     the bars in coins, the left axis at each frame's own tallest bar (the first, on every day, as on the site)
-//   pctusd  every bar as its percent of the day's realized cap, on a left axis fixed at 0 to PCT_TOP percent
-//   pctbtc  every bar as its percent of the day's supply, on the same fixed axis
+//   pctusd  every bar as its percent of the day's realized cap, the left axis at each frame's own tallest bar
+//   pctbtc  every bar as its percent of the day's supply, the left axis at each frame's own tallest bar (the first)
 // The USD ones run from 2011-01-31, the first day with a realized cap above $0; the BTC ones from 2010-05-18, when the
 // first price comes into view (store.mjs startIndex). All draw every bar in its 23 age bands (AGE_BANDS and
 // AGE_BAND_COLORS there), stacked from the youngest coins up. tests/video-looks.test.cjs holds all of this to the site's
@@ -12,8 +12,6 @@ export const AGE_LABELS = ["<1h", "1h-1d", "1d-1w", "1w-1m", "1m-2m", "2m-3m", "
 export const AGE_COLORS = ["#f8f919", "#ffbc86", "#fe60a4", "#f20bdb", "#cc0ffc", "#b430fe", "#a43afe", "#983ffe", "#8e42fe", "#8046fe",
   "#6e48fe", "#5a49fe", "#434afe", "#224bfd", "#0353ed", "#0258e0", "#035bd5", "#035dcc", "#035fc5", "#0360bb", "#0361b0", "#0361a5", "#03619a"];
 
-// The % looks' left axis top, in percent of the day's total: the site's PCT_TOP.
-export const PCT_TOP = 4;
 const USD = { coin: false, profit: "USD Value Last Moved In Profit: ", loss: "USD Value Last Moved In Loss: " };
 const BTC = { coin: true, profit: "BTC Supply Last Moved In Profit: ", loss: "BTC Supply Last Moved In Loss: " };
 export const LOOKS = {

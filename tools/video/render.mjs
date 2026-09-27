@@ -2,8 +2,7 @@
 // with anything to draw (startIndex: 2011-01-31 in USD and % USD, 2010-05-18 in BTC and % BTC) to the latest, in 5:00 at
 // 60 fps (18,000 frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many
 // days there are; the chart is the site's, drawn by page.html, in one of the site's four views (looks.mjs): the bars in
-// dollars or coins with the left axis at each frame's own tallest bar, or each bar as its percent of the day's total on
-// a left axis fixed at 0 to PCT_TOP percent.
+// dollars or coins, or each bar as its percent of the day's total, with the left axis at each frame's own tallest bar.
 //
 //   node tools/video/render.mjs STORE_DIR OUT.mp4
 //   env: LOOK (usd, the default; btc, pctusd or pctbtc: see looks.mjs),
@@ -21,7 +20,7 @@ import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { readStore, startIndex } from "./store.mjs";
-import { AGE_LABELS, AGE_COLORS, PCT_TOP, look, titleStart } from "./looks.mjs";
+import { AGE_LABELS, AGE_COLORS, look, titleStart } from "./looks.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -81,9 +80,9 @@ function dayData(i) {
 }
 
 // ---- per-frame axes --------------------------------------------------------------------------------------------
-//   Y(t): the left axis's top, as on the site: the frame's own tallest bar in dollars or coins, every bar counted (in
-//         coins the first, from $0 to one bar width, on every day), so it always reaches the top (the displayed bars are
-//         blends of two days); PCT_TOP percent in the % looks
+//   Y(t): the left axis's top, as on the site: the frame's own tallest bar in dollars, coins or percent, every bar
+//         counted (in coins the first, from $0 to one bar width, on every day), so it always reaches the top (the
+//         displayed bars are blends of two days)
 //   M(t): the price line's top, which only grows: the highest close the line has passed through so far, and the
 //         blended edge itself
 const frameDay = (t) => { const u = F > 1 ? t * (N - 1) / (F - 1) : 0, i0 = Math.min(N - 1, Math.floor(u + 1e-9)), i1 = Math.min(N - 1, i0 + 1); return [i0, i1, i1 === i0 ? 0 : u - i0]; };
@@ -97,13 +96,10 @@ const topOf = (whole) => { let v = 0; for (let j = 0; j < NB; j++) if (whole[j] 
   for (let k = Math.floor((days[0].wl - DAY0) / DAY); k <= Math.ceil((days[0].wr - DAY0) / DAY); k++) if (close[k] > mRun) mRun = close[k];
   for (let t = 0; t < F; t++) {
     const [i0, i1, f] = frameDay(t);
-    if (LOOK.pct) Y[t] = PCT_TOP;
-    else {
-      // (Before any bar has a height, USD before 2011-01-31, the axis reads $0 to $1, as on the site.)
-      const c0 = dayData(i0).cum[A - 1], c1 = dayData(i1).cum[A - 1];
-      let peak = 0; for (let j = 0; j < NB; j++) { const v = c0[j] + (c1[j] - c0[j]) * f; if (v > peak) peak = v; }
-      Y[t] = peak > 0 ? peak : 1;
-    }
+    // (Before any bar has a height, USD before 2011-01-31, the axis reads $0 to $1, as on the site.)
+    const c0 = dayData(i0).cum[A - 1], c1 = dayData(i1).cum[A - 1];
+    let peak = 0; for (let j = 0; j < NB; j++) { const v = c0[j] + (c1[j] - c0[j]) * f; if (v > peak) peak = v; }
+    Y[t] = peak > 0 ? peak : 1;
     const wr = days[i0].wr + (days[i1].wr - days[i0].wr) * f, kr = Math.floor((wr - DAY0) / DAY);
     while (pk <= kr && pk < close.length) { if (close[pk] > pmax) pmax = close[pk]; pk++; }
     M[t] = mRun = Math.max(mRun, priceAt(wr), pmax);
@@ -147,8 +143,8 @@ function spec(t, exact) {
   for (let k = 0; k < A; k++) { const x = a.cum[k], y = b.cum[k], o = new Array(NB); for (let j = 0; j < NB; j++) o[j] = round5(x[j] + (y[j] - x[j]) * f); cum.push(o); }
   const xSpan = NB * w, xv = axisTicks(xSpan), xt = axisLabels(xv, false);
   xt[0] = "\u00a0\u00a0" + xt[0];                         // off the corner, clear of the left axis's 0
-  // A still (exact) is on the day's own axis: its tallest bar, or PCT_TOP.
-  const ymax = exact === undefined ? Y[t] : LOOK.pct ? PCT_TOP : topOf(a.cum[A - 1]) || 1;
+  // A still (exact) is on the day's own axis: its tallest bar.
+  const ymax = exact === undefined ? Y[t] : topOf(a.cum[A - 1]) || 1;
   const yt = axisTicks(ymax), ytt = axisLabels(yt, LOOK.pct ? "pct" : LOOK.coin);
   const cStr = idxDay(Math.floor((wl - DAY0) / DAY) - 1), rStr = idxDay(Math.ceil((wr - DAY0) / DAY) + 1), pd = [], pp = [];
   for (let k = Math.max(0, dayIdx(cStr)); k <= Math.min(dayIdx(rStr), close.length - 1); k++) if (close[k] > 0) { pd.push(idxDay(k)); pp.push(close[k]); }
