@@ -1,8 +1,9 @@
 name: Weekly videos
 
-# Once a week, two videos of the whole history for YouTube, one for each weighting the site draws, as it draws it by
-# default (tools/video/looks.mjs): the bars in dollars (USD) with the left axis at each day's tallest bar, and in coins
-# (BTC) with it at the 99.8th percentile of each day's bars.
+# Once a week, four videos of the whole history for YouTube, one for each weighting and colouring the site draws, as it
+# draws it by default (tools/video/looks.mjs): the bars in dollars (USD) with the left axis at each day's tallest bar,
+# and in coins (BTC) with it at the 99.8th percentile of each day's bars, each stacked in the 23 age bands (AGE) and
+# split into short- and long-term holders (LTH/STH).
 # The workflow runs every day all the same, because its first job also keeps the site's axis history current:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
 #               videos' store (the files on the "video-store-2" release), and decides whether new videos are due: once
@@ -12,11 +13,11 @@ name: Weekly videos
 #               the picture
 #   4. publish: attests where the videos were built and keeps them on the "video" release, whose notes tell the next
 #               run which day they reach (the site does not link to them)
-#   5. youtube-usd, youtube-btc: post each to YouTube, unlisted
+#   5. youtube-usd-age, youtube-btc-age, youtube-usd-lthsth, youtube-btc-lthsth: post each to YouTube, unlisted
 #               (tools/video/youtube.mjs), once the channel's credentials are set up, each from a job of its own
-#   6. record:  names them in data/youtube.json for the site's two video buttons, once YouTube lets others watch them
+#   6. record:  names them in data/youtube.json for the site's four video buttons, once YouTube lets others watch them
 #
-# A run started by hand draws both at once, or with "only" just one of them, outside the weekly cycle: that one is
+# A run started by hand draws all four at once, or with "only" just one of them, outside the weekly cycle: that one is
 # vetted, attested, posted and named for its button as usual, but the release and its notes (which set the week) are
 # left as they are, and the next weekly run draws both together again.
 #
@@ -42,9 +43,9 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Draw and post both videos, or only one of them now, outside the weekly cycle (the release and its week stay as they are)"
+        description: "Draw and post all four videos, or only one of them now, outside the weekly cycle (the release and its week stay as they are)"
         type: choice
-        options: [all, usd, btc]
+        options: [all, usd-age, btc-age, usd-lthsth, btc-lthsth]
         default: all
 
 permissions: {}   # each job asks for exactly what it needs
@@ -60,8 +61,10 @@ env:
   # program on Windows. The update job hands the render and vet jobs the ones a run draws, as their matrix. (The videos
   # drawn before them, BitcoinSupplyChart.com-*.mp4, stay on the release under their own names: nothing here replaces
   # them.)
-  VIDEO_USD: BitcoinURPD.com-USD.mp4
-  VIDEO_BTC: BitcoinURPD.com-BTC.mp4
+  VIDEO_USD_AGE: BitcoinURPD.com-USD-AGE.mp4
+  VIDEO_BTC_AGE: BitcoinURPD.com-BTC-AGE.mp4
+  VIDEO_USD_LTHSTH: BitcoinURPD.com-USD-LTH-STH.mp4
+  VIDEO_BTC_LTHSTH: BitcoinURPD.com-BTC-LTH-STH.mp4
 
 jobs:
   update:
@@ -74,8 +77,8 @@ jobs:
       contents: write   # the axis-history commit and the release files
     outputs:
       render: ${{ steps.store.outputs.render }}
-      start: ${{ steps.store.outputs.start }}           # the BTC video's first day
-      start_usd: ${{ steps.store.outputs.start_usd }}   # the USD video's
+      start: ${{ steps.store.outputs.start }}           # the BTC videos' first day
+      start_usd: ${{ steps.store.outputs.start_usd }}   # the USD videos'
       end: ${{ steps.store.outputs.end }}
       only: ${{ steps.store.outputs.only }}         # all, or the one look a run by hand draws
       looks: ${{ steps.store.outputs.looks }}       # the looks this run draws, as a JSON list
@@ -165,17 +168,17 @@ jobs:
           else
             echo "The published videos run to $SHOWN; the next are drawn once the store reaches $DUE."
           fi
-          # Which videos: both, or on a run by hand the one asked for, with their file names (env above).
+          # Which videos: all four, or on a run by hand the one asked for, with their file names (env above).
           case "${ONLY:-all}" in
-            all) LOOKS='["usd","btc"]' ;;
-            usd|btc) LOOKS="[\"$ONLY\"]" ;;
+            all) LOOKS='["usd-age","btc-age","usd-lthsth","btc-lthsth"]' ;;
+            usd-age|btc-age|usd-lthsth|btc-lthsth) LOOKS="[\"$ONLY\"]" ;;
             *) echo "only: '$ONLY'" >&2; exit 1 ;;
           esac
           {
             echo "only=${ONLY:-all}"
             echo "looks=$LOOKS"
-            echo "include=$(jq -c --arg usd "$VIDEO_USD" --arg btc "$VIDEO_BTC" \
-              'map({look: ., file: {usd: $usd, btc: $btc}[.]})' <<< "$LOOKS")"
+            echo "include=$(jq -c --arg ua "$VIDEO_USD_AGE" --arg ba "$VIDEO_BTC_AGE" --arg ul "$VIDEO_USD_LTHSTH" --arg bl "$VIDEO_BTC_LTHSTH" \
+              'map({look: ., file: {"usd-age": $ua, "btc-age": $ba, "usd-lthsth": $ul, "btc-lthsth": $bl}[.]})' <<< "$LOOKS")"
           } >> "$GITHUB_OUTPUT"
 
       - name: Hand the store to the renderer
@@ -195,7 +198,7 @@ jobs:
     # ffmpeg's output is checked exactly, so moving to a new Ubuntu is done on purpose.
     runs-on: ubuntu-24.04
     timeout-minutes: 240
-    # One runner for each video the run draws: its look (tools/video/looks.mjs) and its file name (VIDEO_USD, VIDEO_BTC),
+    # One runner for each video the run draws: its look (tools/video/looks.mjs) and its file name (VIDEO_USD_AGE and so on),
     # from the update job. One that fails does not cancel the others, so Re-run failed jobs draws only the
     # failed one again.
     strategy:
@@ -300,14 +303,24 @@ jobs:
       # Each vetted video the run drew, by its exact name. A pattern would also take in any other artifact of this run
       # whose name matched, and one made by the render job (third-party code) could then have replaced a vetted file.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: contains(fromJSON(needs.update.outputs.looks), 'usd')
+        if: contains(fromJSON(needs.update.outputs.looks), 'usd-age')
         with:
-          name: video-vetted-usd
+          name: video-vetted-usd-age
           path: ${{ runner.temp }}/vetted
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: contains(fromJSON(needs.update.outputs.looks), 'btc')
+        if: contains(fromJSON(needs.update.outputs.looks), 'btc-age')
         with:
-          name: video-vetted-btc
+          name: video-vetted-btc-age
+          path: ${{ runner.temp }}/vetted
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: contains(fromJSON(needs.update.outputs.looks), 'usd-lthsth')
+        with:
+          name: video-vetted-usd-lthsth
+          path: ${{ runner.temp }}/vetted
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: contains(fromJSON(needs.update.outputs.looks), 'btc-lthsth')
+        with:
+          name: video-vetted-btc-lthsth
           path: ${{ runner.temp }}/vetted
 
       - name: Look at the files without parsing them
@@ -332,7 +345,7 @@ jobs:
         with:
           subject-path: ${{ runner.temp }}/vetted/*.mp4
 
-      # The release holds the two videos of one week together, and its notes set the next week's date: a run by hand
+      # The release holds the four videos of one week together, and its notes set the next week's date: a run by hand
       # for one video leaves them all as they are (its video is attested above and posted to YouTube below).
       - name: Publish the videos
         if: needs.update.outputs.only == 'all'
@@ -342,30 +355,32 @@ jobs:
           END: ${{ needs.update.outputs.end }}
         run: |
           for d in "$START" "$START_USD" "$END"; do [[ "$d" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "day: '$d'" >&2; exit 1; }; done
-          SHA_USD=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_USD" | cut -d' ' -f1)
-          SHA_BTC=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_BTC" | cut -d' ' -f1)
+          sha() { sha256sum "$RUNNER_TEMP/vetted/$1" | cut -d' ' -f1; }
           # The last date in these notes is how the next run knows which day the published videos reach: none may
           # follow $END.
-          NOTES="Two videos, one for each of the site's weightings, as the site draws it by default: $VIDEO_USD (the bars in dollars, the left axis at each day's tallest bar), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC (the bars in coins, the left axis at the 99.8th percentile of each day's bars, the first bar running off the top with its height printed there), every day from $START (the first with anything on the chart), both to $END. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The videos drawn before them (BitcoinSupplyChart.com-*.mp4) are kept here as they were.
+          NOTES="Four videos, one for each of the site's weightings and colourings, as the site draws it by default: $VIDEO_USD_AGE and $VIDEO_USD_LTHSTH (the bars in dollars, the left axis at each day's tallest bar), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC_AGE and $VIDEO_BTC_LTHSTH (the bars in coins, the left axis at the 99.8th percentile of each day's bars, the first bar running off the top with its height printed there), every day from $START (the first with anything on the chart), the -AGE ones stacked in 23 age bands and the -LTH-STH ones split into short- and long-term holders at 150 days, all four to $END. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The videos drawn before them (BitcoinSupplyChart.com-*.mp4) are kept here as they were.
 
-          SHA-256 of $VIDEO_USD: $SHA_USD
-          SHA-256 of $VIDEO_BTC: $SHA_BTC
+          SHA-256 of $VIDEO_USD_AGE: $(sha "$VIDEO_USD_AGE")
+          SHA-256 of $VIDEO_BTC_AGE: $(sha "$VIDEO_BTC_AGE")
+          SHA-256 of $VIDEO_USD_LTHSTH: $(sha "$VIDEO_USD_LTHSTH")
+          SHA-256 of $VIDEO_BTC_LTHSTH: $(sha "$VIDEO_BTC_LTHSTH")
           Check any file here: gh attestation verify FILE --repo $GITHUB_REPOSITORY (see SECURITY.md)"
           gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history videos (4K)" --notes "$NOTES"
-          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO_USD" "$RUNNER_TEMP/vetted/$VIDEO_BTC"
+          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO_USD_AGE" "$RUNNER_TEMP/vetted/$VIDEO_BTC_AGE" \
+            "$RUNNER_TEMP/vetted/$VIDEO_USD_LTHSTH" "$RUNNER_TEMP/vetted/$VIDEO_BTC_LTHSTH"
           # Retried: notes left behind would name the old files' SHA-256.
           for k in 1 2 3 4 5; do gh release edit video --notes "$NOTES" && break; [ "$k" = 5 ] && exit 1; sleep $((k * 5)); done
 
-  youtube-usd:
-    # Posts the USD video (the bars in dollars) to YouTube, unlisted: anyone with the link can watch it (the site's
-    # video button links it), but it is shown neither on the channel nor in search. Its title is the chart's own title on
-    # its last day, which names its weighting. The channel's OAuth credentials are three repository secrets (see README), seen
+  youtube-usd-age:
+    # Posts the USD-AGE video (the bars in dollars, in age bands) to YouTube, unlisted: anyone with the link can watch it (the site's video button links it),
+    # but it is shown neither on the channel nor in search. Its title is the chart's own title on its last day, which
+    # names its weighting and colouring. The channel's OAuth credentials are three repository secrets (see README), seen
     # only by the two steps that use them. Without them the job does nothing, so the videos are published the same
     # before YouTube is set up. A job of its own, as is each of the others: one video's trouble does not keep the others
     # off YouTube, and a failed post can be run again (Re-run failed jobs) without posting the others twice. Only when
     # the run drew this video.
     needs: [update, publish]
-    if: contains(fromJSON(needs.update.outputs.looks), 'usd')
+    if: contains(fromJSON(needs.update.outputs.looks), 'usd-age')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -394,10 +409,10 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: steps.creds.outputs.found == 'yes'
         with:
-          name: video-vetted-usd
+          name: video-vetted-usd-age
           path: ${{ runner.temp }}/vetted
 
-      - name: Post the USD video to YouTube
+      - name: Post the USD-AGE video to YouTube
         id: post
         if: steps.creds.outputs.found == 'yes'
         env:
@@ -406,12 +421,13 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           START: ${{ needs.update.outputs.start_usd }}
           END: ${{ needs.update.outputs.end }}
-        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_USD" "$START" "$END" usd >> "$GITHUB_OUTPUT"
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_USD_AGE" "$START" "$END" usd-age >> "$GITHUB_OUTPUT"
 
-  youtube-btc:
-    # Posts the BTC video (the bars in coins) to YouTube, as youtube-usd posts the USD one (see there).
+  youtube-btc-age:
+    # Posts the BTC-AGE video (the bars in coins, in age bands) to YouTube,
+    # as youtube-usd-age posts the USD-AGE one (see there).
     needs: [update, publish]
-    if: contains(fromJSON(needs.update.outputs.looks), 'btc')
+    if: contains(fromJSON(needs.update.outputs.looks), 'btc-age')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -440,10 +456,10 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: steps.creds.outputs.found == 'yes'
         with:
-          name: video-vetted-btc
+          name: video-vetted-btc-age
           path: ${{ runner.temp }}/vetted
 
-      - name: Post the BTC video to YouTube
+      - name: Post the BTC-AGE video to YouTube
         id: post
         if: steps.creds.outputs.found == 'yes'
         env:
@@ -452,17 +468,113 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           START: ${{ needs.update.outputs.start }}
           END: ${{ needs.update.outputs.end }}
-        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_BTC" "$START" "$END" btc >> "$GITHUB_OUTPUT"
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_BTC_AGE" "$START" "$END" btc-age >> "$GITHUB_OUTPUT"
+
+  youtube-usd-lthsth:
+    # Posts the USD-LTH/STH video (the bars in dollars, short- and long-term holders) to YouTube,
+    # as youtube-usd-age posts the USD-AGE one (see there).
+    needs: [update, publish]
+    if: contains(fromJSON(needs.update.outputs.looks), 'usd-lthsth')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      id: ${{ steps.post.outputs.id }}
+      privacy: ${{ steps.post.outputs.privacy }}
+    steps:
+      - name: Look for the YouTube credentials
+        id: creds
+        env:
+          ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          REFRESH: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          if [ -n "$ID" ] && [ -n "$SECRET" ] && [ -n "$REFRESH" ]; then echo "found=yes" >> "$GITHUB_OUTPUT"
+          else echo "No YouTube credentials in this repository's secrets (see README): not posting."; fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          name: video-vetted-usd-lthsth
+          path: ${{ runner.temp }}/vetted
+
+      - name: Post the USD-LTH/STH video to YouTube
+        id: post
+        if: steps.creds.outputs.found == 'yes'
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          START: ${{ needs.update.outputs.start_usd }}
+          END: ${{ needs.update.outputs.end }}
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_USD_LTHSTH" "$START" "$END" usd-lthsth >> "$GITHUB_OUTPUT"
+
+  youtube-btc-lthsth:
+    # Posts the BTC-LTH/STH video (the bars in coins, short- and long-term holders) to YouTube,
+    # as youtube-usd-age posts the USD-AGE one (see there).
+    needs: [update, publish]
+    if: contains(fromJSON(needs.update.outputs.looks), 'btc-lthsth')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      id: ${{ steps.post.outputs.id }}
+      privacy: ${{ steps.post.outputs.privacy }}
+    steps:
+      - name: Look for the YouTube credentials
+        id: creds
+        env:
+          ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          REFRESH: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          if [ -n "$ID" ] && [ -n "$SECRET" ] && [ -n "$REFRESH" ]; then echo "found=yes" >> "$GITHUB_OUTPUT"
+          else echo "No YouTube credentials in this repository's secrets (see README): not posting."; fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          name: video-vetted-btc-lthsth
+          path: ${{ runner.temp }}/vetted
+
+      - name: Post the BTC-LTH/STH video to YouTube
+        id: post
+        if: steps.creds.outputs.found == 'yes'
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          START: ${{ needs.update.outputs.start }}
+          END: ${{ needs.update.outputs.end }}
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_BTC_LTHSTH" "$START" "$END" btc-lthsth >> "$GITHUB_OUTPUT"
 
   record:
-    # Names the new videos in data/youtube.json for the site's two video buttons. A video that others cannot watch yet
+    # Names the new videos in data/youtube.json for the site's four video buttons. A video that others cannot watch yet
     # (a private upload, or none because its post failed) is not recorded: its button keeps the last one they could, or
     # opens the channel. Runs when any post was viewable, also when others failed.
-    needs: [update, youtube-usd, youtube-btc]
+    needs: [update, youtube-usd-age, youtube-btc-age, youtube-usd-lthsth, youtube-btc-lthsth]
     if: >-
       ${{ !cancelled() && (
-        needs.youtube-usd.outputs.privacy == 'unlisted' || needs.youtube-usd.outputs.privacy == 'public' ||
-        needs.youtube-btc.outputs.privacy == 'unlisted' || needs.youtube-btc.outputs.privacy == 'public') }}
+        needs.youtube-usd-age.outputs.privacy == 'unlisted' || needs.youtube-usd-age.outputs.privacy == 'public' ||
+        needs.youtube-btc-age.outputs.privacy == 'unlisted' || needs.youtube-btc-age.outputs.privacy == 'public' ||
+        needs.youtube-usd-lthsth.outputs.privacy == 'unlisted' || needs.youtube-usd-lthsth.outputs.privacy == 'public' ||
+        needs.youtube-btc-lthsth.outputs.privacy == 'unlisted' || needs.youtube-btc-lthsth.outputs.privacy == 'public') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -475,10 +587,14 @@ jobs:
           ref: main
       - name: Record the latest videos
         env:
-          USD_ID: ${{ needs.youtube-usd.outputs.id }}
-          USD_PRIVACY: ${{ needs.youtube-usd.outputs.privacy }}
-          BTC_ID: ${{ needs.youtube-btc.outputs.id }}
-          BTC_PRIVACY: ${{ needs.youtube-btc.outputs.privacy }}
+          USD_AGE_ID: ${{ needs.youtube-usd-age.outputs.id }}
+          USD_AGE_PRIVACY: ${{ needs.youtube-usd-age.outputs.privacy }}
+          BTC_AGE_ID: ${{ needs.youtube-btc-age.outputs.id }}
+          BTC_AGE_PRIVACY: ${{ needs.youtube-btc-age.outputs.privacy }}
+          USD_LTHSTH_ID: ${{ needs.youtube-usd-lthsth.outputs.id }}
+          USD_LTHSTH_PRIVACY: ${{ needs.youtube-usd-lthsth.outputs.privacy }}
+          BTC_LTHSTH_ID: ${{ needs.youtube-btc-lthsth.outputs.id }}
+          BTC_LTHSTH_PRIVACY: ${{ needs.youtube-btc-lthsth.outputs.privacy }}
           END: ${{ needs.update.outputs.end }}
         run: |
           [[ "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "end: '$END'" >&2; exit 1; }
@@ -489,11 +605,13 @@ jobs:
             if viewable "$2" "$3"; then jq -n --arg id "$2" --arg day "$END" '{id: $id, "end": $day}'
             else jq --arg k "$1" '.[$k] // null' data/youtube.json; fi
           }
-          USD=$(entry usd "$USD_ID" "$USD_PRIVACY")
-          BTC=$(entry btc "$BTC_ID" "$BTC_PRIVACY")
-          ABOUT="The latest videos on YouTube for the site's two video buttons, one for each weighting: usd, the bars in dollars (FULL HISTORY VIDEO (USD)), and btc, in coins (FULL HISTORY VIDEO (BTC)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
-          jq -n --arg about "$ABOUT" --argjson usd "$USD" --argjson btc "$BTC" \
-            '{about: $about, usd: $usd, btc: $btc}' > "$RUNNER_TEMP/youtube.json"
+          UA=$(entry usd-age "$USD_AGE_ID" "$USD_AGE_PRIVACY")
+          BA=$(entry btc-age "$BTC_AGE_ID" "$BTC_AGE_PRIVACY")
+          UL=$(entry usd-lthsth "$USD_LTHSTH_ID" "$USD_LTHSTH_PRIVACY")
+          BL=$(entry btc-lthsth "$BTC_LTHSTH_ID" "$BTC_LTHSTH_PRIVACY")
+          ABOUT="The latest videos on YouTube for the site's four video buttons, one for each weighting and colouring: usd-age and btc-age, the bars in dollars and in coins stacked in age bands (VIDEO (USD-AGE), VIDEO (BTC-AGE)), and usd-lthsth and btc-lthsth, split into short- and long-term holders (VIDEO (USD-LTH/STH), VIDEO (BTC-LTH/STH)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
+          jq -n --arg about "$ABOUT" --argjson ua "$UA" --argjson ba "$BA" --argjson ul "$UL" --argjson bl "$BL" \
+            '{about: $about, "usd-age": $ua, "btc-age": $ba, "usd-lthsth": $ul, "btc-lthsth": $bl}' > "$RUNNER_TEMP/youtube.json"
           mv "$RUNNER_TEMP/youtube.json" data/youtube.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
