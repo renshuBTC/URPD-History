@@ -10,8 +10,10 @@
 //   usd-lthsth  as usd-age, with the bands added up into short-term holders (STH, the first STH_BANDS bands: coins that
 //               moved within the last 150 days) under long-term holders (LTH, the rest), as the site's LTH/STH does
 //   btc-lthsth  as btc-age, split the same way
-// The USD ones run from 2011-01-31, the first day with a realized cap above $0; the BTC ones from 2010-05-18, when the
-// first price comes into view (store.mjs startIndex). tests/video-looks.test.cjs holds all of this to the site's own
+// Each shows the site's bottom signal at the site's default threshold for its weighting (index.html BOTTOM_DEFAULTS:
+// 80% of the value in loss in USD, 50% of the coins in BTC): the dashed line and the price box's border turn yellow and
+// the box adds a line naming the threshold. The USD ones run from 2011-01-31, the first day with a realized cap above
+// $0; the BTC ones from 2010-05-18, when the first price comes into view (store.mjs startIndex). tests/video-looks.test.cjs holds all of this to the site's own
 // values.
 export const AGE_LABELS = ["<1h", "1h-1d", "1d-1w", "1w-1m", "1m-2m", "2m-3m", "3m-4m", "4m-5m", "5m-6m", "6m-9m", "9m-1y", "1y-18m",
   "18m-2y", "2y-3y", "3y-4y", "4y-5y", "5y-6y", "6y-7y", "7y-8y", "8y-10y", "10y-12y", "12y-15y", ">15y"];
@@ -23,15 +25,17 @@ export const STH_BANDS = 8;
 export const HOLDER_LABELS = ["Short-Term Holders (STH)", "Long-Term Holders (LTH)"];
 export const HOLDER_COLORS = ["#e6a817", "#5599ff"];
 
-const USD = { coin: false, yPct: 100, yTitle: "Value When Last Moved [USD]",
+const SIGNAL = "BOTTOM SIGNAL \u2014 In Loss \u2265 ";   // the site's English bottomSignal, then the threshold and %
+const USD = { coin: false, yPct: 100, bottom: 80, signal: SIGNAL, yTitle: "Value When Last Moved [USD]",
   profit: "USD Value Last Moved In Profit: ", loss: "USD Value Last Moved In Loss: " };
-const BTC = { coin: true, yPct: 99.8, yTitle: "Supply [BTC]",
+const BTC = { coin: true, yPct: 99.8, bottom: 50, signal: SIGNAL, yTitle: "Supply [BTC]",
   profit: "BTC Supply Last Moved In Profit: ", loss: "BTC Supply Last Moved In Loss: " };
 export const LOOKS = {
   // tag: the video's name on its button and on YouTube; coin: whether the bars are coins; split: short- and long-term
   // holders rather than the age bands; yPct: the Y-max, the percentile of the frame's bars where the left axis ends (the
-  // site's default for the weighting); the chart's words as the site's English writes them (titleUSDAge, usdInvested,
-  // usdProfit, ... there)
+  // site's default for the weighting); bottom: the bottom signal's threshold, the share in loss (the site's default for
+  // the weighting); the chart's words as the site's English writes them (titleUSDAge, usdInvested, usdProfit,
+  // bottomSignal, ... there)
   "usd-age": { tag: "USD-AGE", split: false, title: "Bitcoin URPD (USD Value, AGE) as of ", ...USD },
   "btc-age": { tag: "BTC-AGE", split: false, title: "Bitcoin URPD (BTC, AGE) as of ", ...BTC },
   "usd-lthsth": { tag: "USD-LTH/STH", split: true, title: "Bitcoin URPD (USD Value, LTH/STH) as of ", ...USD },
