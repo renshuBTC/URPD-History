@@ -1,8 +1,8 @@
 name: Weekly videos
 
-# Once a week, two videos of the whole history for YouTube, one for each weighting the site draws (tools/video/looks.mjs),
-# every bar as its percent of the day's total on a left axis fixed at 0 to 4%: of the realized cap (USD VALUE) and of the
-# supply (BTC).
+# Once a week, four videos of the whole history for YouTube, one for each view the site draws (tools/video/looks.mjs):
+# the bars in dollars (USD VALUE) and in coins (BTC) with the left axis at each day's own tallest bar, and every bar as
+# its percent of the day's realized cap (% USD VALUE) or supply (% BTC) on a left axis fixed at 0 to 4%.
 # The workflow runs every day all the same, because its first job also keeps the site's axis history current:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
 #               videos' store (the files on the "video-store-2" release), and decides whether new videos are due: once
@@ -12,13 +12,13 @@ name: Weekly videos
 #               the picture
 #   4. publish: attests where the videos were built and keeps them on the "video" release, whose notes tell the next
 #               run which day they reach (the site does not link to them)
-#   5. youtube-usd, youtube-btc: post each to YouTube, unlisted (tools/video/youtube.mjs), once the channel's
-#               credentials are set up, each from a job of its own
-#   6. record:  names them in data/youtube.json for the site's two video buttons, once YouTube lets others watch them
+#   5. youtube-usd, youtube-btc, youtube-pctusd, youtube-pctbtc: post each to YouTube, unlisted
+#               (tools/video/youtube.mjs), once the channel's credentials are set up, each from a job of its own
+#   6. record:  names them in data/youtube.json for the site's four video buttons, once YouTube lets others watch them
 #
-# A run started by hand draws both at once, or with "only" just one of them, outside the weekly cycle: that one is
+# A run started by hand draws all four at once, or with "only" just one of them, outside the weekly cycle: that one is
 # vetted, attested, posted and named for its button as usual, but the release and its notes (which set the week) are
-# left as they are, and the next weekly run draws both together again.
+# left as they are, and the next weekly run draws all four together again.
 #
 # The jobs are split by trust. Only this repository's own code runs with a token that can write (update, publish,
 # record), and none of them ever parses a video. The YouTube credentials are seen only by the two steps of each
@@ -42,9 +42,9 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Draw and post both videos, or only one of them now, outside the weekly cycle (the release and its week stay as they are)"
+        description: "Draw and post all four videos, or only one of them now, outside the weekly cycle (the release and its week stay as they are)"
         type: choice
-        options: [all, usd, btc]
+        options: [all, usd, btc, pctusd, pctbtc]
         default: all
 
 permissions: {}   # each job asks for exactly what it needs
@@ -56,12 +56,14 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # The videos' file names on the release, each naming what its bars are a percent of (% written Percent: in a link to
-  # the file it would have to be written %25). Each ends in .mp4: a file ending in .com is a program on Windows. The
-  # update job hands the render and vet jobs the ones a run draws, as their matrix. (The Y-MAX videos drawn in dollars
-  # before them, BitcoinSupplyChart.com-Y-Max-*.mp4, stay on the release under their own names: nothing here replaces them.)
-  VIDEO_USD: BitcoinSupplyChart.com-Percent-of-Realized-Cap.mp4
-  VIDEO_BTC: BitcoinSupplyChart.com-Percent-of-Supply.mp4
+  # The videos' file names on the release, each naming its view (a percent written Percent: in a link to the file % would
+  # have to be written %25). Each ends in .mp4: a file ending in .com is a program on Windows. The update job hands the
+  # render and vet jobs the ones a run draws, as their matrix. (The Y-MAX videos drawn before them,
+  # BitcoinSupplyChart.com-Y-Max-*.mp4, stay on the release under their own names: nothing here replaces them.)
+  VIDEO_USD: BitcoinSupplyChart.com-USD-Value.mp4
+  VIDEO_BTC: BitcoinSupplyChart.com-BTC.mp4
+  VIDEO_PCTUSD: BitcoinSupplyChart.com-Percent-of-Realized-Cap.mp4
+  VIDEO_PCTBTC: BitcoinSupplyChart.com-Percent-of-Supply.mp4
 
 jobs:
   update:
@@ -74,8 +76,8 @@ jobs:
       contents: write   # the axis-history commit and the release files
     outputs:
       render: ${{ steps.store.outputs.render }}
-      start: ${{ steps.store.outputs.start }}           # the BTC video's first day
-      start_usd: ${{ steps.store.outputs.start_usd }}   # the USD video's
+      start: ${{ steps.store.outputs.start }}           # the BTC and % BTC videos' first day
+      start_usd: ${{ steps.store.outputs.start_usd }}   # the USD and % USD videos'
       end: ${{ steps.store.outputs.end }}
       only: ${{ steps.store.outputs.only }}         # all, or the one look a run by hand draws
       looks: ${{ steps.store.outputs.looks }}       # the looks this run draws, as a JSON list
@@ -107,7 +109,7 @@ jobs:
       - name: Add the finished days to the video's store
         id: store
         env:
-          ONLY: ${{ inputs.only }}   # empty on a scheduled run: both
+          ONLY: ${{ inputs.only }}   # empty on a scheduled run: all four
         run: |
           mkdir -p "$RUNNER_TEMP/store"
           # An empty release (the store lost) is a store to rebuild, not an error, though gh refuses to download
@@ -129,8 +131,8 @@ jobs:
           [ "${#CHANGED[@]}" = 0 ] || bash tools/video/replace-asset.sh video-store-2 "${CHANGED[@]}"
           END=$(node -p "require(process.env.RUNNER_TEMP + '/store/meta.json').days.at(-1)[0]")
           echo "end=$END" >> "$GITHUB_OUTPUT"
-          # Each video's first day (tools/video/store.mjs startIndex): BTC's is the first with anything on the chart,
-          # USD's the first with a realized cap above zero.
+          # Each video's first day (tools/video/store.mjs startIndex): in coins (BTC, % BTC) the first with anything on
+          # the chart, in dollars (USD, % USD) the first with a realized cap above zero.
           STARTS=$(node --input-type=module -e "import { readStore, startIndex } from './tools/video/store.mjs';
             const s = readStore(process.env.RUNNER_TEMP + '/store'); console.log(s.meta.days[startIndex(s, 'btc')][0], s.meta.days[startIndex(s, 'usd')][0]);")
           read -r START START_USD <<< "$STARTS"
@@ -165,16 +167,17 @@ jobs:
           else
             echo "The published videos run to $SHOWN; the next are drawn once the store reaches $DUE."
           fi
-          # Which videos: both, or on a run by hand the one asked for, with their file names (env above).
+          # Which videos: all four, or on a run by hand the one asked for, with their file names (env above).
           case "${ONLY:-all}" in
-            all) LOOKS='["usd","btc"]' ;;
-            usd|btc) LOOKS="[\"$ONLY\"]" ;;
+            all) LOOKS='["usd","btc","pctusd","pctbtc"]' ;;
+            usd|btc|pctusd|pctbtc) LOOKS="[\"$ONLY\"]" ;;
             *) echo "only: '$ONLY'" >&2; exit 1 ;;
           esac
           {
             echo "only=${ONLY:-all}"
             echo "looks=$LOOKS"
-            echo "include=$(jq -c --arg usd "$VIDEO_USD" --arg btc "$VIDEO_BTC" 'map({look: ., file: {usd: $usd, btc: $btc}[.]})' <<< "$LOOKS")"
+            echo "include=$(jq -c --arg usd "$VIDEO_USD" --arg btc "$VIDEO_BTC" --arg pctusd "$VIDEO_PCTUSD" --arg pctbtc "$VIDEO_PCTBTC" \
+              'map({look: ., file: {usd: $usd, btc: $btc, pctusd: $pctusd, pctbtc: $pctbtc}[.]})' <<< "$LOOKS")"
           } >> "$GITHUB_OUTPUT"
 
       - name: Hand the store to the renderer
@@ -194,8 +197,8 @@ jobs:
     # ffmpeg's output is checked exactly, so moving to a new Ubuntu is done on purpose.
     runs-on: ubuntu-24.04
     timeout-minutes: 240
-    # One runner for each video the run draws: its look (tools/video/looks.mjs) and its file name (VIDEO_USD,
-    # VIDEO_BTC), from the update job. One that fails does not cancel the others, so Re-run failed jobs draws only the
+    # One runner for each video the run draws: its look (tools/video/looks.mjs) and its file name (VIDEO_USD, VIDEO_BTC,
+    # VIDEO_PCTUSD, VIDEO_PCTBTC), from the update job. One that fails does not cancel the others, so Re-run failed jobs draws only the
     # failed one again.
     strategy:
       fail-fast: false
@@ -308,6 +311,16 @@ jobs:
         with:
           name: video-vetted-btc
           path: ${{ runner.temp }}/vetted
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: contains(fromJSON(needs.update.outputs.looks), 'pctusd')
+        with:
+          name: video-vetted-pctusd
+          path: ${{ runner.temp }}/vetted
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: contains(fromJSON(needs.update.outputs.looks), 'pctbtc')
+        with:
+          name: video-vetted-pctbtc
+          path: ${{ runner.temp }}/vetted
 
       - name: Look at the files without parsing them
         env:
@@ -331,8 +344,8 @@ jobs:
         with:
           subject-path: ${{ runner.temp }}/vetted/*.mp4
 
-      # The release holds the two videos of one week together, and its notes set the next week's date: a run by hand
-      # for one video leaves both as they are (its video is attested above and posted to YouTube below).
+      # The release holds the four videos of one week together, and its notes set the next week's date: a run by hand
+      # for one video leaves them all as they are (its video is attested above and posted to YouTube below).
       - name: Publish the videos
         if: needs.update.outputs.only == 'all'
         env:
@@ -343,28 +356,33 @@ jobs:
           for d in "$START" "$START_USD" "$END"; do [[ "$d" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "day: '$d'" >&2; exit 1; }; done
           SHA_USD=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_USD" | cut -d' ' -f1)
           SHA_BTC=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_BTC" | cut -d' ' -f1)
+          SHA_PCTUSD=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_PCTUSD" | cut -d' ' -f1)
+          SHA_PCTBTC=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_PCTBTC" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published videos reach: none may
           # follow $END.
-          NOTES="Two videos, every bar drawn as its percent of the day's total on a left axis fixed at 0 to 4%: $VIDEO_USD, of the realized cap, every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC, of the supply, every day from $START (the first with anything on the chart), both to $END. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The Y-MAX videos drawn in dollars before them (BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4 and BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4) are kept here as they were.
+          NOTES="Four videos, one for each of the site's views: $VIDEO_USD (the bars in dollars) and $VIDEO_PCTUSD (every bar as its percent of the day's realized cap), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC (the bars in coins) and $VIDEO_PCTBTC (every bar as its percent of the day's supply), every day from $START (the first with anything on the chart), all to $END. The left axis ends at each day's own tallest bar in dollars and coins, and at 4% in percent. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The Y-MAX videos drawn before them (BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4 and BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4) are kept here as they were.
 
           SHA-256 of $VIDEO_USD: $SHA_USD
           SHA-256 of $VIDEO_BTC: $SHA_BTC
+          SHA-256 of $VIDEO_PCTUSD: $SHA_PCTUSD
+          SHA-256 of $VIDEO_PCTBTC: $SHA_PCTBTC
           SHA-256 of BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4: 70b66800dbf61eaefb35658f4274b60e7cc095487e4c4196ebfb3bd1614345b4
           SHA-256 of BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4: fbc491f51f289eaafa515cdb99113cd4871850c5b7d7ef5c11d446845eceea9e
           Check any file here: gh attestation verify FILE --repo $GITHUB_REPOSITORY (see SECURITY.md)"
           gh release view video > /dev/null 2>&1 || gh release create video --title "Full-history videos (4K)" --notes "$NOTES"
-          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO_USD" "$RUNNER_TEMP/vetted/$VIDEO_BTC"
+          bash tools/video/replace-asset.sh video "$RUNNER_TEMP/vetted/$VIDEO_USD" "$RUNNER_TEMP/vetted/$VIDEO_BTC" \
+            "$RUNNER_TEMP/vetted/$VIDEO_PCTUSD" "$RUNNER_TEMP/vetted/$VIDEO_PCTBTC"
           # Retried: notes left behind would name the old files' SHA-256.
           for k in 1 2 3 4 5; do gh release edit video --notes "$NOTES" && break; [ "$k" = 5 ] && exit 1; sleep $((k * 5)); done
 
   youtube-usd:
-    # Posts the USD VALUE video (percent of the realized cap) to YouTube, unlisted: anyone with the link can watch it (the
-    # site's video button links it), but it is shown neither on the channel nor in search. Its title is the chart's own
-    # title on its last day, which names its weighting. The channel's OAuth credentials are three repository secrets (see
-    # README), seen only by the two steps that use them. Without them the job does nothing, so the videos are published
-    # the same before YouTube is set up. A job of its own, as is the BTC one: one video's trouble does not keep the other
-    # off YouTube, and a failed post can be run again (Re-run failed jobs) without posting the other twice. Only when the
-    # run drew this video.
+    # Posts the USD VALUE video (the bars in dollars) to YouTube, unlisted: anyone with the link can watch it (the site's
+    # video button links it), but it is shown neither on the channel nor in search. Its title is the chart's own title on
+    # its last day, which names its view. The channel's OAuth credentials are three repository secrets (see README), seen
+    # only by the two steps that use them. Without them the job does nothing, so the videos are published the same
+    # before YouTube is set up. A job of its own, as is each of the others: one video's trouble does not keep the others
+    # off YouTube, and a failed post can be run again (Re-run failed jobs) without posting the others twice. Only when
+    # the run drew this video.
     needs: [update, publish]
     if: contains(fromJSON(needs.update.outputs.looks), 'usd')
     runs-on: ubuntu-24.04
@@ -410,7 +428,7 @@ jobs:
         run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_USD" "$START" "$END" usd >> "$GITHUB_OUTPUT"
 
   youtube-btc:
-    # Posts the BTC video (percent of the supply) to YouTube, as youtube-usd posts the USD VALUE one (see there).
+    # Posts the BTC video (the bars in coins) to YouTube, as youtube-usd posts the USD VALUE one (see there).
     needs: [update, publish]
     if: contains(fromJSON(needs.update.outputs.looks), 'btc')
     runs-on: ubuntu-24.04
@@ -455,15 +473,109 @@ jobs:
           END: ${{ needs.update.outputs.end }}
         run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_BTC" "$START" "$END" btc >> "$GITHUB_OUTPUT"
 
+  youtube-pctusd:
+    # Posts the % USD VALUE video (every bar as its percent of the day's realized cap) to YouTube, as youtube-usd posts the USD VALUE one (see there).
+    needs: [update, publish]
+    if: contains(fromJSON(needs.update.outputs.looks), 'pctusd')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      id: ${{ steps.post.outputs.id }}
+      privacy: ${{ steps.post.outputs.privacy }}
+    steps:
+      - name: Look for the YouTube credentials
+        id: creds
+        env:
+          ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          REFRESH: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          if [ -n "$ID" ] && [ -n "$SECRET" ] && [ -n "$REFRESH" ]; then echo "found=yes" >> "$GITHUB_OUTPUT"
+          else echo "No YouTube credentials in this repository's secrets (see README): not posting."; fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          name: video-vetted-pctusd
+          path: ${{ runner.temp }}/vetted
+
+      - name: Post the % USD VALUE video to YouTube
+        id: post
+        if: steps.creds.outputs.found == 'yes'
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          START: ${{ needs.update.outputs.start_usd }}
+          END: ${{ needs.update.outputs.end }}
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_PCTUSD" "$START" "$END" pctusd >> "$GITHUB_OUTPUT"
+
+  youtube-pctbtc:
+    # Posts the % BTC video (every bar as its percent of the day's supply) to YouTube, as youtube-usd posts the USD VALUE one (see there).
+    needs: [update, publish]
+    if: contains(fromJSON(needs.update.outputs.looks), 'pctbtc')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      id: ${{ steps.post.outputs.id }}
+      privacy: ${{ steps.post.outputs.privacy }}
+    steps:
+      - name: Look for the YouTube credentials
+        id: creds
+        env:
+          ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          REFRESH: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          if [ -n "$ID" ] && [ -n "$SECRET" ] && [ -n "$REFRESH" ]; then echo "found=yes" >> "$GITHUB_OUTPUT"
+          else echo "No YouTube credentials in this repository's secrets (see README): not posting."; fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: steps.creds.outputs.found == 'yes'
+        with:
+          name: video-vetted-pctbtc
+          path: ${{ runner.temp }}/vetted
+
+      - name: Post the % BTC video to YouTube
+        id: post
+        if: steps.creds.outputs.found == 'yes'
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          START: ${{ needs.update.outputs.start }}
+          END: ${{ needs.update.outputs.end }}
+        run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_PCTBTC" "$START" "$END" pctbtc >> "$GITHUB_OUTPUT"
+
   record:
-    # Names the new videos in data/youtube.json for the site's two video buttons. A video that others cannot watch yet
+    # Names the new videos in data/youtube.json for the site's four video buttons. A video that others cannot watch yet
     # (a private upload, or none because its post failed) is not recorded: its button keeps the last one they could, or
-    # opens the channel. Runs when either post was viewable, also when the other failed.
-    needs: [update, youtube-usd, youtube-btc]
+    # opens the channel. Runs when any post was viewable, also when others failed.
+    needs: [update, youtube-usd, youtube-btc, youtube-pctusd, youtube-pctbtc]
     if: >-
       ${{ !cancelled() && (
         needs.youtube-usd.outputs.privacy == 'unlisted' || needs.youtube-usd.outputs.privacy == 'public' ||
-        needs.youtube-btc.outputs.privacy == 'unlisted' || needs.youtube-btc.outputs.privacy == 'public') }}
+        needs.youtube-btc.outputs.privacy == 'unlisted' || needs.youtube-btc.outputs.privacy == 'public' ||
+        needs.youtube-pctusd.outputs.privacy == 'unlisted' || needs.youtube-pctusd.outputs.privacy == 'public' ||
+        needs.youtube-pctbtc.outputs.privacy == 'unlisted' || needs.youtube-pctbtc.outputs.privacy == 'public') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -480,18 +592,27 @@ jobs:
           USD_PRIVACY: ${{ needs.youtube-usd.outputs.privacy }}
           BTC_ID: ${{ needs.youtube-btc.outputs.id }}
           BTC_PRIVACY: ${{ needs.youtube-btc.outputs.privacy }}
+          PCTUSD_ID: ${{ needs.youtube-pctusd.outputs.id }}
+          PCTUSD_PRIVACY: ${{ needs.youtube-pctusd.outputs.privacy }}
+          PCTBTC_ID: ${{ needs.youtube-pctbtc.outputs.id }}
+          PCTBTC_PRIVACY: ${{ needs.youtube-pctbtc.outputs.privacy }}
           END: ${{ needs.update.outputs.end }}
         run: |
           [[ "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "end: '$END'" >&2; exit 1; }
           # Each video: today's upload if others can watch it, else whatever was recorded for it before. ("end" is
           # quoted in jq, where a bare end is a keyword.)
           viewable() { [[ ( "$2" = unlisted || "$2" = public ) && "$1" =~ ^[A-Za-z0-9_-]{11}$ ]]; }
-          if viewable "$USD_ID" "$USD_PRIVACY"; then USD=$(jq -n --arg id "$USD_ID" --arg day "$END" '{id: $id, "end": $day}')
-          else USD=$(jq '.usd // null' data/youtube.json); fi
-          if viewable "$BTC_ID" "$BTC_PRIVACY"; then BTC=$(jq -n --arg id "$BTC_ID" --arg day "$END" '{id: $id, "end": $day}')
-          else BTC=$(jq '.btc // null' data/youtube.json); fi
-          ABOUT="The latest videos on YouTube for the site's two video buttons: usd, every bar as its percent of the day's realized cap (FULL HISTORY (USD VALUE)), and btc, of the day's supply (FULL HISTORY (BTC)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
-          jq -n --arg about "$ABOUT" --argjson usd "$USD" --argjson btc "$BTC" '{about: $about, usd: $usd, btc: $btc}' > "$RUNNER_TEMP/youtube.json"
+          entry() {   # entry KEY ID PRIVACY
+            if viewable "$2" "$3"; then jq -n --arg id "$2" --arg day "$END" '{id: $id, "end": $day}'
+            else jq --arg k "$1" '.[$k] // null' data/youtube.json; fi
+          }
+          USD=$(entry usd "$USD_ID" "$USD_PRIVACY")
+          BTC=$(entry btc "$BTC_ID" "$BTC_PRIVACY")
+          PCTUSD=$(entry pctusd "$PCTUSD_ID" "$PCTUSD_PRIVACY")
+          PCTBTC=$(entry pctbtc "$PCTBTC_ID" "$PCTBTC_PRIVACY")
+          ABOUT="The latest videos on YouTube for the site's four video buttons, one for each view: usd, the bars in dollars (HISTORY (USD VALUE)), btc, in coins (HISTORY (BTC)), pctusd, every bar as its percent of the day's realized cap (HISTORY (% USD VALUE)), and pctbtc, of the day's supply (HISTORY (% BTC)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
+          jq -n --arg about "$ABOUT" --argjson usd "$USD" --argjson btc "$BTC" --argjson pctusd "$PCTUSD" --argjson pctbtc "$PCTBTC" \
+            '{about: $about, usd: $usd, btc: $btc, pctusd: $pctusd, pctbtc: $pctbtc}' > "$RUNNER_TEMP/youtube.json"
           mv "$RUNNER_TEMP/youtube.json" data/youtube.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
