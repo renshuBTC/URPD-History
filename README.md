@@ -1,4 +1,4 @@
-# Bitcoin Supply Chart
+# Bitcoin URPD
 
 Every bitcoin that exists last moved at some price. Sort them into price buckets,
 add up the supply in each, and you get this chart. A tall bar is a price where a lot
@@ -10,7 +10,7 @@ one steps through every day back to 2009-01-03, with each bar split into 23 age
 cohorts, and its left axis either growing with the tallest bar so far or refitted to
 each day's own tallest bar.
 
-**Live: <https://bitcoinsupplychart.com>**
+**Live: <https://www.bitcoinurpd.com>**
 
 ## Reading it
 

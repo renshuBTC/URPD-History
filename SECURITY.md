@@ -1,6 +1,6 @@
 # Security
 
-Bitcoin Supply Chart is a static page. It has no accounts, takes no payments and needs nothing installed. It will
+Bitcoin URPD is a static page. It has no accounts, takes no payments and needs nothing installed. It will
 never ask for a seed phrase, a private key, a wallet connection or a signature, and it offers no file to download: the
 one thing you can save is a PNG picture of the chart, which the chart's camera icon makes in your own browser. Anything
 that asks for more, or offers you any other file, is not this site.
@@ -54,7 +54,7 @@ logged by Sigstore). To check a copy of any of them:
   which run this repository's own code (`tools/video/youtube.mjs`, with Node's own http) and nothing installed. The
   jobs after the vetting take the vetted videos by their exact names, never another file the renderer could have left.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that
-  bitcoinsupplychart.com serves this repository's `index.html` byte for byte, and its privacy and terms pages and the
+  www.bitcoinurpd.com serves this repository's `index.html` byte for byte, and its privacy and terms pages and the
   data it loads from the site (`data/youtube.json`, where the video buttons go, and `data/scales.json`), so a page
   changed anywhere on the way (a download slipped in, say, or a video button sent elsewhere) turns it red, and that
   plain http is sent to https. If anything differs it fails, and
