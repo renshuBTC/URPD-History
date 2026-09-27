@@ -2,8 +2,9 @@
 // with anything to draw (startIndex: 2011-01-31 in USD, 2010-05-18 in BTC) to the latest, in 5:00 at 60 fps (18,000
 // frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days there
 // are; the chart is the site's, drawn by page.html, in one of the site's two weightings and two colourings as the site
-// draws it by default (looks.mjs): the bars in dollars with the left axis at each frame's tallest bar, or in coins with
-// it at the 99.8th percentile of each frame's bars, the first bar running off the top with its height printed there;
+// draws it by default (looks.mjs): each bar as its share of the day's realized cap (% USD) with the left axis at each
+// frame's tallest bar, or of all the coins (% BTC) with it at the 99.8th percentile of each frame's bars, the first bar
+// running off the top with its share printed there;
 // stacked in the 23 age bands (AGE) or split into short- and long-term holders (LTH/STH).
 //
 //   node tools/video/render.mjs STORE_DIR OUT.mp4
@@ -88,8 +89,8 @@ function dayData(i) {
 }
 
 // ---- per-frame axes --------------------------------------------------------------------------------------------
-//   Y(t): the left axis's top, as on the site with the look's Y-max (axisLevel): the frame's tallest bar in dollars, the
-//         99.8th percentile of its bars in coins (the displayed bars are blends of two days)
+//   Y(t): the left axis's top, as on the site with the look's Y-max (axisLevel): the frame's tallest bar in % USD, the
+//         99.8th percentile of its bars in % BTC (the displayed bars are blends of two days)
 //   CUT(t): the bars above it, which run off the top: how many, and the tallest, printed at the top left as on the site
 //   M(t): the price line's top, which only grows: the highest close the line has passed through so far, and the
 //         blended edge itself
