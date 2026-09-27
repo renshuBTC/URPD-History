@@ -1,8 +1,8 @@
 name: Weekly videos
 
 # Once a week, four videos of the whole history for YouTube, one for each view the site draws (tools/video/looks.mjs):
-# the bars in dollars (USD VALUE) and in coins (BTC) with the left axis at each day's own tallest bar, and every bar as
-# its percent of the day's realized cap (% USD VALUE) or supply (% BTC) on a left axis fixed at 0 to 4%.
+# the bars in dollars (USD VALUE) and in coins (BTC), and every bar as its percent of the day's realized cap
+# (% USD VALUE) or supply (% BTC), all four with the left axis at each day's own tallest bar.
 # The workflow runs every day all the same, because its first job also keeps the site's axis history current:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
 #               videos' store (the files on the "video-store-2" release), and decides whether new videos are due: once
@@ -360,7 +360,7 @@ jobs:
           SHA_PCTBTC=$(sha256sum "$RUNNER_TEMP/vetted/$VIDEO_PCTBTC" | cut -d' ' -f1)
           # The last date in these notes is how the next run knows which day the published videos reach: none may
           # follow $END.
-          NOTES="Four videos, one for each of the site's views: $VIDEO_USD (the bars in dollars) and $VIDEO_PCTUSD (every bar as its percent of the day's realized cap), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC (the bars in coins) and $VIDEO_PCTBTC (every bar as its percent of the day's supply), every day from $START (the first with anything on the chart), all to $END. The left axis ends at each day's own tallest bar in dollars and coins, and at 4% in percent. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The Y-MAX videos drawn before them (BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4 and BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4) are kept here as they were.
+          NOTES="Four videos, one for each of the site's views: $VIDEO_USD (the bars in dollars) and $VIDEO_PCTUSD (every bar as its percent of the day's realized cap), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC (the bars in coins) and $VIDEO_PCTBTC (every bar as its percent of the day's supply), every day from $START (the first with anything on the chart), all to $END. The left axis ends at each day's own tallest bar. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The Y-MAX videos drawn before them (BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4 and BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4) are kept here as they were.
 
           SHA-256 of $VIDEO_USD: $SHA_USD
           SHA-256 of $VIDEO_BTC: $SHA_BTC
