@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-9f10u6BBZmxeP+/OVIZuEUaH76soN3eEG56wuX7x3cM=' 'sha256-eHBOXOj5ACHzl0SzR8lFBPFhRJb/HP5vRlkUGTv958Q=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-t97d78cxgeb+DCZl6OsVFs68gxxxLhnYw0f/rjgL8rI=' 'sha256-eHBOXOj5ACHzl0SzR8lFBPFhRJb/HP5vRlkUGTv958Q=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -563,8 +563,8 @@ var CHART_COLORS = { bg: "#0a0a0a", ink: "#ffffff", grid: GRID_COLOR, watermark:
 function creditLink(name) { return '<a href="https://x.com/' + CREDIT_X[name] + '" style="color:' + CREDIT_NAME_COLOR + '">' + name + "</a>"; }
 // The four video buttons go to the latest videos, which the Weekly videos workflow posts unlisted once a week (not shown
 // on the channel or in search, but open to anyone with the link) and names in data/youtube.json: "usd-age" and
-// "btc-age", the bars in dollars and in coins coloured by age band, and "usd-lthsth" and "btc-lthsth", by short- and
-// long-term holders, each drawn as this page draws that choice by default. A button whose video others cannot watch
+// "btc-age", each bar as its share of the realized cap (% USD) and of all the coins (% BTC), coloured by age band, and
+// "usd-lthsth" and "btc-lthsth", by short- and long-term holders, each drawn as this page draws that choice by default. A button whose video others cannot watch
 // yet (an upload YouTube kept private, say, or none yet) opens the channel.
 var YT_CHANNEL = "https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg";
 var ytVideos = { "usd-age": null, "btc-age": null, "usd-lthsth": null, "btc-lthsth": null };
@@ -590,11 +590,11 @@ function labelYouTube() {
     if (tagEl) tagEl.textContent = tag;
     var about = !id
       ? L3("on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)", "YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）", "YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）")
-      : L3("every day since " + (coin ? "2010" : "2011") + " as one 5-minute 4K video, the bars in " + (coin ? "coins" : "dollars") +
+      : L3("every day since " + (coin ? "2010" : "2011") + " as one 5-minute 4K video, each bar as its share of " + (coin ? "all the coins" : "the realized cap") +
           (split ? ", split into short- and long-term holders" : ", coloured by age band") + ", on YouTube (opens in a new tab)",
-        (coin ? "2010" : "2011") + " 年以来的每一天，一段 5 分钟的 4K 视频，柱子以" + (coin ? "币数" : "美元") + "计，" +
+        (coin ? "2010" : "2011") + " 年以来的每一天，一段 5 分钟的 4K 视频，每根柱子为其占" + (coin ? "总供应量" : "已实现市值") + "的百分比，" +
           (split ? "分为短期与长期持有者" : "按币龄层着色") + "，在 YouTube 上观看（在新标签页中打开）",
-        (coin ? "2010" : "2011") + "年以降の毎日を 5 分の 4K 動画 1 本にまとめ、棒を" + (coin ? "コインの量" : "ドル") + "で描き、" +
+        (coin ? "2010" : "2011") + "年以降の毎日を 5 分の 4K 動画 1 本にまとめ、棒を" + (coin ? "総供給量" : "実現時価総額") + "に対する割合（%）で描き、" +
           (split ? "短期保有者と長期保有者" : "年齢帯") + "で色分けして YouTube で（新しいタブで開きます）");
     var label = video + L3(" (" + tag + "): ", "（" + tag + "）：", "（" + tag + "）：") + about;
     el.title = label;
