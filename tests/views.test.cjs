@@ -1,10 +1,10 @@
-// The four views. USD and BTC draw the bars in dollars and in coins, % USD and % BTC every bar as its percent of the
-// day's total, of the realized cap and of the supply, so every day's bars add up to 100%. In all four the left axis ends
-// at the day's own tallest bar, every bar counted (in coins the first, from $0 to one bar width, whose height only
-// Y-max cuts), so at a Y-max of 100 no bar is ever cut off. PIN Y-AXIS fixes the axis at a pinned day's tallest bar in
-// any of them. Nothing is printed over the bars at the top left but a pin's label. Every way of moving through time
-// draws a day the same however it is reached, and switching the view draws the day on screen again without fetching
-// anything.
+// The four views. USD and BTC draw the bars in dollars and in coins, with the left axis at each day's own tallest bar,
+// every bar counted (in coins the first, from $0 to one bar width, whose height only Y-max cuts). % USD and % BTC draw
+// every bar as its percent of the day's total, of the realized cap and of the supply, on a left axis fixed at 0 to 4%,
+// so every day's bars add up to 100% and cover the same area of the chart. PIN Y-AXIS fixes the axis at a pinned day's
+// tallest bar in any of them. Nothing is printed over the bars at the top left but a pin's label. Every way of moving
+// through time draws a day the same however it is reached, and switching the view draws the day on screen again without
+// fetching anything.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { html, app, flush } = require('./helpers.cjs');
@@ -82,7 +82,7 @@ test('four views, USD | BTC | % USD | % BTC, then PIN Y-AXIS on its own; no Y-MA
   }
 });
 
-test('every way of moving draws each day in its view, to its own tallest bar, and a day looks the same however it is reached', async () => {
+test('every way of moving draws each day in its view, USD and BTC to its own tallest bar and % USD and % BTC on the fixed 0-4% axis, and a day looks the same however it is reached', async () => {
   const h = app(), { c, element, docListeners } = h, m = market(h);
   c.currentIdx = 9; await c.loadAndRender(); await drawn(h);
   const seen = {}, visited = [];
@@ -92,7 +92,7 @@ test('every way of moving draws each day in its view, to its own tallest bar, an
     visited.push(i);
     const drawnNow = heights(h);
     assert.ok(same(drawnNow, m.bars(i, coin, pct)), name + ' as it should be drawn');
-    assert.ok(near(top(h), m.tallest(i, coin, pct)), name + ' to its tallest bar');
+    assert.ok(near(top(h), pct ? 4 : m.tallest(i, coin, false)), name + (pct ? ' on the fixed axis' : ' to its tallest bar'));
     if (pct) assert.ok(near(drawnNow.reduce((a, b) => a + b, 0), 100), name + ' adding up to 100%');
     const k = i + '|' + view;
     if (seen[k]) assert.ok(same(drawnNow, seen[k]), name + ' as it looked before');
@@ -135,8 +135,7 @@ test('switching views draws the day on screen again from memory, titled and labe
   assert.equal(heights(h)[0], top(h), 'in BTC the pile at $0 is the tallest bar, and the axis ends at it');
   assert.ok(heights(h)[0] > 3 * Math.max(...heights(h).slice(1)));
   await press(h, 'btnPctBTC');
-  assert.ok(near(heights(h)[0], top(h)), 'and in % BTC, as its percent of the supply');
-  assert.ok(heights(h)[0] > 3 * Math.max(...heights(h).slice(1)));
+  assert.ok(heights(h)[0] > top(h), 'in % BTC it runs off the fixed top');
   await press(h, 'btnUSD');
   assert.equal(heights(h)[0], 0, 'in USD the coins at $0 are worth nothing');
   assert.deepEqual(m.fetched, [m.dates[6]]);
@@ -163,7 +162,7 @@ test('the titles and the axis titles in every language, and nothing printed over
       // the axis ends at that bar, and in % BTC it runs off the top with its figures in its hover like any other bar.
       assert.deepEqual(overTopLeft(h), [], name);
       assert.doesNotMatch(JSON.stringify(notes), /▲|Realized Cap:|Supply:|Tallest Bar|已实现市值：|供应量：|最高的柱子|実現時価総額：|供給量：|最も高い棒/, name);
-      assert.ok(heights(h).every((v) => v <= top(h) * (1 + 1e-12)), name + ': at 100 no bar runs off the top');
+      assert.equal(heights(h)[0] > top(h), coin && pct, name + ': the first bar runs off the top in % BTC alone');
     }
   }
   // The printed figures: a percent to three significant figures (100% for the whole day), coins and dollars with K/M/B/T.
