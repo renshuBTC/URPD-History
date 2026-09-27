@@ -1,6 +1,7 @@
-// Posts one of the week's two videos to the channel on YouTube: every bar as its percent of the day's realized cap (usd)
-// or of its supply (btc; looks.mjs), on the left axis fixed at 0 to 4%. The Weekly videos workflow's two youtube jobs run
-// it, one for each video, once they are published on GitHub. It speaks the YouTube Data API's resumable upload itself
+// Posts one of the week's four videos to the channel on YouTube, one for each of the site's views (looks.mjs): the bars
+// in dollars (usd) or coins (btc) with the left axis at each day's own tallest bar, or every bar as its percent of the
+// day's realized cap (pctusd) or supply (pctbtc) on the left axis fixed at 0 to 4%. The Weekly videos workflow's four
+// youtube jobs run it, one for each video, once they are published on GitHub. It speaks the YouTube Data API's resumable upload itself
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
 // so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
 //
@@ -11,7 +12,7 @@
 //
 //   YOUTUBE_CLIENT_ID=… YOUTUBE_CLIENT_SECRET=… YOUTUBE_REFRESH_TOKEN=… node tools/video/youtube.mjs FILE START END [LOOK]
 //
-// (LOOK: usd, the default, or btc) prints id=<the video's id> and privacy=<the privacy YouTube recorded> for
+// (LOOK: usd, the default, btc, pctusd or pctbtc) prints id=<the video's id> and privacy=<the privacy YouTube recorded> for
 // $GITHUB_OUTPUT. With --check instead of FILE START END it only asks Google for an access token with the three secrets
 // and says whether that worked.
 // The secrets are trimmed first: a token pasted with a line break after it is, to Google, a token it never issued.
@@ -27,27 +28,29 @@ const PRIVACY = new Set(["private", "unlisted", "public"]);
 
 const day = (d, opts) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
 
-// The chart's title on the video's last day, as the site and the video print it ("Bitcoin: Percent of Realized Cap by
-// Price When Last Moved as of 26 Sept 2026").
+// The chart's title on the video's last day, as the site and the video print it ("Bitcoin Supply by Price When Last
+// Moved (USD Value) as of 26 Sept 2026", "Bitcoin: Percent of Realized Cap by Price When Last Moved as of 26 Sept 2026").
 export function videoTitle(end, name = "usd") {
   return titleStart(name) + day(end, { day: "2-digit", month: "short", year: "numeric" });
 }
 
-// What each look weighs the coins by and what its bars are a percent of, in the description's words.
+// What each look weighs the coins by and how it draws its bars and left axis, in the description's words.
+const SAME_AREA = "on a left axis fixed at 0 to 4% so the bars cover the same area of the chart every day";
 const WEIGHT = {
-  usd: "weighed by what it was worth then, each bar drawn as its percent of that day's total value when last moved (the realized cap)",
-  btc: "counted in coins, each bar drawn as its percent of that day's supply",
+  usd: "weighed by what it was worth then, with the left axis at each day's own tallest bar",
+  btc: "counted in coins, with the left axis at each day's own tallest bar",
+  pctusd: "weighed by what it was worth then, each bar drawn as its percent of that day's total value when last moved (the realized cap), " + SAME_AREA,
+  pctbtc: "counted in coins, each bar drawn as its percent of that day's supply, " + SAME_AREA,
 };
-const TAGS = { usd: ["realized cap", "percent"], btc: ["bitcoin supply distribution", "percent"] };
+const TAGS = { usd: ["realized cap"], btc: ["bitcoin supply distribution"], pctusd: ["realized cap", "percent"], pctbtc: ["bitcoin supply distribution", "percent"] };
 
 export function videoDescription(start, end, name = "usd") {
   look(name);
   const long = (d) => day(d, { day: "numeric", month: "long", year: "numeric" });
   return [
     "Every bitcoin last moved at some price. This is the whole supply sorted by that price (the URPD, UTXO Realised " +
-      "Price Distribution) and " + WEIGHT[name] + ", on a left axis fixed at 0 to 4% so the bars cover the same area of " +
-      "the chart every day, each bar split into 23 age bands by how long its coins have sat unmoved, every day from " +
-      long(start) + " to " + long(end) + ".",
+      "Price Distribution) and " + WEIGHT[name] + ", each bar split into 23 age bands by how long its coins have sat " +
+      "unmoved, every day from " + long(start) + " to " + long(end) + ".",
     "",
     "Any day, in your browser: https://bitcoinsupplychart.com",
     "",
@@ -197,7 +200,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(proces
   const [file, start, end, name = "usd"] = process.argv.slice(2), isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
   const check = file === "--check";
   if (!check && (!file || !isDay(start) || !isDay(end) || !Object.hasOwn(WEIGHT, name))) {
-    console.error("usage: node tools/video/youtube.mjs FILE START END [usd|btc] | --check"); process.exit(2);
+    console.error("usage: node tools/video/youtube.mjs FILE START END [usd|btc|pctusd|pctbtc] | --check"); process.exit(2);
   }
   const { credentials, padded } = credentialsFrom(process.env);
   if (!credentials.clientId || !credentials.clientSecret || !credentials.refreshToken) {

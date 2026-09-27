@@ -1,11 +1,12 @@
 // Renders a full-history video the Weekly videos workflow posts to YouTube: every day in the store (store.mjs) from the first
-// with anything to draw (startIndex: 2011-01-31 in USD, 2010-05-18 in BTC) to the latest, in 5:00 at 60 fps (18,000
-// frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days there
-// are; the chart is the site's, drawn by page.html: every bar as its percent of the day's total, in one of the site's
-// two weightings (looks.mjs), on a left axis fixed at 0 to PCT_TOP percent.
+// with anything to draw (startIndex: 2011-01-31 in USD and % USD, 2010-05-18 in BTC and % BTC) to the latest, in 5:00 at
+// 60 fps (18,000 frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many
+// days there are; the chart is the site's, drawn by page.html, in one of the site's four views (looks.mjs): the bars in
+// dollars or coins with the left axis at each frame's own tallest bar, or each bar as its percent of the day's total on
+// a left axis fixed at 0 to PCT_TOP percent.
 //
 //   node tools/video/render.mjs STORE_DIR OUT.mp4
-//   env: LOOK (usd, the default: percent of the realized cap; btc: percent of the supply),
+//   env: LOOK (usd, the default; btc, pctusd or pctbtc: see looks.mjs),
 //        FRAMES (18000), WORKERS (browser pages drawing at once: 2 with 12 GB or more, else 1), SEG (frames per segment,
 //        180: a whole number of microseconds long, so at 60 fps a multiple of 3),
 //        TEST_DATES (comma list: write a still of each of those days, drawn as recorded, as PNG next to OUT instead of a
@@ -47,7 +48,7 @@ const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0
 const store = readStore(STORE), { meta } = store;
 // Days before the first with anything to draw are left out: an empty chart with only the date moving. The bars are
 // the look's: in dollars (USD) or in coins (BTC), and so is the share of it at a loss in the price box.
-const S = startIndex(store, LOOK_NAME), dayBars = LOOK.coin ? store.coins : store.bars;
+const S = startIndex(store, LOOK.coin ? "btc" : "usd"), dayBars = LOOK.coin ? store.coins : store.bars;
 const bars = (i) => dayBars(i + S);
 const days = meta.days.slice(S).map(([date, X, spot, redUsd, redBtc]) => ({ date, w: X / (NB - 1), spot, redPct: LOOK.coin ? redBtc : redUsd })), N = days.length;
 if (N < 2) throw new Error("the store needs at least two days");
@@ -61,19 +62,48 @@ for (const [date, , spot] of meta.days) if (spot > 0) close[dayIdx(date)] = spot
 const tip = Date.parse(days[N - 1].date + "T00:00:00Z");
 days.forEach((d) => { const sel = Date.parse(d.date + "T00:00:00Z"); d.wr = Math.min(tip + 7 * DAY, sel + 90 * DAY); d.wl = d.wr - 365 * DAY; });
 
+// ---- the days' bars, as drawn ----------------------------------------------------------------------------------
+// cum[a]: the age bands 0 to a added up, per bar (so cum[A - 1] is the whole bar), in dollars or coins, or in the %
+// looks in percent of the day's total (so the whole bars add up to 100).
+const DAYCACHE = new Map();
+function dayData(i) {
+  if (DAYCACHE.has(i)) return DAYCACHE.get(i);
+  const b = bars(i), cum = [], acc = new Float64Array(NB);
+  let total = 0; for (let k = 0; k < A * NB; k++) total += b[k];
+  const scale = !LOOK.pct ? 1 : total > 0 ? 100 / total : 0;
+  for (let a = 0; a < A; a++) {
+    for (let j = 0; j < NB; j++) acc[j] += b[a * NB + j] * scale;
+    cum.push(Float64Array.from(acc));
+  }
+  const d = { ...days[i], cum };
+  DAYCACHE.set(i, d); if (DAYCACHE.size > 16) DAYCACHE.delete(DAYCACHE.keys().next().value);
+  return d;
+}
+
 // ---- per-frame axes --------------------------------------------------------------------------------------------
-//   the left axis: 0 to PCT_TOP percent on every frame, as on the site
+//   Y(t): the left axis's top, as on the site: the frame's own tallest bar in dollars or coins, every bar counted (in
+//         coins the first, from $0 to one bar width, on every day), so it always reaches the top (the displayed bars are
+//         blends of two days); PCT_TOP percent in the % looks
 //   M(t): the price line's top, which only grows: the highest close the line has passed through so far, and the
 //         blended edge itself
 const frameDay = (t) => { const u = F > 1 ? t * (N - 1) / (F - 1) : 0, i0 = Math.min(N - 1, Math.floor(u + 1e-9)), i1 = Math.min(N - 1, i0 + 1); return [i0, i1, i1 === i0 ? 0 : u - i0]; };
 const priceAt = (ms) => { const x = (ms - DAY0) / DAY, k = Math.floor(x), fr = x - k, a = close[k], b = close[k + 1];
   if (!(a > 0)) return b > 0 && fr > 0.999 ? b : 0; if (!(b > 0)) return a; return a + (b - a) * fr; };
-const M = new Float64Array(F);
+const Y = new Float64Array(F), M = new Float64Array(F);
+// The tallest whole bar of a set of bars (as on the site).
+const topOf = (whole) => { let v = 0; for (let j = 0; j < NB; j++) if (whole[j] > v) v = whole[j]; return v; };
 {
   let mRun = 0, pk = 0, pmax = 0;
   for (let k = Math.floor((days[0].wl - DAY0) / DAY); k <= Math.ceil((days[0].wr - DAY0) / DAY); k++) if (close[k] > mRun) mRun = close[k];
   for (let t = 0; t < F; t++) {
     const [i0, i1, f] = frameDay(t);
+    if (LOOK.pct) Y[t] = PCT_TOP;
+    else {
+      // (Before any bar has a height, USD before 2011-01-31, the axis reads $0 to $1, as on the site.)
+      const c0 = dayData(i0).cum[A - 1], c1 = dayData(i1).cum[A - 1];
+      let peak = 0; for (let j = 0; j < NB; j++) { const v = c0[j] + (c1[j] - c0[j]) * f; if (v > peak) peak = v; }
+      Y[t] = peak > 0 ? peak : 1;
+    }
     const wr = days[i0].wr + (days[i1].wr - days[i0].wr) * f, kr = Math.floor((wr - DAY0) / DAY);
     while (pk <= kr && pk < close.length) { if (close[pk] > pmax) pmax = close[pk]; pk++; }
     M[t] = mRun = Math.max(mRun, priceAt(wr), pmax);
@@ -86,8 +116,9 @@ function compactNumber(v, sf) {
   const u = a >= 1e12 ? [1e12, "T"] : a >= 1e9 ? [1e9, "B"] : a >= 1e6 ? [1e6, "M"] : a >= 1e3 ? [1e3, "K"] : [1, ""];
   return String(+(r / u[0]).toPrecision(12)) + u[1];
 }
-// unit: false for dollars (the price axis), "pct" for a percent of the day's total (the left axis)
-const axisNumber = (v, unit, sf) => (unit === "pct" ? (v === 0 ? "0%" : String(+(+v).toPrecision(sf || 3)) + "%") : v === 0 ? "$0" : "$" + compactNumber(v, sf));
+// unit: false for dollars, true for coins, "pct" for a percent of the day's total
+const axisNumber = (v, unit, sf) => (unit === "pct" ? (v === 0 ? "0%" : String(+(+v).toPrecision(sf || 3)) + "%")
+  : v === 0 ? (unit ? "0" : "$0") : (unit ? "" : "$") + compactNumber(v, sf));
 const axisTicks = (end) => Array.from({ length: 21 }, (_, k) => end * k / 20);
 function axisLabels(vals, unit) {
   const end = vals[vals.length - 1], top = 10 ** Math.floor(Math.log10(end > 0 ? end : 1));
@@ -97,36 +128,8 @@ function axisLabels(vals, unit) {
   if (clash(labels)) labels = vals.map((v) => axisNumber(v, unit, 3));
   return labels;
 }
-// The readout's figures, as the site prints them (index.html peakCompact and pctText).
-function peakCompact(v) {
-  const a = Math.abs(v);
-  if (a >= 1e12) return (v / 1e12).toFixed(2) + "T";
-  if (a >= 1e9) return (v / 1e9).toFixed(2) + "B";
-  if (a >= 1e6) return (v / 1e6).toFixed(2) + "M";
-  if (a >= 1e3) return (v / 1e3).toFixed(2) + "K";
-  return v.toFixed(2);
-}
-const pctText = (v) => (v >= 99.95 ? "100" : String(+(+v).toPrecision(3))) + "%";
-const money = (v) => (LOOK.coin ? peakCompact(v) + " BTC" : "$" + peakCompact(v));
-const priceText = (p, w) => "$" + p.toLocaleString("en-US", { minimumFractionDigits: w < 1 ? 2 : 0, maximumFractionDigits: w < 1 ? 2 : 0 });
 
 // ---- frame t: the state at fractional day u, blended between the two neighbouring days ----------------------
-// cum[a]: the age bands 0 to a added up, per bar, in percent of the day's total (so cum[A - 1] is the whole bar, and
-// the whole bars add up to 100); total: that day's total in dollars or coins.
-const DAYCACHE = new Map();
-function dayData(i) {
-  if (DAYCACHE.has(i)) return DAYCACHE.get(i);
-  const b = bars(i), cum = [], acc = new Float64Array(NB);
-  let total = 0; for (let k = 0; k < A * NB; k++) total += b[k];
-  const toPct = total > 0 ? 100 / total : 0;
-  for (let a = 0; a < A; a++) {
-    for (let j = 0; j < NB; j++) acc[j] += b[a * NB + j] * toPct;
-    cum.push(Float64Array.from(acc));
-  }
-  const d = { ...days[i], cum, total };
-  DAYCACHE.set(i, d); if (DAYCACHE.size > 16) DAYCACHE.delete(DAYCACHE.keys().next().value);
-  return d;
-}
 const lerp = (a, b, f) => a + (b - a) * f, glerp = (a, b, f) => Math.exp(lerp(Math.log(a), Math.log(b), f));
 const isoAt = (ms) => new Date(ms).toISOString().replace("T", " ").slice(0, 19);
 const round5 = (v) => (v === 0 ? 0 : +v.toPrecision(5));
@@ -143,17 +146,10 @@ function spec(t, exact) {
   const g = frameFacts(t, exact), { f, w, wl, wr, spot, redPct } = g, a = dayData(g.i0), b = dayData(g.i1), cum = [];
   for (let k = 0; k < A; k++) { const x = a.cum[k], y = b.cum[k], o = new Array(NB); for (let j = 0; j < NB; j++) o[j] = round5(x[j] + (y[j] - x[j]) * f); cum.push(o); }
   const xSpan = NB * w, xv = axisTicks(xSpan), xt = axisLabels(xv, false);
-  xt[0] = "\u00a0\u00a0" + xt[0];                         // off the corner, clear of the left axis's 0%
-  const ymax = PCT_TOP, yt = axisTicks(ymax), ytt = axisLabels(yt, "pct");
-  // The readout at the top left, as on the site: the frame's total and its tallest bar (in BTC without the first
-  // one, which runs off the top with its percent printed under the readout).
-  const total = lerp(a.total, b.total, f), whole = cum[A - 1], read = [];
-  if (total > 0) {
-    read.push(LOOK.total + money(total));
-    let top = -1; for (let j = LOOK.coin ? 1 : 0; j < NB; j++) if (whole[j] > 0 && (top < 0 || whole[j] > whole[top])) top = j;
-    if (top >= 0) read.push("Tallest Bar: " + pctText(whole[top]) + " \u00b7 " + money(whole[top] * total / 100) + " \u00b7 " + priceText(top * w, w) + "\u2013" + priceText((top + 1) * w, w));
-  } else read.push(LOOK.total + (LOOK.coin ? "0 BTC" : "$0"));
-  const first = LOOK.coin && whole[0] > ymax ? "\u25b2 " + pctText(whole[0]) : null;
+  xt[0] = "\u00a0\u00a0" + xt[0];                         // off the corner, clear of the left axis's 0
+  // A still (exact) is on the day's own axis: its tallest bar, or PCT_TOP.
+  const ymax = exact === undefined ? Y[t] : LOOK.pct ? PCT_TOP : topOf(a.cum[A - 1]) || 1;
+  const yt = axisTicks(ymax), ytt = axisLabels(yt, LOOK.pct ? "pct" : LOOK.coin);
   const cStr = idxDay(Math.floor((wl - DAY0) / DAY) - 1), rStr = idxDay(Math.ceil((wr - DAY0) / DAY) + 1), pd = [], pp = [];
   for (let k = Math.max(0, dayIdx(cStr)); k <= Math.min(dayIdx(rStr), close.length - 1); k++) if (close[k] > 0) { pd.push(idxDay(k)); pp.push(close[k]); }
   // as on the site: each marker on the line's own highest (lowest) close within a week of its date, inside the window
@@ -166,7 +162,7 @@ function spec(t, exact) {
     if (best >= 0) lm.push({ d: idxDay(best), p: close[best], l, top: !!top });
   }
   return { date: g.date, tx: g.tx, nb: NB, w, title: TITLE, yTitle: LOOK.yTitle, profitLabel: LOOK.profit, lossLabel: LOOK.loss,
-    labels: AGE_LABELS, colors: AGE_COLORS, legendSize: 9, read, first, coin: LOOK.coin,
+    labels: AGE_LABELS, colors: AGE_COLORS, legendSize: 9,
     cum, xt: { v: xv, t: xt }, ymax, yt, ytt, spot, redPct, pd, pp,
     win: [isoAt(wl), isoAt(wr)], cStr, rStr, pr: M[t] > 0 ? [0, M[t]] : null, lm, drop: DROP ? DROP[t] : 0 };
 }
@@ -180,7 +176,7 @@ function spec(t, exact) {
 let DROP = null, dropping = null;
 async function boxDrops(page) {
   const facts = Array.from({ length: F }, (_, t) => { const g = frameFacts(t);
-    return { spot: g.spot, redPct: g.redPct, profitLabel: LOOK.profit, lossLabel: LOOK.loss, coin: LOOK.coin, nb: NB, w: g.w,
+    return { spot: g.spot, redPct: g.redPct, profitLabel: LOOK.profit, lossLabel: LOOK.loss, nb: NB, w: g.w,
       win: [isoAt(g.wl), isoAt(g.wr)], tx: g.tx, date: g.date, pr: M[t] > 0 ? [0, M[t]] : null }; });
   const need = await page.evaluate((fr) => window.boxNeeds(fr), facts);
   const HOLD = 60, EASE = 10, held = new Float64Array(F), drop = new Float64Array(F);
