@@ -1,5 +1,5 @@
-// The toolbar's controls: the date box, the step sizes, the settings fields, the two video buttons and the languages
-// (USD | BTC and the percent view: percent-view.test.cjs). Each test here pins down a bug the 2026-09-24 audit found.
+// The toolbar's controls: the date box, the step sizes, PIN Y-AXIS, the settings fields, the four video buttons and the
+// languages (the four views: views.test.cjs). Each test here pins down a bug the 2026-09-24 audit found.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
@@ -100,13 +100,60 @@ test('the settings fields take a number and nothing else', () => {
   for (const [typed, want] of Object.entries(cases)) assert.ok(Object.is(c.fieldNumber(typed), want), typed);
 });
 
-test('there are no pins: no PIN Y-AXIS, and any a visitor saved before are removed from the browser, nothing else touched', () => {
-  const removed = [], other = [];
-  app({ localStorage: { getItem(k) { other.push(['get', k]); return null; }, setItem(k) { other.push(['set', k]); }, removeItem(k) { removed.push(k); } } });
-  assert.deepEqual(removed, ['bsd_peaks_v1', 'bsd_peaks_v2', 'bsd_peaks_v3', 'bsd_peaks_raw_split'], 'every key a pin was ever saved under');
-  assert.deepEqual(other, [], 'nothing read or written');
-  assert.doesNotMatch(html, /btnPeak|peakStore|peakKey|PIN Y-AXIS<|pinGroup|PEAK_STORE/);
+test('a pin is kept per view, bin count and smoothing, and PIN Y-AXIS does nothing before the first chart', () => {
+  const { c, element } = app();
+  c.coinMode = true;
+  assert.equal(c.peakKey({ numBins: 625, kernelPct: 0 }), 'btc|b625|s0');
+  c.coinMode = false;
+  assert.equal(c.peakKey({ numBins: 400, kernelPct: 0.24 }), 'usd|b400|s0.24', 'USD and BTC keep the keys they had before the % views');
+  c.pctMode = true;
+  assert.equal(c.peakKey({ numBins: 625, kernelPct: 0.24 }), 'usd%|b625|s0.24');
+  c.coinMode = true;
+  assert.equal(c.peakKey({ numBins: 625, kernelPct: 0.24 }), 'btc%|b625|s0.24');
+  c.pctMode = false; c.coinMode = false;
+  c.lastRenderedData = null;
+  c.peakStore = { 'usd|b625|s0.24': ['2026-01-01', 5] };
+  element('btnPeak').onclick();
+  assert.deepEqual(plain(c.peakStore), { 'usd|b625|s0.24': ['2026-01-01', 5] }, 'a saved pin is not deleted');
+  // The button sits right of the four views, and Bins, Smoothing and Y-max follow it.
+  const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
+  assert.deepEqual([...bar.matchAll(/\sid="(btnPctBTC|btnPeak|binsWrap|smoothWrap|ymaxWrap)"/g)].map(m => m[1]), ['btnPctBTC', 'btnPeak', 'binsWrap', 'smoothWrap', 'ymaxWrap']);
+  assert.match(html, /<button id="btnPeak" aria-pressed="false" title="Pin the Y-axis at this day's tallest bar, so every other day is drawn against the same height">Pin Y-axis<\/button>/);
+  for (const lang of ['en', 'zh', 'ja']) for (const k of ['peakBtn', 'peakBtnTitle', 'peakLabel', 'binsLabel', 'binsTitle']) assert.ok(c.T[lang][k], lang + ' ' + k);
+});
+
+test('pins are kept in local storage under v3 alone; the older v1, v2 and RAW ones are removed, and nothing else is kept', () => {
+  const stored = { bsd_peaks_v2: JSON.stringify({ 'usd|b625|s0.24': ['2026-08-14', 2e10] }), bsd_peaks_v1: '{}', bsd_peaks_raw_split: '{}',
+    bsd_peaks_v3: JSON.stringify({ 'usd|b625|s0.24': ['2026-08-14', 3e10] }) };
+  const localStorage = { getItem: k => (k in stored ? stored[k] : null), setItem: (k, v) => { stored[k] = String(v); }, removeItem: k => { delete stored[k]; } };
+  const { c } = app({ localStorage });
+  assert.equal(c.PEAK_STORE_KEY, 'bsd_peaks_v3');
+  assert.deepEqual(Object.keys(stored), ['bsd_peaks_v3'], 'the older pins are gone');
+  assert.deepEqual(plain(c.peakStore), { 'usd|b625|s0.24': ['2026-08-14', 3e10] }, 'the v3 pins are read');
+  c.peakStore['btc%|b625|s0.24'] = ['2026-09-24', 1.46]; c.peakSave();
+  assert.deepEqual(JSON.parse(stored.bsd_peaks_v3)['btc%|b625|s0.24'], ['2026-09-24', 1.46]);
+  assert.deepEqual(plain(app({ localStorage }).c.peakStore)['btc%|b625|s0.24'], ['2026-09-24', 1.46], 'and kept for the next visit');
   assert.doesNotThrow(() => app({ localStorage: undefined }), 'a browser without local storage loads the page all the same');
+});
+
+test('Bins takes 50 to 1000 bars, re-bins what is already downloaded, and keys pins and cached days by the count', async () => {
+  const { c, element } = app();
+  assert.equal(c.NUM_BINS, 625);
+  assert.match(html, /<label class="field" id="binsWrap" title="Bins: how many equal-width bars the price axis is cut into, up to the highest price so far \(50 to 1000; 625 by default\)">\s*<span class="field-label">Bins<\/span><input type="text" id="binsInput" value="625" inputmode="numeric" autocomplete="off" spellcheck="false">\s*<\/label>/);
+  let loads = 0;
+  c.loadAndRender = () => { loads++; return Promise.resolve(); };
+  c.applyBins(300);
+  assert.equal(c.NUM_BINS, 300); assert.equal(loads, 1);
+  for (const bad of [49, 1001, NaN, 300]) { c.applyBins(bad); assert.equal(c.NUM_BINS, 300, String(bad)); }
+  assert.equal(loads, 1, 'nothing out of range, and nothing twice');
+  assert.match(c.dataKey('2026-09-24'), /\|b300\|/);
+  assert.equal(c.peakKey(), 'usd|b300|s0.24');
+  const input = element('binsInput');
+  input.emit('change', { target: Object.assign(input, { value: '5000' }) });
+  assert.equal(input.value, '1000', 'a value out of range is brought into it');
+  assert.equal(c.NUM_BINS, 1000);
+  c.syncSettingFields();
+  assert.equal(element('binsInput').value, '1000');
 });
 
 test('every text has all three languages', () => {
@@ -165,22 +212,24 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the two video buttons always show: FULL HISTORY (USD VALUE) and (BTC), each its latest video others can watch, else the channel', async () => {
+test('the four video buttons always show: HISTORY (USD VALUE), (BTC), (% USD VALUE) and (% BTC), each its latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
   // as the markup writes them: which video, in brackets
-  const BUTTONS = [['ytUsdBtn', 'ytUsdLabel', 'ytUsdTag', 'USD Value'], ['ytBtcBtn', 'ytBtcLabel', 'ytBtcTag', 'BTC']];
+  const BUTTONS = [['ytUsdBtn', 'ytUsdLabel', 'ytUsdTag', 'USD Value'], ['ytBtcBtn', 'ytBtcLabel', 'ytBtcTag', 'BTC'],
+    ['ytPctUsdBtn', 'ytPctUsdLabel', 'ytPctUsdTag', '% USD Value'], ['ytPctBtcBtn', 'ytPctBtcLabel', 'ytPctBtcTag', '% BTC']];
   for (const [id, label, tag, name] of BUTTONS) {
-    const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${label}" class="yt-word">Full history</span><span class="yt-tag"><span id="${tag}">([^<]+)</span></span></a>`));
+    const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${label}" class="yt-word">History</span><span class="yt-tag"><span id="${tag}">([^<]+)</span></span></a>`));
     assert.ok(a, id + ': a visible link that opens in a new tab: the play symbol, the words and which video, named for screen readers and tooltips');
     assert.equal(a[1], CHANNEL, 'the channel until the page learns of a video');
     assert.equal(a[5], name);
-    assert.equal(a[2], `Full history (${name}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`);
+    assert.equal(a[2], `History (${name}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`);
     assert.equal(a[2], a[3]);
     assert.match(a[4], /aria-hidden="true"/);
     assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   }
-  assert.ok(html.indexOf('id="ytUsdBtn"') < html.indexOf('id="ytBtcBtn"'), 'USD VALUE first, BTC on its right, as USD | BTC');
-  assert.doesNotMatch(html, /id="ytBtn"|ytFitBtn|ytSplitBtn|ytRawBtn|yt-tag-short|yt-tag-full/, 'no Y-MAX, <150D/>150D or RAW video, and no short names');
+  const order = BUTTONS.map(b => html.indexOf(`id="${b[0]}"`));
+  assert.deepEqual(order.slice().sort((p, q) => p - q), order, 'in the order of the view buttons');
+  assert.doesNotMatch(html, /id="ytBtn"|ytFitBtn|ytSplitBtn|ytRawBtn|yt-tag-short|videosMenu|videosBtn|Full history/, 'no Y-MAX, <150D/>150D or RAW video, no menu, no "Full"');
   assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytUsdBtn\[hidden\]|el\.hidden/, 'never hidden');
   assert.match(decls('#controls .yt-btn'), /border:\s*1px solid #595959/);
   assert.match(decls('#controls .yt-btn:hover'), /border-color:\s*#fff/);
@@ -191,71 +240,69 @@ test('the two video buttons always show: FULL HISTORY (USD VALUE) and (BTC), eac
   assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
   assert.match(decls('#controls.compact .yt-tag::before'), /content:\s*none/);
   // data/youtube.json names each video once others can watch it; anything else leaves that button on the channel.
-  const { c, element } = app(), usd = element('ytUsdBtn'), btc = element('ytBtcBtn');
-  c.setYouTubeLinks({ usd: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, btc: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
-  assert.equal(usd.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  assert.equal(btc.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
-  assert.equal(usd.title, "Full history (USD Value): every day since 31 January 2011 as one 5-minute 4K video, each bar as its percent of the day's realized cap on the fixed 0-4% axis, on YouTube (opens in a new tab)");
-  assert.equal(btc.title, "Full history (BTC): every day since 18 May 2010 as one 5-minute 4K video, each bar as its percent of the day's supply on the fixed 0-4% axis, on YouTube (opens in a new tab)");
-  for (const el of [usd, btc]) assert.equal(el.getAttribute('aria-label'), el.title);
-  assert.deepEqual([element('ytUsdTag').textContent, element('ytBtcTag').textContent], ['USD Value', 'BTC']);
-  for (const [lang, words, usdTag, want] of [
-    ['zh', '完整历史', '美元价值', '完整历史（美元价值）：2011 年 1 月 31 日以来的每一天，一段 5 分钟的 4K 视频，每根柱子画成占当天已实现市值的百分比，左轴固定为 0-4%，在 YouTube 上观看（在新标签页中打开）'],
-    ['ja', '全期間', 'USD 評価額', '全期間（USD 評価額）：2011年1月31日以降の毎日を 5 分の 4K 動画 1 本にまとめ、各棒をその日の実現時価総額の割合で 0〜4% の固定の軸に描いて YouTube で（新しいタブで開きます）']]) {
+  const { c, element } = app(), el = Object.fromEntries(['usd', 'btc', 'pctusd', 'pctbtc'].map((k, i) => [k, element(BUTTONS[i][0])]));
+  const ids = { usd: 'dQw4w9WgXcQ', btc: 'Abc_123-xyZ', pctusd: 'Pct_usd-123', pctbtc: 'Pct_btc-456' };
+  c.setYouTubeLinks(Object.fromEntries(Object.entries(ids).map(([k, id]) => [k, { id, end: '2026-09-24' }])));
+  for (const k in ids) assert.equal(el[k].href, 'https://www.youtube.com/watch?v=' + ids[k], k);
+  assert.equal(el.usd.title, "History (USD Value): every day since 31 January 2011 as one 5-minute 4K video, the bars in dollars with the left axis at each day's own tallest bar, on YouTube (opens in a new tab)");
+  assert.equal(el.btc.title, "History (BTC): every day since 18 May 2010 as one 5-minute 4K video, the bars in coins with the left axis at each day's own tallest bar, on YouTube (opens in a new tab)");
+  assert.equal(el.pctusd.title, "History (% USD Value): every day since 31 January 2011 as one 5-minute 4K video, each bar as its percent of the day's realized cap on the fixed 0-4% axis, on YouTube (opens in a new tab)");
+  assert.equal(el.pctbtc.title, "History (% BTC): every day since 18 May 2010 as one 5-minute 4K video, each bar as its percent of the day's supply on the fixed 0-4% axis, on YouTube (opens in a new tab)");
+  for (const k in el) assert.equal(el[k].getAttribute('aria-label'), el[k].title);
+  assert.deepEqual(BUTTONS.map(b => element(b[2]).textContent), ['USD Value', 'BTC', '% USD Value', '% BTC']);
+  for (const [lang, words, tags] of [['zh', '历史', ['美元价值', 'BTC', '% 美元价值', '% BTC']], ['ja', '履歴', ['USD 評価額', 'BTC', '% USD 評価額', '% BTC']]]) {
     c.lang = lang; c.labelYouTube();
-    assert.equal(usd.title, want, lang);
-    assert.equal(element('ytUsdLabel').textContent, words, lang);
-    assert.equal(element('ytBtcLabel').textContent, words, lang);
-    assert.equal(element('ytUsdTag').textContent, usdTag, lang);
-    assert.equal(element('ytBtcTag').textContent, 'BTC', lang);
-    assert.ok(usd.title.startsWith(words) && btc.title.startsWith(words), lang + ': the spoken name starts with the words on the button');
-    assert.ok(btc.title.includes('（BTC）'), lang);
+    BUTTONS.forEach((b, i) => {
+      assert.equal(element(b[1]).textContent, words, lang);
+      assert.equal(element(b[2]).textContent, tags[i], lang);
+      assert.ok(element(b[0]).title.startsWith(words + '（' + tags[i] + '）：'), lang + ': the spoken name starts with the words on the button');
+    });
   }
   c.lang = 'en'; c.labelYouTube();
-  const channel = n => `Full history (${n}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`;
+  const channel = n => `History (${n}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`;
   for (const bad of [null, {}, { id: null }, { id: 'javascript:x' }, { id: 'short' }, { id: 'dQw4w9WgXcQ"x' }, { id: 12345678901 }, 'dQw4w9WgXcQ']) {
-    c.setYouTubeLinks({ usd: { id: 'dQw4w9WgXcQ' }, btc: { id: 'dQw4w9WgXcQ' } });
-    c.setYouTubeLinks({ usd: bad, btc: bad });
-    assert.equal(usd.href, CHANNEL, JSON.stringify(bad));
-    assert.equal(btc.href, CHANNEL, JSON.stringify(bad));
-    assert.equal(usd.title, channel('USD Value'), JSON.stringify(bad));
-    assert.equal(btc.title, channel('BTC'), JSON.stringify(bad));
+    c.setYouTubeLinks({ usd: { id: 'dQw4w9WgXcQ' }, btc: { id: 'dQw4w9WgXcQ' }, pctusd: { id: 'dQw4w9WgXcQ' }, pctbtc: { id: 'dQw4w9WgXcQ' } });
+    c.setYouTubeLinks({ usd: bad, btc: bad, pctusd: bad, pctbtc: bad });
+    for (const k in el) assert.equal(el[k].href, CHANNEL, k + ' ' + JSON.stringify(bad));
+    assert.equal(el.usd.title, channel('USD Value'), JSON.stringify(bad));
+    assert.equal(el.pctbtc.title, channel('% BTC'), JSON.stringify(bad));
   }
-  for (const bad of [null, 'x', 5, []]) { c.setYouTubeLinks(bad); assert.equal(usd.href, CHANNEL); assert.equal(btc.href, CHANNEL); }
-  // One video without the other: each button on its own.
+  for (const bad of [null, 'x', 5, []]) { c.setYouTubeLinks(bad); for (const k in el) assert.equal(el[k].href, CHANNEL); }
+  // One video without the others: each button on its own.
   c.setYouTubeLinks({ usd: null, btc: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
-  assert.equal(usd.href, CHANNEL);
-  assert.equal(btc.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  assert.equal(el.usd.href, CHANNEL);
+  assert.equal(el.btc.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  assert.equal(el.pctusd.href, CHANNEL);
   // The files from before name videos drawn another way (the Y-MAX videos, and before them AGE, <150D/>150D and RAW,
   // and a single video at their top level): none of them stands in for these.
   c.setYouTubeLinks({ ath: { id: 'dQw4w9WgXcQ' }, fit: { id: 'Abc_123-xyZ' }, age: { id: 'dQw4w9WgXcQ' }, lthsth: { id: 'Abc_123-xyZ' }, raw: { id: 'Raw_567-abC' }, id: 'dQw4w9WgXcQ' });
-  assert.equal(usd.href, CHANNEL);
-  assert.equal(btc.href, CHANNEL);
-  for (const [lang, want] of [['zh', '完整历史（BTC）：YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）'], ['ja', '全期間（BTC）：YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）']]) {
+  for (const k in el) assert.equal(el[k].href, CHANNEL, k);
+  for (const [lang, want] of [['zh', '历史（BTC）：YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）'], ['ja', '履歴（BTC）：YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
-    assert.equal(btc.title, want, lang);
-    assert.equal(btc.getAttribute('aria-label'), want, lang);
+    assert.equal(el.btc.title, want, lang);
+    assert.equal(el.btc.getAttribute('aria-label'), want, lang);
   }
   // The page asks for it on its own, and a missing file changes nothing else.
   for (const found of [true, false]) {
     const h = app(), asked = [];
-    h.element('ytUsdBtn').href = CHANNEL; h.element('ytBtcBtn').href = CHANNEL;   // as the page starts
-    const yt = () => (found ? Promise.resolve({ usd: { id: 'dQw4w9WgXcQ' }, btc: { id: 'Abc_123-xyZ' } }) : Promise.reject(new Error('HTTP 404')));
+    for (const b of BUTTONS) h.element(b[0]).href = CHANNEL;   // as the page starts
+    const yt = () => (found ? Promise.resolve({ usd: { id: 'dQw4w9WgXcQ' }, pctbtc: { id: 'Abc_123-xyZ' } }) : Promise.reject(new Error('HTTP 404')));
     h.c.fetchJSON = url => { asked.push(url); return url === 'data/youtube.json' ? yt() : Promise.resolve(url.endsWith('/all/dates') ? days('2026-09-20', '2026-09-24') : null); };
     h.c.loadAndRender = () => Promise.resolve();
     await h.c.init(); await flush();
     assert.equal(asked[0], 'data/youtube.json');
     assert.equal(h.c.allDates.length, 5, 'the chart loads either way');
     assert.equal(h.element('ytUsdBtn').href, found ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : CHANNEL);
-    assert.equal(h.element('ytBtcBtn').href, found ? 'https://www.youtube.com/watch?v=Abc_123-xyZ' : CHANNEL);
+    assert.equal(h.element('ytPctBtcBtn').href, found ? 'https://www.youtube.com/watch?v=Abc_123-xyZ' : CHANNEL);
+    assert.equal(h.element('ytBtcBtn').href, CHANNEL);
   }
 });
 
 test('data/youtube.json names each video by its YouTube id, or none yet', () => {
   const fs = require('node:fs'), path = require('node:path');
   const yt = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'youtube.json'), 'utf8'));
-  assert.deepEqual(Object.keys(yt), ['about', 'usd', 'btc']);
-  for (const k of ['usd', 'btc']) {
+  assert.deepEqual(Object.keys(yt), ['about', 'usd', 'btc', 'pctusd', 'pctbtc']);
+  for (const k of ['usd', 'btc', 'pctusd', 'pctbtc']) {
     if (yt[k] === null) continue;
     assert.deepEqual(Object.keys(yt[k]), ['id', 'end'], k);
     assert.match(yt[k].id, /^[A-Za-z0-9_-]{11}$/, k);
