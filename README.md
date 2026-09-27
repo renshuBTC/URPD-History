@@ -7,19 +7,18 @@ name of the distribution is URPD, the UTXO Realised Price Distribution.
 
 What is unusual here is the history: most published versions show only today, this one
 steps through every day back to 2009-01-03, with each bar split into 23 age cohorts, in
-four views: the bars in dollars (USD) or in coins (BTC), with the left axis at each day's
-own tallest bar, or every bar as its percent of the day's total (% USD, % BTC) on a left
-axis fixed at 0 to 4%, so the bars cover the same area of the chart on every day and days
-years apart can be compared as shapes.
+four views: the bars in dollars (USD) or in coins (BTC), or every bar as its percent of the
+day's total (% USD, % BTC), so that days years apart can be compared as shapes. In all four
+the left axis ends at the day's own tallest bar.
 
 **Live: <https://bitcoinsupplychart.com>**
 
 ## Reading it
 
 - **Bottom axis** is the price each coin last moved at, not today’s price.
-- **Left axis** is how much sits in each bar: dollars in USD, coins in BTC, and in % USD and % BTC each bar's percent of the day's total, of the realized cap (every coin's value when it last moved) or of the supply. In USD and BTC it ends at the day's own tallest bar, so that bar always reaches the top; in % USD and % BTC it runs from 0 to 4% on every day, so every day's bars, adding up to 100%, cover the same area (a bar above 4% runs off the top: in % USD the tallest bar on a few dozen days of the whole history, in % BTC the first bar on every day). Both axes are marked at twenty equal steps from zero to their very end, labels rounded to two significant figures.
+- **Left axis** is how much sits in each bar: dollars in USD, coins in BTC, and in % USD and % BTC each bar's percent of the day's total, of the realized cap (every coin's value when it last moved) or of the supply. In all four views it ends at the day's own tallest bar (at the default Y-max of 100), so that bar always reaches the top and no bar is ever cut off; in % USD and % BTC every day's bars add up to 100%. Both axes are marked at twenty equal steps from zero to their very end, labels rounded to two significant figures.
 - **The price axis only grows.** It ends exactly at the highest price any coin had last moved at by the day you are viewing, moves only when the data goes past it, and never shrinks, so scrubbing back shows every day exactly as it looked at the time. At the default 625 bars each spans exactly 1/625 of it (201.04 dollars on the 125,650 dollar axis of late 2025), whatever the smoothing.
-- **The first bar**, the coins last moved for less than one bar’s width (all of them before 31 January 2011, still about 14% today), is the tallest bar in BTC on every day, several times any other, so at Y-max 100 the rest of the day is drawn much shorter; Y-max 99.7 cuts that bar alone on most days. In USD and % USD there is nothing to draw before 31 January 2011: until then every coin had last moved below 50 cents, recorded as $0.
+- **The first bar**, the coins last moved for less than one bar’s width (all of them before 31 January 2011, still about 14% today), is the tallest bar in BTC and % BTC on every day, several times any other, so at Y-max 100 the rest of the day is drawn much shorter; Y-max 99.7 cuts that bar alone on most days. In USD and % USD there is nothing to draw before 31 January 2011: until then every coin had last moved below 50 cents, recorded as $0.
 - **Hover a bar** for its price, its age band's part, the whole bar (Total Value When Last Moved, or Total Supply; in % USD and % BTC its percent of the day's total too), and Cumulative % of Total, the running share of the day at or below that price.
 - **White line** is bitcoin’s own price on its own hidden axes: a year of time around the selected day, and linear from $0 to the highest close shown so far, so the line fills the chart and only rescales on a new high.
 - **Dashed vertical** is the spot price. Supply to its left last moved below it, supply to its right above it.
@@ -43,7 +42,7 @@ Toolbar, left to right:
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC / % USD / % BTC** — the bars in dollars (the value when last moved) or in coins, or each bar as its percent of the day's realized cap or of its supply
 - **PIN Y-AXIS** — freeze the left axis at the tallest bar of the day you are viewing, so other days can be compared against it; pins are kept per view, bin count and smoothing, in your own browser
-- **Bins**, **Smoothing** and **Y-max** — how many bars the price axis is cut into up to the highest price so far (625 by default, 50 to 1000; one more past it takes in what the smoothing spreads beyond it); smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the day's tallest bar in USD and BTC, whichever bar that is, and the fixed 4% top in % USD and % BTC, and anything lower zooms into the day in view
+- **Bins**, **Smoothing** and **Y-max** — how many bars the price axis is cut into up to the highest price so far (625 by default, 50 to 1000; one more past it takes in what the smoothing spreads beyond it); smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the day's tallest bar in all four views, whichever bar that is, and anything lower zooms into the day in view
 - **HISTORY (USD VALUE)**, **HISTORY (BTC)**, **HISTORY (% USD VALUE)** and **HISTORY (% BTC)** for the latest 5-minute full-history videos on YouTube, one for each view (each opens the channel until there is a video of it others can watch)
 - together at the right-hand end: **?** for the explainer and the GitHub mark for the source, as icons, and the language toggle
 
@@ -90,7 +89,7 @@ builds it with the page’s own code; run again, it extends the file by each fin
 (23 requests to bitview.space per day). The Weekly videos workflow does that every day
 (it runs daily for this, and draws the videos once a week) and commits the result. Days
 after the file’s last day still draw, carrying on from its last value with their own data.
-The left axis needs no history: it ends at the day's own tallest bar, or at 4% in % USD and % BTC.
+The left axis needs no history: it ends at the day's own tallest bar.
 
 ### Earlier videos (kept)
 
