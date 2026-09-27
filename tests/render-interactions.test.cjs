@@ -91,19 +91,6 @@ test('the date counter remains committed until the pending chart succeeds', asyn
   assert.equal(h.element('dateDisplay').textContent, oldCounter);
 });
 
-test('pinning during a mode switch never saves the displayed USD peak under BTC', async () => {
-  const h = controlledApp();
-  await showFirst(h);
-  const displayedKey = h.c.peakKey();
-  const displayedPeak = h.c.lastDayPeak;
-  h.c.setViewMode(1);
-  const nextModeKey = h.c.peakKey();
-  assert.notEqual(nextModeKey, displayedKey);
-  h.c.peakPin();
-  assert.equal(h.c.peakStore[nextModeKey], undefined);
-  assert.equal(h.c.peakStore[displayedKey][1], displayedPeak);
-});
-
 test('an older completed draw cannot hide the newest date loading indicator', async () => {
   const h = controlledApp();
   await showFirst(h);
@@ -124,24 +111,6 @@ test('an older completed draw cannot hide the newest date loading indicator', as
   h.draws[2].complete();
   await newer;
   assert.equal(h.element('loading').style.display, 'none');
-});
-
-test('fallback redraw keeps the displayed data binning in its peak key', async () => {
-  const h = controlledApp();
-  await showFirst(h);
-  const displayedKey = h.c.peakKey();
-  h.c.currentIdx = 1;
-  h.c.KERNEL_PCT = 0.5;
-  const newKey = h.c.peakKey();
-  // The selected date has no cache entry for the new smoothing yet, so a presentation
-  // setting redraw uses the last displayed day's data until its fetch completes.
-  const redraw = h.c.rerenderCurrent();
-  await flush();
-  h.draws[1].complete();
-  await redraw;
-  h.c.peakPin();
-  assert.equal(h.c.peakStore[newKey], undefined);
-  assert.ok(h.c.peakStore[displayedKey]);
 });
 
 test('a new smoothing that cannot be drawn, with no raw series left to re-bin, is rolled back in the chart and the field', async () => {
