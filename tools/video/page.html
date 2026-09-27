@@ -9,12 +9,13 @@
 <script src="PLOTLY"></script>
 </head><body><div id="chart"></div>
 <script>
-// The site's chart (index.html drawChart) for one frame of the video, in one of its two weightings as the site draws it
-// by default (looks.mjs): the bars in dollars with the left axis at the frame's tallest bar, or in coins with it at the
-// 99.8th percentile of the frame's bars, the bars above it running off the top with the tallest one's height printed at
-// the top left (sp.cut, the ▲ figure). Axes, labels, landmarks, colours and the title follow the site and come from
+// The site's chart (index.html drawChart) for one frame of the video, in one of its weightings and colourings as the
+// site draws it by default (looks.mjs): the bars in dollars with the left axis at the frame's tallest bar, or in coins
+// with it at the 99.8th percentile of the frame's bars, the bars above it running off the top with the tallest one's
+// height printed at the top left (sp.cut, the ▲ figure); in the 23 age bands or as short- and long-term holders (the
+// layers and legend entries render.mjs hands over). Axes, labels, landmarks, colours and the title follow the site and come from
 // render.mjs. Text for Plotly is escaped (esc), since Plotly reads <...> as markup. The one deliberate difference:
-// each layer (an age band) is one filled outline of all 626 bars, painted back to front, instead of up to 14,000
+// each layer (an age band, or the short- or long-term holders) is one filled outline of all 626 bars, painted back to front, instead of up to 14,000
 // separate rectangles (the same picture, much faster), with the bar edges on whole device pixels.
 var FONT = "'Source Code Pro', Consolas, monospace";
 var GRID_COLOR = "#272727", WATERMARK_COLOR = "#1a1a1a";   // the site's (index.html, "Grid and watermark")

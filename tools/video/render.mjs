@@ -1,12 +1,13 @@
 // Renders a full-history video the Weekly videos workflow posts to YouTube: every day in the store (store.mjs) from the first
 // with anything to draw (startIndex: 2011-01-31 in USD, 2010-05-18 in BTC) to the latest, in 5:00 at 60 fps (18,000
 // frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days there
-// are; the chart is the site's, drawn by page.html, in one of the site's two weightings as the site draws it by default
-// (looks.mjs): the bars in dollars with the left axis at each frame's tallest bar, or in coins with it at the 99.8th
-// percentile of each frame's bars, the first bar running off the top with its height printed there.
+// are; the chart is the site's, drawn by page.html, in one of the site's two weightings and two colourings as the site
+// draws it by default (looks.mjs): the bars in dollars with the left axis at each frame's tallest bar, or in coins with
+// it at the 99.8th percentile of each frame's bars, the first bar running off the top with its height printed there;
+// stacked in the 23 age bands (AGE) or split into short- and long-term holders (LTH/STH).
 //
 //   node tools/video/render.mjs STORE_DIR OUT.mp4
-//   env: LOOK (usd, the default, or btc: see looks.mjs),
+//   env: LOOK (usd-age, the default, btc-age, usd-lthsth or btc-lthsth: see looks.mjs),
 //        FRAMES (18000), WORKERS (browser pages drawing at once: 2 with 12 GB or more, else 1), SEG (frames per segment,
 //        180: a whole number of microseconds long, so at 60 fps a multiple of 3),
 //        TEST_DATES (comma list: write a still of each of those days, drawn as recorded, as PNG next to OUT instead of a
@@ -21,7 +22,7 @@ import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { readStore, startIndex } from "./store.mjs";
-import { AGE_LABELS, AGE_COLORS, axisLevel, look, titleStart } from "./looks.mjs";
+import { AGE_LABELS, AGE_COLORS, HOLDER_COLORS, HOLDER_LABELS, STH_BANDS, axisLevel, look, titleStart } from "./looks.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -36,9 +37,12 @@ for (const [k, v] of [["FRAMES", F], ["SEG", SEG], ["WORKERS", WORKERS]]) if (!(
 // of them was cut short at every join, and the video's frame rate came out a hair off 60 (which check-video.sh refuses).
 if ((SEG * 1e6) % FPS !== 0) throw new Error(`SEG=${SEG}: ${SEG} frames at ${FPS} fps is not a whole number of microseconds (use a multiple of 3)`);
 const TEST = process.env.TEST_DATES ? process.env.TEST_DATES.split(",") : null;
-const LOOK_NAME = process.env.LOOK || "usd", LOOK = look(LOOK_NAME), TITLE = titleStart(LOOK_NAME);
+const LOOK_NAME = process.env.LOOK || "usd-age", LOOK = look(LOOK_NAME), TITLE = titleStart(LOOK_NAME);
 // NB bars of A age bands a day, as the store holds them.
 const NB = 626, A = AGE_LABELS.length, DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1);
+// The stacked layers a frame draws, each the bands up to it added up (dayData's cum): all 23, or for LTH/STH the
+// short-term holders' top (the first STH_BANDS bands) and the whole bar, which puts the long-term holders above them.
+const LAYERS = LOOK.split ? [STH_BANDS - 1, A - 1] : Array.from({ length: A }, (_, k) => k);
 const dayIdx = (d) => Math.round((Date.parse(d + "T00:00:00Z") - DAY0) / DAY);
 const idxDay = (i) => new Date(DAY0 + i * DAY).toISOString().slice(0, 10);
 const LM = [["2011-06-08", "Cycle 1 Top", 1], ["2011-11-18", "Cycle 1 Bottom", 0], ["2013-11-29", "Cycle 2 Top", 1], ["2015-01-14", "Cycle 2 Bottom", 0],
@@ -142,7 +146,8 @@ function frameFacts(t, exact) {
 // spec(t, i): frame t, or with i the day i itself unblended (a still).
 function spec(t, exact) {
   const g = frameFacts(t, exact), { f, w, wl, wr, spot, redPct } = g, a = dayData(g.i0), b = dayData(g.i1), cum = [];
-  for (let k = 0; k < A; k++) { const x = a.cum[k], y = b.cum[k], o = new Array(NB); for (let j = 0; j < NB; j++) o[j] = round5(x[j] + (y[j] - x[j]) * f); cum.push(o); }
+  // The layers drawn: every age band, or (LTH/STH) the short-term holders' top, band STH_BANDS - 1, and the whole bar.
+  for (const k of LAYERS) { const x = a.cum[k], y = b.cum[k], o = new Array(NB); for (let j = 0; j < NB; j++) o[j] = round5(x[j] + (y[j] - x[j]) * f); cum.push(o); }
   const xSpan = NB * w, xv = axisTicks(xSpan), xt = axisLabels(xv, false);
   xt[0] = "\u00a0\u00a0" + xt[0];                         // off the corner, clear of the left axis's 0
   // A still (exact) is on the day's own axis, with the look's Y-max.
@@ -161,7 +166,7 @@ function spec(t, exact) {
     if (best >= 0) lm.push({ d: idxDay(best), p: close[best], l, top: !!top });
   }
   return { date: g.date, tx: g.tx, nb: NB, w, title: TITLE, yTitle: LOOK.yTitle, profitLabel: LOOK.profit, lossLabel: LOOK.loss,
-    labels: AGE_LABELS, colors: AGE_COLORS, legendSize: 9,
+    labels: LOOK.split ? HOLDER_LABELS : AGE_LABELS, colors: LOOK.split ? HOLDER_COLORS : AGE_COLORS, legendSize: LOOK.split ? 12 : 9,
     cum, xt: { v: xv, t: xt }, ymax, yt, ytt, cut: cutText(cn, cv), spot, redPct, pd, pp,
     win: [isoAt(wl), isoAt(wr)], cStr, rStr, pr: M[t] > 0 ? [0, M[t]] : null, lm, drop: DROP ? DROP[t] : 0 };
 }
