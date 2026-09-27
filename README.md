@@ -41,9 +41,9 @@ Toolbar, left to right:
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
 - **AGE / LTH/STH** — colour each bar by its 23 age bands, or split it into short- and long-term holders at 150 days
-- **PIN Y-AXIS** — freeze the left axis where it is on the day you are viewing so other days can be compared against it; the Y-max field is off while it holds
-- **Bins**, **Smoothing** and **Y-max** — bins, how many equal-width bars the price axis is cut into up to the highest price so far (625 by default, 50 to 1000), with one more past it that takes in what the smoothing spreads beyond it; smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, the percentile of the day’s bar heights where the left axis ends (100 in USD mode, 99.8 in BTC mode, each kept as you type it)
 - **Bottom signal** — the share of the day in loss (value in USD mode, 80% by default; coins in BTC mode, 50%) at which the dashed line and the price box turn yellow and the box adds a line naming the threshold
+- **Bins**, **Smoothing** and **Y-max** — bins, how many equal-width bars the price axis is cut into up to the highest price so far (625 by default, 50 to 1000), with one more past it that takes in what the smoothing spreads beyond it; smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, the percentile of the day’s bar heights where the left axis ends (100 in USD mode, 99.8 in BTC mode, each kept as you type it)
+- **PIN Y-AXIS** — freeze the left axis where it is on the day you are viewing so other days can be compared against it; the Y-max field is off while it holds
 - **VIDEO (USD-AGE)**, **VIDEO (USD-LTH/STH)**, **VIDEO (BTC-AGE)** and **VIDEO (BTC-LTH/STH)** for the latest 5-minute full-history videos on YouTube, one for each weighting and colouring (each opens the channel until there is a video of it others can watch)
 - together at the right-hand end: **?** for the explainer and the GitHub mark for the source, as icons, and the language toggle
 

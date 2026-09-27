@@ -243,9 +243,9 @@
     <button id="btnSplit" aria-pressed="false" title="LTH/STH: each bar split at 150 days into short-term holders (STH, coins that moved within the last 150 days) and long-term holders (LTH, coins unmoved for 150 days or more)">LTH/STH</button>
   </div>
   <div class="ctrl-sep"></div>
-  <div class="mode-toggle">
-    <button id="btnPeak" aria-pressed="false" title="Pin the Y-axis where it is now, so every other day is drawn against the same height (the Y-max field is off while it is pinned)">Pin Y-axis</button>
-  </div>
+  <label class="field" id="signalWrap" title="Bottom signal: the dashed line and the price box turn yellow, and the box says so, once at least this share of the day is in loss (USD: its value, 80 by default; BTC: its coins, 50 by default). Each mode keeps the value you type">
+    <span class="field-label">Bottom signal</span><input type="text" id="signalInput" value="80" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="field-unit">% IN LOSS</span>
+  </label>
   <div class="ctrl-sep"></div>
   <label class="field" id="binsWrap" title="Bins: how many equal-width bars the price axis is cut into, up to the highest price so far (50 to 1000; 625 by default)">
     <span class="field-label">Bins</span><input type="text" id="binsInput" value="625" inputmode="numeric" autocomplete="off" spellcheck="false">
@@ -259,9 +259,9 @@
     <span class="field-label">Y-max</span><input type="text" id="ymaxInput" value="100" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="field-unit">PCTL</span>
   </label>
   <div class="ctrl-sep"></div>
-  <label class="field" id="signalWrap" title="Bottom signal: the dashed line and the price box turn yellow, and the box says so, once at least this share of the day is in loss (USD: its value, 80 by default; BTC: its coins, 50 by default). Each mode keeps the value you type">
-    <span class="field-label">Bottom signal</span><input type="text" id="signalInput" value="80" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="field-unit">% IN LOSS</span>
-  </label>
+  <div class="mode-toggle">
+    <button id="btnPeak" aria-pressed="false" title="Pin the Y-axis where it is now, so every other day is drawn against the same height (the Y-max field is off while it is pinned)">Pin Y-axis</button>
+  </div>
   <div class="ctrl-sep"></div>
   <!-- The chart's four videos (on YouTube: the site offers no file to download), one for each weighting and colouring,
        each named in words; help and the code, as icons, and the page's language keep together at the right-hand end. -->
