@@ -45,8 +45,11 @@ test('each video draws one of the site\'s weightings and colourings as the site 
     assert.equal(L.yTitle, en[L.coin ? 'btcSupply' : 'usdInvested'], k);
     assert.equal(L.profit, en[unit + 'Profit'], k);
     assert.equal(L.loss, en[unit + 'Loss'], k);
+    // The bottom signal at the site's default threshold for the weighting, in the site's words.
+    assert.equal(L.bottom, c.BOTTOM_DEFAULTS[v], k);
+    assert.equal(L.signal, en.bottomSignal, k);
     assert.doesNotMatch(titleStart(k), /[<>]|Y-Max|150D/, k + ': nothing YouTube refuses, no Y-MAX mode, and LTH/STH by name');
-    assert.deepEqual(Object.keys(L).sort(), ['coin', 'loss', 'profit', 'split', 'tag', 'title', 'yPct', 'yTitle'], k);
+    assert.deepEqual(Object.keys(L).sort(), ['bottom', 'coin', 'loss', 'profit', 'signal', 'split', 'tag', 'title', 'yPct', 'yTitle'], k);
   }
   assert.throws(() => look('__proto__'), /no look/);
   for (const gone of ['usd', 'btc', 'ath', 'fit', 'age', 'lthsth', 'raw', 'pct', 'pctusd', 'pctbtc'])
@@ -179,6 +182,34 @@ test('the workflow renders and vets the four videos on runners of their own, pub
   assert.match(record, /uses: actions\/checkout@\S+ # v[\d.]+\n\s+with:\n\s+ref: main\n/);
   // Only runs on main wait for each other; a run by hand on another branch (which does nothing) has a group of its own.
   assert.match(workflow, /^concurrency:\n {2}group: \$\{\{ github\.ref == 'refs\/heads\/main' && 'daily-video' \|\| format\('video-\{0\}', github\.run_id\) \}\}\n {2}cancel-in-progress: false$/m);
+});
+
+test('the videos show the bottom signal as the site does: at the look\'s threshold in loss, a yellow dashed line and border and a fourth line', async () => {
+  const { LOOKS } = await load();
+  const page = fs.readFileSync(path.join(ROOT, 'tools', 'video', 'page.html'), 'utf8');
+  const render = fs.readFileSync(path.join(ROOT, 'tools', 'video', 'render.mjs'), 'utf8');
+  // Every frame and every figure boxNeeds is given carries the look's threshold and words.
+  assert.ok(render.includes('    signalAt: LOOK.bottom, signalText: LOOK.signal,\n'), 'each frame');
+  assert.ok(render.includes('lossLabel: LOOK.loss, signalAt: LOOK.bottom, signalText: LOOK.signal, nb: NB'), 'the price box\'s moves');
+  assert.match(page, /line: \{ color: pb\.on \? TH\.signal : TH\.dash, width: 1, dash: "dash" \}/);
+  assert.match(page, /bordercolor: pb\.on \? TH\.signal : TH\.boxBorder, borderwidth: 1/);
+  // page.html's price box, run as the frame runs it.
+  const vm = require('node:vm');
+  const c = vm.createContext({ window: { devicePixelRatio: 2 }, document: {}, Math, Date, String, Number, JSON });
+  vm.runInContext([...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n'), c);
+  for (const L of Object.values(LOOKS)) {
+    const sp = (redPct) => ({ spot: 16000, redPct, nb: 626, w: 200, win: ['2022-01-01 00:00:00', '2023-01-01 00:00:00'], date: '2022-11-21', pr: [0, 70000],
+      profitLabel: L.profit, lossLabel: L.loss, signalAt: L.bottom, signalText: L.signal });
+    const at = c.priceBox(sp(L.bottom)), below = c.priceBox(sp(L.bottom - 0.1)), none = c.priceBox(sp(null));
+    assert.equal(at.on, true, L.tag + ': at the threshold, as printed');
+    const rows = at.txt.split('<br>');
+    assert.equal(rows.length, 4);
+    assert.equal(rows[3], `<span style='color:#FFE600'>BOTTOM SIGNAL \u2014 In Loss \u2265 ${L.bottom}%</span>`, L.tag);
+    assert.equal(at.box.h, 4 * 17 + 12, 'the box grows by the line (and boxNeeds with it)');
+    assert.equal(below.on, false); assert.equal(below.txt.split('<br>').length, 3);
+    assert.equal(none.on, false, 'no share, no signal');
+  }
+  assert.deepEqual(Object.values(LOOKS).map(L => L.bottom), [80, 50, 80, 50], 'USD 80, BTC 50');
 });
 
 test('the uploader writes exactly the two lines the youtube jobs read as their outputs', async () => {
