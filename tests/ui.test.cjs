@@ -132,8 +132,8 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
   assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|signalWrap|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
-    ['btnUSD', 'btnBTC', 'btnAge', 'btnSplit', 'btnPeak', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'signalWrap', 'ytUsdAgeBtn', 'ytUsdSplitBtn', 'ytBtcAgeBtn', 'ytBtcSplitBtn'],
-    'USD | BTC, AGE | LTH/STH, PIN Y-AXIS, BINS left of SMOOTHING, Y-MAX, BOTTOM SIGNAL, then the four videos');
+    ['btnUSD', 'btnBTC', 'btnAge', 'btnSplit', 'signalWrap', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'btnPeak', 'ytUsdAgeBtn', 'ytUsdSplitBtn', 'ytBtcAgeBtn', 'ytBtcSplitBtn'],
+    'USD | BTC, AGE | LTH/STH, BOTTOM SIGNAL, BINS left of SMOOTHING, Y-MAX, PIN Y-AXIS on their right, then the four videos');
   // The video buttons show their icon and words, at the weight of the other buttons: VIDEO, which gives way in a
   // narrow bar, and which video, in brackets.
   for (const [key, tag] of [['UsdAge', 'USD-AGE'], ['BtcAge', 'BTC-AGE'], ['UsdSplit', 'USD-LTH/STH'], ['BtcSplit', 'BTC-LTH/STH']])
