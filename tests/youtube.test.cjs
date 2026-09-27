@@ -82,7 +82,7 @@ test('the title is the chart\'s own title on the video\'s last day, naming its l
     assert.ok(m.snippet.title.length <= 100);
     assert.match(m.snippet.description, /every day from 31 January 2011 to 24 September 2026\./);
     assert.match(m.snippet.description, /each bar split into 23 age bands by how long its coins have sat unmoved, with the left axis ending at /);
-    assert.match(m.snippet.description, /https:\/\/bitcoinsupplychart\.com/);
+    assert.match(m.snippet.description, /https:\/\/www\.bitcoinurpd\.com/);
     for (const text of [m.snippet.title, m.snippet.description, ...m.snippet.tags]) assert.doesNotMatch(text, /[<>]/, 'YouTube refuses < and >');
     assert.ok(Buffer.byteLength(m.snippet.description) < 5000);
     assert.ok(m.snippet.tags.join(',').length <= 500, 'YouTube\'s limit on tags');
