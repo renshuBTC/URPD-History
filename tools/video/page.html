@@ -23,7 +23,7 @@ var PROFIT = "#00e676", LOSS = "#ff1744", PRICE_LINE = "#ffffff";
 // The chart's colours, the site's own (index.html drawChart).
 var TH = { bg: "#0a0a0a", ink: "#ffffff", grid: GRID_COLOR, watermark: WATERMARK_COLOR, credit: "rgba(255,255,255,0.55)",
   line: PRICE_LINE, casing: "rgba(10,10,10,0.8)", dash: "#ffffff", boxBg: "rgba(0,0,0,0.92)",
-  boxBorder: "rgba(255,255,255,0.45)", tagBg: "rgba(0,0,0,0.75)", labelBg: "rgba(10,10,10,0.75)", profit: PROFIT, loss: LOSS };
+  boxBorder: "rgba(255,255,255,0.45)", tagBg: "rgba(0,0,0,0.75)", labelBg: "rgba(10,10,10,0.75)", profit: PROFIT, loss: LOSS, signal: "#FFE600" };
 var TOP_MARGIN = null, ML = 88, MR = 24, PLOT_W = 1920 - ML - MR, BAR_EDGES = null;
 // bar edges as fractions of the x-axis, snapped to device pixels, 2 px gap; computed from the real plot width
 function barEdges(plotW) { var dpr = window.devicePixelRatio || 1, len = plotW * dpr, n = 626, e = [], out = [];
@@ -45,18 +45,23 @@ function priceBox(sp) {
   var txt = "Price: $" + sp.spot.toLocaleString("en-US", { maximumFractionDigits: sp.spot < 10 ? 2 : 0 }) +
     "<br><span style='color:" + TH.profit + "'>" + esc(sp.profitLabel) + (profit === null ? "N/A" : profit.toFixed(1) + "%") + "</span>" +
     "<br><span style='color:" + TH.loss + "'>" + esc(sp.lossLabel) + (loss === null ? "N/A" : loss.toFixed(1) + "%") + "</span>";
+  // The bottom signal, as on the site: at least the look's threshold in loss, as the box prints it (to 0.1), adds a line
+  // in yellow naming the threshold (and turns the dashed line and the border yellow: drawFrame).
+  var on = loss !== null && sp.signalAt !== undefined && Number(loss.toFixed(1)) >= sp.signalAt;
+  if (on) txt += "<br><span style='color:" + TH.signal + "'>" + esc(sp.signalText + sp.signalAt + "%") + "</span>";
   var chars = txt.split("<br>").reduce(function(m, s) { return Math.max(m, s.replace(/<[^>]+>/g, "").length); }, 0);
   var boxF = (chars * 7.9 + 24) / PLOT_W, flip = sp.spot / xSpan + boxF > 0.99, boxAt = sp.spot / xSpan + (flip ? -6 : 6) / PLOT_W;
   var wl = Date.parse(sp.win[0].replace(" ", "T") + "Z"), wr = Date.parse(sp.win[1].replace(" ", "T") + "Z"), top3 = sp.pr ? sp.pr[1] : 0;
   var plotH = 1080 - (TOP_MARGIN === null ? 68 : TOP_MARGIN) - 44;
   var dot = top3 > 0 ? { f: (Date.parse((sp.tx || sp.date).replace(" ", "T") + (sp.tx ? "Z" : "T00:00:00Z")) - wl) / (wr - wl), y: (1 - sp.spot / top3) * plotH } : null;
-  return { txt: txt, flip: flip, box: { x0: flip ? boxAt - boxF : boxAt, x1: flip ? boxAt : boxAt + boxF, y0: 0, h: txt.split("<br>").length * 17 + 12 }, dot: dot };
+  return { txt: txt, on: on, flip: flip, box: { x0: flip ? boxAt - boxF : boxAt, x1: flip ? boxAt : boxAt + boxF, y0: 0, h: txt.split("<br>").length * 17 + 12 }, dot: dot };
 }
 function dotUnderBox(pb) {
   var b = pb.box, d = pb.dot;
   return !!d && d.f + DOT_R / PLOT_W > b.x0 && d.f - DOT_R / PLOT_W < b.x1 && d.y - DOT_R < b.y0 + b.h && d.y + DOT_R > b.y0;
 }
-// For each frame (only its figures: spot, redPct, the labels, nb, w, win, tx or date, pr, cut), how far down the price
+// For each frame (only its figures: spot, redPct, the labels, the signal's threshold and words, nb, w, win, tx or date,
+// pr, cut), how far down the price
 // box must go: below the ▲ figure where it would cover it, and just below the day's dot where that runs under it, as on
 // the site; 0 where nothing is in the way. render.mjs eases these.
 window.boxNeeds = function(frames) {
@@ -99,11 +104,11 @@ window.drawFrame = function(sp) {
   if (cb) ann.push({ x: 0, xref: "x", xanchor: "left", y: 1, yref: "paper", yanchor: "top", yshift: -2, text: esc(sp.cut), showarrow: false,
     font: { color: TH.ink, size: 11, family: FONT }, bgcolor: TH.tagBg, borderpad: 2 });
   if (pb) {
-    shapes.push({ type: "line", x0: sp.spot, x1: sp.spot, y0: 0, y1: 1, xref: "x", yref: "paper", line: { color: TH.dash, width: 1, dash: "dash" }, layer: "above" });
+    shapes.push({ type: "line", x0: sp.spot, x1: sp.spot, y0: 0, y1: 1, xref: "x", yref: "paper", line: { color: pb.on ? TH.signal : TH.dash, width: 1, dash: "dash" }, layer: "above" });
     var drop = sp.drop > 0 ? sp.drop : 0;
     spotBox = { x0: pb.box.x0, x1: pb.box.x1, y0: drop, h: pb.box.h };
     ann.push({ x: sp.spot, y: 1, xref: "x", yref: "paper", text: pb.txt, showarrow: false, xanchor: pb.flip ? "right" : "left", xshift: pb.flip ? -6 : 6, yshift: -drop, yanchor: "top", align: "left",
-      font: { color: TH.ink, size: 13, family: FONT }, bgcolor: TH.boxBg, bordercolor: TH.boxBorder, borderwidth: 1, borderpad: 5 });
+      font: { color: TH.ink, size: 13, family: FONT }, bgcolor: TH.boxBg, bordercolor: pb.on ? TH.signal : TH.boxBorder, borderwidth: 1, borderpad: 5 });
   }
   var layout = {
     title: { text: "<b>" + esc(sp.title) + new Date(sp.date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + "</b>",
