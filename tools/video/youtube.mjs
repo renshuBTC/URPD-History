@@ -49,7 +49,7 @@ export function videoDescription(start, end, name = "ath") {
       "worth then (the URPD, UTXO Realised Price Distribution), each bar split into 23 age bands by how long its coins " +
       "have sat unmoved, with " + AXIS[name] + ", every day from " + long(start) + " to " + long(end) + ".",
     "",
-    "Any day, in your browser: https://bitcoinsupplychart.com",
+    "Any day, in your browser: https://www.bitcoinurpd.com",
     "",
     "Powered by Bitview.space and Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_.",
   ].join("\n");
