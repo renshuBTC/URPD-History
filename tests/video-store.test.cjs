@@ -161,7 +161,7 @@ test('the video\'s price box: where the day\'s dot runs under it, it is moved to
   // A day near a high: the price at 97% of the price line's top, the dot three quarters across the window, and the
   // dashed line far enough right that the box sits on its left, over the dot.
   const frame = { spot: 97000, redPct: 5, nb: 626, w: 110000 / 626, win: ['2025-01-01 00:00:00', '2026-01-01 00:00:00'], tx: '2025-10-01 00:00:00', date: '2025-10-01', pr: [0, 100000],
-    profitLabel: 'USD Value Last Moved In Profit: ', lossLabel: 'USD Value Last Moved In Loss: ', coin: false };
+    profitLabel: 'USD Value Last Moved In Profit: ', lossLabel: 'USD Value Last Moved In Loss: ' };
   const pb = c.priceBox(frame);
   assert.equal(pb.flip, true, 'on the line\'s left');
   assert.ok(c.dotUnderBox(pb), 'the dot is under it');
@@ -169,10 +169,11 @@ test('the video\'s price box: where the day\'s dot runs under it, it is moved to
   assert.equal(need, Math.ceil(pb.dot.y + 9 + 4), 'just below the dot');
   // Lower down the line, or with no price, nothing moves.
   assert.deepEqual(Array.from(c.window.boxNeeds([{ ...frame, pr: [0, 200000] }, { ...frame, spot: null }])), [0, 0]);
-  // With the price near $0 the box would cover the readout at the top left (two lines, 36 px), and in BTC the ▲
-  // figure under it too (61 px): it goes just below them.
+  // With the price near $0 the box sits at the top left, where nothing else is any more (no readout, no ▲ figure over
+  // the first bar), in every view: it stays at the top.
   const low = { ...frame, spot: 900, pr: [0, 1e6] };
-  assert.deepEqual(Array.from(c.window.boxNeeds([low, { ...low, coin: true }])), [40, 65]);
+  assert.deepEqual(Array.from(c.window.boxNeeds([low, { ...low, coin: true }])), [0, 0]);
+  assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8'), /topLeftBox|sp\.coin|sp\.first|sp\.read/);
   // render.mjs holds each need a second either side and eases it over a third of a second, and drawFrame moves the box
   // (and what the landmark labels keep clear of) by exactly that.
   const render = fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'render.mjs'), 'utf8');
