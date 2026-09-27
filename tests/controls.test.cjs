@@ -168,11 +168,11 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the four video buttons always show: VIDEO (USD-AGE), (BTC-AGE), (USD-LTH/STH) and (BTC-LTH/STH), each its latest video others can watch, else the channel', async () => {
+test('the four video buttons always show: VIDEO (USD-AGE), (USD-LTH/STH), (BTC-AGE) and (BTC-LTH/STH), each its latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
   // as the markup writes them: the play icon, VIDEO (which gives way in a narrow bar) and which video, in brackets
-  const BUTTONS = [['ytUsdAgeBtn', 'ytUsdAge', 'USD-AGE', 'usd-age'], ['ytBtcAgeBtn', 'ytBtcAge', 'BTC-AGE', 'btc-age'],
-    ['ytUsdSplitBtn', 'ytUsdSplit', 'USD-LTH/STH', 'usd-lthsth'], ['ytBtcSplitBtn', 'ytBtcSplit', 'BTC-LTH/STH', 'btc-lthsth']];
+  const BUTTONS = [['ytUsdAgeBtn', 'ytUsdAge', 'USD-AGE', 'usd-age'], ['ytUsdSplitBtn', 'ytUsdSplit', 'USD-LTH/STH', 'usd-lthsth'],
+    ['ytBtcAgeBtn', 'ytBtcAge', 'BTC-AGE', 'btc-age'], ['ytBtcSplitBtn', 'ytBtcSplit', 'BTC-LTH/STH', 'btc-lthsth']];
   for (const [id, key, name] of BUTTONS) {
     const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${key}Word" class="yt-word">Video</span><span id="${key}Tag" class="yt-tag">([^<]+)</span></a>`));
     assert.ok(a, id + ': a visible link that opens in a new tab: the play symbol on the left, VIDEO and which video, named for screen readers and tooltips');
@@ -184,7 +184,7 @@ test('the four video buttons always show: VIDEO (USD-AGE), (BTC-AGE), (USD-LTH/S
     assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   }
   const at = BUTTONS.map(b => html.indexOf(`id="${b[0]}"`));
-  assert.deepEqual(at.slice().sort((x, y) => x - y), at, 'USD-AGE, BTC-AGE, USD-LTH/STH, BTC-LTH/STH, left to right');
+  assert.deepEqual(at.slice().sort((x, y) => x - y), at, 'USD-AGE, USD-LTH/STH, BTC-AGE, BTC-LTH/STH, left to right');
   assert.doesNotMatch(html, /ytFitBtn|id="ytBtn"|id="ytUsdBtn"|id="ytBtcBtn"|ytRawBtn|ytPct|yt-video/, 'no other video');
   assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
   assert.match(decls('#controls .yt-btn'), /border:\s*1px solid #595959/);
@@ -206,10 +206,10 @@ test('the four video buttons always show: VIDEO (USD-AGE), (BTC-AGE), (USD-LTH/S
   assert.equal(btn['btc-lthsth'].title, 'Video (BTC-LTH/STH): every day since 2010 as one 5-minute 4K video, the bars in coins, split into short- and long-term holders, on YouTube (opens in a new tab)');
   for (const k in btn) assert.equal(btn[k].getAttribute('aria-label'), btn[k].title);
   assert.deepEqual(BUTTONS.map(b => [element(b[1] + 'Word').textContent, element(b[1] + 'Tag').textContent]),
-    [['Video', 'USD-AGE'], ['Video', 'BTC-AGE'], ['Video', 'USD-LTH/STH'], ['Video', 'BTC-LTH/STH']]);
+    [['Video', 'USD-AGE'], ['Video', 'USD-LTH/STH'], ['Video', 'BTC-AGE'], ['Video', 'BTC-LTH/STH']]);
   for (const [lang, video, tags, want] of [
-    ['zh', '视频', ['USD-年龄', 'BTC-年龄', 'USD-长/短期', 'BTC-长/短期'], '视频（USD-长/短期）：2011 年以来的每一天，一段 5 分钟的 4K 视频，柱子以美元计，分为短期与长期持有者，在 YouTube 上观看（在新标签页中打开）'],
-    ['ja', '動画', ['USD-年齢', 'BTC-年齢', 'USD-長期/短期', 'BTC-長期/短期'], '動画（USD-長期/短期）：2011年以降の毎日を 5 分の 4K 動画 1 本にまとめ、棒をドルで描き、短期保有者と長期保有者で色分けして YouTube で（新しいタブで開きます）']]) {
+    ['zh', '视频', ['USD-年龄', 'USD-长/短期', 'BTC-年龄', 'BTC-长/短期'], '视频（USD-长/短期）：2011 年以来的每一天，一段 5 分钟的 4K 视频，柱子以美元计，分为短期与长期持有者，在 YouTube 上观看（在新标签页中打开）'],
+    ['ja', '動画', ['USD-年齢', 'USD-長期/短期', 'BTC-年齢', 'BTC-長期/短期'], '動画（USD-長期/短期）：2011年以降の毎日を 5 分の 4K 動画 1 本にまとめ、棒をドルで描き、短期保有者と長期保有者で色分けして YouTube で（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
     assert.equal(btn['usd-lthsth'].title, want, lang);
     assert.deepEqual(BUTTONS.map(b => element(b[1] + 'Word').textContent), [video, video, video, video], lang);
