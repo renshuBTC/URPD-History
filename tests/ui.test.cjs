@@ -131,32 +131,30 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.deepEqual([...end.matchAll(/\sid="(explainWrap|githubLink|langBtn)"/g)].map(m => m[1]), ['explainWrap', 'githubLink', 'langBtn'], 'How to read, GitHub and the language together at the right-hand end');
   assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
-    ['btnUSD', 'btnBTC', 'btnPeak', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'ytUsdBtn', 'ytBtcBtn'],
-    'USD | BTC, PIN Y-AXIS, BINS left of SMOOTHING, Y-MAX, then the USD and BTC videos; no Y-MAX mode buttons');
-  // The video buttons show their icon and words, at the weight of the other buttons: which video, in brackets, and
-  // VIDEO, which gives way in a narrow bar.
-  assert.match(bar, /id="ytUsdBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span class="yt-word"><span id="ytUsdWord">Full history<\/span><span id="ytUsdVideo" class="yt-video"> video<\/span><\/span><span id="ytUsdTag" class="yt-tag">USD<\/span><\/a>/, 'the video buttons say what they give you');
-  assert.match(bar, /id="ytBtcBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span class="yt-word"><span id="ytBtcWord">Full history<\/span><span id="ytBtcVideo" class="yt-video"> video<\/span><\/span><span id="ytBtcTag" class="yt-tag">BTC<\/span><\/a>/);
+  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
+    ['btnUSD', 'btnBTC', 'btnAge', 'btnSplit', 'btnPeak', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'ytUsdAgeBtn', 'ytBtcAgeBtn', 'ytUsdSplitBtn', 'ytBtcSplitBtn'],
+    'USD | BTC, AGE | LTH/STH, PIN Y-AXIS, BINS left of SMOOTHING, Y-MAX, then the four videos');
+  // The video buttons show their icon and words, at the weight of the other buttons: VIDEO, which gives way in a
+  // narrow bar, and which video, in brackets.
+  for (const [key, tag] of [['UsdAge', 'USD-AGE'], ['BtcAge', 'BTC-AGE'], ['UsdSplit', 'USD-LTH/STH'], ['BtcSplit', 'BTC-LTH/STH']])
+    assert.match(bar, new RegExp(`id="yt${key}Btn"[^>]*>\\s*<svg[\\s\\S]*?</svg><span id="yt${key}Word" class="yt-word">Video</span><span id="yt${key}Tag" class="yt-tag">${tag}</span></a>`), 'the video buttons say what they give you: ' + tag);
   // How to read and GitHub: their icons only, named by their tooltips and for screen readers.
   assert.match(end, /<a id="githubLink"[^>]*aria-label="View code on GitHub \(opens in a new tab\)" title="View code on GitHub \(opens in a new tab\)">\s*<svg[\s\S]*?<\/svg>\s*<\/a>/);
   assert.match(end, /<button id="explainBtn" aria-label="How to read this chart" title="How to read this chart" aria-expanded="false"><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><\/button>/);
   assert.doesNotMatch(html, /btn-word|explainLabel/);
-  // In a narrower bar the video buttons drop VIDEO, which their icon already says.
-  assert.match(decls('#controls.short .yt-video'), /display:\s*none/);
-  assert.doesNotMatch(html, /yt-tag-short|yt-tag-full/);
+  // In a narrower bar the video buttons drop VIDEO, which their icon already says (compact, below).
+  assert.doesNotMatch(html, /yt-tag-short|yt-tag-full|yt-video|controls\.short/);
   // Transitions would be measured half-way, so the buttons animate their colours only.
   for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
-  // To fit: the spacing tightens (dense), the type goes a size down (tight), the video buttons drop VIDEO (short), then
-  // their words and keep USD and BTC (compact), and last the whole bar is drawn smaller; the How to read panel undoes
-  // that.
+  // To fit: the spacing tightens (dense), the type goes a size down (tight), the video buttons drop VIDEO and keep
+  // USD-AGE and the rest (compact), and last the whole bar is drawn smaller; the How to read panel undoes that.
   assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
   assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);
   assert.match(decls('#controls.tight button'), /font-size:\s*11px;\s*letter-spacing:\s*0/);
   assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
   assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'which video it is never goes');
   assert.match(decls('#explainPanel'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
-  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "short", "compact"\];/);
+  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\];/);
   for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
   const { c, element } = app();
   for (const lang of ['zh', 'ja', 'en']) {
@@ -172,19 +170,18 @@ test('the bar fits its one row: each step only if the row does not fit without i
   bar.classList = { add: (k) => classes.add(k), remove: (k) => classes.delete(k), contains: (k) => classes.has(k), toggle() {} };
   // The row's width at each step, as measured in English (tools: a browser at 3000 px), and a window of W px: the
   // bar's own width, in its own (zoomed) pixels, is W / zoom.
-  const need = () => (classes.has('compact') ? 1563 : classes.has('short') ? 1771 : classes.has('tight') ? 1855 : classes.has('dense') ? 1934 : 2210);
+  const need = () => (classes.has('compact') ? 1564 : classes.has('tight') ? 1784 : classes.has('dense') ? 1848 : 2162);
   let W = 0;
   Object.defineProperty(bar, 'scrollWidth', { get: () => need() });
   Object.defineProperty(bar, 'clientWidth', { get: () => W / (parseFloat(bar.style.zoom) || 1) });
   const fit = (w) => { W = w; c.fitToolbarWords(); return [[...classes].join(' '), bar.style.zoom || '', bar.style['--bar-zoom'] || '']; };
   assert.deepEqual(fit(2560), ['', '', ''], 'room for everything');
-  assert.deepEqual(fit(2000), ['dense', '', '']);
-  assert.deepEqual(fit(1920), ['dense tight', '', ''], '1920 px: every word, a size smaller');
-  assert.deepEqual(fit(1800), ['dense tight short', '', '']);
-  assert.deepEqual(fit(1600), ['dense tight short compact', '', '']);
+  assert.deepEqual(fit(1920), ['dense', '', ''], '1920 px: every word, in the full size');
+  assert.deepEqual(fit(1800), ['dense tight', '', '']);
+  assert.deepEqual(fit(1600), ['dense tight compact', '', ''], 'the videos keep USD-AGE and the rest');
   const [cls, zoom, varZoom] = fit(1440);
-  assert.equal(cls, 'dense tight short compact');
-  assert.ok(+zoom > 0.9 && +zoom <= 1440 / 1563, zoom);
+  assert.equal(cls, 'dense tight compact');
+  assert.ok(+zoom > 0.9 && +zoom <= 1440 / 1564, zoom);
   assert.equal(varZoom, zoom, 'the panel is told how far to undo it');
   assert.ok(need() <= W / +zoom + 1, 'and then it fits');
   assert.deepEqual(fit(2560), ['', '', ''], 'a wider window takes every step back');
@@ -221,9 +218,9 @@ test('the chart follows its own box, which the toolbar can change without the wi
 });
 
 // The chart drawn over a plot `plotW` px wide.
-async function drawAt(plotW, lang = 'en') {
+async function drawAt(plotW, lang = 'en', split = false) {
   const { c, element } = app();
-  c.lang = lang;
+  c.lang = lang; c.splitMode = split;
   const { dates, raw } = market(c), react = c.Plotly.react;
   element('chart').clientWidth = plotW + 160;
   c.Plotly.react = (id, traces, layout) => react(id, traces, layout).then(() => {
@@ -256,20 +253,22 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
   assert.ok(tablet.title.font.size < 20, 'and a plot too narrow for it at 20 px shrinks it to fit');
 });
 
-test('the title names the weighting, in every language, as large as fits over the plot', async () => {
+test('the title names both choices, the weighting and the colouring, in every language, as large as fits over the plot', async () => {
   const { c } = app();
-  for (const lang of ['en', 'zh', 'ja']) for (const plotW of [1040, 900, 800, 600]) {
-    const L = await drawAt(plotW, lang), words = L.title.text.replace(/<[^>]+>/g, '');
-    assert.ok(words.startsWith(c.T[lang].titleUSD), `${lang}: ${words}`);
+  for (const lang of ['en', 'zh', 'ja']) for (const plotW of [1040, 900, 800, 600]) for (const split of [false, true]) {
+    const L = await drawAt(plotW, lang, split), words = L.title.text.replace(/<[^>]+>/g, '');
+    assert.ok(words.startsWith(c.T[lang][split ? 'titleUSDSplit' : 'titleUSDAge']), `${lang}: ${words}`);
     const want = Math.max(10, Math.min(20, Math.floor(20 * (plotW - 8) / (textPx(words, 20) * 1.03))));
     assert.equal(L.title.font.size, want, `${lang} at ${plotW} px`);
     assert.ok(textPx(words, want) * 1.03 <= plotW - 8, `${lang}: it fits at ${want} px over ${plotW} px`);
   }
-  assert.equal(c.T.en.titleUSD, 'Bitcoin URPD (USD Value) as of ');
-  assert.equal(c.T.en.titleBTC, 'Bitcoin URPD (BTC) as of ');
-  assert.equal(c.T.zh.titleBTC, '比特币 URPD（BTC）截至 ');
-  assert.equal(c.T.ja.titleUSD, 'ビットコイン URPD（USD 評価額） 基準日 ');
-  assert.doesNotMatch(JSON.stringify(c.T), /Y-Max (Always|Expands)|titleUSDFit|titleUSDAth|随历史新高扩展|過去最高で拡大/, 'the titles name no Y-MAX mode');
+  assert.equal(c.T.en.titleUSDAge, 'Bitcoin URPD (USD Value, AGE) as of ');
+  assert.equal(c.T.en.titleBTCAge, 'Bitcoin URPD (BTC, AGE) as of ');
+  assert.equal(c.T.en.titleUSDSplit, 'Bitcoin URPD (USD Value, LTH/STH) as of ');
+  assert.equal(c.T.en.titleBTCSplit, 'Bitcoin URPD (BTC, LTH/STH) as of ');
+  assert.equal(c.T.zh.titleBTCSplit, '比特币 URPD（BTC，长/短期）截至 ');
+  assert.equal(c.T.ja.titleUSDAge, 'ビットコイン URPD（USD 評価額、年齢） 基準日 ');
+  assert.doesNotMatch(JSON.stringify(c.T), /Y-Max (Always|Expands)|titleUSDFit|titleUSDAth|随历史新高扩展|過去最高で拡大|150D/, 'the titles name no Y-MAX mode, and LTH/STH by name');
 });
 
 test('the explainer\'s section headings are capitals, underlined, not bold', () => {
