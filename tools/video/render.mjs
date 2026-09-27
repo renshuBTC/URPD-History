@@ -67,7 +67,9 @@ const tip = Date.parse(days[N - 1].date + "T00:00:00Z");
 days.forEach((d) => { const sel = Date.parse(d.date + "T00:00:00Z"); d.wr = Math.min(tip + 7 * DAY, sel + 90 * DAY); d.wl = d.wr - 365 * DAY; });
 
 // ---- the days' bars, as drawn ----------------------------------------------------------------------------------
-// cum[a]: the age bands 0 to a added up, per bar (so cum[A - 1] is the whole bar), in dollars or coins.
+// cum[a]: the age bands 0 to a added up, per bar (so cum[A - 1] is the whole bar), as a share of the day in percent, as
+// the site draws it: of the realized cap (every coin's value when it last moved, added up) in dollars, of all the coins
+// in coins. A day's bars add up to 100%.
 const DAYCACHE = new Map();
 function dayData(i) {
   if (DAYCACHE.has(i)) return DAYCACHE.get(i);
@@ -76,6 +78,10 @@ function dayData(i) {
     for (let j = 0; j < NB; j++) acc[j] += b[a * NB + j];
     cum.push(Float64Array.from(acc));
   }
+  let total = 0;
+  for (let j = 0; j < NB; j++) total += cum[A - 1][j];
+  const toPct = total > 0 ? 100 / total : 0;
+  for (const c of cum) for (let j = 0; j < NB; j++) c[j] *= toPct;
   const d = { ...days[i], cum };
   DAYCACHE.set(i, d); if (DAYCACHE.size > 16) DAYCACHE.delete(DAYCACHE.keys().next().value);
   return d;
@@ -93,9 +99,9 @@ const priceAt = (ms) => { const x = (ms - DAY0) / DAY, k = Math.floor(x), fr = x
 const Y = new Float64Array(F), M = new Float64Array(F), CUTN = new Uint16Array(F), CUTV = new Float64Array(F);
 // The bars a top cuts: how many, and the tallest of them.
 const cutOf = (whole, top) => { let n = 0, v = 0; for (let j = 0; j < NB; j++) if (whole[j] > top * (1 + 1e-9)) { n++; if (whole[j] > v) v = whole[j]; } return [n, v]; };
-// The site's ▲ figure (index.html drawChart): the tallest cut bar's height, and how many more there are.
-const compact2 = (v) => { const a = Math.abs(v); return a >= 1e12 ? (v / 1e12).toFixed(2) + "T" : a >= 1e9 ? (v / 1e9).toFixed(2) + "B" : a >= 1e6 ? (v / 1e6).toFixed(2) + "M" : a >= 1e3 ? (v / 1e3).toFixed(2) + "K" : v.toFixed(2); };
-const cutText = (n, v) => (n ? "\u25b2 " + (LOOK.coin ? compact2(v) + " BTC" : "$" + compact2(v)) + (n > 1 ? " (+" + (n - 1) + ")" : "") : null);
+// The site's ▲ figure (index.html drawChart): the tallest cut bar's share of the day, and how many more there are.
+const pctCompact = (v) => (v >= 10 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : String(+v.toPrecision(3))) + "%";
+const cutText = (n, v) => (n ? "\u25b2 " + pctCompact(v) + (n > 1 ? " (+" + (n - 1) + ")" : "") : null);
 {
   let mRun = 0, pk = 0, pmax = 0;
   for (let k = Math.floor((days[0].wl - DAY0) / DAY); k <= Math.ceil((days[0].wr - DAY0) / DAY); k++) if (close[k] > mRun) mRun = close[k];
@@ -120,7 +126,9 @@ function compactNumber(v, sf) {
   return String(+(r / u[0]).toPrecision(12)) + u[1];
 }
 // coin: false for dollars, true for coins
-const axisNumber = (v, coin, sf) => (v === 0 ? (coin ? "0" : "$0") : (coin ? "" : "$") + compactNumber(v, sf));
+// unit: false for dollars, true for coins, "%" for a share of the day
+const axisNumber = (v, unit, sf) => (unit === "%" ? (v === 0 ? "0%" : String(+(+v).toPrecision(sf || 3)) + "%")
+  : v === 0 ? (unit ? "0" : "$0") : (unit ? "" : "$") + compactNumber(v, sf));
 const axisTicks = (end) => Array.from({ length: 21 }, (_, k) => end * k / 20);
 function axisLabels(vals, coin) {
   const end = vals[vals.length - 1], top = 10 ** Math.floor(Math.log10(end > 0 ? end : 1));
@@ -153,7 +161,7 @@ function spec(t, exact) {
   // A still (exact) is on the day's own axis, with the look's Y-max.
   const ymax = exact === undefined ? Y[t] : axisLevel(a.cum[A - 1], LOOK.yPct) || 1;
   const [cn, cv] = exact === undefined ? [CUTN[t], CUTV[t]] : cutOf(a.cum[A - 1], ymax);
-  const yt = axisTicks(ymax), ytt = axisLabels(yt, LOOK.coin);
+  const yt = axisTicks(ymax), ytt = axisLabels(yt, "%");
   const cStr = idxDay(Math.floor((wl - DAY0) / DAY) - 1), rStr = idxDay(Math.ceil((wr - DAY0) / DAY) + 1), pd = [], pp = [];
   for (let k = Math.max(0, dayIdx(cStr)); k <= Math.min(dayIdx(rStr), close.length - 1); k++) if (close[k] > 0) { pd.push(idxDay(k)); pp.push(close[k]); }
   // as on the site: each marker on the line's own highest (lowest) close within a week of its date, inside the window

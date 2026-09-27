@@ -1,6 +1,8 @@
 // The four videos, one for each weighting and colouring the site draws (index.html: the USD and BTC buttons,
 // setViewMode, and AGE and LTH/STH, setBarsMode), each as the site draws that choice by default (its Y-max, yMaxByMode
 // there):
+// Every bar is drawn as its share of the day in percent, as on the site (% USD, % BTC): of the realized cap in dollars, of
+// all the coins in coins.
 //   usd-age     the bars in dollars (every coin's value when it last moved), the left axis at each frame's own tallest bar
 //               (Y-max 100), every bar in its 23 age bands (AGE_BANDS and AGE_BAND_COLORS there), stacked from the
 //               youngest coins up
@@ -26,9 +28,9 @@ export const HOLDER_LABELS = ["Short-Term Holders (STH)", "Long-Term Holders (LT
 export const HOLDER_COLORS = ["#e6a817", "#5599ff"];
 
 const SIGNAL = "BOTTOM SIGNAL \u2014 In Loss \u2265 ";   // the site's English bottomSignal, then the threshold and %
-const USD = { coin: false, yPct: 100, bottom: 80, signal: SIGNAL, yTitle: "Value When Last Moved [USD]",
+const USD = { coin: false, yPct: 100, bottom: 80, signal: SIGNAL, yTitle: "Value When Last Moved [% of Realized Cap]",
   profit: "USD Value Last Moved In Profit: ", loss: "USD Value Last Moved In Loss: " };
-const BTC = { coin: true, yPct: 99.8, bottom: 50, signal: SIGNAL, yTitle: "Supply [BTC]",
+const BTC = { coin: true, yPct: 99.8, bottom: 50, signal: SIGNAL, yTitle: "Supply [% of Total Supply]",
   profit: "BTC Supply Last Moved In Profit: ", loss: "BTC Supply Last Moved In Loss: " };
 export const LOOKS = {
   // tag: the video's name on its button and on YouTube; coin: whether the bars are coins; split: short- and long-term
@@ -36,10 +38,10 @@ export const LOOKS = {
   // site's default for the weighting); bottom: the bottom signal's threshold, the share in loss (the site's default for
   // the weighting); the chart's words as the site's English writes them (titleUSDAge, usdInvested, usdProfit,
   // bottomSignal, ... there)
-  "usd-age": { tag: "USD-AGE", split: false, title: "Bitcoin URPD (USD Value, AGE) as of ", ...USD },
-  "btc-age": { tag: "BTC-AGE", split: false, title: "Bitcoin URPD (BTC, AGE) as of ", ...BTC },
-  "usd-lthsth": { tag: "USD-LTH/STH", split: true, title: "Bitcoin URPD (USD Value, LTH/STH) as of ", ...USD },
-  "btc-lthsth": { tag: "BTC-LTH/STH", split: true, title: "Bitcoin URPD (BTC, LTH/STH) as of ", ...BTC },
+  "usd-age": { tag: "% USD-AGE", split: false, title: "Bitcoin URPD (% USD, AGE) as of ", ...USD },
+  "btc-age": { tag: "% BTC-AGE", split: false, title: "Bitcoin URPD (% BTC, AGE) as of ", ...BTC },
+  "usd-lthsth": { tag: "% USD-LTH/STH", split: true, title: "Bitcoin URPD (% USD, LTH/STH) as of ", ...USD },
+  "btc-lthsth": { tag: "% BTC-LTH/STH", split: true, title: "Bitcoin URPD (% BTC, LTH/STH) as of ", ...BTC },
 };
 
 export function look(name) {
