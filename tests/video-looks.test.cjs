@@ -41,7 +41,7 @@ test('each video draws one of the site\'s weightings and colourings as the site 
     assert.equal(L.coin, c.VIEW_MODES[v].coin, k);
     assert.equal(L.yPct, c.yMaxByMode[v], k);
     assert.equal(titleStart(k), en['title' + T + (L.split ? 'Split' : 'Age')], k);
-    assert.equal(L.tag, T + '-' + en[L.split ? 'lthsth' : 'age'], k + ': named as its button');
+    assert.equal(L.tag, '% ' + T + '-' + en[L.split ? 'lthsth' : 'age'], k + ': named as its button');
     assert.equal(L.yTitle, en[L.coin ? 'btcSupply' : 'usdInvested'], k);
     assert.equal(L.profit, en[unit + 'Profit'], k);
     assert.equal(L.loss, en[unit + 'Loss'], k);
@@ -80,20 +80,22 @@ test('each video draws one of the site\'s weightings and colourings as the site 
   assert.ok(render.includes('const S = startIndex(store, LOOK.coin ? "btc" : "usd"), dayBars = LOOK.coin ? store.coins : store.bars;\n'));
   assert.ok(render.includes('    const level = axisLevel(whole, LOOK.yPct);\n    Y[t] = level > 0 ? level : 1;\n    [CUTN[t], CUTV[t]] = cutOf(whole, Y[t]);\n'));
   assert.ok(render.includes('  const ymax = exact === undefined ? Y[t] : axisLevel(a.cum[A - 1], LOOK.yPct) || 1;\n'));
-  assert.ok(render.includes('  const yt = axisTicks(ymax), ytt = axisLabels(yt, LOOK.coin);\n'));
+  assert.ok(render.includes('  const yt = axisTicks(ymax), ytt = axisLabels(yt, "%");\n'), 'the left axis in percent, as on the site');
+  // Each day's bars as its shares, adding up to 100%, as on the site.
+  assert.ok(render.includes('  const toPct = total > 0 ? 100 / total : 0;\n  for (const c of cum) for (let j = 0; j < NB; j++) c[j] *= toPct;\n'));
   // render.mjs's own copies of the site's axis labels and of its ▲ figure print what the site prints.
   const a = render.indexOf("// ---- the site's axis labels"), b = render.indexOf('// ---- frame t:');
   const ctx = vm.createContext({ Math, String, Number, Array });
   vm.runInContext(render.slice(a, b) + '\n;globalThis.fns = { axisTicks, axisLabels };', ctx);
   const f = ctx.fns;
-  for (const unit of [false, true]) for (const end of [1, 7.3, 1100, 126000, 125650, 2.2e5, 2.77e6, 3.1e10])
+  for (const unit of [false, true, '%']) for (const end of [1, 7.3, 1100, 126000, 125650, 2.2e5, 2.77e6, 3.1e10, 0.37, 1.46, 14.6, 100])
     assert.deepEqual(Array.from(f.axisLabels(f.axisTicks(end), unit)), Array.from(c.axisLabels(c.axisTicks(end), unit)), unit + ' ' + end);
   const cutDefs = render.slice(render.indexOf('const cutOf ='), render.indexOf('\n{\n', render.indexOf('const cutOf =')));
   for (const coin of [false, true]) {
-    const cctx = vm.createContext({ Math, String, Number, NB: 3, LOOK: { coin } });
+    const cctx = vm.createContext({ Math, String, Number, NB: 3, LOOK: { coin } });   // (the ▲ figure is a share either way)
     vm.runInContext(cutDefs + '\n;globalThis.fns = { cutOf, cutText };', cctx);
-    for (const [n, v] of [[1, 2.77e6], [3, 6.1e9], [2, 12345]]) {
-      const want = '▲ ' + (coin ? c.peakCompact(v) + ' BTC' : '$' + c.peakCompact(v)) + (n > 1 ? ' (+' + (n - 1) + ')' : '');
+    for (const [n, v] of [[1, 13.93], [3, 2.4125], [2, 0.07254]]) {
+      const want = '▲ ' + c.pctCompact(v) + (n > 1 ? ' (+' + (n - 1) + ')' : '');
       assert.equal(cctx.fns.cutText(n, v), want, n + ' ' + v);
     }
     assert.equal(cctx.fns.cutText(0, 0), null);

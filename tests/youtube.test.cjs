@@ -69,19 +69,19 @@ const quiet = { wait: async () => {}, log: () => {} };
 
 test('the title is the chart\'s own title on the video\'s last day, naming its weighting and colouring, and nothing in the text is refused by YouTube', async () => {
   const { videoTitle, metadata } = await load();
-  assert.equal(videoTitle('2026-09-24'), 'Bitcoin URPD (USD Value, AGE) as of 24 Sept 2026');
-  assert.equal(videoTitle('2026-06-07', 'usd-age'), 'Bitcoin URPD (USD Value, AGE) as of 07 Jun 2026');
-  assert.equal(videoTitle('2026-10-01', 'btc-age'), 'Bitcoin URPD (BTC, AGE) as of 01 Oct 2026');
-  assert.equal(videoTitle('2026-10-01', 'usd-lthsth'), 'Bitcoin URPD (USD Value, LTH/STH) as of 01 Oct 2026');
-  assert.equal(videoTitle('2026-10-01', 'btc-lthsth'), 'Bitcoin URPD (BTC, LTH/STH) as of 01 Oct 2026');
+  assert.equal(videoTitle('2026-09-24'), 'Bitcoin URPD (% USD, AGE) as of 24 Sept 2026');
+  assert.equal(videoTitle('2026-06-07', 'usd-age'), 'Bitcoin URPD (% USD, AGE) as of 07 Jun 2026');
+  assert.equal(videoTitle('2026-10-01', 'btc-age'), 'Bitcoin URPD (% BTC, AGE) as of 01 Oct 2026');
+  assert.equal(videoTitle('2026-10-01', 'usd-lthsth'), 'Bitcoin URPD (% USD, LTH/STH) as of 01 Oct 2026');
+  assert.equal(videoTitle('2026-10-01', 'btc-lthsth'), 'Bitcoin URPD (% BTC, LTH/STH) as of 01 Oct 2026');
   const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   for (const [key, look] of [['titleUSDAge', 'usd-age'], ['titleBTCAge', 'btc-age'], ['titleUSDSplit', 'usd-lthsth'], ['titleBTCSplit', 'btc-lthsth']]) {
     const site = new RegExp(key + ': "([^"]+)"').exec(index)[1];
     assert.ok(videoTitle('2026-09-24', look).startsWith(site), look + ': the video is titled with the site\'s own chart title');
   }
   const WEIGHT = {
-    usd: "and weighed by what it was worth then, with the left axis at each day's own tallest bar, ",
-    btc: "and counted in coins, with the left axis at the 99.8th percentile of each day's bars, so the first bar (every coin last moved for less than one bar's width, around ten times any other) runs off the top with its height printed there, " };
+    usd: "and weighed by what it was worth then, each bar as its share of the day's realized cap in percent, with the left axis at each day's own tallest bar, ",
+    btc: "and counted in coins, each bar as its share of all the coins in percent, with the left axis at the 99.8th percentile of each day's bars, so the first bar (every coin last moved for less than one bar's width, around ten times any other) runs off the top with its share printed there, " };
   const SPLIT = { age: 'each bar split into 23 age bands by how long its coins have sat unmoved, ',
     lthsth: 'each bar split into short-term holders (STH, the coins that moved within the last 150 days) and long-term holders (LTH, the coins unmoved for 150 days or more), ' };
   for (const [look, start, from, tag] of [['usd-age', '2011-01-31', '31 January 2011', 'realized cap'], ['btc-age', '2010-05-18', '18 May 2010', 'bitcoin supply distribution'],
@@ -115,7 +115,7 @@ test('a clean upload: token, session, the whole file in one request, and the id 
     assert.equal(s.headers.authorization, 'Bearer at');
     assert.equal(Number(s.headers['x-upload-content-length']), fs.statSync(file).size);
     assert.equal(s.headers['x-upload-content-type'], 'video/mp4');
-    assert.equal(s.meta.snippet.title, 'Bitcoin URPD (USD Value, AGE) as of 24 Sept 2026', 'USD-AGE unless told otherwise');
+    assert.equal(s.meta.snippet.title, 'Bitcoin URPD (% USD, AGE) as of 24 Sept 2026', 'USD-AGE unless told otherwise');
     assert.equal(g.seen.puts.length, 1);
     assert.ok(g.received().equals(fs.readFileSync(file)), 'every byte, in order');
   } finally { g.close(); }
@@ -123,8 +123,8 @@ test('a clean upload: token, session, the whole file in one request, and the id 
 
 test('each video is posted under its own title, and an unknown look sends nothing at all', async () => {
   const { post } = await load(), file = video(1000);
-  for (const [name, start, from, title] of [['btc-age', '2010-05-18', '18 May 2010', 'Bitcoin URPD (BTC, AGE) as of 24 Sept 2026'],
-    ['usd-lthsth', '2011-01-31', '31 January 2011', 'Bitcoin URPD (USD Value, LTH/STH) as of 24 Sept 2026'], ['btc-lthsth', '2010-05-18', '18 May 2010', 'Bitcoin URPD (BTC, LTH/STH) as of 24 Sept 2026']]) {
+  for (const [name, start, from, title] of [['btc-age', '2010-05-18', '18 May 2010', 'Bitcoin URPD (% BTC, AGE) as of 24 Sept 2026'],
+    ['usd-lthsth', '2011-01-31', '31 January 2011', 'Bitcoin URPD (% USD, LTH/STH) as of 24 Sept 2026'], ['btc-lthsth', '2010-05-18', '18 May 2010', 'Bitcoin URPD (% BTC, LTH/STH) as of 24 Sept 2026']]) {
     const g = await google({ privacy: 'unlisted' });
     try {
       const r = await post({ file, start, end: '2026-09-24', name, credentials: CREDS, endpoints: g.endpoints, ...quiet });

@@ -30,17 +30,19 @@ const PRIVACY = new Set(["private", "unlisted", "public"]);
 
 const day = (d, opts) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
 
-// The chart's title on the video's last day, as the site and the video print it ("Bitcoin URPD (USD Value, AGE) as of
-// 26 Sept 2026", "Bitcoin URPD (BTC, LTH/STH) as of 26 Sept 2026").
+// The chart's title on the video's last day, as the site and the video print it ("Bitcoin URPD (% USD, AGE) as of
+// 26 Sept 2026", "Bitcoin URPD (% BTC, LTH/STH) as of 26 Sept 2026").
 export function videoTitle(end, name = "usd-age") {
   return titleStart(name) + day(end, { day: "2-digit", month: "short", year: "numeric" });
 }
 
 // What a look weighs the coins by and where its left axis ends, and how its bars are split, in the description's words.
 const WEIGHT = {
-  usd: "weighed by what it was worth then, with the left axis at each day's own tallest bar",
-  btc: "counted in coins, with the left axis at the 99.8th percentile of each day's bars, so the first bar (every coin " +
-    "last moved for less than one bar's width, around ten times any other) runs off the top with its height printed there",
+  usd: "weighed by what it was worth then, each bar as its share of the day's realized cap in percent, with the left axis " +
+    "at each day's own tallest bar",
+  btc: "counted in coins, each bar as its share of all the coins in percent, with the left axis at the 99.8th percentile " +
+    "of each day's bars, so the first bar (every coin last moved for less than one bar's width, around ten times any " +
+    "other) runs off the top with its share printed there",
 };
 const SPLIT = {
   age: "each bar split into 23 age bands by how long its coins have sat unmoved",
