@@ -1,6 +1,6 @@
-// Y-MAX EXPANDS ON ATH | Y-MAX ALWAYS AT 100%: where the left axis ends. EXPANDS ON ATH, the default, ends it at the
-// tallest bar so far (the axis history, data/scales.json, and the day's own bars), so it grows only when a bar sets a
-// new all-time high and never shrinks; ALWAYS AT 100% ends it at the day's own tallest bar. Every way of moving
+// Y-MAX ALWAYS AT 100% | Y-MAX EXPANDS ON ATH: where the left axis ends. ALWAYS AT 100%, the default, ends it at the
+// day's own tallest bar; EXPANDS ON ATH ends it at the tallest bar so far (the axis history, data/scales.json, and the
+// day's own bars), so it grows only when a bar sets a new all-time high and never shrinks. Every way of moving
 // through time draws each day on the axis of the button that is on, a day always looks the same however it is reached,
 // and switching draws the day on screen again without fetching anything.
 const test = require('node:test');
@@ -49,44 +49,45 @@ async function drawn(h) { for (let k = 0; k < 3; k++) { await flush(); await h.c
 const top = (h) => h.element('chart').layout.yaxis.range[1];
 const close = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
 
-test('Y-MAX EXPANDS ON ATH | Y-MAX ALWAYS AT 100% sits right of USD | BTC, EXPANDS ON ATH on at first; the bars stay in their 23 age bands', () => {
-  const group = html.match(/<div class="mode-toggle">\s*<button id="btnUSD"[\s\S]*?<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*(<button id="btnAth"[^>]*>Y-max expands on ATH<\/button>)\s*(<button id="btnFit"[^>]*>Y-max always at 100%<\/button>)\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*<button id="btnPeak"/);
-  assert.ok(group, 'USD | BTC, then the two Y-MAX buttons, then Pin Y-axis');
-  assert.match(group[1], /class="active" aria-pressed="true" title="Y-max expands on ATH: the left axis ends at the tallest bar so far; it grows when a bar reaches a new all-time high and never shrinks"/);
-  assert.match(group[2], /aria-pressed="false" title="Y-max always at 100%: the left axis ends at each day's own tallest bar, so the tallest bar always reaches the top"/);
+test('Y-MAX ALWAYS AT 100% | Y-MAX EXPANDS ON ATH sits right of USD | BTC, ALWAYS AT 100% on at first; the bars stay in their 23 age bands', () => {
+  const group = html.match(/<div class="mode-toggle">\s*<button id="btnUSD"[\s\S]*?<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*(<button id="btnFit"[^>]*>Y-max always at 100%<\/button>)\s*(<button id="btnAth"[^>]*>Y-max expands on ATH<\/button>)\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*<button id="btnPeak"/);
+  assert.ok(group, 'USD | BTC, then the two Y-MAX buttons, ALWAYS AT 100% first, then Pin Y-axis');
+  assert.match(group[1], /class="active" aria-pressed="true" title="Y-max always at 100%: the left axis ends at each day's own tallest bar, so the tallest bar always reaches the top"/);
+  assert.match(group[2], /aria-pressed="false" title="Y-max expands on ATH: the left axis ends at the tallest bar so far; it grows when a bar reaches a new all-time high and never shrinks"/);
   assert.doesNotMatch(html, /btnAge|btnSplit|btnRaw|splitMode|rawMode|STH_BANDS|CHART_THEMES|raw-chart|&lt;150D/, 'AGE, <150D/>150D and RAW are gone');
   const { c } = app();
-  assert.equal(c.yFit, false);
-  assert.equal(c.yMaxMode(), 'ath');
+  assert.equal(c.yFit, true);
+  assert.equal(c.yMaxMode(), 'fit');
 });
 
-test('ALWAYS AT 100% ends the left axis at the day\'s own tallest bar, EXPANDS ON ATH at the tallest so far; switching fetches nothing', async () => {
+test('ALWAYS AT 100%, the default, ends the left axis at the day\'s own tallest bar, EXPANDS ON ATH at the tallest so far; switching fetches nothing', async () => {
   const h = app(), { c, element } = h, m = market(h);
   c.currentIdx = 4; await c.loadAndRender(); await drawn(h);
   assert.deepEqual(m.fetched, [m.dates[4]]);
-  assert.ok(close(top(h), m.soFar(4)), 'EXPANDS ON ATH: the tallest bar so far');
-  assert.ok(top(h) > m.dayTop(4) * 2, 'a short day after a tall one keeps the taller axis');
-  let bars = element('chart').data.filter((t) => t.type === 'bar');
-  assert.equal(bars.length, 23);
-  assert.match(element('chart').layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, Y-Max Expands on ATH\) as of 05 Jan 2020<\/b>$/);
-  element('btnFit').onclick();
-  assert.deepEqual([c.yFit, element('btnFit').getAttribute('aria-pressed'), element('btnAth').getAttribute('aria-pressed')], [true, 'true', 'false']);
-  await drawn(h);
-  assert.deepEqual(m.fetched, [m.dates[4]], 'drawn again from memory');
   assert.ok(close(top(h), m.dayTop(4)), 'ALWAYS AT 100%: the day\'s own tallest bar reaches the top');
   const values = c.barValues(c.lastRenderedData, false);
   assert.ok(close(Math.max(...values), top(h)), 'no bar is cut off, and the tallest touches the top');
+  let bars = element('chart').data.filter((t) => t.type === 'bar');
+  assert.equal(bars.length, 23);
+  assert.match(element('chart').layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, Y-Max Always at 100%\) as of 05 Jan 2020<\/b>$/);
+  assert.equal(element('chart').layout.yaxis.tickvals.length, 21, 'twenty labelled steps');
+  element('btnAth').onclick();
+  assert.deepEqual([c.yFit, element('btnAth').getAttribute('aria-pressed'), element('btnFit').getAttribute('aria-pressed')], [false, 'true', 'false']);
+  await drawn(h);
+  assert.deepEqual(m.fetched, [m.dates[4]], 'drawn again from memory');
+  assert.ok(close(top(h), m.soFar(4)), 'EXPANDS ON ATH: the tallest bar so far');
+  assert.ok(top(h) > m.dayTop(4) * 2, 'a short day after a tall one keeps the taller axis');
   bars = element('chart').data.filter((t) => t.type === 'bar');
   assert.equal(bars.length, 23, 'the same bars, coloured by age band');
-  assert.match(element('chart').layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, Y-Max Always at 100%\) as of 05 Jan 2020<\/b>$/);
+  assert.match(element('chart').layout.title.text, /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, Y-Max Expands on ATH\) as of 05 Jan 2020<\/b>$/);
   assert.equal(element('chart').layout.yaxis.tickvals.length, 21, 'still twenty labelled steps');
   // A second press of the button that is on changes nothing.
   const before = c.chartRenderSeq;
-  element('btnFit').onclick();
+  element('btnAth').onclick();
   assert.equal(c.chartRenderSeq, before, 'already on: no redraw');
-  element('btnAth').onclick(); await drawn(h);
-  assert.ok(close(top(h), m.soFar(4)), 'back to the tallest so far');
-  assert.equal(c.captureChartSettings().yFit, false);
+  element('btnFit').onclick(); await drawn(h);
+  assert.ok(close(top(h), m.dayTop(4)), 'back to the day\'s own tallest bar');
+  assert.equal(c.captureChartSettings().yFit, true);
 });
 
 test('every way of moving draws each day on the axis of the button that is on, and a day looks the same however it is reached', async () => {

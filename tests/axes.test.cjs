@@ -55,8 +55,8 @@ test('the price axis comes from the history on days it covers, and only grows af
   assert.equal(c.xAxisEnd('2020-01-02', 5000, 900), 1000, 'a covered day ignores its own data');
   assert.equal(c.xAxisEnd('2020-01-04', 5000, 900), 1500);
   assert.equal(c.xAxisEnd('2020-01-07', 1400, 1060), 1500, 'after the file it carries on from the last value');
-  const grown = c.xAxisEnd('2020-01-08', 1600, 1070);
-  assert.ok(grown > 1600 && grown < 1612, 'and grows past a new highest stamp by half a step and two sigmas');
+  assert.equal(c.xAxisEnd('2020-01-08', 1600, 1070), 1600, 'and grows to exactly a new highest stamp, nothing added');
+  assert.equal(c.xAxisEnd('2020-01-09', 1400, 1700), 1700 * 1.001, 'or 0.1% past a price above every stamp');
   const data = c.buildData(dates[3], raws[3]);
   assert.equal(data.binWidth * c.NUM_BINS, 1500, 'bins divide the axis so far, not the day');
   c.setScales(null);
@@ -65,8 +65,9 @@ test('the price axis comes from the history on days it covers, and only grows af
   assert.equal(c.SCALES, null, 'a malformed file is ignored');
 });
 
-test('the left axis ends at the tallest bar so far, is the same on every visit, and never shrinks moving forward', async () => {
+test('with Y-MAX EXPANDS ON ATH the left axis ends at the tallest bar so far, is the same on every visit, and never shrinks moving forward', async () => {
   const { c, element } = app();
+  c.yFit = false;
   const peaks = [3, 5, 4, 9, 2, 2, 7, 12, 1, 6];
   const { dates, raws } = market(c, { n: 10, cohorts: i => [{ 950: peaks[i], 1005: 1 }, { 990: 1 }] });
   // Build the history the way tools/build-scales.cjs does: this file's own bars at the default settings.
@@ -145,7 +146,7 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
     cd.forEach((p, i) => { assert.equal(p[0], totals[i]); if (i) assert.ok(p[1] >= cd[i - 1][1]); });
     assert.ok(Math.abs(cd.at(-1)[1] - 100) < 1e-9);
     assert.equal(graph.data.some(t => t.meta === 'pct' || t.yaxis === 'y2'), false);
-    assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin Supply by Price When Last Moved \(BTC, Y-Max Expands on ATH\) as of / : /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, Y-Max Expands on ATH\) as of /);
+    assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin Supply by Price When Last Moved \(BTC, Y-Max Always at 100%\) as of / : /^<b>Bitcoin Supply by Price When Last Moved \(USD Value, Y-Max Always at 100%\) as of /);
     assert.equal(graph.layout.xaxis.title.text, 'Price When Last Moved [USD]', 'the title names the axis and nothing else');
     assert.equal(graph.layout.yaxis.title.text, coin ? 'Supply [BTC]' : 'Value When Last Moved [USD]');
   }
@@ -203,7 +204,10 @@ test('a typed Y-max zooms into the day in view, and a pin freezes the axis', asy
   c.setScales({ start: dates[0], end: dates.at(-1), bins: 625, smoothing: 0.24, x: [[0, 1100]], usd: [[0, 1e9]], btc: [[0, 1e6]] });
   const data = c.buildData(dates[5], raws[5]);
   await c.renderChart(data);
-  assert.equal(element('chart').layout.yaxis.range[1], 1e9, 'the default follows the history');
+  assert.equal(element('chart').layout.yaxis.range[1], Math.max(...c.barValues(data, false)), 'the default, ALWAYS AT 100%, ends at the day\'s tallest bar');
+  c.yFit = false;
+  await c.renderChart(data);
+  assert.equal(element('chart').layout.yaxis.range[1], 1e9, 'EXPANDS ON ATH follows the history');
   c.yMaxPct = 90; c.yMaxExplicit = [true, false];
   await c.renderChart(data);
   const zoomed = element('chart').layout.yaxis.range[1];
@@ -258,8 +262,10 @@ test('build-scales writes the history the page reads back, one day at a time', a
   for (const k of ['x', 'usd', 'btc']) for (let i = 1; i < saved[k].length; i++) {
     assert.ok(saved[k][i][0] > saved[k][i - 1][0] && saved[k][i][1] > saved[k][i - 1][1], `${k} only steps up`);
   }
-  // The page, reading that file, draws each day on exactly the axes the file recorded for it.
+  // The page, reading that file, draws each day on exactly the axes the file recorded for it (the left one with
+  // Y-MAX EXPANDS ON ATH, which reads it).
   const { c, element } = app();
+  c.yFit = false;
   c.allDates = dates; c.priceDates = priceDates; c.priceArray = closes;
   c.priceIndexByDate = Object.fromEntries(priceDates.map((d, i) => [d, i]));
   c.setScales(saved);
@@ -268,7 +274,7 @@ test('build-scales writes the history the page reads back, one day at a time', a
     const age = [stamps[d]].concat(Array(22).fill({})), all = Object.assign({}, stamps[d]);
     const data = c.buildData(d, { all, age });
     const day = Math.round((Date.parse(d) - Date.parse('2009-01-03')) / DAY);
-    assert.equal(data.binWidth * 625, c.scaleAt(saved.x, day));
+    assert.ok(Math.abs(data.binWidth * 625 - c.scaleAt(saved.x, day)) <= 1e-12 * c.scaleAt(saved.x, day), d + ': the axis the file recorded');
     await c.renderChart(data);
     const top = element('chart').layout.yaxis.range[1];
     assert.equal(top, c.scaleAt(saved.usd, day) || 1);
