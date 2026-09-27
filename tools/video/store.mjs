@@ -1,10 +1,9 @@
-// The videos' store: every day's bars (23 age bands x 626 bins), in dollars and in coins, binned by index.html's own
-// code on the growing price axis of data/scales.json, plus the day's axis end, price and the shares of value and of
-// coins that last moved above that price. A past day never changes (its axis is fixed once the day has passed), so the
-// store only ever gains days. It is kept as meta.json plus gzipped Float32Arrays per year (bars-YYYY.f32.gz in dollars,
-// coins-YYYY.f32.gz in coins), and lives as files on the "video-store-2" release. (The "video-store" and "video-data"
-// releases before it held the bars in dollars only, the second on a price axis that ran a little past the highest
-// stamp: nothing reads them now.)
+// The videos' store: every day's bars (23 age bands x 626 bins, in dollars) binned by index.html's own code on the
+// growing price axis of data/scales.json, plus the day's axis end, price and share of value that last moved above that
+// price. A past day never changes (its axis is fixed once the day has passed), so the store only ever gains days. It is
+// kept as meta.json plus one gzipped Float32Array per year (bars-YYYY.f32.gz), and lives as files on the "video-store"
+// release. (The "video-data" release before it held bars binned on a price axis that ran a little past the highest
+// stamp, and a RAW video's: nothing reads it now.)
 //
 //   node tools/video/store.mjs DIR [--cache RAWDIR] [--until DATE] [--seconds N]
 //
@@ -38,31 +37,27 @@ export function readStore(dir) {
   const metaFile = path.join(dir, "meta.json");
   // Year files without meta.json are a store that lost its index, not a new one: starting again from 2009 would mean
   // about 150,000 requests to bitview.space.
-  if (!fs.existsSync(metaFile) && fs.existsSync(dir) && fs.readdirSync(dir).some((f) => /^(bars|coins)-\d{4}\.f32\.gz$/.test(f))) {
+  if (!fs.existsSync(metaFile) && fs.existsSync(dir) && fs.readdirSync(dir).some((f) => /^bars-\d{4}\.f32\.gz$/.test(f))) {
     throw new Error(dir + " has year files but no meta.json: put meta.json back rather than starting again");
   }
   const meta = fs.existsSync(metaFile) ? JSON.parse(fs.readFileSync(metaFile, "utf8"))
-    : { about: "Per-day bars for the full-history videos (tools/video), in dollars (bars-YYYY) and in coins (coins-YYYY). days: [date, axis end X, price, % of value at a loss, % of coins at a loss].", version: 2, bands: BANDS, bins: BINS, days: [] };
-  // Version 1 held the bars in dollars only, for videos drawn in USD alone.
-  if (meta.version !== 2) throw new Error(dir + ": a store of version " + meta.version + ", without the bars in coins: build it again on an empty directory (with --cache)");
+    : { about: "Per-day bars for the full-history video (tools/video). days: [date, axis end X, price, % of value at a loss].", version: 1, bands: BANDS, bins: BINS, days: [] };
   const years = {};
   for (const [date] of meta.days) years[date.slice(0, 4)] = (years[date.slice(0, 4)] || 0) + 1;
-  const chunks = { bars: {}, coins: {} };
-  for (const prefix of ["bars", "coins"]) {
-    for (const y of Object.keys(years)) {
-      const b = zlib.gunzipSync(fs.readFileSync(path.join(dir, `${prefix}-${y}.f32.gz`)));
-      const f = new Float32Array(b.buffer, b.byteOffset, b.length / 4);
-      if (f.length < years[y] * PER_DAY) throw new Error(`${prefix}-${y}.f32.gz holds ${f.length / PER_DAY} days, meta.json lists ${years[y]}`);
-      // A longer year file is one whose meta.json never followed it onto the release (the workflow uploads the year
-      // files first and meta.json last): its extra days are left out here and simply added again.
-      chunks[prefix][y] = f.subarray(0, years[y] * PER_DAY);
-    }
+  const chunks = {};
+  for (const y of Object.keys(years)) {
+    const b = zlib.gunzipSync(fs.readFileSync(path.join(dir, `bars-${y}.f32.gz`)));
+    const f = new Float32Array(b.buffer, b.byteOffset, b.length / 4);
+    if (f.length < years[y] * PER_DAY) throw new Error(`bars-${y}.f32.gz holds ${f.length / PER_DAY} days, meta.json lists ${years[y]}`);
+    // A longer year file is one whose meta.json never followed it onto the release (the workflow uploads the year
+    // files first and meta.json last): its extra days are left out here and simply added again.
+    chunks[y] = f.subarray(0, years[y] * PER_DAY);
   }
-  // bars(i), coins(i): the i-th day's 23 x 626 values, band-major, in dollars and in coins
+  // bars(i): the i-th day's 23 x 626 values, band-major
   const offsets = []; const seen = {};
   for (const [date] of meta.days) { const y = date.slice(0, 4); offsets.push([y, (seen[y] = (seen[y] || 0) + 1) - 1]); }
-  const day = (prefix) => (i) => { const [y, k] = offsets[i]; return chunks[prefix][y].subarray(k * PER_DAY, (k + 1) * PER_DAY); };
-  return { meta, chunks, bars: day("bars"), coins: day("coins") };
+  const bars = (i) => { const [y, k] = offsets[i]; return chunks[y].subarray(k * PER_DAY, (k + 1) * PER_DAY); };
+  return { meta, chunks, bars };
 }
 
 // The first day with anything on the chart, where the video starts (render.mjs): the day the first close comes into
@@ -75,15 +70,6 @@ export function firstShownIndex(meta, bars) {
   const reach = priced ? at(priced[0]) - PRICE_AHEAD * 864e5 : Infinity;
   for (let i = 0; i < meta.days.length; i++) if (at(meta.days[i][0]) >= reach || bars(i).some((v) => v > 0)) return i;
   return 0;
-}
-// Where each video starts (render.mjs): BTC where the chart first shows anything (above); USD at the first day whose
-// coins have any value when last moved, 2011-01-31: until then every coin last moved below 50 cents, recorded as $0,
-// and there is no percent of a $0 realized cap to draw.
-export function startIndex(store, kind) {
-  const s = firstShownIndex(store.meta, store.bars);
-  if (kind !== "usd") return s;
-  for (let i = s; i < store.meta.days.length; i++) if (store.bars(i).some((v) => v > 0)) return i;
-  return s;
 }
 
 function writeAtomic(file, buf) { fs.writeFileSync(file + ".tmp", buf); fs.renameSync(file + ".tmp", file); }
@@ -145,12 +131,12 @@ async function main() {
     const res = await cohorts(date), all = whole(res);
     const data = site.buildData(date, { all, age: res });
     if (!data.aggAge || data.aggAge.length !== BANDS) throw new Error(date + ": expected " + BANDS + " age bands");
-    const f = new Float32Array(PER_DAY), g = new Float32Array(PER_DAY);
-    data.aggAge.forEach((c, a) => { for (let j = 0; j < BINS; j++) { f[a * BINS + j] = c.agg[j].invested; g[a * BINS + j] = c.agg[j].supply; } });
+    const f = new Float32Array(PER_DAY);
+    data.aggAge.forEach((c, a) => { for (let j = 0; j < BINS; j++) f[a * BINS + j] = c.agg[j].invested; });
     const y = date.slice(0, 4);
-    (added[y] = added[y] || []).push([f, g]);
-    const loss = (v) => (v === null ? null : +v.toFixed(4));
-    meta.days.push([date, +(data.binWidth * site.BINS_DEFAULT).toPrecision(9), data.spot > 0 ? data.spot : null, loss(data.redPct), loss(data.redPctCoin)]);
+    (added[y] = added[y] || []).push(f);
+    meta.days.push([date, +(data.binWidth * site.BINS_DEFAULT).toPrecision(9), data.spot > 0 ? data.spot : null,
+      data.redPct === null ? null : +data.redPct.toFixed(4)]);
   }
   const appendYear = (prefix, y, old, list, per) => {
     const f = new Float32Array(old.length + list.length * per);
@@ -159,10 +145,7 @@ async function main() {
     writeAtomic(file, zlib.gzipSync(Buffer.from(f.buffer, f.byteOffset, f.byteLength), { level: 9 }));
     changed.add(file);
   };
-  for (const y of Object.keys(added)) {
-    appendYear("bars", y, chunks.bars[y] || new Float32Array(0), added[y].map((d) => d[0]), PER_DAY);
-    appendYear("coins", y, chunks.coins[y] || new Float32Array(0), added[y].map((d) => d[1]), PER_DAY);
-  }
+  for (const y of Object.keys(added)) appendYear("bars", y, chunks[y] || new Float32Array(0), added[y], PER_DAY);
   if (n) { writeAtomic(path.join(opt.dir, "meta.json"), JSON.stringify(meta)); changed.add(path.join(opt.dir, "meta.json")); }
   process.stderr.write(`store: ${n} day(s) added, ${meta.days.length} in all, through ${meta.days.length ? meta.days[meta.days.length - 1][0] : "-"}` +
     (n < todo.length ? `; ${todo.length - n} still to do (run again)` : "") + "\n");

@@ -6,16 +6,13 @@ const path = require('node:path');
 const zlib = require('node:zlib');
 
 const PER_DAY = 23 * 626;
-// A store of `days` (dates), each day's values all equal to its position in dollars and ten times that in coins, with
-// `extra` more days in the year files.
+// A store of `days` (dates), each day's values all equal to its position, with `extra` more days in the year file.
 function store(days, extra = 0) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'video-store-'));
-  for (const [prefix, k] of [['bars', 1], ['coins', 10]]) {
-    const f = new Float32Array((days.length + extra) * PER_DAY);
-    for (let i = 0; i < days.length + extra; i++) f.fill(k * (i + 1), i * PER_DAY, (i + 1) * PER_DAY);
-    fs.writeFileSync(path.join(dir, prefix + '-2026.f32.gz'), zlib.gzipSync(Buffer.from(f.buffer)));
-  }
-  fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ version: 2, bands: 23, bins: 626, days: days.map((d) => [d, 1000, 100, 10, 20]) }));
+  const f = new Float32Array((days.length + extra) * PER_DAY);
+  for (let i = 0; i < days.length + extra; i++) f.fill(i + 1, i * PER_DAY, (i + 1) * PER_DAY);
+  fs.writeFileSync(path.join(dir, 'bars-2026.f32.gz'), zlib.gzipSync(Buffer.from(f.buffer)));
+  fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ version: 1, bands: 23, bins: 626, days: days.map((d) => [d, 1000, 100, 10]) }));
   return dir;
 }
 
@@ -25,40 +22,24 @@ test('the video store reads its days, and a year file that ran ahead of meta.jso
   assert.equal(exact.meta.days.length, 2);
   assert.equal(exact.bars(1).length, PER_DAY);
   assert.equal(exact.bars(1)[PER_DAY - 1], 2);
-  assert.equal(exact.coins(1).length, PER_DAY);
-  assert.equal(exact.coins(1)[0], 20, 'the same day in coins');
-  // The workflow swaps the year files in before meta.json; a run stopped in between leaves the year files a day ahead.
+  // The workflow swaps the year files in before meta.json; a run stopped in between leaves the year file a day ahead.
   const ahead = readStore(store(['2026-01-01', '2026-01-02'], 1));
-  assert.equal(ahead.chunks.bars['2026'].length, 2 * PER_DAY);
-  assert.equal(ahead.chunks.coins['2026'].length, 2 * PER_DAY);
+  assert.equal(ahead.chunks['2026'].length, 2 * PER_DAY);
   assert.equal(ahead.bars(1)[0], 2);
-  assert.equal(ahead.coins(1)[0], 20);
 });
 
 test('the video store refuses a year file shorter than meta.json, and year files without meta.json', async () => {
   const { readStore } = await import('../tools/video/store.mjs');
   const short = store(['2026-01-01']);
   const meta = JSON.parse(fs.readFileSync(path.join(short, 'meta.json'), 'utf8'));
-  meta.days.push(['2026-01-02', 1000, 100, 10, 20]);
+  meta.days.push(['2026-01-02', 1000, 100, 10]);
   fs.writeFileSync(path.join(short, 'meta.json'), JSON.stringify(meta));
-  assert.throws(() => readStore(short), /bars-2026\.f32\.gz holds 1 days, meta.json lists 2/);
-  // The coins' year file is checked as the dollars' is.
-  const shortCoins = store(['2026-01-01', '2026-01-02']);
-  fs.writeFileSync(path.join(shortCoins, 'coins-2026.f32.gz'), zlib.gzipSync(Buffer.from(new Float32Array(PER_DAY).buffer)));
-  assert.throws(() => readStore(shortCoins), /coins-2026\.f32\.gz holds 1 days, meta.json lists 2/);
-  for (const kept of ['bars', 'coins']) {
-    const lost = store(['2026-01-01']);
-    fs.rmSync(path.join(lost, 'meta.json'));
-    fs.rmSync(path.join(lost, (kept === 'bars' ? 'coins' : 'bars') + '-2026.f32.gz'));
-    assert.throws(() => readStore(lost), /no meta.json/, kept + ' alone is still a store that lost its index');
-  }
+  assert.throws(() => readStore(short), /holds 1 days, meta.json lists 2/);
+  const lost = store(['2026-01-01']);
+  fs.rmSync(path.join(lost, 'meta.json'));
+  assert.throws(() => readStore(lost), /no meta.json/);
   const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'video-store-'));
   assert.deepEqual(readStore(empty).meta.days, []);
-  assert.equal(readStore(empty).meta.version, 2);
-  // The store before this one held the bars in dollars only: it is refused, not read as if it had coins.
-  const v1 = store(['2026-01-01']);
-  fs.writeFileSync(path.join(v1, 'meta.json'), JSON.stringify({ version: 1, bands: 23, bins: 626, days: [['2026-01-01', 1000, 100, 10]] }));
-  assert.throws(() => readStore(v1), /a store of version 1, without the bars in coins/);
 });
 
 test('the video starts on the first day with anything on the chart: the first close coming into view, or a bar', async () => {
@@ -160,8 +141,7 @@ test('the video\'s price box: where the day\'s dot runs under it, it is moved to
   c.window.setTopMargin(68);
   // A day near a high: the price at 97% of the price line's top, the dot three quarters across the window, and the
   // dashed line far enough right that the box sits on its left, over the dot.
-  const frame = { spot: 97000, redPct: 5, nb: 626, w: 110000 / 626, win: ['2025-01-01 00:00:00', '2026-01-01 00:00:00'], tx: '2025-10-01 00:00:00', date: '2025-10-01', pr: [0, 100000],
-    profitLabel: 'USD Value Last Moved In Profit: ', lossLabel: 'USD Value Last Moved In Loss: ' };
+  const frame = { spot: 97000, redPct: 5, nb: 626, w: 110000 / 626, win: ['2025-01-01 00:00:00', '2026-01-01 00:00:00'], tx: '2025-10-01 00:00:00', date: '2025-10-01', pr: [0, 100000] };
   const pb = c.priceBox(frame);
   assert.equal(pb.flip, true, 'on the line\'s left');
   assert.ok(c.dotUnderBox(pb), 'the dot is under it');
@@ -169,11 +149,6 @@ test('the video\'s price box: where the day\'s dot runs under it, it is moved to
   assert.equal(need, Math.ceil(pb.dot.y + 9 + 4), 'just below the dot');
   // Lower down the line, or with no price, nothing moves.
   assert.deepEqual(Array.from(c.window.boxNeeds([{ ...frame, pr: [0, 200000] }, { ...frame, spot: null }])), [0, 0]);
-  // With the price near $0 the box sits at the top left, where nothing else is any more (no readout, no ▲ figure over
-  // the first bar), in every view: it stays at the top.
-  const low = { ...frame, spot: 900, pr: [0, 1e6] };
-  assert.deepEqual(Array.from(c.window.boxNeeds([low, { ...low, coin: true }])), [0, 0]);
-  assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8'), /topLeftBox|sp\.coin|sp\.first|sp\.read/);
   // render.mjs holds each need a second either side and eases it over a third of a second, and drawFrame moves the box
   // (and what the landmark labels keep clear of) by exactly that.
   const render = fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'render.mjs'), 'utf8');
@@ -185,21 +160,14 @@ test('the video\'s price box: where the day\'s dot runs under it, it is moved to
   assert.match(page, /yshift: -drop, yanchor: "top"/);
 });
 
-test('the store holds each day\'s age bands in dollars and in coins, and nothing else: raw-YYYY files left from the RAW video are neither read nor written', async () => {
-  const { readStore, startIndex } = await import('../tools/video/store.mjs');
+test('the store holds the smoothed age bands only: raw-YYYY files left from the RAW video are neither read nor written', async () => {
+  const { readStore } = await import('../tools/video/store.mjs');
   const dir = store(['2026-01-01', '2026-01-02']);
   fs.writeFileSync(path.join(dir, 'raw-2026.f32.gz'), zlib.gzipSync(Buffer.from(new Float32Array(700).buffer)));   // not whole days: never looked at
   const s = readStore(dir);
-  assert.deepEqual(Object.keys(s), ['meta', 'chunks', 'bars', 'coins']);
+  assert.deepEqual(Object.keys(s), ['meta', 'chunks', 'bars']);
   assert.equal(s.bars(1)[0], 2);
   const src = fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'store.mjs'), 'utf8');
   assert.doesNotMatch(src.replace(/^\/\/.*$/gm, ''), /raw-|RAW_PER_DAY|rawBars|backfill/, 'nothing but comments names them');
-  assert.match(src, /for \(const y of Object\.keys\(added\)\) \{\n\s+appendYear\("bars", y, [^\n]*\n\s+appendYear\("coins", y, /);
-  assert.match(src, /f\[a \* BINS \+ j\] = c\.agg\[j\]\.invested; g\[a \* BINS \+ j\] = c\.agg\[j\]\.supply;/, 'the site\'s own bars, in dollars and in coins');
-  assert.match(src, /meta\.days\.push\(\[date, \+\(data\.binWidth \* site\.BINS_DEFAULT\)\.toPrecision\(9\), data\.spot > 0 \? data\.spot : null, loss\(data\.redPct\), loss\(data\.redPctCoin\)\]\);/);
-  // Where each video starts: BTC where the chart first shows anything, USD at the first day worth anything in dollars.
-  const t = (days, usd) => ({ meta: { days: days.map((d, i) => [d, 1, i >= 1 ? 0.06 : null, null, null]) }, bars: (i) => Float32Array.from({ length: PER_DAY }, (_, j) => (i >= usd && j === 3 ? 1 : 0)) });
-  const four = ['2010-05-18', '2010-05-19', '2010-05-20', '2010-05-21'];
-  assert.deepEqual([startIndex(t(four, 2), 'btc'), startIndex(t(four, 2), 'usd')], [0, 2]);
-  assert.equal(startIndex(t(four, 9), 'usd'), 0, 'with nothing in dollars at all: where the chart starts');
+  assert.match(src, /for \(const y of Object\.keys\(added\)\) appendYear\("bars", y, /);
 });

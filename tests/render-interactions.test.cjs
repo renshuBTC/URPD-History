@@ -91,20 +91,17 @@ test('the date counter remains committed until the pending chart succeeds', asyn
   assert.equal(h.element('dateDisplay').textContent, oldCounter);
 });
 
-test('pinning during a switch of view never saves the day on screen under the view still to be drawn', async () => {
-  for (const view of [1, 2, 3]) {
-    const h = controlledApp();
-    await showFirst(h);
-    const displayedKey = h.c.peakKey();
-    const displayedPeak = h.c.lastDayPeak;
-    assert.equal(displayedKey, 'usd|b625|s0.24');
-    h.c.setViewMode(view);
-    const nextKey = h.c.peakKey();
-    assert.equal(nextKey, ['usd', 'btc', 'usd%', 'btc%'][view] + '|b625|s0.24');
-    h.c.peakPin();
-    assert.equal(h.c.peakStore[nextKey], undefined, String(view));
-    assert.equal(h.c.peakStore[displayedKey][1], displayedPeak, String(view));
-  }
+test('pinning during a mode switch never saves the displayed USD peak under BTC', async () => {
+  const h = controlledApp();
+  await showFirst(h);
+  const displayedKey = h.c.peakKey();
+  const displayedPeak = h.c.lastDayPeak;
+  h.c.setViewMode(1);
+  const nextModeKey = h.c.peakKey();
+  assert.notEqual(nextModeKey, displayedKey);
+  h.c.peakPin();
+  assert.equal(h.c.peakStore[nextModeKey], undefined);
+  assert.equal(h.c.peakStore[displayedKey][1], displayedPeak);
 });
 
 test('an older completed draw cannot hide the newest date loading indicator', async () => {
