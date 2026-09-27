@@ -173,10 +173,10 @@ test('hovering a bar gives its size (and in % USD and % BTC its percent) and its
     assert.ok(Math.abs(cd.at(-1)[1] - 100) < 1e-9);
     assert.equal(graph.data.some(t => t.meta === 'pct' || t.yaxis === 'y2'), false);
     const title = { 0: 'Bitcoin Supply by Price When Last Moved (USD Value) as of ', 1: 'Bitcoin Supply by Price When Last Moved (BTC) as of ',
-      2: 'Bitcoin: Percent of Realized Cap by Price When Last Moved as of ', 3: 'Bitcoin: Percent of Supply by Price When Last Moved as of ' }[view];
+      2: 'Bitcoin Supply by Price When Last Moved (% USD Value) as of ', 3: 'Bitcoin Supply by Price When Last Moved (% BTC) as of ' }[view];
     assert.ok(graph.layout.title.text.startsWith('<b>' + title), graph.layout.title.text);
     assert.equal(graph.layout.xaxis.title.text, 'Price When Last Moved [USD]', 'the title names the axis and nothing else');
-    assert.equal(graph.layout.yaxis.title.text, ['Value When Last Moved [USD]', 'Supply [BTC]', 'Percent of Realized Cap per Bar [%]', 'Percent of Supply per Bar [%]'][view]);
+    assert.equal(graph.layout.yaxis.title.text, ['Value When Last Moved [USD]', 'Supply [BTC]', 'Value When Last Moved [%]', 'Supply [%]'][view]);
     assert.ok(!graph.layout.annotations.some(a => /Tallest|Realized Cap:|Supply:/.test(a.text)), 'no readout');
   }
   // the videos say the same (their words are in tools/video/looks.mjs, checked in video-looks.test.cjs)
