@@ -129,7 +129,7 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
     cd.forEach((p, i) => { assert.equal(p[0], totals[i]); if (i) assert.ok(p[1] >= cd[i - 1][1]); });
     assert.ok(Math.abs(cd.at(-1)[1] - 100) < 1e-9);
     assert.equal(graph.data.some(t => t.meta === 'pct' || t.yaxis === 'y2'), false);
-    assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin URPD \(BTC\) as of / : /^<b>Bitcoin URPD \(USD Value\) as of /);
+    assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin URPD \(BTC, AGE\) as of / : /^<b>Bitcoin URPD \(USD Value, AGE\) as of /);
     assert.equal(graph.layout.xaxis.title.text, 'Price When Last Moved [USD]', 'the title names the axis and nothing else');
     assert.equal(graph.layout.yaxis.title.text, coin ? 'Supply [BTC]' : 'Value When Last Moved [USD]');
   }
@@ -141,6 +141,39 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
   for (const s of ['yTitle: "Value When Last Moved [USD]"', 'yTitle: "Supply [BTC]"', 'profit: "USD Value Last Moved In Profit: "', 'loss: "USD Value Last Moved In Loss: "',
     'profit: "BTC Supply Last Moved In Profit: "', 'loss: "BTC Supply Last Moved In Loss: "']) assert.ok(looks.includes(s), 'video: ' + s);
   assert.doesNotMatch(video, /This Price|Supply Distribution|per bar|perBar|BOTTOM SIGNAL|GLOW|isBottom/);
+});
+
+test('LTH/STH draws the same bars as AGE, split at 150 days: short-term holders (the first eight bands) under long-term holders', async () => {
+  const { c, element } = app();
+  // All 23 bands, each at a price of its own, so every band shows where it went.
+  const { dates, raws } = market(c, { cohorts: () => Array.from({ length: 23 }, (_, k) => ({ [900 + 10 * k]: k + 1 })) });
+  for (const coin of [false, true]) {
+    c.coinMode = coin;
+    const data = c.buildData(dates[3], raws[3]);
+    c.splitMode = false;
+    await c.renderChart(data);
+    const ageGraph = element('chart'), age = ageGraph.data.filter(t => t.type === 'bar'), ageTop = ageGraph.layout.yaxis.range[1];
+    assert.equal(age.length, 23);
+    c.splitMode = true;
+    await c.renderChart(data);
+    const g = element('chart'), split = g.data.filter(t => t.type === 'bar');
+    assert.deepEqual(plain(split.map(t => t.meta)), ['sth', 'lth']);
+    assert.deepEqual(plain(split.map(t => t.name)), ['Short-Term Holders (STH)', 'Long-Term Holders (LTH)']);
+    assert.deepEqual(plain(split.map(t => t.marker.color)), ['#e6a817', '#5599ff'], 'amber under blue');
+    for (let i = 0; i < age[0].y.length; i++) {
+      const young = age.slice(0, 8).reduce((s, t) => s + t.y[i], 0), all = age.reduce((s, t) => s + t.y[i], 0), tol = 1e-9 * Math.max(1, all);
+      assert.ok(Math.abs(split[0].y[i] - young) <= tol, 'STH: bands <1h to 4m-5m');
+      assert.ok(Math.abs(split[0].y[i] + split[1].y[i] - all) <= tol, 'together the whole bar');
+    }
+    for (const t of split) {
+      assert.match(t.hovertemplate, new RegExp('<br>' + t.name.replace(/[()]/g, '\\$&') + ': '));
+      assert.match(t.hovertemplate, /<br>Percent of Total: %\{customdata\[1\]:\.1f\}%/);
+    }
+    assert.equal(g.layout.yaxis.range[1], ageTop, 'the same left axis');
+    assert.equal(g.layout.legend.font.size, 12, 'two legend entries, in the larger type');
+    assert.match(g.layout.title.text, coin ? /^<b>Bitcoin URPD \(BTC, LTH\/STH\) as of / : /^<b>Bitcoin URPD \(USD Value, LTH\/STH\) as of /);
+  }
+  c.splitMode = false;
 });
 
 test('Percent of Total meets the price box at the dashed line: at most In Profit left of it, at least right of it', async () => {
