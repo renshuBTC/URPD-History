@@ -114,8 +114,14 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/store"
           # An empty release (the store lost) is a store to rebuild, not an error, though gh refuses to download
-          # nothing; a missing release still stops the run.
-          gh release download video-store-2 --dir "$RUNNER_TEMP/store" || [ "$(gh release view video-store-2 --json assets --jq '.assets | length')" = 0 ]
+          # nothing; a missing release still stops the run. GitHub now and then answers a 5xx for one of the files, so a
+          # failed download is tried again, whole, a few times before the run stops.
+          for k in 1 2 3 4 5; do
+            if gh release download video-store-2 --dir "$RUNNER_TEMP/store" --clobber; then break; fi
+            if [ "$(gh release view video-store-2 --json assets --jq '.assets | length')" = 0 ]; then break; fi
+            [ "$k" = 5 ] && exit 1
+            sleep $((k * 10))
+          done
           # A run stopped between the two halves of a swap (replace-asset.sh) can leave a file only under its
           # temporary name. Take it back under its real name rather than stall every run after it; a year file that
           # has run ahead of meta.json is read only as far as meta.json goes (store.mjs).
