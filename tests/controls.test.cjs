@@ -200,16 +200,16 @@ test('the four video buttons always show: VIDEO (% USD-AGE), (% USD-LTH/STH), (%
   const IDS = { 'usd-age': 'dQw4w9WgXcQ', 'btc-age': 'Abc_123-xyZ', 'usd-lthsth': 'Usd_Lth-Sth', 'btc-lthsth': 'Btc_Lth-Sth' };
   c.setYouTubeLinks(Object.fromEntries(Object.entries(IDS).map(([k, id]) => [k, { id, end: '2026-09-24' }])));
   for (const k in IDS) assert.equal(btn[k].href, 'https://www.youtube.com/watch?v=' + IDS[k], k);
-  assert.equal(btn['usd-age'].title, 'Video (% USD-AGE): every day since 2011 as one 5-minute 4K video, the bars in dollars, coloured by age band, on YouTube (opens in a new tab)');
-  assert.equal(btn['btc-age'].title, 'Video (% BTC-AGE): every day since 2010 as one 5-minute 4K video, the bars in coins, coloured by age band, on YouTube (opens in a new tab)');
-  assert.equal(btn['usd-lthsth'].title, 'Video (% USD-LTH/STH): every day since 2011 as one 5-minute 4K video, the bars in dollars, split into short- and long-term holders, on YouTube (opens in a new tab)');
-  assert.equal(btn['btc-lthsth'].title, 'Video (% BTC-LTH/STH): every day since 2010 as one 5-minute 4K video, the bars in coins, split into short- and long-term holders, on YouTube (opens in a new tab)');
+  assert.equal(btn['usd-age'].title, 'Video (% USD-AGE): every day since 2011 as one 5-minute 4K video, each bar as its share of the realized cap, coloured by age band, on YouTube (opens in a new tab)');
+  assert.equal(btn['btc-age'].title, 'Video (% BTC-AGE): every day since 2010 as one 5-minute 4K video, each bar as its share of all the coins, coloured by age band, on YouTube (opens in a new tab)');
+  assert.equal(btn['usd-lthsth'].title, 'Video (% USD-LTH/STH): every day since 2011 as one 5-minute 4K video, each bar as its share of the realized cap, split into short- and long-term holders, on YouTube (opens in a new tab)');
+  assert.equal(btn['btc-lthsth'].title, 'Video (% BTC-LTH/STH): every day since 2010 as one 5-minute 4K video, each bar as its share of all the coins, split into short- and long-term holders, on YouTube (opens in a new tab)');
   for (const k in btn) assert.equal(btn[k].getAttribute('aria-label'), btn[k].title);
   assert.deepEqual(BUTTONS.map(b => [element(b[1] + 'Word').textContent, element(b[1] + 'Tag').textContent]),
     [['Video', '% USD-AGE'], ['Video', '% USD-LTH/STH'], ['Video', '% BTC-AGE'], ['Video', '% BTC-LTH/STH']]);
   for (const [lang, video, tags, want] of [
-    ['zh', '视频', ['% USD-年龄', '% USD-长/短期', '% BTC-年龄', '% BTC-长/短期'], '视频（% USD-长/短期）：2011 年以来的每一天，一段 5 分钟的 4K 视频，柱子以美元计，分为短期与长期持有者，在 YouTube 上观看（在新标签页中打开）'],
-    ['ja', '動画', ['% USD-年齢', '% USD-長期/短期', '% BTC-年齢', '% BTC-長期/短期'], '動画（% USD-長期/短期）：2011年以降の毎日を 5 分の 4K 動画 1 本にまとめ、棒をドルで描き、短期保有者と長期保有者で色分けして YouTube で（新しいタブで開きます）']]) {
+    ['zh', '视频', ['% USD-年龄', '% USD-长/短期', '% BTC-年龄', '% BTC-长/短期'], '视频（% USD-长/短期）：2011 年以来的每一天，一段 5 分钟的 4K 视频，每根柱子为其占已实现市值的百分比，分为短期与长期持有者，在 YouTube 上观看（在新标签页中打开）'],
+    ['ja', '動画', ['% USD-年齢', '% USD-長期/短期', '% BTC-年齢', '% BTC-長期/短期'], '動画（% USD-長期/短期）：2011年以降の毎日を 5 分の 4K 動画 1 本にまとめ、棒を実現時価総額に対する割合（%）で描き、短期保有者と長期保有者で色分けして YouTube で（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
     assert.equal(btn['usd-lthsth'].title, want, lang);
     assert.deepEqual(BUTTONS.map(b => element(b[1] + 'Word').textContent), [video, video, video, video], lang);
