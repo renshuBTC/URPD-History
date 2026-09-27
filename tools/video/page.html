@@ -10,8 +10,7 @@
 </head><body><div id="chart"></div>
 <script>
 // The site's chart (index.html drawChart) for one frame of the video, in one of its four views (looks.mjs): the bars in
-// dollars or coins with the left axis at the frame's own tallest bar, or each bar as its percent of the day's total on
-// the left axis fixed at 0 to 4%. Axes, labels, landmarks, colours and the title follow the site and come from
+// dollars or coins, or each bar as its percent of the day's total, with the left axis at the frame's own tallest bar. Axes, labels, landmarks, colours and the title follow the site and come from
 // render.mjs. Text for Plotly is escaped (esc), since Plotly reads <...> as markup. The one deliberate difference:
 // each layer (an age band) is one filled outline of all 626 bars, painted back to front, instead of up to 14,000
 // separate rectangles (the same picture, much faster), with the bar edges on whole device pixels.
