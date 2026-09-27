@@ -29,7 +29,7 @@ const PRIVACY = new Set(["private", "unlisted", "public"]);
 const day = (d, opts) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
 
 // The chart's title on the video's last day, as the site and the video print it ("Bitcoin Supply by Price When Last
-// Moved (USD Value) as of 26 Sept 2026", "Bitcoin: Percent of Realized Cap by Price When Last Moved as of 26 Sept 2026").
+// Moved (USD Value) as of 26 Sept 2026", "Bitcoin Supply by Price When Last Moved (% USD Value) as of 26 Sept 2026").
 export function videoTitle(end, name = "usd") {
   return titleStart(name) + day(end, { day: "2-digit", month: "short", year: "numeric" });
 }
