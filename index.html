@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-2bDX8KBmtcjeZHx+9xTsGWZlbIXpKfzuEywPl/pjy7k=' 'sha256-6QF8KtHaCoKA4PQLWYtP/c9GkdgXVgExN8O3dX9Dfcc=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-CtEo0J1m2+4uQSFsqGROTm+7dUbjFA4B0P77By8fVeQ=' 'sha256-6QF8KtHaCoKA4PQLWYtP/c9GkdgXVgExN8O3dX9Dfcc=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -442,10 +442,10 @@ var T = {
     loading: "Loading...", loadingDates: "Loading dates...",
     landmarks: "CYCLE TOP/BTM",     yMaxLabel: "Y-max", yMaxUnit: "PCTL", smoothLabel: "Smoothing", smoothUnit: "%", smoothTitle: "Smoothing: how far each recorded price is blurred, as a percentage of the price (0 = none)", yMaxTitle: "Y-max: where the left axis ends, as a percentile of the day's bar heights (100 = the day's tallest bar)", 
     titleUSD: "Bitcoin Supply by Price When Last Moved (USD Value) as of ", titleBTC: "Bitcoin Supply by Price When Last Moved (BTC) as of ",
-    titlePctUSD: "Bitcoin: Percent of Realized Cap by Price When Last Moved as of ", titlePctBTC: "Bitcoin: Percent of Supply by Price When Last Moved as of ",
+    titlePctUSD: "Bitcoin Supply by Price When Last Moved (% USD Value) as of ", titlePctBTC: "Bitcoin Supply by Price When Last Moved (% BTC) as of ",
     pctUsdTitle: "% USD: each bar as its percent of the day's realized cap (every coin's value when it last moved)", pctBtcTitle: "% BTC: each bar as its percent of the day's supply",
     vidusd: "USD Value", vidbtc: "BTC", vidpctusd: "% USD Value", vidpctbtc: "% BTC",
-    priceUSD: "Price When Last Moved [USD]", usdInvested: "Value When Last Moved [USD]", btcSupply: "Supply [BTC]", pctUsdAxis: "Percent of Realized Cap per Bar [%]", pctBtcAxis: "Percent of Supply per Bar [%]",
+    priceUSD: "Price When Last Moved [USD]", usdInvested: "Value When Last Moved [USD]", btcSupply: "Supply [BTC]", pctUsdAxis: "Value When Last Moved [%]", pctBtcAxis: "Supply [%]",
     hoverPctUSD: "Percent of Realized Cap: ", hoverPctBTC: "Percent of Supply: ",
     hoverPrice: "Price: $", hoverPctTotal: "Cumulative % of Total: ", hoverTotalUSD: "Total Value When Last Moved: ", hoverTotalBTC: "Total Supply: ", hoverDate: "Date: ", usdProfit: "USD Value Last Moved In Profit: ", usdLoss: "USD Value Last Moved In Loss: ", btcProfit: "BTC Supply Last Moved In Profit: ", btcLoss: "BTC Supply Last Moved In Loss: ",
     langBtn: "\u4e2d\u6587",
@@ -464,10 +464,10 @@ var T = {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     landmarks: "周期顶部/底部",     yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "百分位", smoothLabel: "\u5e73\u6ed1", smoothUnit: "%", smoothTitle: "平滑：每个记录价格被模糊的程度，占价格的百分比（0 = 不平滑）", yMaxTitle: "Y 轴上限：左轴的终点，按当天柱高的百分位计（100 = 当天最高的柱子）", 
     titleUSD: "按最后移动时价格划分的比特币供应（美元价值）截至 ", titleBTC: "按最后移动时价格划分的比特币供应（BTC）截至 ",
-    titlePctUSD: "比特币：按最后移动时价格划分的已实现市值百分比 截至 ", titlePctBTC: "比特币：按最后移动时价格划分的供应量百分比 截至 ",
+    titlePctUSD: "按最后移动时价格划分的比特币供应（% 美元价值）截至 ", titlePctBTC: "按最后移动时价格划分的比特币供应（% BTC）截至 ",
     pctUsdTitle: "% USD：每根柱子画成占当天已实现市值（每枚币最后移动时的价值）的百分比", pctBtcTitle: "% BTC：每根柱子画成占当天供应量的百分比",
     vidusd: "美元价值", vidbtc: "BTC", vidpctusd: "% 美元价值", vidpctbtc: "% BTC",
-    priceUSD: "最后移动时的价格 [美元]", usdInvested: "最后移动时的价值 [美元]", btcSupply: "供应量 [BTC]", pctUsdAxis: "每根柱子占已实现市值的百分比 [%]", pctBtcAxis: "每根柱子占供应量的百分比 [%]",
+    priceUSD: "最后移动时的价格 [美元]", usdInvested: "最后移动时的价值 [美元]", btcSupply: "供应量 [BTC]", pctUsdAxis: "最后移动时的价值 [%]", pctBtcAxis: "供应量 [%]",
     hoverPctUSD: "占已实现市值的百分比: ", hoverPctBTC: "占供应量的百分比: ",
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "累计占总量百分比: ", hoverTotalUSD: "最后移动时的总价值: ", hoverTotalBTC: "总供应量: ", hoverDate: "日期: ", usdProfit: "最后移动的美元价值处于盈利: ", usdLoss: "最后移动的美元价值处于亏损: ", btcProfit: "最后移动的 BTC 供应处于盈利: ", btcLoss: "最后移动的 BTC 供应处于亏损: ",
     langBtn: "日本語",
@@ -492,14 +492,14 @@ var T = {
     smoothUnit: "%", smoothTitle: "スムージング：記録された各価格をぼかす幅（価格に対する %、0 = なし）", yMaxTitle: "Y 軸上限：左軸の上端（その日の棒の高さのパーセンタイル。100 = その日の最も高い棒）",
     titleUSD: "最終移動時の価格別ビットコイン供給量（USD 評価額） 基準日 ",
     titleBTC: "最終移動時の価格別ビットコイン供給量（BTC） 基準日 ",
-    titlePctUSD: "ビットコイン：最終移動時の価格別に見た実現時価総額の割合（%） 基準日 ",
-    titlePctBTC: "ビットコイン：最終移動時の価格別に見た供給量の割合（%） 基準日 ",
+    titlePctUSD: "最終移動時の価格別ビットコイン供給量（% USD 評価額） 基準日 ",
+    titlePctBTC: "最終移動時の価格別ビットコイン供給量（% BTC） 基準日 ",
     pctUsdTitle: "% USD：各棒を、その日の実現時価総額（各コインが最後に動いたときの価値）に占める割合で描きます",
     pctBtcTitle: "% BTC：各棒を、その日の供給量に占める割合で描きます",
     vidusd: "USD 評価額", vidbtc: "BTC", vidpctusd: "% USD 評価額", vidpctbtc: "% BTC",
     priceUSD: "最終移動時の価格 [USD]",
     usdInvested: "最終移動時の評価額 [USD]", btcSupply: "供給量 [BTC]",
-    pctUsdAxis: "1 本あたりの実現時価総額の割合 [%]", pctBtcAxis: "1 本あたりの供給量の割合 [%]",
+    pctUsdAxis: "最終移動時の評価額 [%]", pctBtcAxis: "供給量 [%]",
     hoverPctUSD: "実現時価総額に占める割合: ", hoverPctBTC: "供給量に占める割合: ",
     hoverPrice: "価格: $",
     hoverPctTotal: "全体に占める累積割合: ",
