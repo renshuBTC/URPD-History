@@ -23,11 +23,12 @@ function job(name) {
 }
 
 test('each video draws one of the site\'s four views: its bars coloured, its left axis set and its chart worded as the site does', async () => {
-  const { LOOKS, AGE_LABELS, AGE_COLORS, PCT_TOP, titleStart, look } = await load();
+  const looks = await load(), { LOOKS, AGE_LABELS, AGE_COLORS, titleStart, look } = looks;
   const { c } = app(), en = c.T.en;
   assert.deepEqual(AGE_LABELS, Array.from(c.AGE_BANDS, b => b.label));
   assert.deepEqual(AGE_COLORS, Array.from(c.AGE_BAND_COLORS));
-  assert.equal(PCT_TOP, c.PCT_TOP);
+  assert.equal(looks.PCT_TOP, undefined, 'no fixed top, as on the site');
+  assert.equal(c.PCT_TOP, undefined);
   assert.deepEqual(Object.keys(LOOKS), ['usd', 'btc', 'pctusd', 'pctbtc'], 'in the order of the site\'s view buttons');
   // Each look is the site's view of the same place (VIEW_MODES): coins or dollars, percents or not.
   assert.deepEqual(Object.values(LOOKS).map(L => ({ coin: L.coin, pct: L.pct })), Array.from(c.VIEW_MODES, m => ({ coin: m.coin, pct: m.pct })));
@@ -56,20 +57,21 @@ test('each video draws one of the site\'s four views: its bars coloured, its lef
   assert.match(render, /labels: AGE_LABELS, colors: AGE_COLORS, legendSize: 9,/, 'every bar in its 23 age bands, as the site draws them');
   assert.doesNotMatch(render, /PALETTE|#f8f919|store\.raw|LOOK\.source|LOOK\.theme|LOOK\.fit|yRun/, 'the colours come from looks.mjs');
   // The bars in dollars or coins as the look says, in percent of the day's total in the % looks; the left axis at each
-  // frame's own tallest bar, every bar counted (as on the site), or at PCT_TOP; labelled as the site labels it.
+  // frame's own tallest bar in every look, every bar counted (as on the site); labelled as the site labels it.
   assert.ok(render.includes('const S = startIndex(store, LOOK.coin ? "btc" : "usd"), dayBars = LOOK.coin ? store.coins : store.bars;\n'));
   assert.ok(render.includes('  const scale = !LOOK.pct ? 1 : total > 0 ? 100 / total : 0;\n'));
-  assert.ok(render.includes('    if (LOOK.pct) Y[t] = PCT_TOP;\n'));
+  assert.doesNotMatch(render, /PCT_TOP|Y\[t\] = 4|fixed at|LOOK\.pct \? PCT|if \(LOOK\.pct\) Y/, 'no fixed top');
+  assert.ok(render.includes('    Y[t] = peak > 0 ? peak : 1;\n'));
   assert.ok(render.includes('const topOf = (whole) => { let v = 0; for (let j = 0; j < NB; j++) if (whole[j] > v) v = whole[j]; return v; };\n'));
-  assert.ok(render.includes('      let peak = 0; for (let j = 0; j < NB; j++) { const v = c0[j] + (c1[j] - c0[j]) * f; if (v > peak) peak = v; }\n'));
-  assert.ok(render.includes('  const ymax = exact === undefined ? Y[t] : LOOK.pct ? PCT_TOP : topOf(a.cum[A - 1]) || 1;\n'));
+  assert.ok(render.includes('    let peak = 0; for (let j = 0; j < NB; j++) { const v = c0[j] + (c1[j] - c0[j]) * f; if (v > peak) peak = v; }\n'));
+  assert.ok(render.includes('  const ymax = exact === undefined ? Y[t] : topOf(a.cum[A - 1]) || 1;\n'));
   assert.ok(render.includes('  const yt = axisTicks(ymax), ytt = axisLabels(yt, LOOK.pct ? "pct" : LOOK.coin);\n'));
   // render.mjs's own copies of the site's axis labels print what the site prints.
   const a = render.indexOf("// ---- the site's axis labels"), b = render.indexOf('// ---- frame t:');
   const ctx = vm.createContext({ Math, String, Number, Array });
   vm.runInContext(render.slice(a, b) + '\n;globalThis.fns = { axisTicks, axisLabels };', ctx);
   const f = ctx.fns;
-  assert.deepEqual(Array.from(f.axisLabels(f.axisTicks(PCT_TOP), 'pct')), Array.from(c.axisLabels(c.axisTicks(4), 'pct')));
+  for (const end of [0.5, 2.16, 4, 13.8, 100]) assert.deepEqual(Array.from(f.axisLabels(f.axisTicks(end), 'pct')), Array.from(c.axisLabels(c.axisTicks(end), 'pct')), 'pct ' + end);
   for (const unit of [false, true]) for (const end of [1, 7.3, 1100, 126000, 125650, 2.2e5, 2.77e6, 3.1e10])
     assert.deepEqual(Array.from(f.axisLabels(f.axisTicks(end), unit)), Array.from(c.axisLabels(c.axisTicks(end), unit)), unit + ' ' + end);
 });
@@ -289,7 +291,7 @@ test('the published videos\' day is the last date in the notes the publish job w
   assert.ok(text.startsWith("Four videos, one for each of the site's views: BitcoinSupplyChart.com-USD-Value.mp4 (the bars in dollars) and BitcoinSupplyChart.com-Percent-of-Realized-Cap.mp4 " +
     "(every bar as its percent of the day's realized cap), every day from 2011-01-31 (the first with a realized cap above zero), and BitcoinSupplyChart.com-BTC.mp4 (the bars in coins) and " +
     "BitcoinSupplyChart.com-Percent-of-Supply.mp4 (every bar as its percent of the day's supply), every day from 2010-05-18 (the first with anything on the chart), all to 2026-09-24. " +
-    "The left axis ends at each day's own tallest bar in dollars and coins, and at 4% in percent. "), text.slice(0, 400));
+    "The left axis ends at each day's own tallest bar. "), text.slice(0, 400));
   assert.match(text, /\nSHA-256 of BitcoinSupplyChart\.com-USD-Value\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinSupplyChart\.com-BTC\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinSupplyChart\.com-Percent-of-Realized-Cap\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinSupplyChart\.com-Percent-of-Supply\.mp4: [0-9a-f]{64}\n/);
   // The Y-MAX videos kept on the release, with the SHA-256 their own notes gave them.
   assert.match(text, /\nSHA-256 of BitcoinSupplyChart\.com-Y-Max-Expands-On-ATH\.mp4: 70b66800dbf61eaefb35658f4274b60e7cc095487e4c4196ebfb3bd1614345b4\nSHA-256 of BitcoinSupplyChart\.com-Y-Max-Always-At-100-Percent\.mp4: fbc491f51f289eaafa515cdb99113cd4871850c5b7d7ef5c11d446845eceea9e\nCheck any file here: gh attestation verify FILE --repo o\/r \(see SECURITY\.md\)$/);
