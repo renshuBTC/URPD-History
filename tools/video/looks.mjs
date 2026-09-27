@@ -21,10 +21,10 @@ export const LOOKS = {
   usd: { ...USD, tag: "USD Value", pct: false, title: "Bitcoin Supply by Price When Last Moved (USD Value) as of ",
     yTitle: "Value When Last Moved [USD]" },
   btc: { ...BTC, tag: "BTC", pct: false, title: "Bitcoin Supply by Price When Last Moved (BTC) as of ", yTitle: "Supply [BTC]" },
-  pctusd: { ...USD, tag: "% USD Value", pct: true, title: "Bitcoin: Percent of Realized Cap by Price When Last Moved as of ",
-    yTitle: "Percent of Realized Cap per Bar [%]" },
-  pctbtc: { ...BTC, tag: "% BTC", pct: true, title: "Bitcoin: Percent of Supply by Price When Last Moved as of ",
-    yTitle: "Percent of Supply per Bar [%]" },
+  pctusd: { ...USD, tag: "% USD Value", pct: true, title: "Bitcoin Supply by Price When Last Moved (% USD Value) as of ",
+    yTitle: "Value When Last Moved [%]" },
+  pctbtc: { ...BTC, tag: "% BTC", pct: true, title: "Bitcoin Supply by Price When Last Moved (% BTC) as of ",
+    yTitle: "Supply [%]" },
 };
 
 export function look(name) {

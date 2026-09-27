@@ -72,8 +72,8 @@ test('the title is the chart\'s own title on the video\'s last day, naming its v
   assert.equal(videoTitle('2026-09-24'), 'Bitcoin Supply by Price When Last Moved (USD Value) as of 24 Sept 2026');
   assert.equal(videoTitle('2026-06-07', 'usd'), 'Bitcoin Supply by Price When Last Moved (USD Value) as of 07 Jun 2026');
   assert.equal(videoTitle('2026-10-01', 'btc'), 'Bitcoin Supply by Price When Last Moved (BTC) as of 01 Oct 2026');
-  assert.equal(videoTitle('2026-09-24', 'pctusd'), 'Bitcoin: Percent of Realized Cap by Price When Last Moved as of 24 Sept 2026');
-  assert.equal(videoTitle('2026-09-24', 'pctbtc'), 'Bitcoin: Percent of Supply by Price When Last Moved as of 24 Sept 2026');
+  assert.equal(videoTitle('2026-09-24', 'pctusd'), 'Bitcoin Supply by Price When Last Moved (% USD Value) as of 24 Sept 2026');
+  assert.equal(videoTitle('2026-09-24', 'pctbtc'), 'Bitcoin Supply by Price When Last Moved (% BTC) as of 24 Sept 2026');
   const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   for (const [key, look] of [['titleUSD', 'usd'], ['titleBTC', 'btc'], ['titlePctUSD', 'pctusd'], ['titlePctBTC', 'pctbtc']]) {
     const site = new RegExp(key + ': "([^"]+)"').exec(index)[1];
@@ -124,8 +124,8 @@ test('a clean upload: token, session, the whole file in one request, and the id 
 test('each video is posted under its own title, and an unknown look sends nothing at all', async () => {
   const { post } = await load(), file = video(1000);
   for (const [name, start, from, title] of [['btc', '2010-05-18', '18 May 2010', 'Bitcoin Supply by Price When Last Moved (BTC) as of 24 Sept 2026'],
-    ['pctusd', '2011-01-31', '31 January 2011', 'Bitcoin: Percent of Realized Cap by Price When Last Moved as of 24 Sept 2026'],
-    ['pctbtc', '2010-05-18', '18 May 2010', 'Bitcoin: Percent of Supply by Price When Last Moved as of 24 Sept 2026']]) {
+    ['pctusd', '2011-01-31', '31 January 2011', 'Bitcoin Supply by Price When Last Moved (% USD Value) as of 24 Sept 2026'],
+    ['pctbtc', '2010-05-18', '18 May 2010', 'Bitcoin Supply by Price When Last Moved (% BTC) as of 24 Sept 2026']]) {
     const g = await google({ privacy: 'unlisted' });
     try {
       const r = await post({ file, start, end: '2026-09-24', name, credentials: CREDS, endpoints: g.endpoints, ...quiet });
