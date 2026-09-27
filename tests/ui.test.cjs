@@ -264,8 +264,8 @@ test('the title names the view, in every language, as large as fits over the plo
   }
   assert.equal(c.T.en.titleUSD, 'Bitcoin Supply by Price When Last Moved (USD Value) as of ');
   assert.equal(c.T.en.titleBTC, 'Bitcoin Supply by Price When Last Moved (BTC) as of ');
-  assert.equal(c.T.en.titlePctUSD, 'Bitcoin: Percent of Realized Cap by Price When Last Moved as of ');
-  assert.equal(c.T.en.titlePctBTC, 'Bitcoin: Percent of Supply by Price When Last Moved as of ');
+  assert.equal(c.T.en.titlePctUSD, 'Bitcoin Supply by Price When Last Moved (% USD Value) as of ');
+  assert.equal(c.T.en.titlePctBTC, 'Bitcoin Supply by Price When Last Moved (% BTC) as of ');
   for (const k of ['titleUSDAth', 'titleUSDFit', 'titleBTCAth', 'titleBTCFit', 'ath', 'fit', 'athShort', 'fitShort', 'videosBtn', 'videosTitle'])
     for (const lang of ['en', 'zh', 'ja']) assert.equal(c.T[lang][k], undefined, lang + ' ' + k);
 });
