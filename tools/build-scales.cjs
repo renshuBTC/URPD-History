@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-// Builds data/scales.json, the history the chart's price axis needs to be a function of the date alone (see "Axes
-// that only grow" in index.html): its right end on every day, worked out by index.html's own code, loaded here
-// unchanged, so the file and the page cannot disagree. (The left axis needs no history: it is in percent of the day's
-// total and ends at 4% on every day.)
+// Builds data/scales.json, the history the chart's axes need to be a function of the date alone (see "Axes
+// that only grow" in index.html). Every day is binned by index.html's own code, loaded here unchanged, so the
+// file and the page cannot disagree.
 //
 //   node tools/build-scales.cjs             extend data/scales.json to the last finished day (UTC); 23 requests
 //                                           to bitview.space per new day
@@ -37,7 +36,7 @@ function loadSite() {
   const body = main.replace(/\ninit\(\);\s*$/, '') + `
     return {
       BASE: BASE, AGE_BANDS: AGE_BANDS, BINS_DEFAULT: BINS_DEFAULT, KERNEL_DEFAULT: KERNEL_DEFAULT,
-      aggregate: aggregate, buildData: buildData, setScales: setScales, xAxisEnd: xAxisEnd, axisLevel: axisLevel, PCT_TOP: PCT_TOP,
+      aggregate: aggregate, buildData: buildData, setScales: setScales, xAxisEnd: xAxisEnd, axisLevel: axisLevel,
       barValues: barValues, cleanDates: cleanDates, cleanCohort: cleanCohort,
       // The API's checks as the page makes them (see "What the API may send"): gaps for anything unexpected.
       setPrices: function (close, dates) {
@@ -103,10 +102,8 @@ async function main(argv = process.argv.slice(2)) {
 
   let file = null;
   if (!opt.rebuild && fs.existsSync(OUT)) file = JSON.parse(fs.readFileSync(OUT, 'utf8'));
-  if (!file) file = { start: START, end: null, x: [] };
-  // Only the price axis: a file from before carried the left axis's history too (usd, btc, bins, smoothing), which
-  // nothing reads now.
-  for (const k of ['usd', 'btc', 'usdPct', 'btcPct', 'bins', 'smoothing']) delete file[k];
+  if (!file) file = { start: START, end: null, bins: site.BINS_DEFAULT, smoothing: site.KERNEL_DEFAULT, x: [], usd: [], btc: [] };
+  if (file.bins !== site.BINS_DEFAULT || file.smoothing !== site.KERNEL_DEFAULT) throw new Error('data/scales.json was built with other defaults: use --rebuild');
   // Only days the API has moved past: it lists today from its first minutes, and a day it is still indexing (if
   // it has fallen behind) would be frozen here half-finished, since past days are never recomputed.
   const listed = site.cleanDates(dates), lastListed = listed[listed.length - 1];
@@ -135,7 +132,7 @@ async function main(argv = process.argv.slice(2)) {
     return res;
   }
   function save() {
-    const out = Object.assign({ about: "Price axis history for index.html: x, the axis's right end, one [day, value] step per change; day 0 is start. Built by tools/build-scales.cjs." }, file);
+    const out = Object.assign({ about: 'Axis history for index.html, one [day, value] step per change; day 0 is start. Built by tools/build-scales.cjs.' }, file);
     fs.mkdirSync(path.dirname(OUT), { recursive: true });
     const text = '{\n' + Object.keys(out).map(k => '"' + k + '":' + JSON.stringify(out[k])).join(',\n') + '\n}\n';
     fs.writeFileSync(OUT + '.tmp', text);
@@ -148,7 +145,8 @@ async function main(argv = process.argv.slice(2)) {
     const res = await day(date);
     const all = {};
     for (const c of res) for (const k in c) all[k] = (all[k] || 0) + c[k];
-    // The day's axis end, stored as the page will read it.
+    const raw = { all: all, age: res };
+    // The day's axis end first, stored as the page will read it, then the day binned on exactly that axis.
     let maxStamp = 0;
     for (const k in all) { const p = parseFloat(k); if (p > maxStamp && all[k] > 0) maxStamp = p; }
     // A guard against a broken or hostile API. The axes only grow and past days are never recomputed, so one absurd
@@ -163,12 +161,20 @@ async function main(argv = process.argv.slice(2)) {
     const d = dayOf(date);
     if (X > lastValue(file.x)) file.x.push([d, X]);
     file.end = date;
+    site.setScales(file);
+    const data = site.buildData(date, raw);
+    for (const coin of [false, true]) {
+      const level = ceilSig(site.axisLevel(site.barValues(data, coin), coin, 100), 4);
+      const steps = coin ? file.btc : file.usd;
+      if (lastValue(steps) > 0 && level > 10 * lastValue(steps)) throw new Error(`${date}: the ${coin ? 'BTC' : 'USD'} axis would jump from ${lastValue(steps)} to ${level} in a day; not recording it`);
+      if (level > lastValue(steps)) steps.push([d, level]);
+    }
     if (++done % 50 === 0) save();
   }
   save();
   const left = todo.length - done;
   console.log(`scales: ${done} day(s) added, through ${file.end}; ${left ? left + ' still to do (run again)' : 'up to date'}; ` +
-    `${file.x.length} x steps`);
+    `${file.x.length} x, ${file.usd.length} usd, ${file.btc.length} btc steps`);
   return file;
 }
 
