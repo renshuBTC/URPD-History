@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Builds data/scales.json, the history the chart's price axis needs to be a function of the date alone (see "Axes
 // that only grow" in index.html): its right end on every day, worked out by index.html's own code, loaded here
-// unchanged, so the file and the page cannot disagree. (The left axis needs no history: it ends at the day's own
-// tallest bar.)
+// unchanged, so the file and the page cannot disagree. (The left axis needs no history: it is in percent of the day's
+// total and ends at 4% on every day.)
 //
 //   node tools/build-scales.cjs             extend data/scales.json to the last finished day (UTC); 23 requests
 //                                           to bitview.space per new day
@@ -37,7 +37,7 @@ function loadSite() {
   const body = main.replace(/\ninit\(\);\s*$/, '') + `
     return {
       BASE: BASE, AGE_BANDS: AGE_BANDS, BINS_DEFAULT: BINS_DEFAULT, KERNEL_DEFAULT: KERNEL_DEFAULT,
-      aggregate: aggregate, buildData: buildData, setScales: setScales, xAxisEnd: xAxisEnd, axisLevel: axisLevel,
+      aggregate: aggregate, buildData: buildData, setScales: setScales, xAxisEnd: xAxisEnd, axisLevel: axisLevel, PCT_TOP: PCT_TOP,
       barValues: barValues, cleanDates: cleanDates, cleanCohort: cleanCohort,
       // The API's checks as the page makes them (see "What the API may send"): gaps for anything unexpected.
       setPrices: function (close, dates) {
