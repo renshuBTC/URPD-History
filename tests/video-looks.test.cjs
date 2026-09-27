@@ -341,8 +341,8 @@ test('new videos are drawn once a week: seven days after the published ones, at 
 test('the published videos\' day is the last date in the notes the publish job writes, whatever else they hold', { skip: !haveGnuDate() && 'needs GNU date' }, () => {
   const text = notes('2010-05-18', '2026-09-24', '2011-01-31');
   assert.ok(text.startsWith("Four videos, one for each of the site's weightings and colourings, as the site draws it by default: BitcoinURPD.com-USD-AGE.mp4 and BitcoinURPD.com-USD-LTH-STH.mp4 " +
-    "(the bars in dollars, the left axis at each day's tallest bar), every day from 2011-01-31 (the first with a realized cap above zero), and BitcoinURPD.com-BTC-AGE.mp4 and " +
-    "BitcoinURPD.com-BTC-LTH-STH.mp4 (the bars in coins, the left axis at the 99.8th percentile of each day's bars, the first bar running off the top with its height printed there), " +
+    "(% USD: each bar its share of the day's realized cap, the left axis at each day's tallest bar), every day from 2011-01-31 (the first with a realized cap above zero), and BitcoinURPD.com-BTC-AGE.mp4 and " +
+    "BitcoinURPD.com-BTC-LTH-STH.mp4 (% BTC: each bar its share of all the coins, the left axis at the 99.8th percentile of each day's bars, the first bar running off the top with its share printed there), " +
     "every day from 2010-05-18 (the first with anything on the chart), the -AGE ones stacked in 23 age bands and the -LTH-STH ones split into short- and long-term holders at 150 days, " +
     "all four to 2026-09-24. "), text.slice(0, 600));
   assert.match(text, /\nSHA-256 of BitcoinURPD\.com-USD-AGE\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinURPD\.com-BTC-AGE\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinURPD\.com-USD-LTH-STH\.mp4: [0-9a-f]{64}\nSHA-256 of BitcoinURPD\.com-BTC-LTH-STH\.mp4: [0-9a-f]{64}\nCheck any file here: gh attestation verify FILE --repo o\/r \(see SECURITY\.md\)$/);
