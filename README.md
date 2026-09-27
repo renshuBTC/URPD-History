@@ -101,8 +101,7 @@ After publishing the videos, the **Weekly videos** workflow posts both to the [r
 channel with `tools/video/youtube.mjs`, through the YouTube Data API, each from a job of its own: one video's trouble
 does not hold back the other, and a failed post can be run again (**Re-run failed jobs**, within a week) without
 posting the other twice. Each week's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
-channel nor in search), titled with the chart's own title on their last day, *Bitcoin Supply by Price When Last Moved
-(USD Value, Y-Max Expands on ATH) as of 24 Sept 2026* and the same with *(USD Value, Y-Max Always at 100%)*. Once
+channel nor in search), titled with the chart's own title on their last day, *Bitcoin URPD (USD Value, Y-Max Expands on ATH) as of 24 Sept 2026* and the same with *(USD Value, Y-Max Always at 100%)*. Once
 YouTube lets others watch one, the
 workflow names it in `data/youtube.json` and its button on the site links to it; until then that button opens the
 channel.

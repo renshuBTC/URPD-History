@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-n7vFsIPPsn/4AhBR0sG+3bpuhWxzQCmsrmsyTfo1S5E=' 'sha256-7LCJvX86jOUe0BqQwjEJCZIpqQEG9Mw5GUapo8Csnvw=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-jvmBw8Lbyyf5JIoeTSuuarkU6fs9QOwRJHdXyZtom3c=' 'sha256-7LCJvX86jOUe0BqQwjEJCZIpqQEG9Mw5GUapo8Csnvw=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -441,8 +441,8 @@ var T = {
   en: {
     loading: "Loading...", loadingDates: "Loading dates...",
     landmarks: "CYCLE TOP/BTM",     yMaxLabel: "Y-max", yMaxUnit: "PCTL", smoothLabel: "Smoothing", smoothUnit: "%", smoothTitle: "Smoothing: how far each recorded price is blurred, as a percentage of the price (0 = none)", yMaxTitle: "Y-max: where the left axis ends, as a percentile of the day's bar heights (100 = the tallest bar, the day's own or so far, as the Y-MAX buttons say)", 
-        titleUSDAth: "Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of ", titleBTCAth: "Bitcoin Supply by Price When Last Moved (BTC, Y-Max Expands on ATH) as of ",
-    titleUSDFit: "Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Always at 100%) as of ", titleBTCFit: "Bitcoin Supply by Price When Last Moved (BTC, Y-Max Always at 100%) as of ",
+        titleUSDAth: "Bitcoin URPD (USD Value, Y-Max Expands on ATH) as of ", titleBTCAth: "Bitcoin URPD (BTC, Y-Max Expands on ATH) as of ",
+    titleUSDFit: "Bitcoin URPD (USD Value, Y-Max Always at 100%) as of ", titleBTCFit: "Bitcoin URPD (BTC, Y-Max Always at 100%) as of ",
     ath: "Y-max expands on ATH", fit: "Y-max always at 100%", athShort: "expands on ATH", fitShort: "always at 100%",
     athTitle: "Y-max expands on ATH: the left axis ends at the tallest bar so far; it grows when a bar reaches a new all-time high and never shrinks",
     fitTitle: "Y-max always at 100%: the left axis ends at each day's own tallest bar, so the tallest bar always reaches the top",
@@ -462,8 +462,8 @@ var T = {
   zh: {
     loading: "\u52a0\u8f7d\u4e2d...", loadingDates: "\u52a0\u8f7d\u65e5\u671f...",
     landmarks: "周期顶部/底部",     yMaxLabel: "Y \u8f74\u4e0a\u9650", yMaxUnit: "百分位", smoothLabel: "\u5e73\u6ed1", smoothUnit: "%", smoothTitle: "平滑：每个记录价格被模糊的程度，占价格的百分比（0 = 不平滑）", yMaxTitle: "Y 轴上限：左轴的终点，按当天柱高的百分位计（100 = 最高的柱子：当天的或迄今的，由两个 Y 轴上限按钮决定）", 
-        titleUSDAth: "按最后移动时价格划分的比特币供应（美元价值，Y 轴上限随历史新高扩展）截至 ", titleBTCAth: "按最后移动时价格划分的比特币供应（BTC，Y 轴上限随历史新高扩展）截至 ",
-    titleUSDFit: "按最后移动时价格划分的比特币供应（美元价值，Y 轴上限始终 100%）截至 ", titleBTCFit: "按最后移动时价格划分的比特币供应（BTC，Y 轴上限始终 100%）截至 ",
+        titleUSDAth: "比特币 URPD（美元价值，Y 轴上限随历史新高扩展）截至 ", titleBTCAth: "比特币 URPD（BTC，Y 轴上限随历史新高扩展）截至 ",
+    titleUSDFit: "比特币 URPD（美元价值，Y 轴上限始终 100%）截至 ", titleBTCFit: "比特币 URPD（BTC，Y 轴上限始终 100%）截至 ",
     ath: "Y 轴上限随历史新高扩展", fit: "Y 轴上限始终 100%", athShort: "随历史新高扩展", fitShort: "始终 100%",
     athTitle: "Y 轴上限随历史新高扩展：左轴停在迄今最高的柱子，只有柱子创历史新高时才扩大，永不缩小",
     fitTitle: "Y 轴上限始终 100%：左轴停在当天自己最高的柱子，最高的柱子始终顶到图表顶部",
@@ -488,10 +488,10 @@ var T = {
     yMaxUnit: "パーセンタイル",
     smoothLabel: "スムージング",
     smoothUnit: "%", smoothTitle: "スムージング：記録された各価格をぼかす幅（価格に対する %、0 = なし）", yMaxTitle: "Y 軸上限：左軸の上端（その日の棒の高さのパーセンタイル。100 = 最も高い棒。その日のものか、それまでのものかは Y 軸上限の 2 つのボタンで決まります）",
-    titleUSDAth: "最終移動時の価格別ビットコイン供給量（USD 評価額、Y軸上限は過去最高で拡大） 基準日 ",
-    titleBTCAth: "最終移動時の価格別ビットコイン供給量（BTC、Y軸上限は過去最高で拡大） 基準日 ",
-    titleUSDFit: "最終移動時の価格別ビットコイン供給量（USD 評価額、Y軸上限は常に 100%） 基準日 ",
-    titleBTCFit: "最終移動時の価格別ビットコイン供給量（BTC、Y軸上限は常に 100%） 基準日 ",
+    titleUSDAth: "ビットコイン URPD（USD 評価額、Y軸上限は過去最高で拡大） 基準日 ",
+    titleBTCAth: "ビットコイン URPD（BTC、Y軸上限は過去最高で拡大） 基準日 ",
+    titleUSDFit: "ビットコイン URPD（USD 評価額、Y軸上限は常に 100%） 基準日 ",
+    titleBTCFit: "ビットコイン URPD（BTC、Y軸上限は常に 100%） 基準日 ",
     ath: "Y軸上限は過去最高で拡大", fit: "Y軸上限は常に 100%", athShort: "過去最高で拡大", fitShort: "常に 100%",
     athTitle: "Y軸上限は過去最高で拡大：左軸はそれまでで最も高い棒で止まり、棒が過去最高を更新したときだけ広がり、縮むことはありません",
     fitTitle: "Y軸上限は常に 100%：左軸をその日の最も高い棒に合わせるので、最も高い棒が常に上端に届きます",
