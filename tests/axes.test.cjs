@@ -122,7 +122,7 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
     assert.equal(bars.length, 2);
     for (const b of bars) {
       assert.match(b.hovertemplate, coin ? /Total Supply: %\{customdata\[0\]:,\.2f\} BTC/ : /Total Value When Last Moved: %\{customdata\[0\]:\$,\.0f\}/);
-      assert.match(b.hovertemplate, /<br>Cumulative % of Total: %\{customdata\[1\]:\.1f\}%/);
+      assert.match(b.hovertemplate, /<br>Percent of Total: %\{customdata\[1\]:\.1f\}%/);
       assert.equal(b.customdata, bars[0].customdata, 'one shared array');
     }
     const cd = bars[0].customdata, totals = c.barValues(c.buildData(dates[3], raws[3]), coin);
@@ -143,7 +143,7 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
   assert.doesNotMatch(video, /This Price|Supply Distribution|per bar|perBar|BOTTOM SIGNAL|GLOW|isBottom/);
 });
 
-test('Cumulative % of Total meets the price box at the dashed line: at most In Profit left of it, at least right of it', async () => {
+test('Percent of Total meets the price box at the dashed line: at most In Profit left of it, at least right of it', async () => {
   const { c, element } = app();
   // A pile of supply just above the day's price (1020), which the smoothing spreads onto both sides of the line.
   const { dates, raws } = market(c, { cohorts: () => [{ 900: 5, 1015: 2, 1025: 50, 1100: 3 }] });
