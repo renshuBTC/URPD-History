@@ -1,5 +1,5 @@
-// The toolbar's controls: the date box, the step sizes, the settings fields, pins, the two video buttons and the
-// languages (the two Y-MAX buttons: ymax-modes.test.cjs). Each test here pins down a bug the 2026-09-24 audit found.
+// The toolbar's controls: the date box, the step sizes, the settings fields, the two video buttons and the languages
+// (USD | BTC and the percent view: percent-view.test.cjs). Each test here pins down a bug the 2026-09-24 audit found.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
@@ -88,7 +88,7 @@ test('Up and Down, or W and S, change the step size one at a time, round and rou
   assert.deepEqual(down, [3, 2, 1, 0], '1Y, 1M, 1W, 1D');
   assert.equal(c.coinMode, false, 'USD/BTC is left to its buttons');
   assert.equal(c.viewIdx, 0);
-  assert.equal(c.yFit, true, 'and the Y-MAX buttons to theirs (ALWAYS AT 100%, the default, still on)');
+  assert.equal(c.yMaxPct, 100, 'and Y-max to its field');
   // The browser keeps its own shortcuts (Ctrl+S saves the page).
   assert.equal(press('s', { ctrlKey: true }), false);
   assert.equal(c.stepIdx, 0);
@@ -100,16 +100,13 @@ test('the settings fields take a number and nothing else', () => {
   for (const [typed, want] of Object.entries(cases)) assert.ok(Object.is(c.fieldNumber(typed), want), typed);
 });
 
-test('a pin is kept per weighting, bin count and smoothing, and PIN Y-AXIS does nothing before the first chart', () => {
-  const { c, element } = app();
-  c.coinMode = true;
-  assert.equal(c.peakKey({ numBins: 625, kernelPct: 0 }), 'btc|b625|s0');
-  c.coinMode = false;
-  assert.equal(c.peakKey({ numBins: 400, kernelPct: 0.24 }), 'usd|b400|s0.24');
-  c.lastRenderedData = null;
-  c.peakStore = { 'usd|b625|s0.24': ['2026-01-01', 5] };
-  element('btnPeak').onclick();
-  assert.deepEqual(plain(c.peakStore), { 'usd|b625|s0.24': ['2026-01-01', 5] }, 'a saved pin is not deleted');
+test('there are no pins: no PIN Y-AXIS, and any a visitor saved before are removed from the browser, nothing else touched', () => {
+  const removed = [], other = [];
+  app({ localStorage: { getItem(k) { other.push(['get', k]); return null; }, setItem(k) { other.push(['set', k]); }, removeItem(k) { removed.push(k); } } });
+  assert.deepEqual(removed, ['bsd_peaks_v1', 'bsd_peaks_v2', 'bsd_peaks_v3', 'bsd_peaks_raw_split'], 'every key a pin was ever saved under');
+  assert.deepEqual(other, [], 'nothing read or written');
+  assert.doesNotMatch(html, /btnPeak|peakStore|peakKey|PIN Y-AXIS<|pinGroup|PEAK_STORE/);
+  assert.doesNotThrow(() => app({ localStorage: undefined }), 'a browser without local storage loads the page all the same');
 });
 
 test('every text has all three languages', () => {
@@ -168,23 +165,23 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the two video buttons always show: FULL HISTORY (Y-MAX ALWAYS AT 100%) and (Y-MAX EXPANDS ON ATH), each its latest video others can watch, else the channel', async () => {
+test('the two video buttons always show: FULL HISTORY (USD VALUE) and (BTC), each its latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
-  // as the markup writes them: which video, in brackets, and the short name it gives way to in a narrow bar
-  const BUTTONS = [['ytBtn', 'ytLabel', 'ytTag', 'ytTagShort', 'Y-max expands on ATH', 'expands on ATH'], ['ytFitBtn', 'ytFitLabel', 'ytFitTag', 'ytFitTagShort', 'Y-max always at 100%', 'always at 100%']];
-  for (const [id, label, tag, short, name, shortName] of BUTTONS) {
-    const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${label}" class="yt-word">Full history</span><span class="yt-tag"><span id="${tag}" class="yt-tag-full">([^<]+)</span><span id="${short}" class="yt-tag-short">([^<]+)</span></span></a>`));
+  // as the markup writes them: which video, in brackets
+  const BUTTONS = [['ytUsdBtn', 'ytUsdLabel', 'ytUsdTag', 'USD Value'], ['ytBtcBtn', 'ytBtcLabel', 'ytBtcTag', 'BTC']];
+  for (const [id, label, tag, name] of BUTTONS) {
+    const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${label}" class="yt-word">Full history</span><span class="yt-tag"><span id="${tag}">([^<]+)</span></span></a>`));
     assert.ok(a, id + ': a visible link that opens in a new tab: the play symbol, the words and which video, named for screen readers and tooltips');
     assert.equal(a[1], CHANNEL, 'the channel until the page learns of a video');
-    assert.deepEqual([a[5], a[6]], [name, shortName]);
+    assert.equal(a[5], name);
     assert.equal(a[2], `Full history (${name}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`);
     assert.equal(a[2], a[3]);
     assert.match(a[4], /aria-hidden="true"/);
     assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   }
-  assert.ok(html.indexOf('id="ytFitBtn"') < html.indexOf('id="ytBtn"'), 'Y-MAX ALWAYS AT 100% first, Y-MAX EXPANDS ON ATH on its right, as the Y-MAX buttons');
-  assert.doesNotMatch(html, /ytSplitBtn|ytRawBtn/, 'no <150D/>150D or RAW video');
-  assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
+  assert.ok(html.indexOf('id="ytUsdBtn"') < html.indexOf('id="ytBtcBtn"'), 'USD VALUE first, BTC on its right, as USD | BTC');
+  assert.doesNotMatch(html, /id="ytBtn"|ytFitBtn|ytSplitBtn|ytRawBtn|yt-tag-short|yt-tag-full/, 'no Y-MAX, <150D/>150D or RAW video, and no short names');
+  assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytUsdBtn\[hidden\]|el\.hidden/, 'never hidden');
   assert.match(decls('#controls .yt-btn'), /border:\s*1px solid #595959/);
   assert.match(decls('#controls .yt-btn:hover'), /border-color:\s*#fff/);
   assert.match(decls('.yt-btn:focus-visible'), /outline:\s*2px solid #fff/);
@@ -194,76 +191,71 @@ test('the two video buttons always show: FULL HISTORY (Y-MAX ALWAYS AT 100%) and
   assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
   assert.match(decls('#controls.compact .yt-tag::before'), /content:\s*none/);
   // data/youtube.json names each video once others can watch it; anything else leaves that button on the channel.
-  const { c, element } = app(), ath = element('ytBtn'), fit = element('ytFitBtn');
-  c.setYouTubeLinks({ ath: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, fit: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
-  assert.equal(ath.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  assert.equal(fit.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
-  assert.equal(ath.title, 'Full history (Y-max expands on ATH): every day since 2010 as one 5-minute 4K video, the left axis ending at the tallest bar so far, on YouTube (opens in a new tab)');
-  assert.equal(fit.title, "Full history (Y-max always at 100%): every day since 2010 as one 5-minute 4K video, the left axis ending at each day's own tallest bar, on YouTube (opens in a new tab)");
-  for (const el of [ath, fit]) assert.equal(el.getAttribute('aria-label'), el.title);
-  assert.deepEqual([element('ytTag').textContent, element('ytTagShort').textContent, element('ytFitTag').textContent, element('ytFitTagShort').textContent],
-    ['Y-max expands on ATH', 'expands on ATH', 'Y-max always at 100%', 'always at 100%']);
-  for (const [lang, words, athTag, fitTag, want] of [
-    ['zh', '完整历史', 'Y 轴上限随历史新高扩展', 'Y 轴上限始终 100%', '完整历史（Y 轴上限随历史新高扩展）：2010 年以来的每一天，一段 5 分钟的 4K 视频，左轴停在迄今最高的柱子，在 YouTube 上观看（在新标签页中打开）'],
-    ['ja', '全期間', 'Y軸上限は過去最高で拡大', 'Y軸上限は常に 100%', '全期間（Y軸上限は過去最高で拡大）：2010年以降の毎日を 5 分の 4K 動画 1 本にまとめ、左軸をそれまでで最も高い棒で止めて YouTube で（新しいタブで開きます）']]) {
+  const { c, element } = app(), usd = element('ytUsdBtn'), btc = element('ytBtcBtn');
+  c.setYouTubeLinks({ usd: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, btc: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
+  assert.equal(usd.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  assert.equal(btc.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  assert.equal(usd.title, "Full history (USD Value): every day since 31 January 2011 as one 5-minute 4K video, each bar as its percent of the day's realized cap on the fixed 0-4% axis, on YouTube (opens in a new tab)");
+  assert.equal(btc.title, "Full history (BTC): every day since 18 May 2010 as one 5-minute 4K video, each bar as its percent of the day's supply on the fixed 0-4% axis, on YouTube (opens in a new tab)");
+  for (const el of [usd, btc]) assert.equal(el.getAttribute('aria-label'), el.title);
+  assert.deepEqual([element('ytUsdTag').textContent, element('ytBtcTag').textContent], ['USD Value', 'BTC']);
+  for (const [lang, words, usdTag, want] of [
+    ['zh', '完整历史', '美元价值', '完整历史（美元价值）：2011 年 1 月 31 日以来的每一天，一段 5 分钟的 4K 视频，每根柱子画成占当天已实现市值的百分比，左轴固定为 0-4%，在 YouTube 上观看（在新标签页中打开）'],
+    ['ja', '全期間', 'USD 評価額', '全期間（USD 評価額）：2011年1月31日以降の毎日を 5 分の 4K 動画 1 本にまとめ、各棒をその日の実現時価総額の割合で 0〜4% の固定の軸に描いて YouTube で（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
-    assert.equal(ath.title, want, lang);
-    assert.equal(element('ytLabel').textContent, words, lang);
-    assert.equal(element('ytFitLabel').textContent, words, lang);
-    assert.equal(element('ytTag').textContent, athTag, lang);
-    assert.equal(element('ytFitTag').textContent, fitTag, lang);
-    assert.equal(element('ytTagShort').textContent, c.T[lang].athShort, lang);
-    assert.equal(element('ytFitTagShort').textContent, c.T[lang].fitShort, lang);
-    assert.ok(ath.title.startsWith(words) && fit.title.startsWith(words), lang + ': the spoken name starts with the words on the button');
-    assert.ok(fit.title.includes(fitTag), lang);
+    assert.equal(usd.title, want, lang);
+    assert.equal(element('ytUsdLabel').textContent, words, lang);
+    assert.equal(element('ytBtcLabel').textContent, words, lang);
+    assert.equal(element('ytUsdTag').textContent, usdTag, lang);
+    assert.equal(element('ytBtcTag').textContent, 'BTC', lang);
+    assert.ok(usd.title.startsWith(words) && btc.title.startsWith(words), lang + ': the spoken name starts with the words on the button');
+    assert.ok(btc.title.includes('（BTC）'), lang);
   }
   c.lang = 'en'; c.labelYouTube();
   const channel = n => `Full history (${n}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`;
   for (const bad of [null, {}, { id: null }, { id: 'javascript:x' }, { id: 'short' }, { id: 'dQw4w9WgXcQ"x' }, { id: 12345678901 }, 'dQw4w9WgXcQ']) {
-    c.setYouTubeLinks({ ath: { id: 'dQw4w9WgXcQ' }, fit: { id: 'dQw4w9WgXcQ' } });
-    c.setYouTubeLinks({ ath: bad, fit: bad });
-    assert.equal(ath.href, CHANNEL, JSON.stringify(bad));
-    assert.equal(fit.href, CHANNEL, JSON.stringify(bad));
-    assert.equal(ath.title, channel('Y-max expands on ATH'), JSON.stringify(bad));
-    assert.equal(fit.title, channel('Y-max always at 100%'), JSON.stringify(bad));
+    c.setYouTubeLinks({ usd: { id: 'dQw4w9WgXcQ' }, btc: { id: 'dQw4w9WgXcQ' } });
+    c.setYouTubeLinks({ usd: bad, btc: bad });
+    assert.equal(usd.href, CHANNEL, JSON.stringify(bad));
+    assert.equal(btc.href, CHANNEL, JSON.stringify(bad));
+    assert.equal(usd.title, channel('USD Value'), JSON.stringify(bad));
+    assert.equal(btc.title, channel('BTC'), JSON.stringify(bad));
   }
-  for (const bad of [null, 'x', 5, []]) { c.setYouTubeLinks(bad); assert.equal(ath.href, CHANNEL); assert.equal(fit.href, CHANNEL); }
+  for (const bad of [null, 'x', 5, []]) { c.setYouTubeLinks(bad); assert.equal(usd.href, CHANNEL); assert.equal(btc.href, CHANNEL); }
   // One video without the other: each button on its own.
-  c.setYouTubeLinks({ ath: null, fit: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
-  assert.equal(ath.href, CHANNEL);
-  assert.equal(fit.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
-  // The files from before name the same Y-MAX EXPANDS ON ATH video as "age" (and, before that, at their top level).
-  c.setYouTubeLinks({ age: { id: 'dQw4w9WgXcQ', end: '2026-09-24' }, lthsth: { id: 'Abc_123-xyZ' }, raw: { id: 'Raw_567-abC' } });
-  assert.equal(ath.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  assert.equal(fit.href, CHANNEL, 'no other video stands in for Y-MAX ALWAYS AT 100%');
-  c.setYouTubeLinks({ id: 'dQw4w9WgXcQ', end: '2026-09-24' });
-  assert.equal(ath.href, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  assert.equal(fit.href, CHANNEL);
-  for (const [lang, want] of [['zh', '完整历史（Y 轴上限始终 100%）：YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）'], ['ja', '全期間（Y軸上限は常に 100%）：YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）']]) {
+  c.setYouTubeLinks({ usd: null, btc: { id: 'Abc_123-xyZ', end: '2026-09-24' } });
+  assert.equal(usd.href, CHANNEL);
+  assert.equal(btc.href, 'https://www.youtube.com/watch?v=Abc_123-xyZ');
+  // The files from before name videos drawn another way (the Y-MAX videos, and before them AGE, <150D/>150D and RAW,
+  // and a single video at their top level): none of them stands in for these.
+  c.setYouTubeLinks({ ath: { id: 'dQw4w9WgXcQ' }, fit: { id: 'Abc_123-xyZ' }, age: { id: 'dQw4w9WgXcQ' }, lthsth: { id: 'Abc_123-xyZ' }, raw: { id: 'Raw_567-abC' }, id: 'dQw4w9WgXcQ' });
+  assert.equal(usd.href, CHANNEL);
+  assert.equal(btc.href, CHANNEL);
+  for (const [lang, want] of [['zh', '完整历史（BTC）：YouTube 允许其他人观看后即可在此观看；在此之前打开 YouTube 频道（在新标签页中打开）'], ['ja', '全期間（BTC）：YouTube で公開されるまでは、代わりにチャンネルを開きます（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
-    assert.equal(fit.title, want, lang);
-    assert.equal(fit.getAttribute('aria-label'), want, lang);
+    assert.equal(btc.title, want, lang);
+    assert.equal(btc.getAttribute('aria-label'), want, lang);
   }
   // The page asks for it on its own, and a missing file changes nothing else.
   for (const found of [true, false]) {
     const h = app(), asked = [];
-    h.element('ytBtn').href = CHANNEL; h.element('ytFitBtn').href = CHANNEL;   // as the page starts
-    const yt = () => (found ? Promise.resolve({ ath: { id: 'dQw4w9WgXcQ' }, fit: { id: 'Abc_123-xyZ' } }) : Promise.reject(new Error('HTTP 404')));
+    h.element('ytUsdBtn').href = CHANNEL; h.element('ytBtcBtn').href = CHANNEL;   // as the page starts
+    const yt = () => (found ? Promise.resolve({ usd: { id: 'dQw4w9WgXcQ' }, btc: { id: 'Abc_123-xyZ' } }) : Promise.reject(new Error('HTTP 404')));
     h.c.fetchJSON = url => { asked.push(url); return url === 'data/youtube.json' ? yt() : Promise.resolve(url.endsWith('/all/dates') ? days('2026-09-20', '2026-09-24') : null); };
     h.c.loadAndRender = () => Promise.resolve();
     await h.c.init(); await flush();
     assert.equal(asked[0], 'data/youtube.json');
     assert.equal(h.c.allDates.length, 5, 'the chart loads either way');
-    assert.equal(h.element('ytBtn').href, found ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : CHANNEL);
-    assert.equal(h.element('ytFitBtn').href, found ? 'https://www.youtube.com/watch?v=Abc_123-xyZ' : CHANNEL);
+    assert.equal(h.element('ytUsdBtn').href, found ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : CHANNEL);
+    assert.equal(h.element('ytBtcBtn').href, found ? 'https://www.youtube.com/watch?v=Abc_123-xyZ' : CHANNEL);
   }
 });
 
 test('data/youtube.json names each video by its YouTube id, or none yet', () => {
   const fs = require('node:fs'), path = require('node:path');
   const yt = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'youtube.json'), 'utf8'));
-  assert.deepEqual(Object.keys(yt), ['about', 'ath', 'fit']);
-  for (const k of ['ath', 'fit']) {
+  assert.deepEqual(Object.keys(yt), ['about', 'usd', 'btc']);
+  for (const k of ['usd', 'btc']) {
     if (yt[k] === null) continue;
     assert.deepEqual(Object.keys(yt[k]), ['id', 'end'], k);
     assert.match(yt[k].id, /^[A-Za-z0-9_-]{11}$/, k);
