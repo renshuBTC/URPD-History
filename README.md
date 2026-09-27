@@ -16,8 +16,8 @@ each day's own tallest bar.
 
 - **Bottom axis** is the price each coin last moved at, not today’s price.
 - **Left axis** is how much supply sits in each bucket: dollars in USD mode, coins in BTC mode. Both axes are marked at twenty equal steps from zero to their very end, labels rounded to two significant figures.
-- **The price axis only grows.** It ends at the highest price the data had reached by the day you are viewing, moves only when the data goes past it, and never shrinks, so scrubbing back shows every day exactly as it looked at the time.
-- **The left axis follows the Y-MAX buttons.** **Y-MAX EXPANDS ON ATH** (the default) ends it at the tallest bar so far: it grows only when a bar reaches a new all-time high and never shrinks, like the price axis. **Y-MAX ALWAYS AT 100%** ends it at each day’s own tallest bar, so that bar always reaches the top and every day’s shape fills the same frame; the scale changes from day to day, so the bars bounce as you scrub. Either way a day’s axis depends on that day alone, whichever way you reach it. In BTC mode the first bar, the coins last moved for less than one bar’s width, is left out of the left axis and runs off the top with its height printed.
+- **The price axis only grows.** It ends exactly at the highest price any coin had last moved at by the day you are viewing, moves only when the data goes past it, and never shrinks, so scrubbing back shows every day exactly as it looked at the time. Its 625 bars each span exactly 1/625 of it (201.04 dollars on the 125,650 dollar axis of late 2025), whatever the smoothing, so the tallest bar's height, the one PIN Y-AXIS records, depends on the data alone.
+- **The left axis follows the Y-MAX buttons.** **Y-MAX ALWAYS AT 100%** (the default) ends it at each day’s own tallest bar, so that bar always reaches the top and every day’s shape fills the same frame; the scale changes from day to day, so the bars bounce as you scrub. **Y-MAX EXPANDS ON ATH** ends it at the tallest bar so far: it grows only when a bar reaches a new all-time high and never shrinks, like the price axis. Either way a day’s axis depends on that day alone, whichever way you reach it. In BTC mode the first bar, the coins last moved for less than one bar’s width, is left out of the left axis and runs off the top with its height printed.
 - **Hover a bar** for its price, its age band, the whole bar’s total (Total Value When Last Moved, or Total Supply) and Cumulative % of Total, the running share of the day at or below that price.
 - **White line** is bitcoin’s own price on its own hidden axes: a year of time around the selected day, and linear from $0 to the highest close shown so far, so the line fills the chart and only rescales on a new high.
 - **Dashed vertical** is the spot price. Supply to its left last moved below it, supply to its right above it.
@@ -40,18 +40,18 @@ Toolbar, left to right:
 
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **USD / BTC** — weight by dollar value at last move, or by coins
-- **Y-MAX EXPANDS ON ATH / Y-MAX ALWAYS AT 100%** — end the left axis at the tallest bar so far, or at each day’s
-  own tallest bar
+- **Y-MAX ALWAYS AT 100% / Y-MAX EXPANDS ON ATH** — end the left axis at each day’s own tallest bar (the default), or
+  at the tallest bar so far
 - **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
-- **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is where the Y-MAX buttons put the axis and anything lower zooms into the day in view. The price axis is always cut into 626 bars
-- **FULL HISTORY (Y-MAX EXPANDS ON ATH)** and **FULL HISTORY (Y-MAX ALWAYS AT 100%)** for the latest 5-minute full-history videos on YouTube, one for each Y-MAX button (each opens the channel until there is a video of it others can watch)
+- **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is where the Y-MAX buttons put the axis and anything lower zooms into the day in view. The price axis is always cut into 625 bars up to the highest price so far, and one more past it that takes in what the smoothing spreads beyond it
+- **FULL HISTORY (Y-MAX ALWAYS AT 100%)** and **FULL HISTORY (Y-MAX EXPANDS ON ATH)** for the latest 5-minute full-history videos on YouTube, one for each Y-MAX button (each opens the channel until there is a video of it others can watch)
 - together at the right-hand end: **?** for the explainer and the GitHub mark for the source, as icons, and the language toggle
 
 The chart's camera icon saves a PNG of it; there is no video download.
 
 The toolbar is always one row and never scrolls. Where the controls do not fit the window, its spacing tightens, then
-its type goes a size down, then the video buttons’ names drop their Y-MAX, then the buttons go down to ▶ EXPANDS ON
-ATH and ▶ ALWAYS AT 100%, and past that the whole bar is drawn smaller.
+its type goes a size down, then the video buttons’ names drop their Y-MAX, then the buttons go down to ▶ ALWAYS AT
+100% and ▶ EXPANDS ON ATH, and past that the whole bar is drawn smaller.
 
 On a phone the toolbar is hidden to give the chart the whole screen. Tap the left or
 right quarter of the screen to step back or forward a day, or drag the orange dot along
@@ -66,9 +66,9 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-**FULL HISTORY (Y-MAX EXPANDS ON ATH)** and **FULL HISTORY (Y-MAX ALWAYS AT 100%)** in the toolbar each open the
-whole history as one video on YouTube, its left axis ending at the tallest bar so far or at each day’s own tallest bar
-(each frame’s, as the days blend into each other): every day from 2010-05-18, when the first price comes onto the chart
+**FULL HISTORY (Y-MAX ALWAYS AT 100%)** and **FULL HISTORY (Y-MAX EXPANDS ON ATH)** in the toolbar each open the
+whole history as one video on YouTube, its left axis ending at each day’s own tallest bar (each frame’s, as the days
+blend into each other) or at the tallest bar so far: every day from 2010-05-18, when the first price comes onto the chart
 (it is empty before that), to the latest, 5:00 at 60 fps in 4K (3840×2160), drawn with the page’s default settings.
 The **Weekly videos** workflow draws both again once a week on GitHub’s runners, one runner each, taking in the week
 just ended, and posts them to YouTube (see [Posting to YouTube](#posting-to-youtube)). Run by hand (**Actions → Weekly
@@ -79,7 +79,7 @@ The site offers no file to download, so that a break-in could not use it to hand
 latest renders on the `video` release, whose notes tell the next run which day they reach; nothing links to them. A
 render goes out only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
 It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there; `tools/video/looks.mjs` holds the
-two looks), from a store of every day’s bars in their age bands, kept on the `video-data` release: past days never change, so each day’s run adds the new day, and once a week the 18,000 frames
+two looks), from a store of every day’s bars in their age bands, kept on the `video-store` release: past days never change, so each day’s run adds the new day, and once a week the 18,000 frames
 of each video are drawn again. Free for a public
 repository.
 

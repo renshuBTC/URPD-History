@@ -7,9 +7,9 @@ that asks for more, or offers you any other file, is not this site.
 
 ## The videos
 
-The two full-history videos, with the left axis at the tallest bar so far (Y-MAX EXPANDS ON ATH) and at each day's
-own tallest bar (Y-MAX ALWAYS AT 100%), are on YouTube, not on the site. FULL HISTORY (Y-MAX EXPANDS ON ATH) and FULL
-HISTORY (Y-MAX ALWAYS AT 100%) in the toolbar open the latest of each, posted
+The two full-history videos, with the left axis at each day's own tallest bar (Y-MAX ALWAYS AT 100%) and at the
+tallest bar so far (Y-MAX EXPANDS ON ATH), are on YouTube, not on the site. FULL HISTORY (Y-MAX ALWAYS AT 100%) and FULL
+HISTORY (Y-MAX EXPANDS ON ATH) in the toolbar open the latest of each, posted
 unlisted once a week by the [Weekly videos](.github/workflows/video.yml) workflow to the
 [renshuBTC](https://www.youtube.com/@renshuBTC) channel (the channel itself until there is a video of that look
 others can watch). They only ever go to the channel or to `https://www.youtube.com/watch?v=` and a video's id, which the
