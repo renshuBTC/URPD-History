@@ -1,9 +1,9 @@
 // The videos' store: every day's bars (23 age bands x 626 bins, in dollars) binned by index.html's own code on the
 // growing price axis of data/scales.json, plus the day's axis end, price and share of value that last moved above that
 // price. A past day never changes (its axis is fixed once the day has passed), so the store only ever gains days. It is
-// kept as meta.json plus one gzipped Float32Array per year (bars-YYYY.f32.gz), and lives as files on the "video-data"
-// release. (Files named raw-YYYY.f32.gz there held the unsmoothed bars of a RAW video that is no longer drawn: nothing
-// reads or writes them.)
+// kept as meta.json plus one gzipped Float32Array per year (bars-YYYY.f32.gz), and lives as files on the "video-store"
+// release. (The "video-data" release before it held bars binned on a price axis that ran a little past the highest
+// stamp, and a RAW video's: nothing reads it now.)
 //
 //   node tools/video/store.mjs DIR [--cache RAWDIR] [--until DATE] [--seconds N]
 //
@@ -99,6 +99,15 @@ async function main() {
 
   const { meta, chunks } = readStore(opt.dir);
   const last = meta.days.length ? meta.days[meta.days.length - 1][0] : "";
+  // The store and the axis history must be on the same price axis, or the days added here would put their bars at
+  // other prices than the days before them (and than the site). Checked on the store's last day.
+  if (last && last <= scales.end) {
+    const had = meta.days[meta.days.length - 1][1], want = site.xAxisEnd(last, 0, null);
+    if (!(Math.abs(had - want) <= 1e-6 * want)) {
+      throw new Error(`the store's ${last} is binned on a price axis ending at $${had}, data/scales.json has $${want}: ` +
+        "build the store again on an empty directory (with --cache)");
+    }
+  }
   // Only days the axis history already covers, so every bar sits on the axis the site draws for that day.
   const todo = site.cleanDates(dates).filter((d) => d > last && d <= until && d <= scales.end);
   const changed = new Set();
