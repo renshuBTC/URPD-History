@@ -3,12 +3,13 @@
 // there):
 // Every bar is drawn as its share of the day in percent, as on the site (% USD, % BTC): of the realized cap in dollars, of
 // all the coins in coins.
-//   usd-age     the bars in dollars (every coin's value when it last moved), the left axis at each frame's own tallest bar
-//               (Y-max 100), every bar in its 23 age bands (AGE_BANDS and AGE_BAND_COLORS there), stacked from the
-//               youngest coins up
-//   btc-age     the bars in coins, the left axis at the 99.8th percentile of each frame's bars (Y-max 99.8): the first
-//               bar, every coin last moved for less than one bar's width, is around ten times any other and runs off the
-//               top, with its height printed there (the ▲ figure), as on the site; in the same 23 age bands
+//   usd-age     % USD: each bar's share of the realized cap (every coin's value when it last moved), the left axis at
+//               each frame's own tallest bar (Y-max 100), every bar in its 23 age bands (AGE_BANDS and AGE_BAND_COLORS
+//               there), stacked from the youngest coins up
+//   btc-age     % BTC: each bar's share of all the coins, the left axis at the 99.8th percentile of each frame's bars
+//               (Y-max 99.8): the first bar, every coin last moved for less than one bar's width, is around ten times any
+//               other and runs off the top, with its share printed there (the ▲ figure), as on the site; in the same 23
+//               age bands
 //   usd-lthsth  as usd-age, with the bands added up into short-term holders (STH, the first STH_BANDS bands: coins that
 //               moved within the last 150 days) under long-term holders (LTH, the rest), as the site's LTH/STH does
 //   btc-lthsth  as btc-age, split the same way
