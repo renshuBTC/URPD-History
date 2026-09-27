@@ -88,7 +88,7 @@ test('Up and Down, or W and S, change the step size one at a time, round and rou
   assert.deepEqual(down, [3, 2, 1, 0], '1Y, 1M, 1W, 1D');
   assert.equal(c.coinMode, false, 'USD/BTC is left to its buttons');
   assert.equal(c.viewIdx, 0);
-  assert.equal(c.yFit, false, 'and the Y-MAX buttons to theirs');
+  assert.equal(c.yFit, true, 'and the Y-MAX buttons to theirs (ALWAYS AT 100%, the default, still on)');
   // The browser keeps its own shortcuts (Ctrl+S saves the page).
   assert.equal(press('s', { ctrlKey: true }), false);
   assert.equal(c.stepIdx, 0);
@@ -168,7 +168,7 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the two video buttons always show: FULL HISTORY (Y-MAX EXPANDS ON ATH) and (Y-MAX ALWAYS AT 100%), each its latest video others can watch, else the channel', async () => {
+test('the two video buttons always show: FULL HISTORY (Y-MAX ALWAYS AT 100%) and (Y-MAX EXPANDS ON ATH), each its latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
   // as the markup writes them: which video, in brackets, and the short name it gives way to in a narrow bar
   const BUTTONS = [['ytBtn', 'ytLabel', 'ytTag', 'ytTagShort', 'Y-max expands on ATH', 'expands on ATH'], ['ytFitBtn', 'ytFitLabel', 'ytFitTag', 'ytFitTagShort', 'Y-max always at 100%', 'always at 100%']];
@@ -182,7 +182,7 @@ test('the two video buttons always show: FULL HISTORY (Y-MAX EXPANDS ON ATH) and
     assert.match(a[4], /aria-hidden="true"/);
     assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   }
-  assert.ok(html.indexOf('id="ytBtn"') < html.indexOf('id="ytFitBtn"'), 'Y-MAX EXPANDS ON ATH first, Y-MAX ALWAYS AT 100% on its right, as the Y-MAX buttons');
+  assert.ok(html.indexOf('id="ytFitBtn"') < html.indexOf('id="ytBtn"'), 'Y-MAX ALWAYS AT 100% first, Y-MAX EXPANDS ON ATH on its right, as the Y-MAX buttons');
   assert.doesNotMatch(html, /ytSplitBtn|ytRawBtn/, 'no <150D/>150D or RAW video');
   assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
   assert.match(decls('#controls .yt-btn'), /border:\s*1px solid #595959/);
