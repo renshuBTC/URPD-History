@@ -7,9 +7,9 @@ that asks for more, or offers you any other file, is not this site.
 
 ## The videos
 
-The four full-history videos, one for each of the chart's views (the bars in dollars and in coins, and every bar as
-its percent of the day's realized cap and of its supply), are on YouTube, not on the site. HISTORY (USD VALUE), HISTORY
-(BTC), HISTORY (% USD VALUE) and HISTORY (% BTC) in the toolbar open the latest of each, posted
+The two full-history videos, with the left axis at each day's own tallest bar (Y-MAX ALWAYS AT 100%) and at the
+tallest bar so far (Y-MAX EXPANDS ON ATH), are on YouTube, not on the site. FULL HISTORY (Y-MAX ALWAYS AT 100%) and FULL
+HISTORY (Y-MAX EXPANDS ON ATH) in the toolbar open the latest of each, posted
 unlisted once a week by the [Weekly videos](.github/workflows/video.yml) workflow to the
 [renshuBTC](https://www.youtube.com/@renshuBTC) channel (the channel itself until there is a video of that look
 others can watch). They only ever go to the channel or to `https://www.youtube.com/watch?v=` and a video's id, which the
@@ -18,20 +18,18 @@ visitors a file posing as a video.
 
 The workflow keeps its latest renders on this repository's
 [`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video)
-(`BitcoinSupplyChart.com-USD-Value.mp4`, `BitcoinSupplyChart.com-BTC.mp4`,
-`BitcoinSupplyChart.com-Percent-of-Realized-Cap.mp4` and `BitcoinSupplyChart.com-Percent-of-Supply.mp4`), where the next
-run reads which day they reach; nothing links to them (a video drawn on its own by hand is posted but joins the release
-only with the next weekly run). The earlier Y-MAX videos
-(`BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4` and `BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4`) stay
-on the same release as they were and are no longer updated. GitHub keeps a signed record of the run that built each
-of them (a build provenance attestation, logged by Sigstore). To check a copy of any of them:
+(`BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4` and `BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4`), where
+the next run reads which day
+they reach; nothing links to them (a video drawn on its own by hand is posted but joins the release only with the
+next weekly run). GitHub keeps a signed record of the run that built each of them (a build provenance attestation,
+logged by Sigstore). To check a copy of any of them:
 
 - **SHA-256:** compare it with the one in the release notes: `shasum -a 256 FILE` on macOS, `sha256sum FILE` on
   Linux, `Get-FileHash FILE` in Windows PowerShell.
 - **Attestation**, with the [GitHub CLI](https://cli.github.com):
 
   ```sh
-  gh attestation verify BitcoinSupplyChart.com-USD-Value.mp4 --repo renshuBTC/URPD-History \
+  gh attestation verify BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4 --repo renshuBTC/URPD-History \
     --signer-workflow renshuBTC/URPD-History/.github/workflows/video.yml --source-ref refs/heads/main
   ```
 
@@ -52,7 +50,7 @@ of them (a build provenance attestation, logged by Sigstore). To check a copy of
   axis history refuses values from the data API far outside anything in the real history rather than commit them.
   Actions are pinned to full commit hashes and npm packages to exact versions and hashes, with install scripts off.
   The channel's YouTube credentials are repository secrets seen only by the steps that use them (two in each of the
-  four youtube jobs, the check for them and the post; and the one step of the hand-run YouTube credentials check),
+  two youtube jobs, the check for them and the post; and the one step of the hand-run YouTube credentials check),
   which run this repository's own code (`tools/video/youtube.mjs`, with Node's own http) and nothing installed. The
   jobs after the vetting take the vetted videos by their exact names, never another file the renderer could have left.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that

@@ -3,24 +3,22 @@
 Every bitcoin that exists last moved at some price. Sort them into price buckets,
 add up the supply in each, and you get this chart. A tall bar is a price where a lot
 of supply last changed position; a gap is a price where almost none did. The formal
-name of the distribution is URPD, the UTXO Realised Price Distribution.
+name is URPD, the UTXO Realised Price Distribution.
 
-What is unusual here is the history: most published versions show only today, this one
-steps through every day back to 2009-01-03, with each bar split into 23 age cohorts, in
-four views: the bars in dollars (USD) or in coins (BTC), with the left axis at each day's
-own tallest bar, or every bar as its percent of the day's total (% USD, % BTC) on a left
-axis fixed at 0 to 4%, so the bars cover the same area of the chart on every day and days
-years apart can be compared as shapes.
+What is unusual here is the history: most published versions show only today, this
+one steps through every day back to 2009-01-03, with each bar split into 23 age
+cohorts, and its left axis either growing with the tallest bar so far or refitted to
+each day's own tallest bar.
 
 **Live: <https://bitcoinsupplychart.com>**
 
 ## Reading it
 
 - **Bottom axis** is the price each coin last moved at, not today’s price.
-- **Left axis** is how much sits in each bar: dollars in USD, coins in BTC, and in % USD and % BTC each bar's percent of the day's total, of the realized cap (every coin's value when it last moved) or of the supply. In USD and BTC it ends at the day's own tallest bar, so that bar always reaches the top; in % USD and % BTC it runs from 0 to 4% on every day, so every day's bars, adding up to 100%, cover the same area (a bar above 4% runs off the top: in % USD the tallest bar on a few dozen days of the whole history, in % BTC the first bar on every day). Both axes are marked at twenty equal steps from zero to their very end, labels rounded to two significant figures.
-- **The price axis only grows.** It ends exactly at the highest price any coin had last moved at by the day you are viewing, moves only when the data goes past it, and never shrinks, so scrubbing back shows every day exactly as it looked at the time. At the default 625 bars each spans exactly 1/625 of it (201.04 dollars on the 125,650 dollar axis of late 2025), whatever the smoothing.
-- **The first bar**, the coins last moved for less than one bar’s width (all of them before 31 January 2011, still about 14% today), is the tallest bar in BTC on every day, several times any other, so at Y-max 100 the rest of the day is drawn much shorter; Y-max 99.7 cuts that bar alone on most days. In USD and % USD there is nothing to draw before 31 January 2011: until then every coin had last moved below 50 cents, recorded as $0.
-- **Hover a bar** for its price, its age band's part, the whole bar (Total Value When Last Moved, or Total Supply; in % USD and % BTC its percent of the day's total too), and Cumulative % of Total, the running share of the day at or below that price.
+- **Left axis** is how much supply sits in each bucket: dollars in USD mode, coins in BTC mode. Both axes are marked at twenty equal steps from zero to their very end, labels rounded to two significant figures.
+- **The price axis only grows.** It ends exactly at the highest price any coin had last moved at by the day you are viewing, moves only when the data goes past it, and never shrinks, so scrubbing back shows every day exactly as it looked at the time. Its 625 bars each span exactly 1/625 of it (201.04 dollars on the 125,650 dollar axis of late 2025), whatever the smoothing, so the tallest bar's height, the one PIN Y-AXIS records, depends on the data alone.
+- **The left axis follows the Y-MAX buttons.** **Y-MAX ALWAYS AT 100%** (the default) ends it at each day’s own tallest bar, so that bar always reaches the top and every day’s shape fills the same frame; the scale changes from day to day, so the bars bounce as you scrub. **Y-MAX EXPANDS ON ATH** ends it at the tallest bar so far: it grows only when a bar reaches a new all-time high and never shrinks, like the price axis. Either way a day’s axis depends on that day alone, whichever way you reach it. In BTC mode the first bar, the coins last moved for less than one bar’s width, is left out of the left axis and runs off the top with its height printed.
+- **Hover a bar** for its price, its age band, the whole bar’s total (Total Value When Last Moved, or Total Supply) and Cumulative % of Total, the running share of the day at or below that price.
 - **White line** is bitcoin’s own price on its own hidden axes: a year of time around the selected day, and linear from $0 to the highest close shown so far, so the line fills the chart and only rescales on a new high.
 - **Dashed vertical** is the spot price. Supply to its left last moved below it, supply to its right above it.
 - **Colour** is age: yellow is fresh, deep blue is ancient, logarithmic in between. The 23 colours lie on one path through OKLCH, evenly spaced to the eye, with lightness falling from young to old so the order survives greyscale, and every band at least 3:1 against the background.
@@ -36,22 +34,24 @@ Keyboard:
 - **W / S** or **↑ / ↓** — step interval up / down, one size at a time (1D → 1W → 1M → 1Y, and round again)
 - **Home / End** — first / last date
 
-The view (USD, BTC, % USD, % BTC) is switched with its toolbar buttons.
+USD / BTC and the two Y-MAX buttons are switched with their toolbar buttons.
 
 Toolbar, left to right:
 
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
-- **USD / BTC / % USD / % BTC** — the bars in dollars (the value when last moved) or in coins, or each bar as its percent of the day's realized cap or of its supply
-- **PIN Y-AXIS** — freeze the left axis at the tallest bar of the day you are viewing, so other days can be compared against it; pins are kept per view, bin count and smoothing, in your own browser
-- **Bins**, **Smoothing** and **Y-max** — how many bars the price axis is cut into up to the highest price so far (625 by default, 50 to 1000; one more past it takes in what the smoothing spreads beyond it); smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is the day's tallest bar in USD and BTC, whichever bar that is, and the fixed 4% top in % USD and % BTC, and anything lower zooms into the day in view
-- **HISTORY (USD VALUE)**, **HISTORY (BTC)**, **HISTORY (% USD VALUE)** and **HISTORY (% BTC)** for the latest 5-minute full-history videos on YouTube, one for each view (each opens the channel until there is a video of it others can watch)
+- **USD / BTC** — weight by dollar value at last move, or by coins
+- **Y-MAX ALWAYS AT 100% / Y-MAX EXPANDS ON ATH** — end the left axis at each day’s own tallest bar (the default), or
+  at the tallest bar so far
+- **PIN Y-AXIS** — freeze the y-axis at the tallest bar of the day you are viewing so other days can be compared against it
+- **Smoothing** and **Y-max** — smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, where 100 (the default) is where the Y-MAX buttons put the axis and anything lower zooms into the day in view. The price axis is always cut into 625 bars up to the highest price so far, and one more past it that takes in what the smoothing spreads beyond it
+- **FULL HISTORY (Y-MAX ALWAYS AT 100%)** and **FULL HISTORY (Y-MAX EXPANDS ON ATH)** for the latest 5-minute full-history videos on YouTube, one for each Y-MAX button (each opens the channel until there is a video of it others can watch)
 - together at the right-hand end: **?** for the explainer and the GitHub mark for the source, as icons, and the language toggle
 
 The chart's camera icon saves a PNG of it; there is no video download.
 
 The toolbar is always one row and never scrolls. Where the controls do not fit the window, its spacing tightens, then
-its type goes a size down, then the video buttons go down to ▶ USD VALUE, ▶ BTC, ▶ % USD VALUE and ▶ % BTC, and past
-that the whole bar is drawn smaller.
+its type goes a size down, then the video buttons’ names drop their Y-MAX, then the buttons go down to ▶ ALWAYS AT
+100% and ▶ EXPANDS ON ATH, and past that the whole bar is drawn smaller.
 
 On a phone the toolbar is hidden to give the chart the whole screen. Tap the left or
 right quarter of the screen to step back or forward a day, or drag the orange dot along
@@ -66,59 +66,43 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-**HISTORY (USD VALUE)**, **HISTORY (BTC)**, **HISTORY (% USD VALUE)** and **HISTORY (% BTC)** in the toolbar each
-open the whole history of that view as one video on YouTube, drawn as the page draws it at its default settings: USD and
-% USD from 2011-01-31, the first day with a realized cap above zero, and BTC and % BTC from 2010-05-18, when the first
-price comes onto the chart, each to the latest day, 5:00 at 60 fps in 4K (3840×2160).
-The **Weekly videos** workflow draws all four again once a week on GitHub’s runners, one runner each, taking in the week
+**FULL HISTORY (Y-MAX ALWAYS AT 100%)** and **FULL HISTORY (Y-MAX EXPANDS ON ATH)** in the toolbar each open the
+whole history as one video on YouTube, its left axis ending at each day’s own tallest bar (each frame’s, as the days
+blend into each other) or at the tallest bar so far: every day from 2010-05-18, when the first price comes onto the chart
+(it is empty before that), to the latest, 5:00 at 60 fps in 4K (3840×2160), drawn with the page’s default settings.
+The **Weekly videos** workflow draws both again once a week on GitHub’s runners, one runner each, taking in the week
 just ended, and posts them to YouTube (see [Posting to YouTube](#posting-to-youtube)). Run by hand (**Actions → Weekly
-videos → Run workflow**), it draws all four at once, or with **only** (`usd`, `btc`, `pctusd` or `pctbtc`) just one of
-them: run with `all`, it publishes and posts all four and starts a new week; with one, that one is posted and its button
-updated, while the release and its week stay as they are until the next weekly run draws all four together.
+videos → Run workflow**), it draws both at once, or with **only** (`ath` or `fit`) just one of them: run with `all`,
+it publishes and posts both and starts a new week; with one, that one is posted and its button updated, while the
+release and its week stay as they are until the next weekly run draws both together.
 The site offers no file to download, so that a break-in could not use it to hand anyone a file. The workflow keeps its
 latest renders on the `video` release, whose notes tell the next run which day they reach; nothing links to them. A
 render goes out only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
 It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there; `tools/video/looks.mjs` holds the
-four views), from a store of every day’s bars in their age bands, in dollars and in coins, kept on the
-`video-store-2` release: past days never change, so each day’s run adds the new day, and once a week the 18,000 frames
-of each video are drawn again. Free for a public repository.
+two looks), from a store of every day’s bars in their age bands, kept on the `video-store` release: past days never change, so each day’s run adds the new day, and once a week the 18,000 frames
+of each video are drawn again. Free for a public
+repository.
 
-The price axis needs the whole history to be a function of the date alone, which no single
-day’s download contains, so `data/scales.json` (about 3 KB) carries it: for every day
-since 2009-01-03, the right end of the price axis, as steps. `tools/build-scales.cjs`
-builds it with the page’s own code; run again, it extends the file by each finished day
-(23 requests to bitview.space per day). The Weekly videos workflow does that every day
-(it runs daily for this, and draws the videos once a week) and commits the result. Days
-after the file’s last day still draw, carrying on from its last value with their own data.
-The left axis needs no history: it ends at the day's own tallest bar, or at 4% in % USD and % BTC.
-
-### Earlier videos (kept)
-
-Before the four views, the chart's two videos were drawn in dollars, with the left axis at each day's own tallest bar
-(Y-MAX ALWAYS AT 100%) or at the tallest bar so far (Y-MAX EXPANDS ON ATH). Their last renders, every day from 2010-05-18
-to 2026-09-26, stay where they are:
-
-- **FULL HISTORY (Y-MAX ALWAYS AT 100%)**: <https://www.youtube.com/watch?v=I53s3vHbcFI>, and
-  `BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4` on the `video` release
-  (SHA-256 `fbc491f51f289eaafa515cdb99113cd4871850c5b7d7ef5c11d446845eceea9e`)
-- **FULL HISTORY (Y-MAX EXPANDS ON ATH)**: <https://www.youtube.com/watch?v=YqGYoIqKJ5s>, and
-  `BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4` on the `video` release
-  (SHA-256 `70b66800dbf61eaefb35658f4274b60e7cc095487e4c4196ebfb3bd1614345b4`)
-
-The workflow never replaces them: the four videos have file names of their own. Both carry the build attestation of
-the run that drew them (see [SECURITY.md](SECURITY.md)).
+The axes need the whole history to be a function of the date alone, which no single
+day’s download contains, so `data/scales.json` (about 10 KB) carries it: for every day
+since 2009-01-03, the right end of the price axis and the tallest bar so far in each
+mode, as steps. `tools/build-scales.cjs` builds it with the page’s own binning code;
+run again, it extends the file by each finished day (23 requests to bitview.space per
+day). The Weekly videos workflow does that every day (it runs daily for this, and draws
+the videos once a week) and commits the result. Days after the file’s last day still
+draw, carrying on from its last values with their own data.
 
 To deploy: push to GitHub and enable Pages on `main` at the repository root. That is
 the whole deployment.
 
 ## Posting to YouTube
 
-After publishing the videos, the **Weekly videos** workflow posts all four to the [renshuBTC](https://www.youtube.com/@renshuBTC)
+After publishing the videos, the **Weekly videos** workflow posts both to the [renshuBTC](https://www.youtube.com/@renshuBTC)
 channel with `tools/video/youtube.mjs`, through the YouTube Data API, each from a job of its own: one video's trouble
-does not hold back the others, and a failed post can be run again (**Re-run failed jobs**, within a week) without
-posting the others twice. Each week's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
-channel nor in search), titled with the chart's own title on their last day: *Bitcoin Supply by Price When Last Moved
-(USD Value) as of 26 Sept 2026*, and the same with *(BTC)*, *(% USD Value)* and *(% BTC)*. Once
+does not hold back the other, and a failed post can be run again (**Re-run failed jobs**, within a week) without
+posting the other twice. Each week's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
+channel nor in search), titled with the chart's own title on their last day, *Bitcoin Supply by Price When Last Moved
+(USD Value, Y-Max Expands on ATH) as of 24 Sept 2026* and the same with *(USD Value, Y-Max Always at 100%)*. Once
 YouTube lets others watch one, the
 workflow names it in `data/youtube.json` and its button on the site links to it; until then that button opens the
 channel.
