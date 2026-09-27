@@ -1,7 +1,11 @@
 {
-  "about": "The latest videos on YouTube for the site's four video buttons, one for each view: usd, the bars in dollars (HISTORY (USD VALUE)), btc, in coins (HISTORY (BTC)), pctusd, every bar as its percent of the day's realized cap (HISTORY (% USD VALUE)), and pctbtc, of the day's supply (HISTORY (% BTC)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then.",
-  "usd": null,
-  "btc": null,
-  "pctusd": null,
-  "pctbtc": null
+  "about": "The latest videos on YouTube for the site's two video buttons: ath, the left axis at the tallest bar so far (Y-MAX EXPANDS ON ATH), and fit, at each day's own tallest bar (Y-MAX ALWAYS AT 100%). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then.",
+  "ath": {
+    "id": "YqGYoIqKJ5s",
+    "end": "2026-09-26"
+  },
+  "fit": {
+    "id": "I53s3vHbcFI",
+    "end": "2026-09-26"
+  }
 }
