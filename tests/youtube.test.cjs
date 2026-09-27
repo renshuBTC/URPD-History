@@ -82,8 +82,8 @@ test('the title is the chart\'s own title on the video\'s last day, naming its v
   const DRAWN = {
     usd: "and weighed by what it was worth then, with the left axis at each day's own tallest bar, each bar split into 23 age bands",
     btc: "and counted in coins, with the left axis at each day's own tallest bar, each bar split into 23 age bands",
-    pctusd: "and weighed by what it was worth then, each bar drawn as its percent of that day's total value when last moved (the realized cap), on a left axis fixed at 0 to 4% so the bars cover the same area of the chart every day, each bar split into 23 age bands",
-    pctbtc: "and counted in coins, each bar drawn as its percent of that day's supply, on a left axis fixed at 0 to 4% so the bars cover the same area of the chart every day, each bar split into 23 age bands" };
+    pctusd: "and weighed by what it was worth then, each bar drawn as its percent of that day's total value when last moved (the realized cap), with the left axis at each day's own tallest bar, each bar split into 23 age bands",
+    pctbtc: "and counted in coins, each bar drawn as its percent of that day's supply, with the left axis at each day's own tallest bar, each bar split into 23 age bands" };
   for (const [look, start, from, tag] of [['usd', '2011-01-31', '31 January 2011', 'realized cap'], ['btc', '2010-05-18', '18 May 2010', 'bitcoin supply distribution'],
     ['pctusd', '2011-01-31', '31 January 2011', 'realized cap'], ['pctbtc', '2010-05-18', '18 May 2010', 'bitcoin supply distribution']]) {
     const m = metadata(start, '2026-09-24', look), pct = look.startsWith('pct');
