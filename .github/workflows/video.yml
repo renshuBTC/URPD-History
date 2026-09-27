@@ -233,8 +233,13 @@ jobs:
         run: |
           # Exactly the versions in package-lock.json, checked against its hashes, and no install scripts run.
           npm ci --ignore-scripts
-          node_modules/.bin/playwright install --with-deps chromium
-          command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
+          # Chromium's system packages come with apt, and now and then one of the runner's apt sources answers an error
+          # for a while (packages.microsoft.com a 403, say), which stops apt-get update and the install with it: tried
+          # again a few times before the job stops. The same for ffmpeg, when the runner lacks it.
+          for k in 1 2 3 4; do node_modules/.bin/playwright install --with-deps chromium && break; [ "$k" = 4 ] && exit 1; sleep $((k * 30)); done
+          if ! command -v ffmpeg; then
+            for k in 1 2 3 4; do sudo apt-get update -q && sudo apt-get install -y -q ffmpeg && break; [ "$k" = 4 ] && exit 1; sleep $((k * 30)); done
+          fi
 
       - name: Render the video
         run: node tools/video/render.mjs "$RUNNER_TEMP/store" "$RUNNER_TEMP/$FILE"
@@ -273,7 +278,10 @@ jobs:
 
       - name: Accept only the expected video, rewritten by Ubuntu's ffmpeg
         run: |
-          command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
+          # apt tried again a few times, as in the render job.
+          if ! command -v ffmpeg; then
+            for k in 1 2 3 4; do sudo apt-get update -q && sudo apt-get install -y -q ffmpeg && break; [ "$k" = 4 ] && exit 1; sleep $((k * 30)); done
+          fi
           bash tools/video/check-video.sh "$RUNNER_TEMP/rendered/$FILE"
           # A fresh container holding only the picture: no metadata, chapters or other boxes, and of the H.264 stream
           # only the units a picture needs (slices 1-5, SPS, PPS and delimiters 7-9), so no SEI or filler, where
