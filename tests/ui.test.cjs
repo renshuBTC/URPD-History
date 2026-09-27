@@ -131,7 +131,8 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.deepEqual([...end.matchAll(/\sid="(explainWrap|githubLink|langBtn)"/g)].map(m => m[1]), ['explainWrap', 'githubLink', 'langBtn'], 'How to read, GitHub and the language together at the right-hand end');
   assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytFitBtn|ytSplitBtn|ytRawBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytBtn', 'ytFitBtn']);
+  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytFitBtn|ytSplitBtn|ytRawBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytFitBtn', 'ytBtn'],
+    'ALWAYS AT 100% first, as the Y-MAX buttons');
   // The video buttons show their icon and words, at the weight of the other buttons: which video, in brackets, with
   // the short name it gives way to in a narrow bar.
   assert.match(bar, /id="ytBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytLabel" class="yt-word">Full history<\/span><span class="yt-tag"><span id="ytTag" class="yt-tag-full">Y-max expands on ATH<\/span><span id="ytTagShort" class="yt-tag-short">expands on ATH<\/span><\/span><\/a>/, 'the video buttons say what they give you');
@@ -333,7 +334,8 @@ test('no bottom signal, no Bins field and no bar width: 625 bars, and the price 
   // end and one past it, so the drawn axis is 626 bars long; a year up to 90 days ahead, but at most a week past the
   // latest day.
   assert.ok(Math.abs(layout.xaxis.range[1] / data.binWidth - 626) < 1e-9, String(layout.xaxis.range[1] / data.binWidth));
-  assert.equal((html.match(/ΔP = price axis end \/ 626"/g) || []).length, 3, 'en, zh, ja');
+  assert.equal((html.match(/ΔP = highest cost basis so far \/ 625"/g) || []).length, 3, 'en, zh, ja');
+  assert.doesNotMatch(html, /sliver for the smoothing|平滑所需的一小段|スムージングの分をわずかに足した/, 'nothing is added to the axis for the smoothing');
   assert.doesNotMatch(html, /625 (equal-width bars|根等宽|本の等幅)/);
   assert.match(html, /OV_WINDOW=365\*OV_DAY, OV_FUTURE=90\*OV_DAY, OV_PAD=7\*OV_DAY/);
   for (const words of ['from 275 days before the selected day to 90 days after it (near the latest day it ends a week past that day',
@@ -486,16 +488,17 @@ test('the page\'s own error messages are in the page\'s language, and follow it'
   assert.equal(c.errorText(new Error('HTTP 404')), 'HTTP 404', 'technical messages stay as they are');
 });
 
-test('pins RAW saved before it had keys of its own are dropped once, and every other pin stays', () => {
-  const stored = { bsd_peaks_v2: JSON.stringify({ 'btc|b625|s0': ['2025-01-01', 1.85e6], 'usd|b625|s0': ['2025-01-01', 9e9],
-    'btc|b625|s0|raw': ['2025-02-01', 5], 'usd|b625|s0.24': ['2025-03-01', 7], 'btc|b400|s0': ['2025-04-01', 8] }) };
+test('pins measured on the price axis before it ended exactly at the highest stamp are never looked up; new ones are kept', () => {
+  // v2 heights came from bars about 0.5% wider (the axis ran past the highest stamp), so a v2 pin would freeze the
+  // axis at a height no bar on the page has; v1 and RAW's pins are older still.
+  const stored = { bsd_peaks_v2: JSON.stringify({ 'usd|b625|s0': ['2026-08-14', 30.56e9], 'usd|b625|s0.24': ['2026-08-14', 2e10] }),
+    bsd_peaks_v1: JSON.stringify({ 'usd|b625|s0.24': ['2025-01-01', 9e9] }) };
   const localStorage = { getItem: k => (k in stored ? stored[k] : null), setItem: (k, v) => { stored[k] = String(v); } };
-  const kept = ['btc|b400|s0', 'btc|b625|s0|raw', 'usd|b625|s0.24'];
   const { c } = app({ localStorage });
-  assert.deepEqual(Object.keys(c.peakStore).sort(), kept);
-  assert.deepEqual(Object.keys(JSON.parse(stored.bsd_peaks_v2)).sort(), kept);
-  assert.ok(stored.bsd_peaks_raw_split);
-  // Once only: a pin made afterwards in normal mode at Bins 625 and Smoothing 0 survives the next visit.
-  stored.bsd_peaks_v2 = JSON.stringify({ 'usd|b625|s0': ['2026-01-01', 3] });
-  assert.deepEqual(Object.keys(app({ localStorage }).c.peakStore), ['usd|b625|s0']);
+  assert.equal(c.PEAK_STORE_KEY, 'bsd_peaks_v3');
+  assert.deepEqual(Object.keys(c.peakStore), [], 'none of them');
+  c.peakStore['usd|b625|s0'] = ['2026-08-14', 31.87e9]; c.peakSave();
+  assert.deepEqual(JSON.parse(stored.bsd_peaks_v3), { 'usd|b625|s0': ['2026-08-14', 31.87e9] });
+  assert.deepEqual(JSON.parse(JSON.stringify(app({ localStorage }).c.peakStore)), { 'usd|b625|s0': ['2026-08-14', 31.87e9] }, 'and kept for the next visit');
+  assert.ok(stored.bsd_peaks_v2, 'the old ones are left alone, not rewritten');
 });
