@@ -4,7 +4,7 @@ name: Weekly videos
 # (tools/video/looks.mjs): at the tallest bar so far (Y-MAX EXPANDS ON ATH) and at each day's own tallest bar (Y-MAX ALWAYS AT 100%).
 # The workflow runs every day all the same, because its first job also keeps the site's axis history current:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
-#               videos' store (the files on the "video-data" release), and decides whether new videos are due: once
+#               videos' store (the files on the "video-store" release), and decides whether new videos are due: once
 #               the store reaches seven days past the published ones, or on a run started by hand
 #   2. render:  draws each 4K video with tools/video, each on a runner of its own
 #   3. vet:     accepts each file only if it is exactly the expected video, and rewrites its container keeping only
@@ -110,7 +110,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/store"
           # An empty release (the store lost) is a store to rebuild, not an error, though gh refuses to download
           # nothing; a missing release still stops the run.
-          gh release download video-data --dir "$RUNNER_TEMP/store" || [ "$(gh release view video-data --json assets --jq '.assets | length')" = 0 ]
+          gh release download video-store --dir "$RUNNER_TEMP/store" || [ "$(gh release view video-store --json assets --jq '.assets | length')" = 0 ]
           # A run stopped between the two halves of a swap (replace-asset.sh) can leave a file only under its
           # temporary name. Take it back under its real name rather than stall every run after it; a year file that
           # has run ahead of meta.json is read only as far as meta.json goes (store.mjs).
@@ -124,7 +124,7 @@ jobs:
           # The year files first and meta.json last (store.mjs lists them in that order), so a run stopped part way
           # leaves a store the next run can still read.
           mapfile -t CHANGED < "$RUNNER_TEMP/changed.txt"
-          [ "${#CHANGED[@]}" = 0 ] || bash tools/video/replace-asset.sh video-data "${CHANGED[@]}"
+          [ "${#CHANGED[@]}" = 0 ] || bash tools/video/replace-asset.sh video-store "${CHANGED[@]}"
           END=$(node -p "require(process.env.RUNNER_TEMP + '/store/meta.json').days.at(-1)[0]")
           echo "end=$END" >> "$GITHUB_OUTPUT"
           # The video's first day: the first with anything on the chart (tools/video/store.mjs firstShownIndex).
