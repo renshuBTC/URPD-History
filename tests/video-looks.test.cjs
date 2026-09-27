@@ -29,8 +29,8 @@ test('each video colours its bars exactly as the site does, ends its left axis a
   assert.deepEqual([LOOKS.ath.fit, LOOKS.fit.fit], [false, true], 'ath: the tallest bar so far; fit: the frame\'s own');
   assert.equal(titleStart('ath'), c.T.en.titleUSDAth);
   assert.equal(titleStart('fit'), c.T.en.titleUSDFit);
-  assert.equal(titleStart('ath'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Expands on ATH) as of ');
-  assert.equal(titleStart('fit'), 'Bitcoin Supply by Price When Last Moved (USD Value, Y-Max Always at 100%) as of ');
+  assert.equal(titleStart('ath'), 'Bitcoin URPD (USD Value, Y-Max Expands on ATH) as of ');
+  assert.equal(titleStart('fit'), 'Bitcoin URPD (USD Value, Y-Max Always at 100%) as of ');
   for (const k of Object.keys(LOOKS)) assert.doesNotMatch(titleStart(k), /[<>]/, k + ': nothing YouTube refuses');
   assert.throws(() => look('__proto__'), /no look/);
   assert.throws(() => look('age'), /no look "age": ath or fit/);
