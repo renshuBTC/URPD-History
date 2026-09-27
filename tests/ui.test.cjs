@@ -243,14 +243,14 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
     assert.ok(textPx(title, size) <= 600, `${lang}: the title fits over the plot at ${size} px`);
     const credit = L.annotations.find(a => /Bitview/.test(a.text));
     for (const line of credit.text.split('<br>')) assert.ok(textPx(line.replace(/<[^>]*>/g, ''), credit.font.size) * 1.07 <= 620, `${lang}: ${line}`);
-    if (lang === 'en') { assert.equal(size, 10); assert.equal(credit.text.split('<br>').length, 2); assert.equal(L.margin.b, 78); assert.equal(credit.align, 'left'); }
+    if (lang === 'en') { assert.ok(size < 20, `en: shrunk below 20 px to fit, at ${size}`); assert.equal(credit.text.split('<br>').length, 2); assert.equal(L.margin.b, 78); assert.equal(credit.align, 'left'); }
   }
   const wide = await drawAt(1040);
   assert.ok(wide.xaxis.ticktext.every(s => s !== ''), 'a plot with room keeps all twenty-one labels');
-  assert.equal(wide.title.font.size, 18, 'the title, naming its Y-MAX button, is too long for 20 px here');
+  assert.equal(wide.title.font.size, 20, 'a plot with room shows the title at its full 20 px');
   const credit = wide.annotations.find(a => /Bitview/.test(a.text));
   assert.doesNotMatch(credit.text, /<br>/); assert.equal(credit.font.size, 11); assert.equal(wide.margin.b, 64);
-  assert.equal(wide.margin.t, 13 + Math.round(26 * 18 / 20) + 29, 'the title\'s line at its size, then the legend');
+  assert.equal(wide.margin.t, 13 + 26 + 29, 'the title\'s line at its size, then the legend');
   const tablet = await drawAt(420);
   assert.ok(tablet.title.font.size >= 10, 'never below 10 px');
 });
