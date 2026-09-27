@@ -8,8 +8,8 @@ that asks for more, or offers you any other file, is not this site.
 ## The videos
 
 The four full-history videos, one for each weighting (the bars in dollars and in coins) and colouring (by age band,
-AGE, or as short- and long-term holders, LTH/STH), are on YouTube, not on the site. VIDEO (USD-AGE), VIDEO (BTC-AGE),
-VIDEO (USD-LTH/STH) and VIDEO (BTC-LTH/STH) in the toolbar open the latest of each, posted
+AGE, or as short- and long-term holders, LTH/STH), are on YouTube, not on the site. VIDEO (USD-AGE), VIDEO (USD-LTH/STH),
+VIDEO (BTC-AGE) and VIDEO (BTC-LTH/STH) in the toolbar open the latest of each, posted
 unlisted once a week by the [Weekly videos](.github/workflows/video.yml) workflow to the
 [renshuBTC](https://www.youtube.com/@renshuBTC) channel (the channel itself until there is a video of that look
 others can watch). They only ever go to the channel or to `https://www.youtube.com/watch?v=` and a video's id, which the
