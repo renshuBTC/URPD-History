@@ -131,9 +131,9 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.deepEqual([...end.matchAll(/\sid="(explainWrap|githubLink|langBtn)"/g)].map(m => m[1]), ['explainWrap', 'githubLink', 'langBtn'], 'How to read, GitHub and the language together at the right-hand end');
   assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
-    ['btnUSD', 'btnBTC', 'btnAge', 'btnSplit', 'btnPeak', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'ytUsdAgeBtn', 'ytBtcAgeBtn', 'ytUsdSplitBtn', 'ytBtcSplitBtn'],
-    'USD | BTC, AGE | LTH/STH, PIN Y-AXIS, BINS left of SMOOTHING, Y-MAX, then the four videos');
+  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|signalWrap|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
+    ['btnUSD', 'btnBTC', 'btnAge', 'btnSplit', 'btnPeak', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'signalWrap', 'ytUsdAgeBtn', 'ytUsdSplitBtn', 'ytBtcAgeBtn', 'ytBtcSplitBtn'],
+    'USD | BTC, AGE | LTH/STH, PIN Y-AXIS, BINS left of SMOOTHING, Y-MAX, BOTTOM SIGNAL, then the four videos');
   // The video buttons show their icon and words, at the weight of the other buttons: VIDEO, which gives way in a
   // narrow bar, and which video, in brackets.
   for (const [key, tag] of [['UsdAge', 'USD-AGE'], ['BtcAge', 'BTC-AGE'], ['UsdSplit', 'USD-LTH/STH'], ['BtcSplit', 'BTC-LTH/STH']])
@@ -146,15 +146,16 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.doesNotMatch(html, /yt-tag-short|yt-tag-full|yt-video|controls\.short/);
   // Transitions would be measured half-way, so the buttons animate their colours only.
   for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
-  // To fit: the spacing tightens (dense), the type goes a size down (tight), the video buttons drop VIDEO and keep
-  // USD-AGE and the rest (compact), and last the whole bar is drawn smaller; the How to read panel undoes that.
+  // To fit: the spacing tightens (dense), the type goes a size down (tight), a row at most 5% too wide is drawn that
+  // much smaller, else the video buttons drop VIDEO and keep USD-AGE and the rest (compact), and last the whole bar is
+  // drawn smaller; the How to read panel undoes that.
   assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
   assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);
   assert.match(decls('#controls.tight button'), /font-size:\s*11px;\s*letter-spacing:\s*0/);
   assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
   assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'which video it is never goes');
   assert.match(decls('#explainPanel'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
-  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\];/);
+  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\], TOOLBAR_LIGHT_ZOOM = 0\.95;/);
   for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
   const { c, element } = app();
   for (const lang of ['zh', 'ja', 'en']) {
@@ -170,18 +171,19 @@ test('the bar fits its one row: each step only if the row does not fit without i
   bar.classList = { add: (k) => classes.add(k), remove: (k) => classes.delete(k), contains: (k) => classes.has(k), toggle() {} };
   // The row's width at each step, as measured in English (tools: a browser at 3000 px), and a window of W px: the
   // bar's own width, in its own (zoomed) pixels, is W / zoom.
-  const need = () => (classes.has('compact') ? 1564 : classes.has('tight') ? 1784 : classes.has('dense') ? 1848 : 2162);
+  const need = () => (classes.has('compact') ? 1777 : classes.has('tight') ? 1997 : classes.has('dense') ? 2068 : 2398);
   let W = 0;
   Object.defineProperty(bar, 'scrollWidth', { get: () => need() });
   Object.defineProperty(bar, 'clientWidth', { get: () => W / (parseFloat(bar.style.zoom) || 1) });
   const fit = (w) => { W = w; c.fitToolbarWords(); return [[...classes].join(' '), bar.style.zoom || '', bar.style['--bar-zoom'] || '']; };
   assert.deepEqual(fit(2560), ['', '', ''], 'room for everything');
-  assert.deepEqual(fit(1920), ['dense', '', ''], '1920 px: every word, in the full size');
-  assert.deepEqual(fit(1800), ['dense tight', '', '']);
-  assert.deepEqual(fit(1600), ['dense tight compact', '', ''], 'the videos keep USD-AGE and the rest');
+  assert.deepEqual(fit(2100), ['dense', '', '']);
+  assert.deepEqual(fit(2000), ['dense tight', '', '']);
+  assert.deepEqual(fit(1920), ['dense tight', '0.961', '0.961'], '1920 px: every word, drawn 4% smaller');
+  assert.deepEqual(fit(1850), ['dense tight compact', '', ''], 'more than 5% too wide: the videos keep USD-AGE and the rest');
   const [cls, zoom, varZoom] = fit(1440);
   assert.equal(cls, 'dense tight compact');
-  assert.ok(+zoom > 0.9 && +zoom <= 1440 / 1564, zoom);
+  assert.ok(+zoom > 0.75 && +zoom <= 1440 / 1777, zoom);
   assert.equal(varZoom, zoom, 'the panel is told how far to undo it');
   assert.ok(need() <= W / +zoom + 1, 'and then it fits');
   assert.deepEqual(fit(2560), ['', '', ''], 'a wider window takes every step back');
@@ -278,11 +280,11 @@ test('the explainer\'s section headings are capitals, underlined, not bold', () 
   assert.match(decls('#explainPanel h3'), /text-underline-offset:\s*3px/);
 });
 
-test('Bins, Smoothing and Y-max are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
+test('Bins, Smoothing, Y-max and Bottom signal are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
   const bins = /<label class="field" id="binsWrap"[^>]*>\s*<span class="field-label">Bins<\/span><input type="text" id="binsInput" value="625" inputmode="numeric"[^>]*>\s*<\/label>/.exec(html);
   assert.ok(bins, 'binsWrap: a label and the number, no unit');
   assert.doesNotMatch(bins[0], /style=/, 'no inline styles');
-  for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL']]) {
+  for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL'], ['signalWrap', 'signalInput', '% IN LOSS']]) {
     const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*><span class="field-unit">([^<]+)</span>\\s*</label>`).exec(html);
     assert.ok(m, wrap); assert.equal(m[1], unit);
     assert.doesNotMatch(m[0], /style=/, 'no inline styles');
@@ -315,21 +317,87 @@ test('the price box says In Profit and In Loss, in every language and for both w
   assert.match(html, /Profit % = /);
 });
 
-test('no bottom signal and no bar width: 625 bars by default, and the price axis title names the axis only', async () => {
-  for (const gone of ['thresholdInput', 'thresholdWrap', 'binsUnit', 'Bottom signal', 'BOTTOM SIGNAL', 'GLOW_COLOR', 'bottomThreshold'])
-    assert.ok(!html.includes(gone), gone);
+test('the bottom signal: at the mode\'s share in loss (80 in USD, 50 in BTC, each kept as typed) the dashed line and the box turn yellow and the box says so', async () => {
+  const { c, element } = app();
+  assert.deepEqual(plain(c.bottomByMode), [80, 50], 'USD 80, BTC 50 by default');
+  assert.match(html, /<input type="text" id="signalInput" value="80" inputmode="decimal"/, 'the field starts at USD\'s 80');
+  const { dates } = market(c);
+  // A day with its price among the stamps: one coin at $10 in profit, three at $90,000 in loss.
+  const data = c.buildData(dates[4], { all: { 10: 1, 90000: 3 }, age: [{ 10: 1, 90000: 3 }] });
+  const draw = async () => { await c.renderChart(data); const L = element('chart').layout;
+    return { line: L.shapes.find(s => s.type === 'line' && s.xref === 'x').line.color, box: L.annotations.find(a => /In Profit/.test(a.text)) }; };
+  const lossUsd = +(100 - data.profitPct).toFixed(1), lossBtc = +(100 - data.profitPctCoin).toFixed(1);
+  assert.ok(lossUsd > 99 && lossBtc === 75, `${lossUsd} ${lossBtc}`);
+  // USD: 99.9% of the value in loss, at or above 80: yellow line, yellow border and a fourth line.
+  let d = await draw();
+  assert.equal(d.line, '#FFE600');
+  assert.equal(d.box.bordercolor, '#FFE600');
+  const rows = d.box.text.split('<br>');
+  assert.equal(rows.length, 4, 'price, the two shares and the signal');
+  assert.equal(rows[3], "<span style='color:#FFE600'>BOTTOM SIGNAL \u2014 In Loss \u2265 80%</span>");
+  // BTC: 75% of the coins in loss, above 50; then raised past it, nothing.
+  c.coinMode = true; c.viewIdx = 1;
+  d = await draw();
+  assert.equal(d.box.text.split('<br>')[3], "<span style='color:#FFE600'>BOTTOM SIGNAL \u2014 In Loss \u2265 50%</span>");
+  c.bottomByMode[1] = 75; d = await draw();
+  assert.equal(d.line, '#FFE600', 'at the threshold exactly, as the box prints it');
+  c.bottomByMode[1] = 75.1; d = await draw();
+  assert.equal(d.line, '#ffffff', 'below it: the white line');
+  assert.equal(d.box.bordercolor, 'rgba(255,255,255,0.45)');
+  assert.equal(d.box.text.split('<br>').length, 3, 'price and the two shares, nothing more');
+  // In every language, the fourth line names the threshold.
+  c.bottomByMode[1] = 50;
+  for (const [lang, want] of [['zh', '底部信号 \u2014 亏损 \u2265 50%'], ['ja', 'ボトムシグナル \u2014 含み損 \u2265 50%']]) {
+    c.lang = lang; await c.renderChart(data);
+    const box = element('chart').layout.annotations.find(a => a.bordercolor === '#FFE600');
+    assert.ok(box && box.text.includes(want), lang);
+  }
+  c.lang = 'en';
+  // No price or no share for the day: no signal.
+  const unpriced = c.buildData('2009-01-12', { all: { 10: 1 }, age: [{ 10: 1 }] });
+  await c.renderChart(unpriced);
+  assert.ok(!JSON.stringify(element('chart').layout).includes('#FFE600'));
+});
+
+test('the bottom signal field: 0 to 100 for the mode on screen, drawn again at once; each mode keeps its own', () => {
+  const { c, element } = app();
+  let redraws = 0;
+  c.rerenderCurrent = () => { redraws++; };
+  c.loadAndRender = () => Promise.resolve();
+  const input = element('signalInput');
+  input.emit('input', { target: Object.assign(input, { value: '70' }) });
+  assert.deepEqual([plain(c.bottomByMode), redraws], [[70, 50], 1]);
+  input.emit('change', { target: Object.assign(input, { value: '150' }) });
+  assert.deepEqual([input.value, plain(c.bottomByMode)], ['100', [100, 50]], 'held to 0-100 when committed');
+  input.emit('change', { target: Object.assign(input, { value: 'abc' }) });
+  assert.deepEqual([input.value, plain(c.bottomByMode)], ['100', [100, 50]], 'not a number: the field shows the threshold in force');
+  // BTC shows its own, and USD's comes back with USD.
+  c.setViewMode(1);
+  assert.equal(input.value, '50');
+  input.emit('change', { target: Object.assign(input, { value: '40' }) });
+  assert.deepEqual(plain(c.bottomByMode), [100, 40]);
+  c.setViewMode(0);
+  assert.equal(input.value, '100');
+  // A change that could not be drawn is rolled back with the rest.
+  const saved = c.captureChartSettings();
+  c.bottomByMode[0] = 5;
+  c.restoreChartSettings(saved); c.syncControls();
+  assert.deepEqual([plain(c.bottomByMode), input.value], [[100, 40], '100']);
+  // Its words in every language.
+  for (const [lang, label, unit] of [['en', 'Bottom signal', '% IN LOSS'], ['zh', '底部信号', '% 亏损'], ['ja', 'ボトムシグナル', '% 含み損']]) {
+    assert.deepEqual([c.T[lang].signalLabel, c.T[lang].signalUnit], [label, unit], lang);
+    assert.match(c.T[lang].signalTitle, /80/, lang); assert.match(c.T[lang].signalTitle, /50/, lang);
+  }
+});
+
+test('625 bars by default, and the price axis title names the axis only', async () => {
+  for (const gone of ['thresholdInput', 'thresholdWrap', 'binsUnit', 'GLOW_COLOR', 'bottomThreshold']) assert.ok(!html.includes(gone), gone);
   const { c, element } = app();
   assert.equal(c.NUM_BINS, 625);
-  const { dates, raw } = market(c);
-  // every coin above the day's price: the old signal would have fired
+  const { dates } = market(c);
   const data = c.buildData(dates[4], { all: { 90000: 3 }, age: [{ 90000: 3 }] });
   await c.renderChart(data);
   const layout = element('chart').layout;
-  const spotLine = layout.shapes.find(s => s.type === 'line' && s.xref === 'x');
-  assert.equal(spotLine.line.color, '#ffffff', 'the spot line stays white');
-  const box = layout.annotations.find(a => /In Profit/.test(a.text));
-  assert.equal(box.text.split('<br>').length, 3, 'price and the two shares, nothing more');
-  assert.equal(box.bordercolor, 'rgba(255,255,255,0.45)');
   assert.equal(layout.xaxis.title.text, 'Price When Last Moved [USD]');
   for (const [lang, want] of [['zh', c.T.zh.priceUSD], ['ja', c.T.ja.priceUSD]]) {
     c.lang = lang; await c.renderChart(data);
