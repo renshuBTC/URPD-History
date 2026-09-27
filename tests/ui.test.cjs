@@ -131,25 +131,25 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.deepEqual([...end.matchAll(/\sid="(explainWrap|githubLink|langBtn)"/g)].map(m => m[1]), ['explainWrap', 'githubLink', 'langBtn'], 'How to read, GitHub and the language together at the right-hand end');
   assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytFitBtn|ytSplitBtn|ytRawBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytFitBtn', 'ytBtn'],
-    'ALWAYS AT 100% first, as the Y-MAX buttons');
-  // The video buttons show their icon and words, at the weight of the other buttons: which video, in brackets, with
-  // the short name it gives way to in a narrow bar.
-  assert.match(bar, /id="ytBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytLabel" class="yt-word">Full history<\/span><span class="yt-tag"><span id="ytTag" class="yt-tag-full">Y-max expands on ATH<\/span><span id="ytTagShort" class="yt-tag-short">expands on ATH<\/span><\/span><\/a>/, 'the video buttons say what they give you');
-  assert.match(bar, /id="ytFitBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytFitLabel" class="yt-word">Full history<\/span><span class="yt-tag"><span id="ytFitTag" class="yt-tag-full">Y-max always at 100%<\/span><span id="ytFitTagShort" class="yt-tag-short">always at 100%<\/span><\/span><\/a>/);
+  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
+    ['btnUSD', 'btnBTC', 'btnPeak', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'ytUsdBtn', 'ytBtcBtn'],
+    'USD | BTC, PIN Y-AXIS, BINS left of SMOOTHING, Y-MAX, then the USD and BTC videos; no Y-MAX mode buttons');
+  // The video buttons show their icon and words, at the weight of the other buttons: which video, in brackets, and
+  // VIDEO, which gives way in a narrow bar.
+  assert.match(bar, /id="ytUsdBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span class="yt-word"><span id="ytUsdWord">Full history<\/span><span id="ytUsdVideo" class="yt-video"> video<\/span><\/span><span id="ytUsdTag" class="yt-tag">USD<\/span><\/a>/, 'the video buttons say what they give you');
+  assert.match(bar, /id="ytBtcBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span class="yt-word"><span id="ytBtcWord">Full history<\/span><span id="ytBtcVideo" class="yt-video"> video<\/span><\/span><span id="ytBtcTag" class="yt-tag">BTC<\/span><\/a>/);
   // How to read and GitHub: their icons only, named by their tooltips and for screen readers.
   assert.match(end, /<a id="githubLink"[^>]*aria-label="View code on GitHub \(opens in a new tab\)" title="View code on GitHub \(opens in a new tab\)">\s*<svg[\s\S]*?<\/svg>\s*<\/a>/);
   assert.match(end, /<button id="explainBtn" aria-label="How to read this chart" title="How to read this chart" aria-expanded="false"><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><\/button>/);
   assert.doesNotMatch(html, /btn-word|explainLabel/);
-  // In a narrower bar the names drop the Y-MAX the two Y-MAX buttons already say.
-  assert.match(decls('#controls .yt-tag-short'), /display:\s*none/);
-  assert.match(decls('#controls.short .yt-tag-short'), /display:\s*inline/);
-  assert.match(decls('#controls.short .yt-tag-full'), /display:\s*none/);
+  // In a narrower bar the video buttons drop VIDEO, which their icon already says.
+  assert.match(decls('#controls.short .yt-video'), /display:\s*none/);
+  assert.doesNotMatch(html, /yt-tag-short|yt-tag-full/);
   // Transitions would be measured half-way, so the buttons animate their colours only.
   for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
-  // To fit: the spacing tightens (dense), the type goes a size down (tight), the videos' names drop their Y-MAX
-  // (short), the video buttons drop their words and keep EXPANDS ON ATH and ALWAYS AT 100% (compact), and last the whole bar is drawn
-  // smaller; the How to read panel undoes that.
+  // To fit: the spacing tightens (dense), the type goes a size down (tight), the video buttons drop VIDEO (short), then
+  // their words and keep USD and BTC (compact), and last the whole bar is drawn smaller; the How to read panel undoes
+  // that.
   assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
   assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);
   assert.match(decls('#controls.tight button'), /font-size:\s*11px;\s*letter-spacing:\s*0/);
@@ -221,9 +221,9 @@ test('the chart follows its own box, which the toolbar can change without the wi
 });
 
 // The chart drawn over a plot `plotW` px wide.
-async function drawAt(plotW, lang = 'en', fit = false) {
+async function drawAt(plotW, lang = 'en') {
   const { c, element } = app();
-  c.lang = lang; c.yFit = fit;
+  c.lang = lang;
   const { dates, raw } = market(c), react = c.Plotly.react;
   element('chart').clientWidth = plotW + 160;
   c.Plotly.react = (id, traces, layout) => react(id, traces, layout).then(() => {
@@ -243,7 +243,7 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
     assert.ok(textPx(title, size) <= 600, `${lang}: the title fits over the plot at ${size} px`);
     const credit = L.annotations.find(a => /Bitview/.test(a.text));
     for (const line of credit.text.split('<br>')) assert.ok(textPx(line.replace(/<[^>]*>/g, ''), credit.font.size) * 1.07 <= 620, `${lang}: ${line}`);
-    if (lang === 'en') { assert.ok(size < 20, `en: shrunk below 20 px to fit, at ${size}`); assert.equal(credit.text.split('<br>').length, 2); assert.equal(L.margin.b, 78); assert.equal(credit.align, 'left'); }
+    if (lang === 'en') { assert.equal(credit.text.split('<br>').length, 2); assert.equal(L.margin.b, 78); assert.equal(credit.align, 'left'); }
   }
   const wide = await drawAt(1040);
   assert.ok(wide.xaxis.ticktext.every(s => s !== ''), 'a plot with room keeps all twenty-one labels');
@@ -253,19 +253,23 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
   assert.equal(wide.margin.t, 13 + 26 + 29, 'the title\'s line at its size, then the legend');
   const tablet = await drawAt(420);
   assert.ok(tablet.title.font.size >= 10, 'never below 10 px');
+  assert.ok(tablet.title.font.size < 20, 'and a plot too narrow for it at 20 px shrinks it to fit');
 });
 
-test('the title names the Y-MAX button that is on, in every language, as large as fits over the plot', async () => {
+test('the title names the weighting, in every language, as large as fits over the plot', async () => {
   const { c } = app();
-  for (const lang of ['en', 'zh', 'ja']) for (const fit of [false, true]) for (const plotW of [1040, 900, 800, 600]) {
-    const L = await drawAt(plotW, lang, fit), words = L.title.text.replace(/<[^>]+>/g, '');
-    assert.ok(words.startsWith(c.T[lang][fit ? 'titleUSDFit' : 'titleUSDAth']), `${lang} ${fit}: ${words}`);
+  for (const lang of ['en', 'zh', 'ja']) for (const plotW of [1040, 900, 800, 600]) {
+    const L = await drawAt(plotW, lang), words = L.title.text.replace(/<[^>]+>/g, '');
+    assert.ok(words.startsWith(c.T[lang].titleUSD), `${lang}: ${words}`);
     const want = Math.max(10, Math.min(20, Math.floor(20 * (plotW - 8) / (textPx(words, 20) * 1.03))));
-    assert.equal(L.title.font.size, want, `${lang} ${fit} at ${plotW} px`);
-    assert.ok(textPx(words, want) * 1.03 <= plotW - 8, `${lang} ${fit}: it fits at ${want} px over ${plotW} px`);
+    assert.equal(L.title.font.size, want, `${lang} at ${plotW} px`);
+    assert.ok(textPx(words, want) * 1.03 <= plotW - 8, `${lang}: it fits at ${want} px over ${plotW} px`);
   }
-  assert.match(c.T.en.titleUSDAth, /\(USD Value, Y-Max Expands on ATH\) as of $/);
-  assert.match(c.T.en.titleBTCFit, /\(BTC, Y-Max Always at 100%\) as of $/);
+  assert.equal(c.T.en.titleUSD, 'Bitcoin URPD (USD Value) as of ');
+  assert.equal(c.T.en.titleBTC, 'Bitcoin URPD (BTC) as of ');
+  assert.equal(c.T.zh.titleBTC, '比特币 URPD（BTC）截至 ');
+  assert.equal(c.T.ja.titleUSD, 'ビットコイン URPD（USD 評価額） 基準日 ');
+  assert.doesNotMatch(JSON.stringify(c.T), /Y-Max (Always|Expands)|titleUSDFit|titleUSDAth|随历史新高扩展|過去最高で拡大/, 'the titles name no Y-MAX mode');
 });
 
 test('the explainer\'s section headings are capitals, underlined, not bold', () => {
@@ -275,7 +279,10 @@ test('the explainer\'s section headings are capitals, underlined, not bold', () 
   assert.match(decls('#explainPanel h3'), /text-underline-offset:\s*3px/);
 });
 
-test('Smoothing and Y-max are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
+test('Bins, Smoothing and Y-max are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
+  const bins = /<label class="field" id="binsWrap"[^>]*>\s*<span class="field-label">Bins<\/span><input type="text" id="binsInput" value="625" inputmode="numeric"[^>]*>\s*<\/label>/.exec(html);
+  assert.ok(bins, 'binsWrap: a label and the number, no unit');
+  assert.doesNotMatch(bins[0], /style=/, 'no inline styles');
   for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL']]) {
     const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*><span class="field-unit">([^<]+)</span>\\s*</label>`).exec(html);
     assert.ok(m, wrap); assert.equal(m[1], unit);
@@ -309,8 +316,8 @@ test('the price box says In Profit and In Loss, in every language and for both w
   assert.match(html, /Profit % = /);
 });
 
-test('no bottom signal, no Bins field and no bar width: 625 bars, and the price axis title names the axis only', async () => {
-  for (const gone of ['thresholdInput', 'thresholdWrap', 'binsInput', 'binsWrap', 'binsUnit', 'Bottom signal', 'BOTTOM SIGNAL', 'GLOW_COLOR', 'bottomThreshold'])
+test('no bottom signal and no bar width: 625 bars by default, and the price axis title names the axis only', async () => {
+  for (const gone of ['thresholdInput', 'thresholdWrap', 'binsUnit', 'Bottom signal', 'BOTTOM SIGNAL', 'GLOW_COLOR', 'bottomThreshold'])
     assert.ok(!html.includes(gone), gone);
   const { c, element } = app();
   assert.equal(c.NUM_BINS, 625);
@@ -334,7 +341,7 @@ test('no bottom signal, no Bins field and no bar width: 625 bars, and the price 
   // end and one past it, so the drawn axis is 626 bars long; a year up to 90 days ahead, but at most a week past the
   // latest day.
   assert.ok(Math.abs(layout.xaxis.range[1] / data.binWidth - 626) < 1e-9, String(layout.xaxis.range[1] / data.binWidth));
-  assert.equal((html.match(/ΔP = highest cost basis so far \/ 625"/g) || []).length, 3, 'en, zh, ja');
+  assert.equal((html.match(/ΔP = highest cost basis so far \/ bins"/g) || []).length, 3, 'en, zh, ja');
   assert.doesNotMatch(html, /sliver for the smoothing|平滑所需的一小段|スムージングの分をわずかに足した/, 'nothing is added to the axis for the smoothing');
   assert.doesNotMatch(html, /625 (equal-width bars|根等宽|本の等幅)/);
   assert.match(html, /OV_WINDOW=365\*OV_DAY, OV_FUTURE=90\*OV_DAY, OV_PAD=7\*OV_DAY/);

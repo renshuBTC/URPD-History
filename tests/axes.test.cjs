@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { app } = require('./helpers.cjs');
+const plain = v => JSON.parse(JSON.stringify(v));   // out of the page's realm, for deepEqual
 
 const DAY = 864e5;
 const iso = t => new Date(t).toISOString().slice(0, 10);
@@ -65,40 +66,22 @@ test('the price axis comes from the history on days it covers, and only grows af
   assert.equal(c.SCALES, null, 'a malformed file is ignored');
 });
 
-test('with Y-MAX EXPANDS ON ATH the left axis ends at the tallest bar so far, is the same on every visit, and never shrinks moving forward', async () => {
+test('the left axis ends at the day\'s own bars, where the Y-max field says, and a day looks the same however it is reached', async () => {
   const { c, element } = app();
-  c.yFit = false;
   const peaks = [3, 5, 4, 9, 2, 2, 7, 12, 1, 6];
   const { dates, raws } = market(c, { n: 10, cohorts: i => [{ 950: peaks[i], 1005: 1 }, { 990: 1 }] });
-  // Build the history the way tools/build-scales.cjs does: this file's own bars at the default settings.
-  const file = { start: dates[0], end: dates[6], bins: 625, smoothing: 0.24, x: [], usd: [], btc: [] };
-  for (let i = 0; i <= 6; i++) {
-    c.setScales(file.x.length ? file : null);
-    let maxStamp = 0; for (const k in raws[i].all) maxStamp = Math.max(maxStamp, +k);
-    const X = c.xAxisEnd(dates[i], maxStamp, c.priceArray[i]);
-    if (!file.x.length || X > file.x.at(-1)[1]) file.x.push([i, X]);
-    const saveEnd = file.end; file.end = dates[i]; c.setScales(file);
-    const level = c.axisLevel(c.barValues(c.buildData(dates[i], raws[i]), false), false, 100);
-    if (!file.usd.length || level > file.usd.at(-1)[1]) file.usd.push([i, level]);
-    file.end = saveEnd;
-  }
-  file.end = dates[6];
-  c.setScales(file);
   const seen = {};
   for (const i of [5, 1, 8, 3, 9, 0, 6, 2, 7, 4, 5, 8, 0, 9]) {
     const data = c.buildData(dates[i], raws[i]);
     await c.renderChart(data);
     const top = element('chart').layout.yaxis.range[1];
+    assert.equal(top, Math.max(...c.barValues(data, false)), `${dates[i]}: USD starts at Y-max 100, the day's tallest bar`);
     if (seen[i] !== undefined) assert.equal(top, seen[i], `${dates[i]} looks the same on every visit`);
     seen[i] = top;
-    assert.ok(Math.max(...c.barValues(data, false)) <= top * (1 + 1e-12), 'no bar is cut off');
   }
-  for (let i = 1; i <= 6; i++) assert.ok(seen[i] >= seen[i - 1], 'moving forward the axis never shrinks');
-  assert.equal(seen[6], file.usd.at(-1)[1], 'at the defaults the axis is exactly the history');
-  assert.ok(seen[4] > Math.max(...c.barValues(c.buildData(dates[4], raws[4]), false)) * 2, 'a short day keeps the taller axis from before');
-  // More bins, narrower bars: the history is scaled to the bin width in use
-  c.NUM_BINS = 1250;
-  assert.equal(c.yAxisSoFar(dates[6], false), file.usd.at(-1)[1] / 2);
+  assert.ok(seen[4] < seen[3], 'a short day is drawn at its own height, not the tallest so far');
+  assert.equal(c.yMaxPct, 100);
+  for (const gone of ['setYMaxMode', 'yAxisSoFar', 'yFit', 'yMaxExplicit']) assert.equal(typeof c[gone], 'undefined', gone + ' is gone: nothing but the Y-max field and a pin sets the axis');
 });
 
 test('both axes are labelled at twenty equal steps from 0 to their very end, to two significant figures', async () => {
@@ -146,15 +129,17 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
     cd.forEach((p, i) => { assert.equal(p[0], totals[i]); if (i) assert.ok(p[1] >= cd[i - 1][1]); });
     assert.ok(Math.abs(cd.at(-1)[1] - 100) < 1e-9);
     assert.equal(graph.data.some(t => t.meta === 'pct' || t.yaxis === 'y2'), false);
-    assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin URPD \(BTC, Y-Max Always at 100%\) as of / : /^<b>Bitcoin URPD \(USD Value, Y-Max Always at 100%\) as of /);
+    assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin URPD \(BTC\) as of / : /^<b>Bitcoin URPD \(USD Value\) as of /);
     assert.equal(graph.layout.xaxis.title.text, 'Price When Last Moved [USD]', 'the title names the axis and nothing else');
     assert.equal(graph.layout.yaxis.title.text, coin ? 'Supply [BTC]' : 'Value When Last Moved [USD]');
   }
   // the video's chart says the same (USD view; its title is checked in video-looks.test.cjs)
   const video = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8');
-  for (const s of ['"<b>" + esc(sp.title) + ', 'title: { text: "Price When Last Moved [USD]", font',
-    'text: "Value When Last Moved [USD]"', 'USD Value Last Moved In Profit: ', 'USD Value Last Moved In Loss: ',
+  const looks = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'tools', 'video', 'looks.mjs'), 'utf8');
+  for (const s of ['"<b>" + esc(sp.title) + ', 'title: { text: "Price When Last Moved [USD]", font', 'text: esc(sp.yTitle)',
   ]) assert.ok(video.includes(s), 'video: ' + s);
+  for (const s of ['yTitle: "Value When Last Moved [USD]"', 'yTitle: "Supply [BTC]"', 'profit: "USD Value Last Moved In Profit: "', 'loss: "USD Value Last Moved In Loss: "',
+    'profit: "BTC Supply Last Moved In Profit: "', 'loss: "BTC Supply Last Moved In Loss: "']) assert.ok(looks.includes(s), 'video: ' + s);
   assert.doesNotMatch(video, /This Price|Supply Distribution|per bar|perBar|BOTTOM SIGNAL|GLOW|isBottom/);
 });
 
@@ -186,36 +171,58 @@ test('Cumulative % of Total meets the price box at the dashed line: at most In P
   }
 });
 
-test('BTC leaves the first bar out of the axis and prints its height', async () => {
+test('BTC starts at Y-max 99.8: the first bar, the tallest, runs off the top with its height printed; at 100 it counts like any other', async () => {
   const { c, element } = app();
-  const { dates, raws } = market(c, { cohorts: () => [{ 0: 5000, 950: 20, 1000: 30 }] });
-  c.coinMode = true; c.viewIdx = 1;
-  await c.renderChart(c.buildData(dates[4], raws[4]));
-  const graph = element('chart');
-  const bars = c.barValues(c.lastRenderedData, true);
-  assert.equal(bars[0], 5000);
-  assert.ok(graph.layout.yaxis.range[1] < 100, 'the $0 pile does not set the axis');
-  assert.ok(graph.layout.annotations.some(a => a.text === '▲ 5.00K BTC'), 'its height is printed at the top');
+  // a $0 pile, and a little in every dollar up to the price, so that every one of the 626 bars holds something
+  const day = { 0: 5000 }; for (let p = 1; p <= 1099; p++) day[p] = 1 + (p % 7);
+  const { dates, raws } = market(c, { close: () => 1000, cohorts: () => [day] });
+  c.setScales({ start: dates[0], end: dates.at(-1), x: [[0, 1100]] });
+  assert.deepEqual(plain(c.yMaxByMode), [100, 99.8], 'USD starts at 100, BTC at 99.8');
+  c.setViewMode(1);
+  assert.equal(c.yMaxPct, 99.8);
+  assert.equal(element('ymaxInput').value, '99.8', 'and the field says so');
+  const data = c.buildData(dates[4], raws[4]);
+  await c.renderChart(data);
+  const graph = element('chart'), bars = c.barValues(data, true), top = graph.layout.yaxis.range[1];
+  assert.equal(bars.length, 626);
+  assert.equal(top, bars.slice().sort((a, b) => a - b)[624], 'the axis ends at the second tallest bar');
+  assert.deepEqual(plain(bars.map((v, i) => (v > top ? i : -1)).filter(i => i >= 0)), [0], 'the $0 pile runs off the top, and nothing else');
+  assert.ok(graph.layout.annotations.some(a => a.text === '▲ ' + c.peakCompact(bars[0]) + ' BTC'), 'its height is printed at the top');
+  c.applyYMax(100);
+  assert.deepEqual(plain(c.yMaxByMode), [100, 100], 'a typed value is kept for the weighting in view');
+  await c.renderChart(data);
+  assert.equal(element('chart').layout.yaxis.range[1], bars[0], 'at 100 the first bar counts like any other');
+  assert.ok(!element('chart').layout.annotations.some(a => /^▲/.test(a.text)), 'and nothing is cut');
+  c.setViewMode(0);
+  assert.equal(c.yMaxPct, 100, 'USD keeps its own');
 });
 
-test('a typed Y-max zooms into the day in view, and a pin freezes the axis', async () => {
+test('a typed Y-max zooms into the day in view, and every bar it cuts is counted; a pin freezes the axis and turns the field off', async () => {
   const { c, element } = app();
-  const { dates, raws } = market(c, { cohorts: () => [{ 900: 1, 950: 2, 1000: 40 }] });
-  c.setScales({ start: dates[0], end: dates.at(-1), bins: 625, smoothing: 0.24, x: [[0, 1100]], usd: [[0, 1e9]], btc: [[0, 1e6]] });
-  const data = c.buildData(dates[5], raws[5]);
+  const day = { 1000: 400 }; for (let p = 1; p <= 1099; p++) day[p] = (day[p] || 0) + 1;
+  const { dates, raws } = market(c, { cohorts: () => [day] });
+  c.setScales({ start: dates[0], end: dates.at(-1), x: [[0, 1100]] });
+  const data = c.buildData(dates[5], raws[5]), bars = c.barValues(data, false), tallest = Math.max(...bars);
   await c.renderChart(data);
-  assert.equal(element('chart').layout.yaxis.range[1], Math.max(...c.barValues(data, false)), 'the default, ALWAYS AT 100%, ends at the day\'s tallest bar');
-  c.yFit = false;
+  assert.equal(element('chart').layout.yaxis.range[1], tallest, 'at 100 the day\'s tallest bar reaches the top');
+  assert.equal(element('ymaxInput').disabled, false);
+  c.applyYMax(99);
   await c.renderChart(data);
-  assert.equal(element('chart').layout.yaxis.range[1], 1e9, 'EXPANDS ON ATH follows the history');
-  c.yMaxPct = 90; c.yMaxExplicit = [true, false];
-  await c.renderChart(data);
-  const zoomed = element('chart').layout.yaxis.range[1];
-  assert.ok(zoomed < Math.max(...c.barValues(data, false)), 'a percentile below 100 clips this day');
-  c.yMaxPct = 100; c.yMaxExplicit = [false, false];
+  const zoomed = element('chart').layout.yaxis.range[1], cut = bars.filter(v => v > zoomed);
+  assert.equal(zoomed, bars.slice().sort((a, b) => a - b)[Math.floor(626 * 0.99)], 'the 99th percentile of the day\'s bars');
+  assert.ok(cut.length > 1, 'the spike and the bars its smoothing reaches');
+  const note = element('chart').layout.annotations.find(a => /^▲/.test(a.text));
+  assert.equal(note.text, '▲ $' + c.peakCompact(tallest) + ' (+' + (cut.length - 1) + ')', 'the tallest of them, and how many more');
   c.peakStore[c.peakKey(data)] = [dates[1], 12345];
   await c.renderChart(data);
-  assert.equal(element('chart').layout.yaxis.range[1], 12345, 'a pin overrides the history');
+  assert.equal(element('chart').layout.yaxis.range[1], 12345, 'a pin holds the axis, whatever the Y-max says');
+  assert.equal(element('ymaxInput').disabled, true, 'so the Y-max field is off while it holds');
+  assert.ok(element('chart').layout.annotations.some(a => /^Pinned \$12\.35K · /.test(a.text)), 'the pin is labelled with its height and day');
+  delete c.peakStore[c.peakKey(data)];
+  await c.renderChart(data);
+  assert.equal(element('ymaxInput').disabled, false, 'released, the field is on again');
+  assert.equal(element('chart').layout.yaxis.range[1], zoomed);
+  assert.doesNotMatch(require('./helpers.cjs').html, /yMaxExplicit/, 'a typed Y-max no longer outranks a pin: the field is simply off');
 });
 
 test('landmark markers sit on the line\'s own extreme within a week, labelled inside the plot', async () => {
@@ -259,26 +266,23 @@ test('build-scales writes the history the page reads back, one day at a time', a
     assert.equal(file.end, '2009-01-12');
   } finally { global.fetch = realFetch; }
   const saved = JSON.parse(fs.readFileSync(out, 'utf8'));
-  for (const k of ['x', 'usd', 'btc']) for (let i = 1; i < saved[k].length; i++) {
+  assert.deepEqual(Object.keys(saved), ['about', 'start', 'end', 'x'], 'the price axis only: the left axis needs no history');
+  for (const k of ['x']) for (let i = 1; i < saved[k].length; i++) {
     assert.ok(saved[k][i][0] > saved[k][i - 1][0] && saved[k][i][1] > saved[k][i - 1][1], `${k} only steps up`);
   }
-  // The page, reading that file, draws each day on exactly the axes the file recorded for it (the left one with
-  // Y-MAX EXPANDS ON ATH, which reads it).
+  // The page, reading that file, draws each day on exactly the price axis the file recorded for it, and its left axis at
+  // the day's own tallest bar.
   const { c, element } = app();
-  c.yFit = false;
   c.allDates = dates; c.priceDates = priceDates; c.priceArray = closes;
   c.priceIndexByDate = Object.fromEntries(priceDates.map((d, i) => [d, i]));
   c.setScales(saved);
-  let prevTop = 0;
   for (const d of dates) {
     const age = [stamps[d]].concat(Array(22).fill({})), all = Object.assign({}, stamps[d]);
     const data = c.buildData(d, { all, age });
     const day = Math.round((Date.parse(d) - Date.parse('2009-01-03')) / DAY);
     assert.ok(Math.abs(data.binWidth * 625 - c.scaleAt(saved.x, day)) <= 1e-12 * c.scaleAt(saved.x, day), d + ': the axis the file recorded');
     await c.renderChart(data);
-    const top = element('chart').layout.yaxis.range[1];
-    assert.equal(top, c.scaleAt(saved.usd, day) || 1);
-    assert.ok(top >= prevTop); prevTop = top;
+    assert.equal(element('chart').layout.yaxis.range[1], Math.max(...c.barValues(data, false)) || 1);
   }
 });
 
@@ -287,14 +291,14 @@ test('the spot price box keeps clear of the pin\'s label and the ▲ figure at t
   async function draw(price, pinned) {
     const { c, element } = app();
     const { dates, raws } = market(c, { close: () => price, cohorts: () => [{ 0: 5000, 40: 20, 50: 30 }] });
-    c.setScales({ start: dates[0], end: dates.at(-1), bins: 625, smoothing: 0.24, x: [[0, 1100]], usd: [[0, 1e9]], btc: [[0, 60]] });
-    c.coinMode = true; c.viewIdx = 1;
+    c.setScales({ start: dates[0], end: dates.at(-1), x: [[0, 1100]] });
+    c.setViewMode(1);   // Y-max 99.8: the $0 pile runs off the top
     const data = c.buildData(dates[5], raws[5]);
     if (pinned) c.peakStore[c.peakKey(data)] = [dates[1], 40];
     await c.renderChart(data);
     const notes = element('chart').layout.annotations;
     assert.ok(notes.some(a => /^▲/.test(a.text)));
-    assert.equal(notes.some(a => /^Peak/.test(a.text)), pinned);
+    assert.equal(notes.some(a => /^Pinned/.test(a.text)), pinned);
     return notes.find(a => a.xref === 'x' && a.yref === 'paper' && /<br>/.test(a.text));
   }
   assert.equal((await draw(50, false)).yshift, -27, '▲ alone: just below it (its label ends 23 px down)');
