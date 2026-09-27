@@ -120,8 +120,8 @@ test('switching views draws the day on screen again from memory, titled and labe
   const want = {
     btnUSD: ['Bitcoin Supply by Price When Last Moved (USD Value) as of 07 Jan 2020', 'Value When Last Moved [USD]'],
     btnBTC: ['Bitcoin Supply by Price When Last Moved (BTC) as of 07 Jan 2020', 'Supply [BTC]'],
-    btnPctUSD: ['Bitcoin: Percent of Realized Cap by Price When Last Moved as of 07 Jan 2020', 'Percent of Realized Cap per Bar [%]'],
-    btnPctBTC: ['Bitcoin: Percent of Supply by Price When Last Moved as of 07 Jan 2020', 'Percent of Supply per Bar [%]'] };
+    btnPctUSD: ['Bitcoin Supply by Price When Last Moved (% USD Value) as of 07 Jan 2020', 'Value When Last Moved [%]'],
+    btnPctBTC: ['Bitcoin Supply by Price When Last Moved (% BTC) as of 07 Jan 2020', 'Supply [%]'] };
   for (const [id, coin, pct] of [...VIEWS.slice(1), VIEWS[0], VIEWS[3], VIEWS[1]]) {
     await press(h, id);
     const L = element('chart').layout, bar = element('chart').data.find((t) => t.type === 'bar');
@@ -147,11 +147,11 @@ test('the titles and the axis titles in every language, and nothing printed over
   c.currentIdx = 3; await c.loadAndRender(); await drawn(h);
   const want = {
     en: [['Bitcoin Supply by Price When Last Moved (USD Value) as of ', 'Value When Last Moved [USD]'], ['Bitcoin Supply by Price When Last Moved (BTC) as of ', 'Supply [BTC]'],
-      ['Bitcoin: Percent of Realized Cap by Price When Last Moved as of ', 'Percent of Realized Cap per Bar [%]'], ['Bitcoin: Percent of Supply by Price When Last Moved as of ', 'Percent of Supply per Bar [%]']],
+      ['Bitcoin Supply by Price When Last Moved (% USD Value) as of ', 'Value When Last Moved [%]'], ['Bitcoin Supply by Price When Last Moved (% BTC) as of ', 'Supply [%]']],
     zh: [['按最后移动时价格划分的比特币供应（美元价值）截至 ', '最后移动时的价值 [美元]'], ['按最后移动时价格划分的比特币供应（BTC）截至 ', '供应量 [BTC]'],
-      ['比特币：按最后移动时价格划分的已实现市值百分比 截至 ', '每根柱子占已实现市值的百分比 [%]'], ['比特币：按最后移动时价格划分的供应量百分比 截至 ', '每根柱子占供应量的百分比 [%]']],
+      ['按最后移动时价格划分的比特币供应（% 美元价值）截至 ', '最后移动时的价值 [%]'], ['按最后移动时价格划分的比特币供应（% BTC）截至 ', '供应量 [%]']],
     ja: [['最終移動時の価格別ビットコイン供給量（USD 評価額） 基準日 ', '最終移動時の評価額 [USD]'], ['最終移動時の価格別ビットコイン供給量（BTC） 基準日 ', '供給量 [BTC]'],
-      ['ビットコイン：最終移動時の価格別に見た実現時価総額の割合（%） 基準日 ', '1 本あたりの実現時価総額の割合 [%]'], ['ビットコイン：最終移動時の価格別に見た供給量の割合（%） 基準日 ', '1 本あたりの供給量の割合 [%]']] };
+      ['最終移動時の価格別ビットコイン供給量（% USD 評価額） 基準日 ', '最終移動時の評価額 [%]'], ['最終移動時の価格別ビットコイン供給量（% BTC） 基準日 ', '供給量 [%]']] };
   for (const lang of ['zh', 'ja', 'en']) {
     c.lang = lang; c.applyLang();
     for (const [v, [id, coin, pct]] of VIEWS.entries()) {
