@@ -7,8 +7,9 @@ that asks for more, or offers you any other file, is not this site.
 
 ## The videos
 
-The two full-history videos, one for each weighting (the bars in dollars and in coins), are on YouTube, not on the
-site. FULL HISTORY VIDEO (USD) and FULL HISTORY VIDEO (BTC) in the toolbar open the latest of each, posted
+The four full-history videos, one for each weighting (the bars in dollars and in coins) and colouring (by age band,
+AGE, or as short- and long-term holders, LTH/STH), are on YouTube, not on the site. VIDEO (USD-AGE), VIDEO (BTC-AGE),
+VIDEO (USD-LTH/STH) and VIDEO (BTC-LTH/STH) in the toolbar open the latest of each, posted
 unlisted once a week by the [Weekly videos](.github/workflows/video.yml) workflow to the
 [renshuBTC](https://www.youtube.com/@renshuBTC) channel (the channel itself until there is a video of that look
 others can watch). They only ever go to the channel or to `https://www.youtube.com/watch?v=` and a video's id, which the
@@ -17,7 +18,8 @@ visitors a file posing as a video.
 
 The workflow keeps its latest renders on this repository's
 [`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video)
-(`BitcoinURPD.com-USD.mp4` and `BitcoinURPD.com-BTC.mp4`), where the next run reads which day they reach; nothing
+(`BitcoinURPD.com-USD-AGE.mp4`, `BitcoinURPD.com-BTC-AGE.mp4`, `BitcoinURPD.com-USD-LTH-STH.mp4` and
+`BitcoinURPD.com-BTC-LTH-STH.mp4`), where the next run reads which day they reach; nothing
 links to them (a video drawn on its own by hand is posted but joins the release only with the next weekly run). The
 videos drawn before them (`BitcoinSupplyChart.com-*.mp4`) stay on the same release as they were and are no longer
 updated. GitHub keeps a signed record of the run that built each of them (a build provenance attestation, logged by
@@ -28,7 +30,7 @@ Sigstore). To check a copy of any of them:
 - **Attestation**, with the [GitHub CLI](https://cli.github.com):
 
   ```sh
-  gh attestation verify BitcoinURPD.com-USD.mp4 --repo renshuBTC/URPD-History \
+  gh attestation verify BitcoinURPD.com-USD-AGE.mp4 --repo renshuBTC/URPD-History \
     --signer-workflow renshuBTC/URPD-History/.github/workflows/video.yml --source-ref refs/heads/main
   ```
 
