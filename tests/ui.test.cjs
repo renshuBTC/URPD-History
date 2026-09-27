@@ -136,7 +136,7 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
     'USD | BTC, AGE | LTH/STH, BOTTOM SIGNAL, BINS left of SMOOTHING, Y-MAX, PIN Y-AXIS on their right, then the four videos');
   // The video buttons show their icon and words, at the weight of the other buttons: VIDEO, which gives way in a
   // narrow bar, and which video, in brackets.
-  for (const [key, tag] of [['UsdAge', 'USD-AGE'], ['BtcAge', 'BTC-AGE'], ['UsdSplit', 'USD-LTH/STH'], ['BtcSplit', 'BTC-LTH/STH']])
+  for (const [key, tag] of [['UsdAge', '% USD-AGE'], ['BtcAge', '% BTC-AGE'], ['UsdSplit', '% USD-LTH/STH'], ['BtcSplit', '% BTC-LTH/STH']])
     assert.match(bar, new RegExp(`id="yt${key}Btn"[^>]*>\\s*<svg[\\s\\S]*?</svg><span id="yt${key}Word" class="yt-word">Video</span><span id="yt${key}Tag" class="yt-tag">${tag}</span></a>`), 'the video buttons say what they give you: ' + tag);
   // How to read and GitHub: their icons only, named by their tooltips and for screen readers.
   assert.match(end, /<a id="githubLink"[^>]*aria-label="View code on GitHub \(opens in a new tab\)" title="View code on GitHub \(opens in a new tab\)">\s*<svg[\s\S]*?<\/svg>\s*<\/a>/);
@@ -146,8 +146,8 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.doesNotMatch(html, /yt-tag-short|yt-tag-full|yt-video|controls\.short/);
   // Transitions would be measured half-way, so the buttons animate their colours only.
   for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
-  // To fit: the spacing tightens (dense), the type goes a size down (tight), a row at most 5% too wide is drawn that
-  // much smaller, else the video buttons drop VIDEO and keep USD-AGE and the rest (compact), and last the whole bar is
+  // To fit: the spacing tightens (dense), the type goes a size down (tight), a row at most 10% too wide is drawn that
+  // much smaller, else the video buttons drop VIDEO and keep % USD-AGE and the rest (compact), and last the whole bar is
   // drawn smaller; the How to read panel undoes that.
   assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
   assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);
@@ -155,7 +155,7 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
   assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'which video it is never goes');
   assert.match(decls('#explainPanel'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
-  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\], TOOLBAR_LIGHT_ZOOM = 0\.95;/);
+  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\], TOOLBAR_LIGHT_ZOOM = 0\.9;/);
   for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
   const { c, element } = app();
   for (const lang of ['zh', 'ja', 'en']) {
@@ -171,19 +171,19 @@ test('the bar fits its one row: each step only if the row does not fit without i
   bar.classList = { add: (k) => classes.add(k), remove: (k) => classes.delete(k), contains: (k) => classes.has(k), toggle() {} };
   // The row's width at each step, as measured in English (tools: a browser at 3000 px), and a window of W px: the
   // bar's own width, in its own (zoomed) pixels, is W / zoom.
-  const need = () => (classes.has('compact') ? 1777 : classes.has('tight') ? 1997 : classes.has('dense') ? 2068 : 2398);
+  const need = () => (classes.has('compact') ? 1861 : classes.has('tight') ? 2081 : classes.has('dense') ? 2158 : 2488);
   let W = 0;
   Object.defineProperty(bar, 'scrollWidth', { get: () => need() });
   Object.defineProperty(bar, 'clientWidth', { get: () => W / (parseFloat(bar.style.zoom) || 1) });
   const fit = (w) => { W = w; c.fitToolbarWords(); return [[...classes].join(' '), bar.style.zoom || '', bar.style['--bar-zoom'] || '']; };
   assert.deepEqual(fit(2560), ['', '', ''], 'room for everything');
-  assert.deepEqual(fit(2100), ['dense', '', '']);
-  assert.deepEqual(fit(2000), ['dense tight', '', '']);
-  assert.deepEqual(fit(1920), ['dense tight', '0.961', '0.961'], '1920 px: every word, drawn 4% smaller');
-  assert.deepEqual(fit(1850), ['dense tight compact', '', ''], 'more than 5% too wide: the videos keep USD-AGE and the rest');
+  assert.deepEqual(fit(2200), ['dense', '', '']);
+  assert.deepEqual(fit(2100), ['dense tight', '', '']);
+  assert.deepEqual(fit(1920), ['dense tight', '0.922', '0.922'], '1920 px: every word, drawn 8% smaller');
+  assert.deepEqual(fit(1870), ['dense tight compact', '', ''], 'more than 10% too wide: the videos keep % USD-AGE and the rest');
   const [cls, zoom, varZoom] = fit(1440);
   assert.equal(cls, 'dense tight compact');
-  assert.ok(+zoom > 0.75 && +zoom <= 1440 / 1777, zoom);
+  assert.ok(+zoom > 0.7 && +zoom <= 1440 / 1861, zoom);
   assert.equal(varZoom, zoom, 'the panel is told how far to undo it');
   assert.ok(need() <= W / +zoom + 1, 'and then it fits');
   assert.deepEqual(fit(2560), ['', '', ''], 'a wider window takes every step back');
@@ -264,12 +264,16 @@ test('the title names both choices, the weighting and the colouring, in every la
     assert.equal(L.title.font.size, want, `${lang} at ${plotW} px`);
     assert.ok(textPx(words, want) * 1.03 <= plotW - 8, `${lang}: it fits at ${want} px over ${plotW} px`);
   }
-  assert.equal(c.T.en.titleUSDAge, 'Bitcoin URPD (USD Value, AGE) as of ');
-  assert.equal(c.T.en.titleBTCAge, 'Bitcoin URPD (BTC, AGE) as of ');
-  assert.equal(c.T.en.titleUSDSplit, 'Bitcoin URPD (USD Value, LTH/STH) as of ');
-  assert.equal(c.T.en.titleBTCSplit, 'Bitcoin URPD (BTC, LTH/STH) as of ');
-  assert.equal(c.T.zh.titleBTCSplit, '比特币 URPD（BTC，长/短期）截至 ');
-  assert.equal(c.T.ja.titleUSDAge, 'ビットコイン URPD（USD 評価額、年齢） 基準日 ');
+  assert.equal(c.T.en.titleUSDAge, 'Bitcoin URPD (% USD, AGE) as of ');
+  assert.equal(c.T.en.titleBTCAge, 'Bitcoin URPD (% BTC, AGE) as of ');
+  assert.equal(c.T.en.titleUSDSplit, 'Bitcoin URPD (% USD, LTH/STH) as of ');
+  assert.equal(c.T.en.titleBTCSplit, 'Bitcoin URPD (% BTC, LTH/STH) as of ');
+  assert.equal(c.T.zh.titleBTCSplit, '比特币 URPD（% BTC，长/短期）截至 ');
+  assert.equal(c.T.ja.titleUSDAge, 'ビットコイン URPD（% USD、年齢） 基準日 ');
+  // The mode buttons say it too, and the left axis names what 100% is.
+  assert.match(html, /<button id="btnUSD" class="active" aria-pressed="true" title="[^"]+">% USD<\/button>/);
+  assert.match(html, /<button id="btnBTC" aria-pressed="false" title="[^"]+">% BTC<\/button>/);
+  assert.deepEqual([c.T.en.usdInvested, c.T.en.btcSupply], ['Value When Last Moved [% of Realized Cap]', 'Supply [% of Total Supply]']);
   assert.doesNotMatch(JSON.stringify(c.T), /Y-Max (Always|Expands)|titleUSDFit|titleUSDAth|随历史新高扩展|過去最高で拡大|150D/, 'the titles name no Y-MAX mode, and LTH/STH by name');
 });
 
