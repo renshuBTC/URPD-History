@@ -91,6 +91,22 @@ test('the date counter remains committed until the pending chart succeeds', asyn
   assert.equal(h.element('dateDisplay').textContent, oldCounter);
 });
 
+test('pinning during a switch of view never saves the day on screen under the view still to be drawn', async () => {
+  for (const view of [1, 2, 3]) {
+    const h = controlledApp();
+    await showFirst(h);
+    const displayedKey = h.c.peakKey();
+    const displayedPeak = h.c.lastDayPeak;
+    assert.equal(displayedKey, 'usd|b625|s0.24');
+    h.c.setViewMode(view);
+    const nextKey = h.c.peakKey();
+    assert.equal(nextKey, ['usd', 'btc', 'usd%', 'btc%'][view] + '|b625|s0.24');
+    h.c.peakPin();
+    assert.equal(h.c.peakStore[nextKey], undefined, String(view));
+    assert.equal(h.c.peakStore[displayedKey][1], displayedPeak, String(view));
+  }
+});
+
 test('an older completed draw cannot hide the newest date loading indicator', async () => {
   const h = controlledApp();
   await showFirst(h);
@@ -111,6 +127,24 @@ test('an older completed draw cannot hide the newest date loading indicator', as
   h.draws[2].complete();
   await newer;
   assert.equal(h.element('loading').style.display, 'none');
+});
+
+test('fallback redraw keeps the displayed data binning in its peak key', async () => {
+  const h = controlledApp();
+  await showFirst(h);
+  const displayedKey = h.c.peakKey();
+  h.c.currentIdx = 1;
+  h.c.KERNEL_PCT = 0.5;
+  const newKey = h.c.peakKey();
+  // The selected date has no cache entry for the new smoothing yet, so a presentation
+  // setting redraw uses the last displayed day's data until its fetch completes.
+  const redraw = h.c.rerenderCurrent();
+  await flush();
+  h.draws[1].complete();
+  await redraw;
+  h.c.peakPin();
+  assert.equal(h.c.peakStore[newKey], undefined);
+  assert.ok(h.c.peakStore[displayedKey]);
 });
 
 test('a new smoothing that cannot be drawn, with no raw series left to re-bin, is rolled back in the chart and the field', async () => {
