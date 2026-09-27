@@ -1,9 +1,9 @@
 name: Weekly videos
 
 # Once a week, four videos of the whole history for YouTube, one for each weighting and colouring the site draws, as it
-# draws it by default (tools/video/looks.mjs): the bars in dollars (USD) with the left axis at each day's tallest bar,
-# and in coins (BTC) with it at the 99.8th percentile of each day's bars, each stacked in the 23 age bands (AGE) and
-# split into short- and long-term holders (LTH/STH).
+# draws it by default (tools/video/looks.mjs): each bar as its share of the day's realized cap (% USD) with the left
+# axis at each day's tallest bar, and as its share of all the coins (% BTC) with it at the 99.8th percentile of each
+# day's bars, each stacked in the 23 age bands (AGE) and split into short- and long-term holders (LTH/STH).
 # The workflow runs every day all the same, because its first job also keeps the site's axis history current:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
 #               videos' store (the files on the "video-store-2" release), and decides whether new videos are due: once
@@ -364,7 +364,7 @@ jobs:
           sha() { sha256sum "$RUNNER_TEMP/vetted/$1" | cut -d' ' -f1; }
           # The last date in these notes is how the next run knows which day the published videos reach: none may
           # follow $END.
-          NOTES="Four videos, one for each of the site's weightings and colourings, as the site draws it by default: $VIDEO_USD_AGE and $VIDEO_USD_LTHSTH (the bars in dollars, the left axis at each day's tallest bar), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC_AGE and $VIDEO_BTC_LTHSTH (the bars in coins, the left axis at the 99.8th percentile of each day's bars, the first bar running off the top with its height printed there), every day from $START (the first with anything on the chart), the -AGE ones stacked in 23 age bands and the -LTH-STH ones split into short- and long-term holders at 150 days, all four to $END. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The videos drawn before them (BitcoinSupplyChart.com-*.mp4) are kept here as they were.
+          NOTES="Four videos, one for each of the site's weightings and colourings, as the site draws it by default: $VIDEO_USD_AGE and $VIDEO_USD_LTHSTH (% USD: each bar its share of the day's realized cap, the left axis at each day's tallest bar), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC_AGE and $VIDEO_BTC_LTHSTH (% BTC: each bar its share of all the coins, the left axis at the 99.8th percentile of each day's bars, the first bar running off the top with its share printed there), every day from $START (the first with anything on the chart), the -AGE ones stacked in 23 age bands and the -LTH-STH ones split into short- and long-term holders at 150 days, all four to $END. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The videos drawn before them (BitcoinSupplyChart.com-*.mp4) are kept here as they were.
 
           SHA-256 of $VIDEO_USD_AGE: $(sha "$VIDEO_USD_AGE")
           SHA-256 of $VIDEO_BTC_AGE: $(sha "$VIDEO_BTC_AGE")
@@ -378,7 +378,7 @@ jobs:
           for k in 1 2 3 4 5; do gh release edit video --notes "$NOTES" && break; [ "$k" = 5 ] && exit 1; sleep $((k * 5)); done
 
   youtube-usd-age:
-    # Posts the USD-AGE video (the bars in dollars, in age bands) to YouTube, unlisted: anyone with the link can watch it (the site's video button links it),
+    # Posts the % USD-AGE video (each bar its share of the realized cap, in age bands) to YouTube, unlisted: anyone with the link can watch it (the site's video button links it),
     # but it is shown neither on the channel nor in search. Its title is the chart's own title on its last day, which
     # names its weighting and colouring. The channel's OAuth credentials are three repository secrets (see README), seen
     # only by the two steps that use them. Without them the job does nothing, so the videos are published the same
@@ -430,8 +430,8 @@ jobs:
         run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_USD_AGE" "$START" "$END" usd-age >> "$GITHUB_OUTPUT"
 
   youtube-btc-age:
-    # Posts the BTC-AGE video (the bars in coins, in age bands) to YouTube,
-    # as youtube-usd-age posts the USD-AGE one (see there).
+    # Posts the % BTC-AGE video (each bar its share of all the coins, in age bands) to YouTube,
+    # as youtube-usd-age posts the % USD-AGE one (see there).
     needs: [update, publish]
     if: contains(fromJSON(needs.update.outputs.looks), 'btc-age')
     runs-on: ubuntu-24.04
@@ -477,8 +477,8 @@ jobs:
         run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_BTC_AGE" "$START" "$END" btc-age >> "$GITHUB_OUTPUT"
 
   youtube-usd-lthsth:
-    # Posts the USD-LTH/STH video (the bars in dollars, short- and long-term holders) to YouTube,
-    # as youtube-usd-age posts the USD-AGE one (see there).
+    # Posts the % USD-LTH/STH video (each bar its share of the realized cap, short- and long-term holders) to YouTube,
+    # as youtube-usd-age posts the % USD-AGE one (see there).
     needs: [update, publish]
     if: contains(fromJSON(needs.update.outputs.looks), 'usd-lthsth')
     runs-on: ubuntu-24.04
@@ -524,8 +524,8 @@ jobs:
         run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_USD_LTHSTH" "$START" "$END" usd-lthsth >> "$GITHUB_OUTPUT"
 
   youtube-btc-lthsth:
-    # Posts the BTC-LTH/STH video (the bars in coins, short- and long-term holders) to YouTube,
-    # as youtube-usd-age posts the USD-AGE one (see there).
+    # Posts the % BTC-LTH/STH video (each bar its share of all the coins, short- and long-term holders) to YouTube,
+    # as youtube-usd-age posts the % USD-AGE one (see there).
     needs: [update, publish]
     if: contains(fromJSON(needs.update.outputs.looks), 'btc-lthsth')
     runs-on: ubuntu-24.04
@@ -615,7 +615,7 @@ jobs:
           BA=$(entry btc-age "$BTC_AGE_ID" "$BTC_AGE_PRIVACY")
           UL=$(entry usd-lthsth "$USD_LTHSTH_ID" "$USD_LTHSTH_PRIVACY")
           BL=$(entry btc-lthsth "$BTC_LTHSTH_ID" "$BTC_LTHSTH_PRIVACY")
-          ABOUT="The latest videos on YouTube for the site's four video buttons, one for each weighting and colouring: usd-age and btc-age, the bars in dollars and in coins stacked in age bands (VIDEO (USD-AGE), VIDEO (BTC-AGE)), and usd-lthsth and btc-lthsth, split into short- and long-term holders (VIDEO (USD-LTH/STH), VIDEO (BTC-LTH/STH)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
+          ABOUT="The latest videos on YouTube for the site's four video buttons, one for each weighting and colouring: usd-age and btc-age, each bar as its share of the day's realized cap and of all the coins, stacked in age bands (VIDEO (% USD-AGE), VIDEO (% BTC-AGE)), and usd-lthsth and btc-lthsth, split into short- and long-term holders (VIDEO (% USD-LTH/STH), VIDEO (% BTC-LTH/STH)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
           jq -n --arg about "$ABOUT" --argjson ua "$UA" --argjson ba "$BA" --argjson ul "$UL" --argjson bl "$BL" \
             '{about: $about, "usd-age": $ua, "btc-age": $ba, "usd-lthsth": $ul, "btc-lthsth": $bl}' > "$RUNNER_TEMP/youtube.json"
           mv "$RUNNER_TEMP/youtube.json" data/youtube.json
