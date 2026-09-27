@@ -1,5 +1,5 @@
 // What the page shows around the chart and how it takes input: messages, the toolbar and its panels, narrow
-// plots, input methods and phone taps. Each test here pins down a bug the second 2026-09-24 audit found.
+// plots, input methods, phone taps and saved pins. Each test here pins down a bug the second 2026-09-24 audit found.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
@@ -121,7 +121,7 @@ test('an open How to read panel follows the toolbar when it re-fits, under the b
   assert.equal(panel.style.top, '65px');
 });
 
-test('the toolbar is one row that never scrolls; four videos in words, then How to read and GitHub as icons and the language button, together at the right', () => {
+test('the toolbar is one row that never scrolls; two videos in words, then How to read and GitHub as icons and the language button, together at the right', () => {
   assert.match(decls('#controls'), /flex-wrap:\s*nowrap/);
   assert.match(decls('#controls'), /overflow:\s*hidden/);
   assert.doesNotMatch(decls('#controls'), /overflow-x|scrollbar|flex-wrap:\s*wrap/);
@@ -131,29 +131,32 @@ test('the toolbar is one row that never scrolls; four videos in words, then How 
   assert.deepEqual([...end.matchAll(/\sid="(explainWrap|githubLink|langBtn)"/g)].map(m => m[1]), ['explainWrap', 'githubLink', 'langBtn'], 'How to read, GitHub and the language together at the right-hand end');
   assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytUsdBtn|ytBtcBtn|ytPctUsdBtn|ytPctBtcBtn|ytBtn|ytFitBtn|ytSplitBtn|ytRawBtn|videosBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
-    ['ymaxWrap', 'ytUsdBtn', 'ytBtcBtn', 'ytPctUsdBtn', 'ytPctBtcBtn'], 'the four videos in the order of the views, in the bar itself, after Y-max');
-  // The video buttons show their icon and words, at the weight of the other buttons, and which video, in brackets.
-  for (const [k, tag] of [['Usd', 'USD Value'], ['Btc', 'BTC'], ['PctUsd', '% USD Value'], ['PctBtc', '% BTC']])
-    assert.match(bar, new RegExp(`id="yt${k}Btn"[^>]*>\\s*<svg[\\s\\S]*?</svg><span id="yt${k}Label" class="yt-word">History</span><span class="yt-tag"><span id="yt${k}Tag">${tag}</span></span></a>`), k);
-  assert.doesNotMatch(html, /Full history|FULL HISTORY|Full History/, 'no "Full"');
+  assert.deepEqual([...bar.matchAll(/\sid="(ymaxWrap|ytBtn|ytFitBtn|ytSplitBtn|ytRawBtn|explainWrap|githubLink)"/g)].map(m => m[1]), ['ymaxWrap', 'ytFitBtn', 'ytBtn'],
+    'ALWAYS AT 100% first, as the Y-MAX buttons');
+  // The video buttons show their icon and words, at the weight of the other buttons: which video, in brackets, with
+  // the short name it gives way to in a narrow bar.
+  assert.match(bar, /id="ytBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytLabel" class="yt-word">Full history<\/span><span class="yt-tag"><span id="ytTag" class="yt-tag-full">Y-max expands on ATH<\/span><span id="ytTagShort" class="yt-tag-short">expands on ATH<\/span><\/span><\/a>/, 'the video buttons say what they give you');
+  assert.match(bar, /id="ytFitBtn"[^>]*>\s*<svg[\s\S]*?<\/svg><span id="ytFitLabel" class="yt-word">Full history<\/span><span class="yt-tag"><span id="ytFitTag" class="yt-tag-full">Y-max always at 100%<\/span><span id="ytFitTagShort" class="yt-tag-short">always at 100%<\/span><\/span><\/a>/);
   // How to read and GitHub: their icons only, named by their tooltips and for screen readers.
   assert.match(end, /<a id="githubLink"[^>]*aria-label="View code on GitHub \(opens in a new tab\)" title="View code on GitHub \(opens in a new tab\)">\s*<svg[\s\S]*?<\/svg>\s*<\/a>/);
   assert.match(end, /<button id="explainBtn" aria-label="How to read this chart" title="How to read this chart" aria-expanded="false"><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><\/button>/);
   assert.doesNotMatch(html, /btn-word|explainLabel/);
-  assert.ok(!rules.some(r => r.sels.some(x => /yt-tag-short|yt-tag-full|\.short\b/.test(x))), 'no short names: the four are short already');
+  // In a narrower bar the names drop the Y-MAX the two Y-MAX buttons already say.
+  assert.match(decls('#controls .yt-tag-short'), /display:\s*none/);
+  assert.match(decls('#controls.short .yt-tag-short'), /display:\s*inline/);
+  assert.match(decls('#controls.short .yt-tag-full'), /display:\s*none/);
   // Transitions would be measured half-way, so the buttons animate their colours only.
   for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
-  // To fit: the spacing tightens (dense), the type goes a size down (tight), the video buttons drop their words and keep
-  // which video they are, without the brackets (compact), and last the whole bar is drawn smaller; the How to read panel
-  // undoes that.
+  // To fit: the spacing tightens (dense), the type goes a size down (tight), the videos' names drop their Y-MAX
+  // (short), the video buttons drop their words and keep EXPANDS ON ATH and ALWAYS AT 100% (compact), and last the whole bar is drawn
+  // smaller; the How to read panel undoes that.
   assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
   assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);
   assert.match(decls('#controls.tight button'), /font-size:\s*11px;\s*letter-spacing:\s*0/);
   assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
   assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'which video it is never goes');
   assert.match(decls('#explainPanel'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
-  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\];/);
+  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "short", "compact"\];/);
   for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
   const { c, element } = app();
   for (const lang of ['zh', 'ja', 'en']) {
@@ -169,18 +172,19 @@ test('the bar fits its one row: each step only if the row does not fit without i
   bar.classList = { add: (k) => classes.add(k), remove: (k) => classes.delete(k), contains: (k) => classes.has(k), toggle() {} };
   // The row's width at each step, as measured in English (tools: a browser at 3000 px), and a window of W px: the
   // bar's own width, in its own (zoomed) pixels, is W / zoom.
-  const need = () => (classes.has('compact') ? 1501 : classes.has('tight') ? 1777 : classes.has('dense') ? 1841 : 2147);
+  const need = () => (classes.has('compact') ? 1563 : classes.has('short') ? 1771 : classes.has('tight') ? 1855 : classes.has('dense') ? 1934 : 2210);
   let W = 0;
   Object.defineProperty(bar, 'scrollWidth', { get: () => need() });
   Object.defineProperty(bar, 'clientWidth', { get: () => W / (parseFloat(bar.style.zoom) || 1) });
   const fit = (w) => { W = w; c.fitToolbarWords(); return [[...classes].join(' '), bar.style.zoom || '', bar.style['--bar-zoom'] || '']; };
   assert.deepEqual(fit(2560), ['', '', ''], 'room for everything');
-  assert.deepEqual(fit(1920), ['dense', '', ''], '1920 px: every word');
-  assert.deepEqual(fit(1800), ['dense tight', '', ''], 'every word, a size smaller');
-  assert.deepEqual(fit(1536), ['dense tight compact', '', ''], '1536 px: the videos by name alone');
-  const [cls, zoom, varZoom] = fit(1366);
-  assert.equal(cls, 'dense tight compact');
-  assert.ok(+zoom > 0.9 && +zoom <= 1366 / 1501, '1366 px: drawn a little smaller, ' + zoom);
+  assert.deepEqual(fit(2000), ['dense', '', '']);
+  assert.deepEqual(fit(1920), ['dense tight', '', ''], '1920 px: every word, a size smaller');
+  assert.deepEqual(fit(1800), ['dense tight short', '', '']);
+  assert.deepEqual(fit(1600), ['dense tight short compact', '', '']);
+  const [cls, zoom, varZoom] = fit(1440);
+  assert.equal(cls, 'dense tight short compact');
+  assert.ok(+zoom > 0.9 && +zoom <= 1440 / 1563, zoom);
   assert.equal(varZoom, zoom, 'the panel is told how far to undo it');
   assert.ok(need() <= W / +zoom + 1, 'and then it fits');
   assert.deepEqual(fit(2560), ['', '', ''], 'a wider window takes every step back');
@@ -217,10 +221,9 @@ test('the chart follows its own box, which the toolbar can change without the wi
 });
 
 // The chart drawn over a plot `plotW` px wide.
-// view: 0 USD, 1 BTC, 2 % USD, 3 % BTC (VIEW_MODES)
-async function drawAt(plotW, lang = 'en', view = 0) {
+async function drawAt(plotW, lang = 'en', fit = false) {
   const { c, element } = app();
-  c.lang = lang; c.coinMode = view % 2 === 1; c.pctMode = view > 1; c.viewIdx = view;
+  c.lang = lang; c.yFit = fit;
   const { dates, raw } = market(c), react = c.Plotly.react;
   element('chart').clientWidth = plotW + 160;
   c.Plotly.react = (id, traces, layout) => react(id, traces, layout).then(() => {
@@ -240,34 +243,29 @@ test('a narrow plot labels every other price step, shrinks the title to fit and 
     assert.ok(textPx(title, size) <= 600, `${lang}: the title fits over the plot at ${size} px`);
     const credit = L.annotations.find(a => /Bitview/.test(a.text));
     for (const line of credit.text.split('<br>')) assert.ok(textPx(line.replace(/<[^>]*>/g, ''), credit.font.size) * 1.07 <= 620, `${lang}: ${line}`);
-    if (lang === 'en') { assert.equal(size, 13); assert.equal(credit.text.split('<br>').length, 2); assert.equal(L.margin.b, 78); assert.equal(credit.align, 'left'); }
+    if (lang === 'en') { assert.equal(size, 10); assert.equal(credit.text.split('<br>').length, 2); assert.equal(L.margin.b, 78); assert.equal(credit.align, 'left'); }
   }
   const wide = await drawAt(1040);
   assert.ok(wide.xaxis.ticktext.every(s => s !== ''), 'a plot with room keeps all twenty-one labels');
-  assert.equal(wide.title.font.size, 20, 'the title at its full size');
+  assert.equal(wide.title.font.size, 18, 'the title, naming its Y-MAX button, is too long for 20 px here');
   const credit = wide.annotations.find(a => /Bitview/.test(a.text));
   assert.doesNotMatch(credit.text, /<br>/); assert.equal(credit.font.size, 11); assert.equal(wide.margin.b, 64);
-  assert.equal(wide.margin.t, 13 + 26 + 29, 'the title\'s line at its size, then the legend');
+  assert.equal(wide.margin.t, 13 + Math.round(26 * 18 / 20) + 29, 'the title\'s line at its size, then the legend');
   const tablet = await drawAt(420);
   assert.ok(tablet.title.font.size >= 10, 'never below 10 px');
 });
 
-test('the title names the view, in every language, as large as fits over the plot', async () => {
+test('the title names the Y-MAX button that is on, in every language, as large as fits over the plot', async () => {
   const { c } = app();
-  const KEYS = ['titleUSD', 'titleBTC', 'titlePctUSD', 'titlePctBTC'];
-  for (const lang of ['en', 'zh', 'ja']) for (const view of [0, 1, 2, 3]) for (const plotW of [1040, 900, 800, 600]) {
-    const L = await drawAt(plotW, lang, view), words = L.title.text.replace(/<[^>]+>/g, '');
-    assert.ok(words.startsWith(c.T[lang][KEYS[view]]), `${lang} ${view}: ${words}`);
+  for (const lang of ['en', 'zh', 'ja']) for (const fit of [false, true]) for (const plotW of [1040, 900, 800, 600]) {
+    const L = await drawAt(plotW, lang, fit), words = L.title.text.replace(/<[^>]+>/g, '');
+    assert.ok(words.startsWith(c.T[lang][fit ? 'titleUSDFit' : 'titleUSDAth']), `${lang} ${fit}: ${words}`);
     const want = Math.max(10, Math.min(20, Math.floor(20 * (plotW - 8) / (textPx(words, 20) * 1.03))));
-    assert.equal(L.title.font.size, want, `${lang} ${view} at ${plotW} px`);
-    assert.ok(textPx(words, want) * 1.03 <= plotW - 8, `${lang} ${view}: it fits at ${want} px over ${plotW} px`);
+    assert.equal(L.title.font.size, want, `${lang} ${fit} at ${plotW} px`);
+    assert.ok(textPx(words, want) * 1.03 <= plotW - 8, `${lang} ${fit}: it fits at ${want} px over ${plotW} px`);
   }
-  assert.equal(c.T.en.titleUSD, 'Bitcoin Supply by Price When Last Moved (USD Value) as of ');
-  assert.equal(c.T.en.titleBTC, 'Bitcoin Supply by Price When Last Moved (BTC) as of ');
-  assert.equal(c.T.en.titlePctUSD, 'Bitcoin Supply by Price When Last Moved (% USD Value) as of ');
-  assert.equal(c.T.en.titlePctBTC, 'Bitcoin Supply by Price When Last Moved (% BTC) as of ');
-  for (const k of ['titleUSDAth', 'titleUSDFit', 'titleBTCAth', 'titleBTCFit', 'ath', 'fit', 'athShort', 'fitShort', 'videosBtn', 'videosTitle'])
-    for (const lang of ['en', 'zh', 'ja']) assert.equal(c.T[lang][k], undefined, lang + ' ' + k);
+  assert.match(c.T.en.titleUSDAth, /\(USD Value, Y-Max Expands on ATH\) as of $/);
+  assert.match(c.T.en.titleBTCFit, /\(BTC, Y-Max Always at 100%\) as of $/);
 });
 
 test('the explainer\'s section headings are capitals, underlined, not bold', () => {
@@ -277,13 +275,12 @@ test('the explainer\'s section headings are capitals, underlined, not bold', () 
   assert.match(decls('#explainPanel h3'), /text-underline-offset:\s*3px/);
 });
 
-test('Bins, Smoothing and Y-max are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
-  for (const [wrap, input, unit] of [['binsWrap', 'binsInput', null], ['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL']]) {
-    const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*>(?:<span class="field-unit">([^<]+)</span>)?\\s*</label>`).exec(html);
-    assert.ok(m, wrap); assert.equal(m[1] || null, unit, wrap + ': a count of bars has no unit');
+test('Smoothing and Y-max are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
+  for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL']]) {
+    const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*><span class="field-unit">([^<]+)</span>\\s*</label>`).exec(html);
+    assert.ok(m, wrap); assert.equal(m[1], unit);
     assert.doesNotMatch(m[0], /style=/, 'no inline styles');
   }
-  for (const id of ['binsInput', 'smoothInput', 'ymaxInput']) assert.match(decls('#controls #' + id), /width:\s*4ch/, id + ': four characters each, as in 1000, 0.24 and 99.7');
   const frame = decls('#controls .field');
   for (const want of [/border:\s*1px solid #595959/, /background:\s*#1a1a1a/, /height:\s*24px/, /border-radius:\s*0/]) assert.match(frame, want);
   assert.match(decls('#controls .field:focus-within'), /border-color:\s*#fff;\s*box-shadow:\s*inset 0 0 0 1px #fff/);
@@ -312,8 +309,8 @@ test('the price box says In Profit and In Loss, in every language and for both w
   assert.match(html, /Profit % = /);
 });
 
-test('no bottom signal and no bar width; Bins cuts the price axis into 625 bars unless changed, and the price axis title names the axis only', async () => {
-  for (const gone of ['thresholdInput', 'thresholdWrap', 'binsUnit', 'Bottom signal', 'BOTTOM SIGNAL', 'GLOW_COLOR', 'bottomThreshold'])
+test('no bottom signal, no Bins field and no bar width: 625 bars, and the price axis title names the axis only', async () => {
+  for (const gone of ['thresholdInput', 'thresholdWrap', 'binsInput', 'binsWrap', 'binsUnit', 'Bottom signal', 'BOTTOM SIGNAL', 'GLOW_COLOR', 'bottomThreshold'])
     assert.ok(!html.includes(gone), gone);
   const { c, element } = app();
   assert.equal(c.NUM_BINS, 625);
@@ -333,17 +330,11 @@ test('no bottom signal and no bar width; Bins cuts the price axis into 625 bars 
     assert.equal(element('chart').layout.xaxis.title.text, want, lang);
   }
   assert.doesNotMatch(html, /per bar|perBar|每根柱 \{w\}|1 本あたり \{w\}/);
-  // What the explainer says of the bars and of the white line's window is what is drawn: Bins bars up to the axis
-  // end and one past it, so the drawn axis is 626 bars long at the default; a year up to 90 days ahead, but at most a
-  // week past the latest day.
+  // What the explainer says of the bars and of the white line's window is what is drawn: 625 bars up to the axis
+  // end and one past it, so the drawn axis is 626 bars long; a year up to 90 days ahead, but at most a week past the
+  // latest day.
   assert.ok(Math.abs(layout.xaxis.range[1] / data.binWidth - 626) < 1e-9, String(layout.xaxis.range[1] / data.binWidth));
-  assert.equal((html.match(/ΔP = highest cost basis so far \/ Bins   \(625 by default\)"/g) || []).length, 3, 'en, zh, ja');
-  for (const lang of ['en', 'zh', 'ja']) assert.ok(c.T[lang].binsLabel && c.T[lang].binsTitle, lang);
-  const { c: c2 } = app();
-  c2.NUM_BINS = 300;
-  const { dates: d2 } = market(c2), data300 = c2.buildData(d2[4], { all: { 90000: 3 }, age: [{ 90000: 3 }] });
-  assert.equal(data300.numBins, 300);
-  assert.ok(Math.abs(data300.binWidth * 300 - data.binWidth * 625) < 1e-9, 'the same axis, cut into 300 bars');
+  assert.equal((html.match(/ΔP = highest cost basis so far \/ 625"/g) || []).length, 3, 'en, zh, ja');
   assert.doesNotMatch(html, /sliver for the smoothing|平滑所需的一小段|スムージングの分をわずかに足した/, 'nothing is added to the axis for the smoothing');
   assert.doesNotMatch(html, /625 (equal-width bars|根等宽|本の等幅)/);
   assert.match(html, /OV_WINDOW=365\*OV_DAY, OV_FUTURE=90\*OV_DAY, OV_PAD=7\*OV_DAY/);
@@ -497,3 +488,17 @@ test('the page\'s own error messages are in the page\'s language, and follow it'
   assert.equal(c.errorText(new Error('HTTP 404')), 'HTTP 404', 'technical messages stay as they are');
 });
 
+test('pins measured on the price axis before it ended exactly at the highest stamp are never looked up; new ones are kept', () => {
+  // v2 heights came from bars about 0.5% wider (the axis ran past the highest stamp), so a v2 pin would freeze the
+  // axis at a height no bar on the page has; v1 and RAW's pins are older still.
+  const stored = { bsd_peaks_v2: JSON.stringify({ 'usd|b625|s0': ['2026-08-14', 30.56e9], 'usd|b625|s0.24': ['2026-08-14', 2e10] }),
+    bsd_peaks_v1: JSON.stringify({ 'usd|b625|s0.24': ['2025-01-01', 9e9] }) };
+  const localStorage = { getItem: k => (k in stored ? stored[k] : null), setItem: (k, v) => { stored[k] = String(v); } };
+  const { c } = app({ localStorage });
+  assert.equal(c.PEAK_STORE_KEY, 'bsd_peaks_v3');
+  assert.deepEqual(Object.keys(c.peakStore), [], 'none of them');
+  c.peakStore['usd|b625|s0'] = ['2026-08-14', 31.87e9]; c.peakSave();
+  assert.deepEqual(JSON.parse(stored.bsd_peaks_v3), { 'usd|b625|s0': ['2026-08-14', 31.87e9] });
+  assert.deepEqual(JSON.parse(JSON.stringify(app({ localStorage }).c.peakStore)), { 'usd|b625|s0': ['2026-08-14', 31.87e9] }, 'and kept for the next visit');
+  assert.ok(stored.bsd_peaks_v2, 'the old ones are left alone, not rewritten');
+});
