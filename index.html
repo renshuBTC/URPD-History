@@ -188,8 +188,11 @@
   #controls #langBtn { margin-left: 0; }
   /* one type size in the bar, hierarchy carried by colour instead */
   #controls #dateDisplay { font-size: 12px; }
-  /* The explainer is fixed, so it escapes the toolbar's horizontal scroll area. */
-  #explainPanel { position: fixed; right: auto; margin-top: 0; max-width: calc(100vw - 20px); overflow-y: auto; }
+  /* The explainer is fixed, so it escapes the toolbar's horizontal scroll area. It sits inside the bar, which keeps its
+     buttons on one line (white-space: nowrap): the panel's text wraps again, so it only ever scrolls down, never
+     sideways, and a word too long for a line breaks rather than push the panel wider. */
+  #explainPanel { position: fixed; right: auto; margin-top: 0; max-width: calc(100vw - 20px); overflow-y: auto; overflow-x: hidden;
+    white-space: normal; overflow-wrap: anywhere; }
   /* A bar drawn smaller (--bar-zoom, see fitToolbarWords) would shrink the panel inside it too, and place it by the
      smaller measure: the panel undoes the zoom, so it opens full size exactly where it is put. */
   #explainPanel { zoom: calc(1 / var(--bar-zoom, 1)); }
