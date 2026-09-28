@@ -155,6 +155,12 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
   assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'which video it is never goes');
   assert.match(decls('#explainPanel'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
+  // The bar keeps its buttons on one line (nowrap), and the panel inside it wraps its text again: it scrolls down only.
+  assert.match(decls('#controls'), /white-space:\s*nowrap/);
+  assert.match(decls('#explainPanel'), /white-space:\s*normal/);
+  assert.match(decls('#explainPanel'), /overflow-x:\s*hidden/);
+  assert.match(decls('#explainPanel'), /overflow-wrap:\s*anywhere/);
+  assert.match(decls('#explainPanel .formula'), /white-space:\s*pre-wrap/);
   assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\], TOOLBAR_LIGHT_ZOOM = 0\.9;/);
   for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
   const { c, element } = app();
