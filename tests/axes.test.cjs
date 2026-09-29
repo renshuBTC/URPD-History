@@ -139,14 +139,14 @@ test('hovering a bar gives the whole bar\'s total and its running share of the d
     assert.equal(graph.data.some(t => t.meta === 'pct' || t.yaxis === 'y2'), false);
     assert.match(graph.layout.title.text, coin ? /^<b>Bitcoin URPD \(% BTC, AGE\) as of / : /^<b>Bitcoin URPD \(% USD, AGE\) as of /);
     assert.equal(graph.layout.xaxis.title.text, 'Price When Last Moved [USD]', 'the title names the axis and nothing else');
-    assert.equal(graph.layout.yaxis.title.text, coin ? 'Supply [% of Total Supply]' : 'Value When Last Moved [% of Realized Cap]');
+    assert.equal(graph.layout.yaxis.title.text, coin ? 'Percent of BTC Supply Last Moved [%]' : 'Percent of USD Value Last Moved [%]');
   }
   // the video's chart says the same (USD view; its title is checked in video-looks.test.cjs)
   const video = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8');
   const looks = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'tools', 'video', 'looks.mjs'), 'utf8');
   for (const s of ['"<b>" + esc(sp.title) + ', 'title: { text: "Price When Last Moved [USD]", font', 'text: esc(sp.yTitle)',
   ]) assert.ok(video.includes(s), 'video: ' + s);
-  for (const s of ['yTitle: "Value When Last Moved [% of Realized Cap]"', 'yTitle: "Supply [% of Total Supply]"', 'profit: "USD Value Last Moved In Profit: "', 'loss: "USD Value Last Moved In Loss: "',
+  for (const s of ['yTitle: "Percent of USD Value Last Moved [%]"', 'yTitle: "Percent of BTC Supply Last Moved [%]"', 'profit: "USD Value Last Moved In Profit: "', 'loss: "USD Value Last Moved In Loss: "',
     'profit: "BTC Supply Last Moved In Profit: "', 'loss: "BTC Supply Last Moved In Loss: "']) assert.ok(looks.includes(s), 'video: ' + s);
   assert.doesNotMatch(video, /This Price|Supply Distribution|per bar|perBar|BOTTOM SIGNAL|GLOW|isBottom/);
 });
