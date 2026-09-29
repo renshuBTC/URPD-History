@@ -29,9 +29,9 @@ export const HOLDER_LABELS = ["Short-Term Holders (STH)", "Long-Term Holders (LT
 export const HOLDER_COLORS = ["#e6a817", "#5599ff"];
 
 const SIGNAL = "BOTTOM SIGNAL \u2014 In Loss \u2265 ";   // the site's English bottomSignal, then the threshold and %
-const USD = { coin: false, yPct: 100, bottom: 80, signal: SIGNAL, yTitle: "Value When Last Moved [% of Realized Cap]",
+const USD = { coin: false, yPct: 100, bottom: 80, signal: SIGNAL, yTitle: "Percent of USD Value Last Moved [%]",
   profit: "USD Value Last Moved In Profit: ", loss: "USD Value Last Moved In Loss: " };
-const BTC = { coin: true, yPct: 99.8, bottom: 50, signal: SIGNAL, yTitle: "Supply [% of Total Supply]",
+const BTC = { coin: true, yPct: 99.8, bottom: 50, signal: SIGNAL, yTitle: "Percent of BTC Supply Last Moved [%]",
   profit: "BTC Supply Last Moved In Profit: ", loss: "BTC Supply Last Moved In Loss: " };
 export const LOOKS = {
   // tag: the video's name on its button and on YouTube; coin: whether the bars are coins; split: short- and long-term

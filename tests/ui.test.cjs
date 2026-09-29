@@ -146,7 +146,7 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.doesNotMatch(html, /yt-tag-short|yt-tag-full|yt-video|controls\.short/);
   // Transitions would be measured half-way, so the buttons animate their colours only.
   for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
-  // To fit: the spacing tightens (dense), the type goes a size down (tight), a row at most 10% too wide is drawn that
+  // To fit: the spacing tightens (dense), the type goes a size down (tight), a row at most 11% too wide is drawn that
   // much smaller, else the video buttons drop VIDEO and keep % USD-AGE and the rest (compact), and last the whole bar is
   // drawn smaller; the How to read panel undoes that.
   assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
@@ -161,7 +161,7 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.match(decls('#explainPanel'), /overflow-x:\s*hidden/);
   assert.match(decls('#explainPanel'), /overflow-wrap:\s*anywhere/);
   assert.match(decls('#explainPanel .formula'), /white-space:\s*pre-wrap/);
-  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\], TOOLBAR_LIGHT_ZOOM = 0\.9;/);
+  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\], TOOLBAR_LIGHT_ZOOM = 0\.89;/);
   for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
   const { c, element } = app();
   for (const lang of ['zh', 'ja', 'en']) {
@@ -175,21 +175,24 @@ test('the bar fits its one row: each step only if the row does not fit without i
   const { c, element } = app();
   const bar = element('controls'), classes = new Set();
   bar.classList = { add: (k) => classes.add(k), remove: (k) => classes.delete(k), contains: (k) => classes.has(k), toggle() {} };
-  // The row's width at each step, as measured in English (tools: a browser at 3000 px), and a window of W px: the
-  // bar's own width, in its own (zoomed) pixels, is W / zoom.
-  const need = () => (classes.has('compact') ? 1861 : classes.has('tight') ? 2081 : classes.has('dense') ? 2158 : 2488);
+  // The row's width at each step, as measured in English on the latest day, BINS 625 $201 (tools: a browser at
+  // 3000 px), and a window of W px: the bar's own width, in its own (zoomed) pixels, is W / zoom.
+  const need = () => (classes.has('compact') ? 1893 : classes.has('tight') ? 2113 : classes.has('dense') ? 2190 : 2522);
   let W = 0;
   Object.defineProperty(bar, 'scrollWidth', { get: () => need() });
   Object.defineProperty(bar, 'clientWidth', { get: () => W / (parseFloat(bar.style.zoom) || 1) });
   const fit = (w) => { W = w; c.fitToolbarWords(); return [[...classes].join(' '), bar.style.zoom || '', bar.style['--bar-zoom'] || '']; };
   assert.deepEqual(fit(2560), ['', '', ''], 'room for everything');
   assert.deepEqual(fit(2200), ['dense', '', '']);
-  assert.deepEqual(fit(2100), ['dense tight', '', '']);
-  assert.deepEqual(fit(1920), ['dense tight', '0.922', '0.922'], '1920 px: every word, drawn 8% smaller');
-  assert.deepEqual(fit(1870), ['dense tight compact', '', ''], 'more than 10% too wide: the videos keep % USD-AGE and the rest');
+  assert.deepEqual(fit(2150), ['dense tight', '', '']);
+  assert.deepEqual(fit(1920), ['dense tight', '0.908', '0.908'], '1920 px: every word, drawn 9% smaller');
+  assert.deepEqual(fit(1890), ['dense tight', '0.894', '0.894'], 'at most 11% too wide: every word, drawn that much smaller');
+  // On the first days BINS reads $0.0016, 21 px more: at 1920 px the words stay, drawn at 0.899 (0.9 would drop them).
+  assert.ok(Math.floor(1000 * 1920 / (2113 + 21)) / 1000 >= 0.89);
+  assert.deepEqual(fit(1870), ['dense tight compact', '0.987', '0.987'], 'more than 11% too wide: the videos keep % USD-AGE and the rest');
   const [cls, zoom, varZoom] = fit(1440);
   assert.equal(cls, 'dense tight compact');
-  assert.ok(+zoom > 0.7 && +zoom <= 1440 / 1861, zoom);
+  assert.ok(+zoom > 0.7 && +zoom <= 1440 / 1893, zoom);
   assert.equal(varZoom, zoom, 'the panel is told how far to undo it');
   assert.ok(need() <= W / +zoom + 1, 'and then it fits');
   assert.deepEqual(fit(2560), ['', '', ''], 'a wider window takes every step back');
@@ -279,7 +282,7 @@ test('the title names both choices, the weighting and the colouring, in every la
   // The mode buttons say it too, and the left axis names what 100% is.
   assert.match(html, /<button id="btnUSD" class="active" aria-pressed="true" title="[^"]+">% USD<\/button>/);
   assert.match(html, /<button id="btnBTC" aria-pressed="false" title="[^"]+">% BTC<\/button>/);
-  assert.deepEqual([c.T.en.usdInvested, c.T.en.btcSupply], ['Value When Last Moved [% of Realized Cap]', 'Supply [% of Total Supply]']);
+  assert.deepEqual([c.T.en.usdInvested, c.T.en.btcSupply], ['Percent of USD Value Last Moved [%]', 'Percent of BTC Supply Last Moved [%]']);
   assert.doesNotMatch(JSON.stringify(c.T), /Y-Max (Always|Expands)|titleUSDFit|titleUSDAth|随历史新高扩展|過去最高で拡大|150D/, 'the titles name no Y-MAX mode, and LTH/STH by name');
 });
 
@@ -291,8 +294,8 @@ test('the explainer\'s section headings are capitals, underlined, not bold', () 
 });
 
 test('Bins, Smoothing, Y-max and Bottom signal are framed like the cycle list: label, white value, unit; the frame doubles while editing', () => {
-  const bins = /<label class="field" id="binsWrap"[^>]*>\s*<span class="field-label">Bins<\/span><input type="text" id="binsInput" value="625" inputmode="numeric"[^>]*>\s*<\/label>/.exec(html);
-  assert.ok(bins, 'binsWrap: a label and the number, no unit');
+  const bins = /<label class="field" id="binsWrap"[^>]*>\s*<span class="field-label">Bins<\/span><input type="text" id="binsInput" value="625" inputmode="numeric"[^>]*><span class="field-unit" id="binsUnit"><\/span>\s*<\/label>/.exec(html);
+  assert.ok(bins, 'binsWrap: a label, the number, and a unit drawChart fills in (a bar\'s width in dollars)');
   assert.doesNotMatch(bins[0], /style=/, 'no inline styles');
   for (const [wrap, input, unit] of [['smoothWrap', 'smoothInput', '%'], ['ymaxWrap', 'ymaxInput', 'PCTL'], ['signalWrap', 'signalInput', '% IN LOSS']]) {
     const m = new RegExp(`<label class="field" id="${wrap}"[^>]*>\\s*<span class="field-label">[^<]+</span><input type="text" id="${input}"[^>]*><span class="field-unit">([^<]+)</span>\\s*</label>`).exec(html);
@@ -305,6 +308,26 @@ test('Bins, Smoothing, Y-max and Bottom signal are framed like the cycle list: l
   assert.match(decls('#controls .field .field-label'), /text-transform:\s*uppercase/);
   assert.match(decls('#controls .field input'), /color:\s*#fff/);
   assert.match(decls('#controls .field input'), /border:\s*0/);
+});
+
+test('BINS ends in a bar\'s width in dollars on the day shown, as Y-MAX ends in PCTL', async () => {
+  const { c, element } = app();
+  assert.deepEqual([201.04, 1234.4, 99.5, 46.2, 9.96, 1.62, 0.5, 0.000624, 4.8e-7, 0, -1, NaN, Infinity].map(w => c.binWidthText(w)),
+    ['$201', '$1,234', '$100', '$46', '$10', '$1.6', '$0.5', '$0.00062', '$0.00000048', '', '', '', '']);
+  const { dates } = market(c);
+  const data = c.buildData(dates[4], { all: { 10: 1, 90000: 3 }, age: [{ 10: 1, 90000: 3 }] });
+  let fits = 0;
+  c.fitToolbarWords = () => { fits++; };
+  await c.renderChart(data);
+  assert.ok(data.binWidth > 0);
+  assert.equal(element('binsUnit').textContent, c.binWidthText(data.binWidth), 'written after the draw');
+  assert.equal(fits, 1, 'a figure of a new length: the bar is fitted again');
+  await c.renderChart(data);
+  assert.equal(fits, 1, 'the same figure: nothing to fit');
+  // A language change leaves it: its unit is a figure, not a word.
+  assert.match(html, /\["binsWrap", "binsLabel", null, "binsTitle"\]/);
+  assert.match(html, /if \(unit && f\[2\]\) unit\.textContent = t\(f\[2\]\);/);
+  for (const lang of ['en', 'zh', 'ja']) assert.match(c.T[lang].binsTitle, /in dollars|美元|ドル/, lang);
 });
 
 test('the price box says In Profit and In Loss, in every language and for both weightings', async () => {
@@ -401,7 +424,8 @@ test('the bottom signal field: 0 to 100 for the mode on screen, drawn again at o
 });
 
 test('625 bars by default, and the price axis title names the axis only', async () => {
-  for (const gone of ['thresholdInput', 'thresholdWrap', 'binsUnit', 'GLOW_COLOR', 'bottomThreshold']) assert.ok(!html.includes(gone), gone);
+  // (A bar's width is back beside BINS, #binsUnit, not in the price axis title.)
+  for (const gone of ['thresholdInput', 'thresholdWrap', 'GLOW_COLOR', 'bottomThreshold']) assert.ok(!html.includes(gone), gone);
   const { c, element } = app();
   assert.equal(c.NUM_BINS, 625);
   const { dates } = market(c);
