@@ -1,19 +1,19 @@
 {
   "about": "The latest videos on YouTube for the site's four video buttons, one for each weighting and colouring: usd-age and btc-age, each bar as its share of the day's realized cap and of all the coins, stacked in age bands (VIDEO (% USD-AGE), VIDEO (% BTC-AGE)), and usd-lthsth and btc-lthsth, split into short- and long-term holders (VIDEO (% USD-LTH/STH), VIDEO (% BTC-LTH/STH)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then.",
   "usd-age": {
-    "id": "kp5wn7wjAao",
-    "end": "2026-09-26"
+    "id": "d1c7iB6xvJk",
+    "end": "2026-09-30"
   },
   "btc-age": {
-    "id": "Y4tGgTdCpjE",
-    "end": "2026-09-26"
+    "id": "54pJWRbNkd0",
+    "end": "2026-09-30"
   },
   "usd-lthsth": {
-    "id": "7q2MaKqSdoQ",
-    "end": "2026-09-26"
+    "id": "YkHG8a-DUW0",
+    "end": "2026-09-30"
   },
   "btc-lthsth": {
-    "id": "onFWIWAVrG0",
-    "end": "2026-09-26"
+    "id": "EAMGPJ3BclQ",
+    "end": "2026-09-30"
   }
 }
