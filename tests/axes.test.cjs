@@ -363,7 +363,11 @@ test('a marked range\'s box splits its share between long- and short-term holder
   assert.match(text, /USD Value Last Moved Here: 72\.0%/);
   assert.match(text, /LTH USD Value Last Moved Here: 48\.0%/);
   assert.match(text, /STH USD Value Last Moved Here: 24\.0%/, 'and the two add up to the share above');
-  assert.match(text, /All LTH Within: 143 Days/, 'the youngest coins there are at least a week old');
+  assert.match(text, /All LTH Within: 143 Days \(by 13 Mar 2022\)/, 'the youngest coins there are at least a week old; 143 days after 21 Oct 2021');
+  // (CJK wraps between any two characters, so the rows are joined without the spaces here.)
+  c.lang = 'zh'; assert.ok((await box()).replace(/ /g, '').includes('全部成为长期持有者:143天内（2022年3月13日前）'));
+  c.lang = 'ja'; assert.ok((await box()).replace(/ /g, '').includes('すべて長期保有者になるまで:143日以内（2022年3月13日まで）'));
+  c.lang = 'en'; await box();
   assert.ok(text.indexOf('LTH USD Value') < text.indexOf('STH USD Value') && text.indexOf('STH USD Value') < text.indexOf('All LTH'), 'LTH, then STH, then the days');
   const raw = element('chart').layout.annotations.find(a => a.xref === 'x' && a.width).text;
   assert.match(raw, new RegExp("<span style='color:" + c.LTH_COLOR + "'>LTH USD"), 'LTH in its legend colour');
