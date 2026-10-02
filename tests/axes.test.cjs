@@ -311,9 +311,14 @@ test('a click and drag marks a range of prices instead of zooming; it stays, wit
   assert.equal(box.yref, 'paper'); assert.equal(box.y, 1); assert.equal(box.yanchor, 'top');
   assert.ok(Math.abs(box.width + 2 * (box.borderpad + box.borderwidth) - (bandPx - 6)) < 1e-6, 'the box spans the mark');
   for (const row of box.text.split('<br>')) assert.ok(c.fitMarkText([row], 1e9, (str, size) => str.length * 0.6 * size) && row.length * 0.6 * box.font.size * 1.07 <= box.width + 1e-9, row + ' fits');
-  const veils = L.shapes.filter(s => s.type === 'rect' && s.xref === 'x' && /rgba\(255,255,255,0.09\)/.test(s.fillcolor));
-  assert.deepEqual(JSON.parse(JSON.stringify(veils.map(v => [v.x0, v.x1]))), [[0, 50000], [65000, L.xaxis.range[1]]], 'the plot outside it shaded');
-  assert.equal(L.shapes.filter(s => s.xsizemode === 'pixel' || s.ysizemode === 'pixel').length, 8, 'a bracket at each corner');
+  // As it looked while dragged (#markBand): a light tint between two thin white lines the full height of the plot.
+  const tint = L.shapes.filter(s => s.type === 'rect' && s.xref === 'x' && s.fillcolor === c.MARK_TINT);
+  assert.deepEqual(JSON.parse(JSON.stringify(tint.map(v => [v.x0, v.x1, v.y0, v.y1]))), [[50000, 65000, 0, 1]], 'tinted inside');
+  const edges = L.shapes.filter(s => s.type === 'line' && s.line.color === c.MARK_EDGE);
+  assert.deepEqual(JSON.parse(JSON.stringify(edges.map(e => [e.x0, e.x1, e.yref, e.y0, e.y1, e.line.width]))), [[50000, 50000, 'paper', 0, 1], [65000, 65000, 'paper', 0, 1]].map(e => e.concat(1)), 'a white line at each edge');
+  assert.ok(!L.shapes.some(s => s.xsizemode === 'pixel' || s.ysizemode === 'pixel'), 'no corner brackets');
+  assert.match(require('./helpers.cjs').html, /#markBand \{[^}]*background: rgba\(255,255,255,0\.06\);[^}]*border-left: 1px solid rgba\(255,255,255,0\.75\);[^}]*border-right: 1px solid rgba\(255,255,255,0\.75\);/, 'the drag looks the same');
+  assert.equal(c.MARK_TINT, 'rgba(255,255,255,0.06)'); assert.equal(c.MARK_EDGE, 'rgba(255,255,255,0.75)');
   // In % BTC the share is of the coins: 1 of 4.
   c.coinMode = true;
   await c.renderChart(data);
@@ -365,12 +370,12 @@ test('in LTH/STH a marked range gives the most days until every coin there is a 
   assert.equal(c.daysToAllLth(data, 50, 60), null, 'waits for the highs and lows');
   c.priceHighLow = { high, low };
   assert.equal(c.daysToAllLth(data, 50, 60), 140, 'the price was last there 10 days ago: 150 - 10');
-  age[3] = {}; age[4][55] = 1;   // the youngest band there is 1m-2m: at least 30 days old
+  age[3] = {}; age[4][55] = 1; delete data.sthPrices;   // the youngest band there is 1m-2m: at least 30 days old (the day's lists built again)
   assert.equal(c.daysToAllLth(data, 50, 60), 120);
   assert.equal(c.daysToAllLth(data, 30, 50), 0, 'only long-term holders there');
   c.priceHighLow = { high: null, low: null };
   assert.equal(c.daysToAllLth(data, 50, 60), 120, 'without the highs and lows, the age bands alone');
-  high[1000] = 70; low[1000] = 54; c.priceHighLow = { high, low }; age[4] = {}; age[0][55] = 1;
+  high[1000] = 70; low[1000] = 54; c.priceHighLow = { high, low }; age[4] = {}; age[0][55] = 1; delete data.sthPrices;
   assert.equal(c.daysToAllLth(data, 50, 60), 150, 'inside the range on the day itself, coins less than an hour old');
 });
 
