@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-oO5Z/Bgg1QnRIRZkOVuid3buxlpA1lupoYuxD5RhIZA=' 'sha256-TV5UUb8klrBq6ck5GGOjwsUT4WEKmVozeexvNSUZslg=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-RgZWD0rnop1DM2B2Z9Bo3w87qX8i5uEQ0MFiG00Igpw=' 'sha256-TV5UUb8klrBq6ck5GGOjwsUT4WEKmVozeexvNSUZslg=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -1610,8 +1610,9 @@ function drawChart(data, plotSeq, navigationSeq) {
     barmode:isAge?"stack":"overlay",bargap:0,
     legend:{orientation:"h",yanchor:"bottom",y:1,xanchor:"center",x:0.5,font:{family:FONT,size:isAge&&!isSplit?9.5:12,color:TH.ink},traceorder:isAge?"normal":undefined},
     xaxis:{title:{text:xTitle,font:{family:FONT,size:13,color:TH.ink},standoff:10},range:[0,xSpan],autorange:false,tickvals:xTickvals,ticktext:xTicktext,tickangle:0,showgrid:true,gridcolor:TH.grid,tickfont:{family:FONT,size:11,color:TH.ink}},
-    // One gridline per left-axis label, twenty intervals.
-    yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:TH.ink},standoff:8},automargin:true,side:"left",tickvals:yTickvals,ticktext:yTicktext,range:[0,maxVal],autorange:false,showgrid:true,gridcolor:TH.grid,tickfont:{family:FONT,size:11,color:TH.ink}},
+    // One gridline per left-axis label, twenty intervals. Fixed against dragging (Y-max and PIN Y-AXIS set it): a
+    // click and drag on the chart zooms the price axis only, so its box takes in whole columns, the plot's full height.
+    yaxis:{title:{text:yAxisTitle,font:{family:FONT,size:13,color:TH.ink},standoff:8},automargin:true,side:"left",tickvals:yTickvals,ticktext:yTicktext,range:[0,maxVal],autorange:false,fixedrange:true,showgrid:true,gridcolor:TH.grid,tickfont:{family:FONT,size:11,color:TH.ink}},
     annotations:annotations,shapes:shapes,
     margin:{l:24,r:24,t:topMargin,b:bottomMargin},hovermode:"closest"
   };
@@ -1729,11 +1730,13 @@ function drawChart(data, plotSeq, navigationSeq) {
           xshift:side==="left"?8:side==="right"?-8:0,yshift:-(y-yPx),font:{color:lmC[i],size:11,family:FONT},bgcolor:TH.labelBg,borderpad:2});
       });
     }
-    layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false,autorange:false,range:[ovYmd(ovLeft),ovYmd(ovRight)]};
+    // The price line's own axes stay as they are when the chart is zoomed: a drag picks a span of the price axis (see
+    // yaxis), which says nothing about dates or the price line's height.
+    layout.xaxis2={overlaying:"x",showticklabels:false,showgrid:false,type:"date",visible:false,autorange:false,fixedrange:true,range:[ovYmd(ovLeft),ovYmd(ovRight)]};
     // Linear, from $0 to the highest close the line has shown so far (up to the window's right edge): the line
     // fills the height, the same dollar move keeps the same height, and moving forward the axis only grows, and
     // only when the line goes above it.
-    layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"linear",visible:false};
+    layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"linear",visible:false,fixedrange:true};
     var ovTop=priceRunMax(dayIndex(rStr));
     if(ovTop>0){layout.yaxis3.autorange=false;layout.yaxis3.range=[0,ovTop];}
   }
