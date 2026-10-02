@@ -294,29 +294,52 @@ test('a click and drag marks a range of prices instead of zooming; it stays, wit
   assert.equal(gd.config.doubleClick, false);
   for (const b of ['zoom2d', 'pan2d', 'select2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']) assert.ok(gd.config.modeBarButtonsToRemove.includes(b), b);
   for (const ax of ['xaxis', 'yaxis', 'xaxis2', 'yaxis3']) assert.equal(L[ax].fixedrange, true, ax);
-  assert.ok(!L.annotations.some(a => /Last Moved Here/.test(a.text)), 'nothing marked yet');
+  assert.ok(!L.annotations.some(a => /Last Moved Here/.test(a.text.replace(/<br>/g, ' '))), 'nothing marked yet');
   // A mark over the prices 50,000 to 65,000: the value there is the 60,000 stamp's, 60000 / (100 + 60000 + 140000).
   c.rangeMark = { lo: 50000, hi: 65000 };
   await c.renderChart(data);
   L = element('chart').layout;
-  const box = L.annotations.find(a => /Last Moved Here/.test(a.text));
+  const box = L.annotations.find(a => /Last Moved Here/.test(a.text.replace(/<br>/g, ' ')));
   assert.ok(box, 'a box with the figures');
   const want = 100 * 60000 / 200100;
-  assert.match(box.text, new RegExp('^Price: \\$50,000 \u2013 \\$65,000<br>Percent of USD Value Last Moved Here: ' + c.pctCompact(want).replace('.', '\\.')));
+  const flat = box.text.replace(/<br>/g, ' ');
+  assert.equal(flat, 'Price: $50,000 \u2013 $65,000 USD Value Last Moved Here: ' + c.pctCompact(want), 'the range and its share, wrapped');
   assert.ok(!/LTH/.test(box.text), 'AGE: no holder line');
+  // Inside the mark, as wide as it is, at the top: from 3 px inside its left edge to 3 px inside its right one.
+  const bandPx = (65000 - 50000) / L.xaxis.range[1] * 1040;
+  assert.equal(box.xref, 'x'); assert.equal(box.x, 50000); assert.equal(box.xanchor, 'left'); assert.equal(box.xshift, 3);
+  assert.equal(box.yref, 'paper'); assert.equal(box.y, 1); assert.equal(box.yanchor, 'top');
+  assert.ok(Math.abs(box.width + 2 * (box.borderpad + box.borderwidth) - (bandPx - 6)) < 1e-6, 'the box spans the mark');
+  for (const row of box.text.split('<br>')) assert.ok(c.fitMarkText([row], 1e9, (str, size) => str.length * 0.6 * size) && row.length * 0.6 * box.font.size * 1.07 <= box.width + 1e-9, row + ' fits');
   const veils = L.shapes.filter(s => s.type === 'rect' && s.xref === 'x' && /rgba\(255,255,255,0.09\)/.test(s.fillcolor));
   assert.deepEqual(JSON.parse(JSON.stringify(veils.map(v => [v.x0, v.x1]))), [[0, 50000], [65000, L.xaxis.range[1]]], 'the plot outside it shaded');
   assert.equal(L.shapes.filter(s => s.xsizemode === 'pixel' || s.ysizemode === 'pixel').length, 8, 'a bracket at each corner');
   // In % BTC the share is of the coins: 1 of 4.
   c.coinMode = true;
   await c.renderChart(data);
-  assert.match(element('chart').layout.annotations.find(a => /Last Moved Here/.test(a.text)).text, /Percent of BTC Supply Last Moved Here: 25\.0%/);
+  assert.match(element('chart').layout.annotations.find(a => /Last Moved Here/.test(a.text.replace(/<br>/g, ' '))).text.replace(/<br>/g, ' '), /BTC Supply Last Moved Here: 25\.0%/);
   c.coinMode = false;
   // Escape clears it.
   c.rangeMark = { lo: 50000, hi: 65000 };
   c.rangeMark = null;
   await c.renderChart(data);
-  assert.ok(!element('chart').layout.annotations.some(a => /Last Moved Here/.test(a.text)), 'cleared');
+  assert.ok(!element('chart').layout.annotations.some(a => /Last Moved Here/.test(a.text.replace(/<br>/g, ' '))), 'cleared');
+});
+
+test('a marked range\'s box text wraps to the mark\'s width and shrinks only as far as its words need', () => {
+  const { c } = app();
+  const mono = (str, size) => { let w = 0; for (let i = 0; i < str.length; i++) w += str.charCodeAt(i) > 0x2e7f ? size : 0.6 * size; return w; };
+  const wide = c.fitMarkText(['Price: $50,000 \u2013 $65,000', 'USD Value Last Moved Here: 23.5%'], 2000, mono);
+  assert.equal(wide.size, 13); assert.deepEqual(JSON.parse(JSON.stringify(wide.lines)), [['Price: $50,000 \u2013 $65,000'], ['USD Value Last Moved Here: 23.5%']], 'room for every line');
+  const narrow = c.fitMarkText(['USD Value Last Moved Here: 23.5%'], 130, mono);
+  assert.equal(narrow.size, 13, 'every word still fits at 13 px');
+  for (const row of narrow.lines[0]) assert.ok(mono(row, 13) * 1.07 <= 130, row);
+  assert.equal(narrow.lines[0].join(' '), 'USD Value Last Moved Here: 23.5%', 'nothing lost or doubled');
+  const tight = c.fitMarkText(['Price: $50,000'], 50, mono);
+  assert.ok(tight.size < 13 && tight.size >= 9, 'a word wider than the box: a smaller size');
+  const cjk = c.fitMarkText(['最后在此移动的美元价值占比: 23.5%'], 60, mono);
+  for (const row of cjk.lines[0]) assert.ok(mono(row, cjk.size) * 1.07 <= 60, row + ': CJK breaks between characters');
+  assert.equal(cjk.lines[0].join('').replace(/ /g, ''), '最后在此移动的美元价值占比:23.5%', 'nothing lost or doubled');
 });
 
 test('a marked range\'s share comes from the recorded prices, [a, b)', () => {
