@@ -284,6 +284,18 @@ test('landmark markers sit on the line\'s own extreme within a week, labelled in
   assert.equal(graph.layout.yaxis3.range[1], 67000, 'the line still fills the height');
 });
 
+test('a click and drag zooms the price axis only, its box whole columns the plot\'s full height', async () => {
+  const { c, element } = app();
+  const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: () => [{ 60000: 1 }] });
+  await c.renderChart(c.buildData(dates[50], raws[50]));
+  const L = element('chart').layout;
+  assert.notEqual(L.xaxis.fixedrange, true, 'the price axis zooms');
+  assert.equal(L.yaxis.fixedrange, true, 'the left axis does not: Y-max and the pin set it');
+  assert.ok(L.xaxis2 && L.yaxis3, 'the price line is drawn');
+  assert.equal(L.xaxis2.fixedrange, true, 'the price line keeps its dates');
+  assert.equal(L.yaxis3.fixedrange, true, 'and its height');
+});
+
 test('build-scales writes the history the page reads back, one day at a time', async () => {
   const { main } = require('../tools/build-scales.cjs');
   const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'scales-')), 'scales.json');
