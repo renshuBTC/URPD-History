@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-1nuICgVZxdUUcwTpSozKfEANxuRkz9Ur4Oi5PlI8lU8=' 'sha256-KZ8fxBU2iqmcBDRnP1iemnMMnEqM0k0XXph6Td3e+pA=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-a37miINuozyIGqNdagpBFyytAvtia+pE6QpcRYK89/4=' 'sha256-KZ8fxBU2iqmcBDRnP1iemnMMnEqM0k0XXph6Td3e+pA=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -492,7 +492,7 @@ var T = {
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ",
     markUSD: "USD Value Last Moved Here: ", markBTC: "BTC Supply Last Moved Here: ",
     markLth: "All LTH Within: ", markDays: " Days", markAllLth: "Already All Long-Term Holders",
-    markLthUSD: "LTH USD Value: ", markSthUSD: "STH USD Value: ", markLthBTC: "LTH BTC Supply: ", markSthBTC: "STH BTC Supply: ", hoverTotalUSD: "Total Value When Last Moved: ", hoverTotalBTC: "Total Supply: ", hoverDate: "Date: ", usdProfit: "USD Value Last Moved In Profit: ", usdLoss: "USD Value Last Moved In Loss: ", btcProfit: "BTC Supply Last Moved In Profit: ", btcLoss: "BTC Supply Last Moved In Loss: ",
+    markLthUSD: "LTH USD Value Last Moved Here: ", markSthUSD: "STH USD Value Last Moved Here: ", markLthBTC: "LTH BTC Supply Last Moved Here: ", markSthBTC: "STH BTC Supply Last Moved Here: ", hoverTotalUSD: "Total Value When Last Moved: ", hoverTotalBTC: "Total Supply: ", hoverDate: "Date: ", usdProfit: "USD Value Last Moved In Profit: ", usdLoss: "USD Value Last Moved In Loss: ", btcProfit: "BTC Supply Last Moved In Profit: ", btcLoss: "BTC Supply Last Moved In Loss: ",
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Could not reach bitview.space. Check your connection and try again.",
     allSupply: "All supply (age data unavailable)", peakLabel: "Pinned ", peakBtn: "Pin Y-axis", peakBtnTitle: "Pin the Y-axis where it is now, so every other day is drawn against the same height (the Y-max field is off while it is pinned)",
@@ -518,7 +518,7 @@ var T = {
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "占总量百分比: ",
     markUSD: "最后在此移动的美元价值: ", markBTC: "最后在此移动的 BTC 供应: ",
     markLth: "全部成为长期持有者: ", markDays: " 天内", markAllLth: "已全部为长期持有者",
-    markLthUSD: "长期持有者美元价值: ", markSthUSD: "短期持有者美元价值: ", markLthBTC: "长期持有者 BTC 供应: ", markSthBTC: "短期持有者 BTC 供应: ", hoverTotalUSD: "最后移动时的总价值: ", hoverTotalBTC: "总供应量: ", hoverDate: "日期: ", usdProfit: "最后移动的美元价值处于盈利: ", usdLoss: "最后移动的美元价值处于亏损: ", btcProfit: "最后移动的 BTC 供应处于盈利: ", btcLoss: "最后移动的 BTC 供应处于亏损: ",
+    markLthUSD: "最后在此移动的长期持有者美元价值: ", markSthUSD: "最后在此移动的短期持有者美元价值: ", markLthBTC: "最后在此移动的长期持有者 BTC 供应: ", markSthBTC: "最后在此移动的短期持有者 BTC 供应: ", hoverTotalUSD: "最后移动时的总价值: ", hoverTotalBTC: "总供应量: ", hoverDate: "日期: ", usdProfit: "最后移动的美元价值处于盈利: ", usdLoss: "最后移动的美元价值处于亏损: ", btcProfit: "最后移动的 BTC 供应处于盈利: ", btcLoss: "最后移动的 BTC 供应处于亏损: ",
     langBtn: "日本語",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "无法连接 bitview.space。请检查网络后重试。",
     allSupply: "\u5168\u90e8\u4f9b\u5e94\uff08\u65e0\u5e74\u9f84\u6570\u636e\uff09", peakLabel: "固定 ", peakBtn: "固定 Y 轴", peakBtnTitle: "把 Y 轴固定在当前位置，其他日期都按同一高度绘制（固定期间 Y 轴上限不可用）",
@@ -555,7 +555,7 @@ var T = {
     hoverPctTotal: "全体に占める割合: ",
     markUSD: "ここで最後に動いた USD 評価額: ", markBTC: "ここで最後に動いた BTC 供給量: ",
     markLth: "すべて長期保有者になるまで: ", markDays: " 日以内", markAllLth: "すでにすべて長期保有者",
-    markLthUSD: "長期保有者 USD 評価額: ", markSthUSD: "短期保有者 USD 評価額: ", markLthBTC: "長期保有者 BTC 供給量: ", markSthBTC: "短期保有者 BTC 供給量: ",
+    markLthUSD: "ここで最後に動いた長期保有者の USD 評価額: ", markSthUSD: "ここで最後に動いた短期保有者の USD 評価額: ", markLthBTC: "ここで最後に動いた長期保有者の BTC 供給量: ", markSthBTC: "ここで最後に動いた短期保有者の BTC 供給量: ",
     hoverTotalUSD: "最終移動時の評価額の合計: ", hoverTotalBTC: "供給量の合計: ", hoverDate: "日付: ",
     usdProfit: "含み益の最終移動 USD 評価額: ",
     usdLoss: "含み損の最終移動 USD 評価額: ",
