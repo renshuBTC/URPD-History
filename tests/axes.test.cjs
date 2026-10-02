@@ -304,7 +304,7 @@ test('a click and drag marks a range of prices instead of zooming; it stays, wit
   const want = 100 * 60000 / 200100;
   const flat = box.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '');
   // Every coin here is in the first age band, a short-term holder: all of the share is STH.
-  assert.equal(flat, 'Price: $50,000 \u2013 $65,000 USD Value Last Moved Here: ' + c.pctCompact(want) + ' LTH USD Value: 0% STH USD Value: ' + c.pctCompact(want), 'the range, its share and its split, wrapped');
+  assert.equal(flat, 'Price: $50,000 \u2013 $65,000 USD Value Last Moved Here: ' + c.pctCompact(want) + ' LTH USD Value Last Moved Here: 0% STH USD Value Last Moved Here: ' + c.pctCompact(want), 'the range, its share and its split, wrapped');
   assert.ok(!/All LTH|Already All/.test(box.text), 'AGE: no days line');
   // Inside the mark, as wide as it is, at the top: from 3 px inside its left edge to 3 px inside its right one.
   const bandPx = (65000 - 50000) / L.xaxis.range[1] * 1040;
@@ -361,8 +361,8 @@ test('a marked range\'s box splits its share between long- and short-term holder
   // Value: 60,000 short-term, 120,000 long-term in the mark, of 250,000 in the day.
   let text = await box();
   assert.match(text, /USD Value Last Moved Here: 72\.0%/);
-  assert.match(text, /LTH USD Value: 48\.0%/);
-  assert.match(text, /STH USD Value: 24\.0%/, 'and the two add up to the share above');
+  assert.match(text, /LTH USD Value Last Moved Here: 48\.0%/);
+  assert.match(text, /STH USD Value Last Moved Here: 24\.0%/, 'and the two add up to the share above');
   assert.match(text, /All LTH Within: 143 Days/, 'the youngest coins there are at least a week old');
   assert.ok(text.indexOf('LTH USD Value') < text.indexOf('STH USD Value') && text.indexOf('STH USD Value') < text.indexOf('All LTH'), 'LTH, then STH, then the days');
   const raw = element('chart').layout.annotations.find(a => a.xref === 'x' && a.width).text;
@@ -372,12 +372,12 @@ test('a marked range\'s box splits its share between long- and short-term holder
   c.coinMode = true;
   text = await box();
   assert.match(text, /BTC Supply Last Moved Here: 75\.0%/);
-  assert.match(text, /LTH BTC Supply: 50\.0%/);
-  assert.match(text, /STH BTC Supply: 25\.0%/);
+  assert.match(text, /LTH BTC Supply Last Moved Here: 50\.0%/);
+  assert.match(text, /STH BTC Supply Last Moved Here: 25\.0%/);
   // AGE has the split too, not the days.
   c.splitMode = false; c.coinMode = false;
   text = await box();
-  assert.match(text, /LTH USD Value: 48\.0%/); assert.match(text, /STH USD Value: 24\.0%/);
+  assert.match(text, /LTH USD Value Last Moved Here: 48\.0%/); assert.match(text, /STH USD Value Last Moved Here: 24\.0%/);
   assert.ok(!/All LTH|Already All/.test(text), text);
 });
 
