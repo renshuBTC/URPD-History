@@ -302,16 +302,16 @@ test('a click and drag marks a range of prices instead of zooming; it stays, wit
   const box = L.annotations.find(a => /Last Moved Here/.test(a.text.replace(/<br>/g, ' ')));
   assert.ok(box, 'a box with the figures');
   const want = 100 * 60000 / 200100;
-  const flat = box.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '');
-  // Every coin here is in the first age band, a short-term holder: all of the share is STH.
-  assert.equal(flat, 'Price: $50,000 \u2013 $65,000 USD Value Last Moved Here: ' + c.pctCompact(want) + ' LTH USD Value Last Moved Here: 0% STH USD Value Last Moved Here: ' + c.pctCompact(want), 'the range, its share and its split, wrapped');
+  const flat = box.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  // Every coin here is in the first age band: all of the share is <1h.
+  assert.equal(flat, 'Price: $50,000 \u2013 $65,000 USD Value Last Moved Here: ' + c.pctCompact(want) + ' <1h USD Value Last Moved Here: ' + c.pctCompact(want), 'the range, its share and its bands, wrapped');
   assert.ok(!/All LTH|Already All/.test(box.text), 'AGE: no days line');
   // Inside the mark, as wide as it is, at the top: from 3 px inside its left edge to 3 px inside its right one.
   const bandPx = (65000 - 50000) / L.xaxis.range[1] * 1040;
   assert.equal(box.xref, 'x'); assert.equal(box.x, 50000); assert.equal(box.xanchor, 'left'); assert.equal(box.xshift, 3);
   assert.equal(box.yref, 'paper'); assert.equal(box.y, 1); assert.equal(box.yanchor, 'top');
   assert.ok(Math.abs(box.width + 2 * (box.borderpad + box.borderwidth) - (bandPx - 6)) < 1e-6, 'the box spans the mark');
-  for (const row of box.text.split('<br>').map(r => r.replace(/<[^>]+>/g, ''))) assert.ok(row.length * 0.6 * box.font.size * 1.07 <= box.width + 1e-9, row + ' fits');
+  for (const row of box.text.split('<br>').map(r => r.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>'))) assert.ok(row.length * 0.6 * box.font.size * 1.07 <= box.width + 1e-9, row + ' fits');
   // As it looked while dragged (#markBand): a light tint between two thin white lines the full height of the plot.
   const tint = L.shapes.filter(s => s.type === 'rect' && s.xref === 'x' && s.fillcolor === c.MARK_TINT);
   assert.deepEqual(JSON.parse(JSON.stringify(tint.map(v => [v.x0, v.x1, v.y0, v.y1]))), [[50000, 65000, 0, 1]], 'tinted inside');
@@ -348,7 +348,7 @@ test('a marked range\'s box text wraps to the mark\'s width and shrinks only as 
   assert.equal(cjk.lines[0].join('').replace(/ /g, ''), '最后在此移动的美元价值占比:23.5%', 'nothing lost or doubled');
 });
 
-test('a marked range\'s box splits its share between long- and short-term holders, each of the whole day, in AGE as in LTH/STH', async () => {
+test('a marked range\'s box breaks its share down as the bars are coloured: by age band in AGE, by holders in LTH/STH, each part of the whole day', async () => {
   const { c, element } = app();
   // At $60,000: 1 coin a week old (short-term) and 2 coins three years old (long-term); at $70,000 one more long-term.
   const bands = () => { const a = new Array(23).fill(null).map(() => ({})); a[3] = { 60000: 1 }; a[13] = { 60000: 2, 70000: 1 }; return a; };
@@ -357,7 +357,7 @@ test('a marked range\'s box splits its share between long- and short-term holder
   c.priceHighLow = { high: null, low: null };   // no highs and lows: the age bands alone
   c.splitMode = true;
   c.rangeMark = { lo: 50000, hi: 65000 };
-  const box = async () => { await c.renderChart(data); return element('chart').layout.annotations.find(a => a.xref === 'x' && a.width).text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, ''); };
+  const box = async () => { await c.renderChart(data); return element('chart').layout.annotations.find(a => a.xref === 'x' && a.width).text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); };
   // Value: 60,000 short-term, 120,000 long-term in the mark, of 250,000 in the day.
   let text = await box();
   assert.match(text, /USD Value Last Moved Here: 72\.0%/);
@@ -378,11 +378,38 @@ test('a marked range\'s box splits its share between long- and short-term holder
   assert.match(text, /BTC Supply Last Moved Here: 75\.0%/);
   assert.match(text, /LTH BTC Supply Last Moved Here: 50\.0%/);
   assert.match(text, /STH BTC Supply Last Moved Here: 25\.0%/);
-  // AGE has the split too, not the days.
+  // AGE breaks it down by age band instead, youngest first, each in its colour: 1w-1m holds the short-term coin, 2y-3y
+  // the long-term ones; no holder lines, no days.
   c.splitMode = false; c.coinMode = false;
   text = await box();
-  assert.match(text, /LTH USD Value Last Moved Here: 48\.0%/); assert.match(text, /STH USD Value Last Moved Here: 24\.0%/);
-  assert.ok(!/All LTH|Already All/.test(text), text);
+  assert.match(text, /1w-1m USD Value Last Moved Here: 24\.0% 2y-3y USD Value Last Moved Here: 48\.0%$/);
+  assert.ok(!/LTH|STH|All LTH|Already All/.test(text), text);
+  assert.match(element('chart').layout.annotations.find(a => a.xref === 'x' && a.width).text, new RegExp("<span style='color:" + c.AGE_BAND_COLORS[13] + "'>2y-3y"));
+});
+
+test('a tall AGE box fits the plot\'s height: the bands in short, then the range and its share alone', async () => {
+  const { c, element } = app();
+  // One coin at $60,000 in each of the 23 bands.
+  const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: () => new Array(23).fill(null).map(() => ({ 60000: 1 })) });
+  const data = c.buildData(dates[50], raws[50]);
+  c.rangeMark = { lo: 50000, hi: 65000 };
+  const box = async (h) => {
+    await c.renderChart(data);                                  // the box takes the plot's height from the last drawing
+    element('chart')._fullLayout.yaxis = { _length: h };
+    await c.renderChart(data);
+    const a = element('chart').layout.annotations.find(a => a.xref === 'x' && a.width);
+    return { text: a.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'), rows: a.text.split('<br>').length, size: a.font.size };
+  };
+  let b = await box(2000);
+  assert.match(b.text, /<1h USD Value Last Moved Here: /, 'room for every line in full'); assert.match(b.text, />15y USD Value Last Moved Here: /);
+  b = await box(420);
+  assert.match(b.text, /<1h: \d/, 'in short'); assert.ok(!/<1h USD Value/.test(b.text));
+  assert.ok(b.rows * Math.round(b.size * 1.31) + 12 <= 420 - 6, 'inside the plot');
+  // (The price, $60,000, is inside the mark, so the box starts below the price box, about 69 px down.)
+  b = await box(200);
+  assert.ok(!/<1h/.test(b.text) && /^Price: .* USD Value Last Moved Here: 100\.0%$/.test(b.text), 'the range and its share: ' + b.text);
+  b = await box(120);
+  assert.equal(b.text, '100.0%', 'the share alone');
 });
 
 test('a marked range\'s share comes from the recorded prices, [a, b)', () => {
