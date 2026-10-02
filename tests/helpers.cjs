@@ -48,9 +48,9 @@ function app(overrides = {}) {
     },
     fetch() { throw new Error('Unexpected network request'); },
     Plotly: {
-      react(id, traces, layout) {
+      react(id, traces, layout, config) {
         const gd = element(id);
-        gd.data = traces; gd.layout = layout;
+        gd.data = traces; gd.layout = layout; gd.config = config;
         gd._fullLayout = { width: 1200, xaxis: { _length: 1040 }, legend: { _height: 29 } };
         return Promise.resolve();
       }
