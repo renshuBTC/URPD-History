@@ -284,16 +284,71 @@ test('landmark markers sit on the line\'s own extreme within a week, labelled in
   assert.equal(graph.layout.yaxis3.range[1], 67000, 'the line still fills the height');
 });
 
-test('a click and drag zooms the price axis only, its box whole columns the plot\'s full height', async () => {
+test('a click and drag marks a range of prices instead of zooming; it stays, with its share of the day', async () => {
   const { c, element } = app();
-  const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: () => [{ 60000: 1 }] });
-  await c.renderChart(c.buildData(dates[50], raws[50]));
-  const L = element('chart').layout;
-  assert.notEqual(L.xaxis.fixedrange, true, 'the price axis zooms');
-  assert.equal(L.yaxis.fixedrange, true, 'the left axis does not: Y-max and the pin set it');
-  assert.ok(L.xaxis2 && L.yaxis3, 'the price line is drawn');
-  assert.equal(L.xaxis2.fixedrange, true, 'the price line keeps its dates');
-  assert.equal(L.yaxis3.fixedrange, true, 'and its height');
+  const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: () => [{ 100: 1, 60000: 1, 70000: 2 }] });
+  const data = c.buildData(dates[50], raws[50]);
+  await c.renderChart(data);
+  let gd = element('chart'), L = gd.layout;
+  assert.equal(L.dragmode, false, 'Plotly neither zooms nor pans');
+  assert.equal(gd.config.doubleClick, false);
+  for (const b of ['zoom2d', 'pan2d', 'select2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']) assert.ok(gd.config.modeBarButtonsToRemove.includes(b), b);
+  for (const ax of ['xaxis', 'yaxis', 'xaxis2', 'yaxis3']) assert.equal(L[ax].fixedrange, true, ax);
+  assert.ok(!L.annotations.some(a => /Last Moved Here/.test(a.text)), 'nothing marked yet');
+  // A mark over the prices 50,000 to 65,000: the value there is the 60,000 stamp's, 60000 / (100 + 60000 + 140000).
+  c.rangeMark = { lo: 50000, hi: 65000 };
+  await c.renderChart(data);
+  L = element('chart').layout;
+  const box = L.annotations.find(a => /Last Moved Here/.test(a.text));
+  assert.ok(box, 'a box with the figures');
+  const want = 100 * 60000 / 200100;
+  assert.match(box.text, new RegExp('^Price: \\$50,000 \u2013 \\$65,000<br>Percent of USD Value Last Moved Here: ' + c.pctCompact(want).replace('.', '\\.')));
+  assert.ok(!/LTH/.test(box.text), 'AGE: no holder line');
+  const veils = L.shapes.filter(s => s.type === 'rect' && s.xref === 'x' && /rgba\(255,255,255,0.09\)/.test(s.fillcolor));
+  assert.deepEqual(JSON.parse(JSON.stringify(veils.map(v => [v.x0, v.x1]))), [[0, 50000], [65000, L.xaxis.range[1]]], 'the plot outside it shaded');
+  assert.equal(L.shapes.filter(s => s.xsizemode === 'pixel' || s.ysizemode === 'pixel').length, 8, 'a bracket at each corner');
+  // In % BTC the share is of the coins: 1 of 4.
+  c.coinMode = true;
+  await c.renderChart(data);
+  assert.match(element('chart').layout.annotations.find(a => /Last Moved Here/.test(a.text)).text, /Percent of BTC Supply Last Moved Here: 25\.0%/);
+  c.coinMode = false;
+  // Escape clears it.
+  c.rangeMark = { lo: 50000, hi: 65000 };
+  c.rangeMark = null;
+  await c.renderChart(data);
+  assert.ok(!element('chart').layout.annotations.some(a => /Last Moved Here/.test(a.text)), 'cleared');
+});
+
+test('a marked range\'s share comes from the recorded prices, [a, b)', () => {
+  const { c } = app();
+  const ladder = c.priceLadder({ 10: 1, 20: 2, 30: 3 });
+  assert.equal(c.shareInRange(ladder, 10, 20, true), 100 / 6, 'the 10 stamp, not the 20 one');
+  assert.equal(c.shareInRange(ladder, 10, 21, true), 50);
+  assert.equal(c.shareInRange(ladder, 0, 1000, false), 100);
+  assert.equal(c.shareInRange(ladder, 31, 40, false), 0);
+  assert.equal(c.shareInRange(c.priceLadder({}), 0, 10, false), null);
+});
+
+test('in LTH/STH a marked range gives the most days until every coin there is a long-term holder', () => {
+  const { c } = app();
+  // Day 1000 of BRK's index; the price was between 50 and 60 on day 990, ten days earlier, and nowhere near it since.
+  const dateStr = new Date(Date.UTC(2009, 0, 1) + 1000 * 864e5).toISOString().slice(0, 10);
+  const high = new Array(1001).fill(100), low = new Array(1001).fill(90);
+  high[990] = 58; low[990] = 52;
+  const age = new Array(23).fill(null).map(() => ({}));
+  age[3][55] = 1;   // 1w-1m: at least 7 days old
+  age[12][40] = 5;  // a long-term band, outside the range
+  const data = { dateStr, rawAge: age };
+  assert.equal(c.daysToAllLth(data, 50, 60), null, 'waits for the highs and lows');
+  c.priceHighLow = { high, low };
+  assert.equal(c.daysToAllLth(data, 50, 60), 140, 'the price was last there 10 days ago: 150 - 10');
+  age[3] = {}; age[4][55] = 1;   // the youngest band there is 1m-2m: at least 30 days old
+  assert.equal(c.daysToAllLth(data, 50, 60), 120);
+  assert.equal(c.daysToAllLth(data, 30, 50), 0, 'only long-term holders there');
+  c.priceHighLow = { high: null, low: null };
+  assert.equal(c.daysToAllLth(data, 50, 60), 120, 'without the highs and lows, the age bands alone');
+  high[1000] = 70; low[1000] = 54; c.priceHighLow = { high, low }; age[4] = {}; age[0][55] = 1;
+  assert.equal(c.daysToAllLth(data, 50, 60), 150, 'inside the range on the day itself, coins less than an hour old');
 });
 
 test('build-scales writes the history the page reads back, one day at a time', async () => {
