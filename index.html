@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-IUecG1P9TON98W/X0st5Wivj0Hq+xRrL5NrmRsFhGw4=' 'sha256-C57fumqflMkNGHCYmtzo4/bJmxgepnoG8d8do0MPlas=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-BOjwkL74/JwkEQ/JX5AxmfI17/wYx9/rNk6CODUL2ZI=' 'sha256-C57fumqflMkNGHCYmtzo4/bJmxgepnoG8d8do0MPlas=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -806,6 +806,45 @@ function plotWidthPx() {
   var fl = gd._fullLayout;
   if (fl && fl.xaxis && fl.xaxis._length > 0 && fl.width && Math.abs(fl.width - gd.clientWidth) < 1) return fl.xaxis._length;
   return Math.max(200, (gd.clientWidth || 1200) - 160);
+}
+// The lines between bars when they are too narrow (under a 2 px pitch) to be drawn a pixel apart: one line at each
+// boundary, in the background colour, from the axis up to the taller of the two bars beside it (the stack the legend
+// leaves showing), drawn over the bars. Where a bar has 1.5 device pixels or more, each line is one device pixel on the
+// screen's own pixel grid, so it is as sharp as a gap, and a line is left out only where it would take the last pixel of
+// the bar beside it. Below that the lines are thinner, a fainter seam that still shows.
+function barSeparators(bars, prices, xSpan, plotW, pitch, stacked) {
+  if (!(pitch > 0) || pitch >= 2 || prices.length < 2 || !(plotW > 0) || !(xSpan > 0)) return null;
+  var dpr = window.devicePixelRatio || 1, fit = 1;
+  if (window.__PHONE && window.getComputedStyle) fit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--fit")) || 1;
+  var scale = dpr * fit, pitchDev = pitch * scale;
+  if (pitchDev < 1) return null;   // under one device pixel a bar: nothing left to tell apart
+  var crisp = fit === 1 && pitchDev >= 1.5;
+  var gd = document.getElementById("chart"), fl = gd && gd._fullLayout;
+  var svg = gd && gd.querySelector ? gd.querySelector(".main-svg") : null;
+  var left = (svg && svg.getBoundingClientRect ? svg.getBoundingClientRect().left : 0) + ((fl && fl.xaxis && fl.xaxis._offset) || 0);
+  var dev = function(x) { return Math.round((left + x / xSpan * plotW) * dpr); };   // a price's device pixel edge
+  var shown = bars.filter(function(tr) { return tr.visible !== "legendonly"; });
+  var height = function(i) {
+    var h = 0;
+    for (var k = 0; k < shown.length; k++) { var v = shown[k].y[i] || 0; h = stacked ? h + v : Math.max(h, v); }
+    return h;
+  };
+  var half = (prices[1] - prices[0]) / 2, xs = [], ys = [], prev = height(0), edge = dev(prices[0] - half);
+  for (var j = 0; j + 1 < prices.length; j++) {
+    var next = height(j + 1), top = Math.max(prev, next);
+    prev = next;
+    var xb = (prices[j] + prices[j + 1]) / 2, here = edge;
+    if (crisp) {
+      edge = dev(xb);
+      if (edge - here < 2) continue;   // the bar to its left keeps no pixel of its own beside the line
+      xb = ((edge - 0.5) / dpr - left) / plotW * xSpan;   // the bar's last device pixel, centred
+    }
+    if (!(top > 0)) continue;
+    xs.push(xb, xb, null); ys.push(0, top, null);
+  }
+  if (!xs.length) return null;
+  return { x: xs, y: ys, type: "scatter", mode: "lines", line: { color: CHART_COLORS.bg, width: (crisp ? 1 : pitchDev / 2.5) / scale },
+    hoverinfo: "skip", showlegend: false, meta: "separators", connectgaps: false };
 }
 function scheduleRerender() {
   clearTimeout(resizeTimer);
@@ -1626,7 +1665,8 @@ function drawChart(data, plotSeq, navigationSeq) {
   // Plotly snaps every bar edge to a whole pixel (bargap 0). Each bar is narrowed by exactly one pixel of
   // the bin pitch, so after snapping every gap is exactly 1 px wide whatever the bin count or window width;
   // a fractional gap is what produced the uneven seams before. That holds from a 2 px pitch up (every bar
-  // keeps at least 1 px); below it the bars are drawn solid. Plotly rounds both edges of a bar only if it is
+  // keeps at least 1 px); below it the bars are drawn solid and the lines are drawn over them instead, on the
+  // screen's own pixels (barSeparators), so every view has them. Plotly rounds both edges of a bar only if it is
   // 2 px wide or more, or has an outline: a narrower bar without one it widens outwards to whole pixels,
   // which closed every gap at pitches under 3 px (625 bars on a 1920 px screen). So every bar has a
   // hairline, invisible outline (barOutline). The x-range is pinned to the binned span so the pitch is
@@ -2013,6 +2053,11 @@ function drawChart(data, plotSeq, navigationSeq) {
       if (traces[hw].name && traces[hw].name !== "BTC/USD" && legendHidden[traces[hw].meta || traces[hw].name]) traces[hw].visible = "legendonly";
     }
   }
+  // Lines between bars too narrow for a gap of their own (see "Bar separators"): over the bars, under the price line.
+  var lastBar = -1;
+  for (var tb = 0; tb < traces.length; tb++) if (traces[tb].type === "bar") lastBar = tb;
+  var separators = barSeparators(traces.filter(function(tr) { return tr.type === "bar"; }), chartPrices, xSpan, plotW, pitch, isAge);
+  if (separators && lastBar >= 0) traces.splice(lastBar + 1, 0, separators);
   if (IS_MOBILE) {
     // A picture, not a control surface. Drag-zoom and hover are turned off rather than
     // left to compete with the edge tap for the same touch.
