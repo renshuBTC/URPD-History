@@ -168,11 +168,11 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the four video buttons always show: VIDEO (% USD-AGE), (% USD-LTH/STH), (% BTC-AGE) and (% BTC-LTH/STH), each its latest video others can watch, else the channel', async () => {
+test('the four video buttons always show: VIDEO (% USD-LTH/STH), (% USD-AGE), (% BTC-LTH/STH) and (% BTC-AGE), each its latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
   // as the markup writes them: the play icon, VIDEO (which gives way in a narrow bar) and which video, in brackets
-  const BUTTONS = [['ytUsdAgeBtn', 'ytUsdAge', '% USD-AGE', 'usd-age'], ['ytUsdSplitBtn', 'ytUsdSplit', '% USD-LTH/STH', 'usd-lthsth'],
-    ['ytBtcAgeBtn', 'ytBtcAge', '% BTC-AGE', 'btc-age'], ['ytBtcSplitBtn', 'ytBtcSplit', '% BTC-LTH/STH', 'btc-lthsth']];
+  const BUTTONS = [['ytUsdSplitBtn', 'ytUsdSplit', '% USD-LTH/STH', 'usd-lthsth'], ['ytUsdAgeBtn', 'ytUsdAge', '% USD-AGE', 'usd-age'],
+    ['ytBtcSplitBtn', 'ytBtcSplit', '% BTC-LTH/STH', 'btc-lthsth'], ['ytBtcAgeBtn', 'ytBtcAge', '% BTC-AGE', 'btc-age']];
   for (const [id, key, name] of BUTTONS) {
     const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${key}Word" class="yt-word">Video</span><span id="${key}Tag" class="yt-tag">([^<]+)</span></a>`));
     assert.ok(a, id + ': a visible link that opens in a new tab: the play symbol on the left, VIDEO and which video, named for screen readers and tooltips');
@@ -184,7 +184,7 @@ test('the four video buttons always show: VIDEO (% USD-AGE), (% USD-LTH/STH), (%
     assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   }
   const at = BUTTONS.map(b => html.indexOf(`id="${b[0]}"`));
-  assert.deepEqual(at.slice().sort((x, y) => x - y), at, '% USD-AGE, % USD-LTH/STH, % BTC-AGE, % BTC-LTH/STH, left to right');
+  assert.deepEqual(at.slice().sort((x, y) => x - y), at, '% USD-LTH/STH, % USD-AGE, % BTC-LTH/STH, % BTC-AGE, left to right');
   assert.doesNotMatch(html, /ytFitBtn|id="ytBtn"|id="ytUsdBtn"|id="ytBtcBtn"|ytRawBtn|ytPct|yt-video/, 'no other video');
   assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
   assert.match(decls('#controls .yt-btn'), /border:\s*1px solid #595959/);
@@ -206,10 +206,10 @@ test('the four video buttons always show: VIDEO (% USD-AGE), (% USD-LTH/STH), (%
   assert.equal(btn['btc-lthsth'].title, 'Video (% BTC-LTH/STH): every day since 2010 as one 5-minute 4K video, each bar as its share of all the coins, split into short- and long-term holders, on YouTube (opens in a new tab)');
   for (const k in btn) assert.equal(btn[k].getAttribute('aria-label'), btn[k].title);
   assert.deepEqual(BUTTONS.map(b => [element(b[1] + 'Word').textContent, element(b[1] + 'Tag').textContent]),
-    [['Video', '% USD-AGE'], ['Video', '% USD-LTH/STH'], ['Video', '% BTC-AGE'], ['Video', '% BTC-LTH/STH']]);
+    [['Video', '% USD-LTH/STH'], ['Video', '% USD-AGE'], ['Video', '% BTC-LTH/STH'], ['Video', '% BTC-AGE']]);
   for (const [lang, video, tags, want] of [
-    ['zh', '视频', ['% USD-年龄', '% USD-长/短期', '% BTC-年龄', '% BTC-长/短期'], '视频（% USD-长/短期）：2011 年以来的每一天，一段 5 分钟的 4K 视频，每根柱子为其占已实现市值的百分比，分为短期与长期持有者，在 YouTube 上观看（在新标签页中打开）'],
-    ['ja', '動画', ['% USD-年齢', '% USD-長期/短期', '% BTC-年齢', '% BTC-長期/短期'], '動画（% USD-長期/短期）：2011年以降の毎日を 5 分の 4K 動画 1 本にまとめ、棒を実現時価総額に対する割合（%）で描き、短期保有者と長期保有者で色分けして YouTube で（新しいタブで開きます）']]) {
+    ['zh', '视频', ['% USD-长/短期', '% USD-年龄', '% BTC-长/短期', '% BTC-年龄'], '视频（% USD-长/短期）：2011 年以来的每一天，一段 5 分钟的 4K 视频，每根柱子为其占已实现市值的百分比，分为短期与长期持有者，在 YouTube 上观看（在新标签页中打开）'],
+    ['ja', '動画', ['% USD-長期/短期', '% USD-年齢', '% BTC-長期/短期', '% BTC-年齢'], '動画（% USD-長期/短期）：2011年以降の毎日を 5 分の 4K 動画 1 本にまとめ、棒を実現時価総額に対する割合（%）で描き、短期保有者と長期保有者で色分けして YouTube で（新しいタブで開きます）']]) {
     c.lang = lang; c.labelYouTube();
     assert.equal(btn['usd-lthsth'].title, want, lang);
     assert.deepEqual(BUTTONS.map(b => element(b[1] + 'Word').textContent), [video, video, video, video], lang);
@@ -268,29 +268,29 @@ test('data/youtube.json names each video by its YouTube id, or none yet', () => 
   }
 });
 
-test('AGE | LTH/STH sits right of USD/BTC, AGE on first; switching only draws the day on screen again, and a rolled-back change puts it back', () => {
+test('LTH/STH | AGE sits right of USD/BTC, LTH/STH on first; switching only draws the day on screen again, and a rolled-back change puts it back', () => {
   const { c, element } = app();
   const bar = html.slice(html.indexOf('<div id="controls"'), html.indexOf('<div id="toolbarEnd"'));
-  const usd = bar.indexOf('id="btnBTC"'), age = bar.indexOf('id="btnAge"'), split = bar.indexOf('id="btnSplit"'), pin = bar.indexOf('id="btnPeak"');
-  assert.ok(usd < age && age < split && split < pin, 'USD BTC | AGE LTH/STH | PIN Y-AXIS');
-  assert.match(bar, /<button id="btnAge" class="active" aria-pressed="true" title="[^"]+">AGE<\/button>/);
-  assert.match(bar, /<button id="btnSplit" aria-pressed="false" title="[^"]+">LTH\/STH<\/button>/);
-  assert.equal(c.splitMode, false, 'AGE by default');
+  const usd = bar.indexOf('id="btnBTC"'), split = bar.indexOf('id="btnSplit"'), age = bar.indexOf('id="btnAge"'), pin = bar.indexOf('id="btnPeak"');
+  assert.ok(usd < split && split < age && age < pin, 'USD BTC | LTH/STH AGE | PIN Y-AXIS');
+  assert.match(bar, /<button id="btnSplit" class="active" aria-pressed="true" title="[^"]+">LTH\/STH<\/button>/);
+  assert.match(bar, /<button id="btnAge" aria-pressed="false" title="[^"]+">AGE<\/button>/);
+  assert.equal(c.splitMode, true, 'LTH/STH by default');
   let redraws = 0, loads = 0;
   c.rerenderCurrent = () => { redraws++; };
   c.loadAndRender = () => { loads++; return Promise.resolve(); };
-  element('btnSplit').onclick();
-  assert.equal(c.splitMode, true);
-  assert.deepEqual([element('btnSplit').getAttribute('aria-pressed'), element('btnAge').getAttribute('aria-pressed')], ['true', 'false']);
-  element('btnSplit').onclick();
+  element('btnAge').onclick();
+  assert.equal(c.splitMode, false);
+  assert.deepEqual([element('btnSplit').getAttribute('aria-pressed'), element('btnAge').getAttribute('aria-pressed')], ['false', 'true']);
+  element('btnAge').onclick();
   assert.equal(redraws, 1, 'choosing the colouring already on does nothing');
   assert.equal(loads, 0, 'the same bars: nothing is fetched or binned again');
   const saved = c.captureChartSettings();
-  element('btnAge').onclick();
-  assert.deepEqual([c.splitMode, redraws], [false, 2]);
+  element('btnSplit').onclick();
+  assert.deepEqual([c.splitMode, redraws], [true, 2]);
   c.restoreChartSettings(saved); c.syncControls();
-  assert.equal(c.splitMode, true, 'a change that could not be drawn is rolled back with the rest');
-  assert.equal(element('btnSplit').getAttribute('aria-pressed'), 'true');
+  assert.equal(c.splitMode, false, 'a change that could not be drawn is rolled back with the rest');
+  assert.equal(element('btnAge').getAttribute('aria-pressed'), 'true');
   // In every language the switch reads as it should, with its tooltip.
   for (const [lang, ageW, splitW] of [['en', 'AGE', 'LTH/STH'], ['zh', '年龄', '长/短期'], ['ja', '年齢', '長期/短期']]) {
     c.lang = lang; c.applyLang();

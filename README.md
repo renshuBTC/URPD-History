@@ -21,7 +21,7 @@ cohorts, and its left axis refitted to each day's own bars.
 - **White line** is bitcoin’s own price on its own hidden axes: a year of time around the selected day, and linear from $0 to the highest close shown so far, so the line fills the chart and only rescales on a new high.
 - **Dashed vertical** is the spot price. Supply to its left last moved below it, supply to its right above it. It and the price box turn yellow when the **bottom signal** is on: at least the threshold set in the toolbar of the day in loss (80% of the value in % USD mode, 50% of the coins in % BTC mode by default).
 - **Colour** is age: yellow is fresh, deep blue is ancient, logarithmic in between. The 23 colours lie on one path through OKLCH, evenly spaced to the eye, with lightness falling from young to old so the order survives greyscale, and every band at least 3:1 against the background.
-- **LTH/STH** adds the same bands up into two at 150 days: short-term holders (STH, amber), the coins that moved within the last 150 days, under long-term holders (LTH, blue), the coins unmoved for 150 days or more. 150 days is Bitcoin Research Kit’s line between the two (Glassnode draws it at 155). The bars and axes are the same as in AGE; only the colours change.
+- **LTH/STH**, the default, adds the same bands up into two at 150 days: short-term holders (STH, amber), the coins that moved within the last 150 days, under long-term holders (LTH, blue), the coins unmoved for 150 days or more. 150 days is Bitcoin Research Kit’s line between the two (Glassnode draws it at 155). The bars and axes are the same as in AGE; only the colours change.
 
 Press **HOW TO READ** in the toolbar for the full explainer, in English, Chinese or Japanese.
 
@@ -34,18 +34,18 @@ Keyboard:
 - **W / S** or **↑ / ↓** — step interval up / down, one size at a time (1D → 1W → 1M → 1Y, and round again)
 - **Home / End** — first / last date
 
-% USD / % BTC and AGE / LTH/STH are switched with their toolbar buttons.
+% USD / % BTC and LTH/STH / AGE are switched with their toolbar buttons.
 
 Toolbar, left to right:
 
 - Interval, date navigation, and a **CYCLE TOP/BTM** dropdown for cycle tops and bottoms
 - **% USD / % BTC** — weight by dollar value at last move, or by coins, each bar drawn as its share of the day
-- **AGE / LTH/STH** — colour each bar by its 23 age bands, or split it into short- and long-term holders at 150 days
+- **LTH/STH / AGE** — split each bar into short- and long-term holders at 150 days (the default), or colour it by its 23 age bands
 - **Bottom signal** — the share of the day in loss (value in % USD mode, 80% by default; coins in % BTC mode, 50%) at which the dashed line and the price box turn yellow and the box adds a line naming the threshold
 - **Bins**, **Smoothing** and **Y-max** — bins, how many equal-width bars the price axis is cut into up to the highest price so far (625 by default, 50 to 1000), with one more past it that takes in what the smoothing spreads beyond it, and each bar's width in dollars on the day shown after the count (BINS 625 $201); smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, the percentile of the day’s bar heights where the left axis ends (100 in % USD mode, 99.8 in % BTC mode, each kept as you type it)
 - **PIN Y-AXIS** — freeze the left axis where it is on the day you are viewing so other days can be compared against it; the Y-max field is off while it holds
 - **Click and drag** across the chart — mark a range of prices (whole columns); the mark stays as you move through the days and switch modes until a double-click or Escape clears it, and gives the share of the day that last moved inside it (of the value in % USD, of the coins in % BTC) and, in LTH/STH, the most days until every coin there is a long-term holder
-- **VIDEO (% USD-AGE)**, **VIDEO (% USD-LTH/STH)**, **VIDEO (% BTC-AGE)** and **VIDEO (% BTC-LTH/STH)** for the latest 5-minute full-history videos on YouTube, one for each weighting and colouring (each opens the channel until there is a video of it others can watch)
+- **VIDEO (% USD-LTH/STH)**, **VIDEO (% USD-AGE)**, **VIDEO (% BTC-LTH/STH)** and **VIDEO (% BTC-AGE)** for the latest 5-minute full-history videos on YouTube, one for each weighting and colouring (each opens the channel until there is a video of it others can watch)
 - together at the right-hand end: **?** for the explainer and the GitHub mark for the source, as icons, and the language toggle
 
 The chart's camera icon saves a PNG of it; there is no video download.
@@ -67,12 +67,12 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-**VIDEO (% USD-AGE)**, **VIDEO (% USD-LTH/STH)**, **VIDEO (% BTC-AGE)** and **VIDEO (% BTC-LTH/STH)** in the toolbar each open
+**VIDEO (% USD-LTH/STH)**, **VIDEO (% USD-AGE)**, **VIDEO (% BTC-LTH/STH)** and **VIDEO (% BTC-AGE)** in the toolbar each open
 the whole history as one video on YouTube, drawn as the page draws that choice by default: USD with the left axis at
 each day’s tallest bar (each frame’s, as the days blend into each other), from 2011-01-31, the first day with any value
 on the chart, and BTC with Y-max at 99.8, its first bar running off the top with its height printed, from 2010-05-18,
-when the first price comes onto the chart; the bars in their 23 age bands (AGE) or as short- and long-term holders
-(LTH/STH); the bottom signal at its default threshold (80% in loss in USD, 50% in BTC); all four to the latest day,
+when the first price comes onto the chart; the bars as short- and long-term holders (LTH/STH) or in their 23 age bands
+(AGE); the bottom signal at its default threshold (80% in loss in USD, 50% in BTC); all four to the latest day,
 5:00 at 60 fps in 4K (3840×2160).
 The **Weekly videos** workflow draws all four again once a week on GitHub’s runners, one runner each, taking in the week
 just ended, and posts them to YouTube (see [Posting to YouTube](#posting-to-youtube)). Run by hand (**Actions → Weekly
