@@ -119,6 +119,7 @@ test('both axes are labelled at twenty equal steps from 0 to their very end, to 
 
 test('hovering a bar gives the whole bar\'s total and its running share of the day, with no separate line', async () => {
   const { c, element } = app();
+  c.splitMode = false;                                          // in AGE: each bar is its band
   const { dates, raws } = market(c, { cohorts: () => [{ 900: 1, 1000: 2 }, { 1000: 1 }] });
   for (const coin of [false, true]) {
     c.coinMode = coin;
@@ -286,6 +287,7 @@ test('landmark markers sit on the line\'s own extreme within a week, labelled in
 
 test('a click and drag marks a range of prices instead of zooming; it stays, with its share of the day', async () => {
   const { c, element } = app();
+  c.splitMode = false;                                          // in AGE: the box lists the age bands
   const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: () => [{ 100: 1, 60000: 1, 70000: 2 }] });
   const data = c.buildData(dates[50], raws[50]);
   await c.renderChart(data);
@@ -389,6 +391,7 @@ test('a marked range\'s box breaks its share down as the bars are coloured: by a
 
 test('a tall AGE box fits the plot\'s height: the bands in short, then the range and its share alone', async () => {
   const { c, element } = app();
+  c.splitMode = false;
   // One coin at $60,000 in each of the 23 bands.
   const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: () => new Array(23).fill(null).map(() => ({ 60000: 1 })) });
   const data = c.buildData(dates[50], raws[50]);
