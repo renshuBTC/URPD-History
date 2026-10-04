@@ -1,15 +1,19 @@
-# Bitcoin URPD
+# Bitcoin URPD: UTXO realized price distribution, every day since 2009
 
-Every bitcoin that exists last moved at some price. Sort them into price buckets,
-add up the supply in each, and you get this chart. A tall bar is a price where a lot
-of supply last changed position; a gap is a price where almost none did. The formal
-name is URPD, the UTXO Realised Price Distribution.
+**Website: [BitcoinURPD.com](https://www.bitcoinurpd.com)**
 
-What is unusual here is the history: most published versions show only today, this
-one steps through every day back to 2009-01-03, with each bar split into 23 age
-cohorts, and its left axis refitted to each day's own bars.
+The Bitcoin URPD (UTXO Realized Price Distribution) sorts every bitcoin by the price at which it last moved on-chain
+and adds up the supply at each price. BitcoinURPD.com draws it for every day since 2009-01-03, each bar split into
+short- and long-term holders (LTH/STH, at 150 days) or into 23 age bands, with the left axis fitted to each day's own
+bars. It is a cost-basis distribution of the whole bitcoin supply: a tall bar is a price where a lot of supply last
+moved, a gap is a price where almost none did, and the price box gives the share of the day's value (or coins) in
+profit and in loss at the day's price. Data from Bitcoin Research Kit.
 
-**Live: <https://www.bitcoinurpd.com>**
+- **Scrub through history:** drag the orange dot along the price line, or use **← / →** (step size **1D / 1W / 1M /
+  1Y**, keys **1** to **4**); see [Controls](#controls).
+- **Full-history videos:** four 5-minute 4K videos on YouTube, one for each weighting and colouring (% USD or % BTC,
+  LTH/STH or AGE), opened by the video buttons in the toolbar; see [How it works](#how-it-works).
+- **Explainer** in English, Chinese and Japanese: **?** in the toolbar.
 
 ## Reading it
 
@@ -23,9 +27,11 @@ cohorts, and its left axis refitted to each day's own bars.
 - **Colour** is age: yellow is fresh, deep blue is ancient, logarithmic in between. The 23 colours lie on one path through OKLCH, evenly spaced to the eye, with lightness falling from young to old so the order survives greyscale, and every band at least 3:1 against the background.
 - **LTH/STH**, the default, adds the same bands up into two at 150 days: short-term holders (STH, amber), the coins that moved within the last 150 days, under long-term holders (LTH, blue), the coins unmoved for 150 days or more. 150 days is Bitcoin Research Kit’s line between the two (Glassnode draws it at 155). The bars and axes are the same as in AGE; only the colours change.
 
-Press **HOW TO READ** in the toolbar for the full explainer, in English, Chinese or Japanese.
+Press **?** (How to read this chart) in the toolbar for the full explainer, in English, Chinese or Japanese.
 
 ## Controls
+
+Mouse: drag the orange dot along the white price line to any day.
 
 Keyboard:
 
@@ -155,6 +161,11 @@ axes, render completion, the axis-history builder, the video’s store and the s
 rules (`tests/security.test.cjs`). GitHub Actions runs the same checks on pushes and
 pull requests. After editing an inline script in `index.html`, run
 `node tools/update-csp.cjs` so the Content-Security-Policy allows the new version.
+
+## Related
+
+- [Ethereum URPD](https://www.ethereumurpd.com) ([source](https://github.com/renshuBTC/Ethereum-URPD-History)): the
+  same chart for Ethereum, every day since 2015.
 
 ## Credits
 
