@@ -162,11 +162,6 @@ rules (`tests/security.test.cjs`). GitHub Actions runs the same checks on pushes
 pull requests. After editing an inline script in `index.html`, run
 `node tools/update-csp.cjs` so the Content-Security-Policy allows the new version.
 
-## Related
-
-- [Ethereum URPD](https://www.ethereumurpd.com) ([source](https://github.com/renshuBTC/Ethereum-URPD-History)): the
-  same chart for Ethereum, every day since 2015.
-
 ## Credits
 
 - **URPD** — introduced by [Renato Shirakashi](https://x.com/renato_shira) in April 2020, popularised and extended by [James Check](https://x.com/_checkmatey_)
