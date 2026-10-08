@@ -32,7 +32,7 @@ test('each video draws one of the site\'s weightings and colourings as the site 
   assert.equal(STH_BANDS, c.STH_BANDS);
   assert.deepEqual(HOLDER_COLORS, [c.STH_COLOR, c.LTH_COLOR]);
   assert.deepEqual(HOLDER_LABELS, [en.sth, en.lth]);
-  assert.deepEqual(Object.keys(LOOKS), ['usd-age', 'btc-age', 'usd-lthsth', 'btc-lthsth'], 'in the order of the site\'s video buttons');
+  assert.deepEqual(Object.keys(LOOKS), ['usd-age', 'btc-age', 'usd-lthsth', 'btc-lthsth'], 'in the order of the site\'s videos menu');
   for (const [k, L] of Object.entries(LOOKS)) {
     // Each look is one of the site's weightings (VIEW_MODES), with the Y-max the site starts it at (yMaxByMode), and
     // one of its colourings.
@@ -254,7 +254,7 @@ test('the record step writes all four videos, and keeps a video\'s last viewable
   for (const l of ALL) { every[K(l) + '_ID'] = ids[l]; every[K(l) + '_PRIVACY'] = l === 'btc-age' ? 'public' : 'unlisted'; }
   const all = JSON.parse(record(every, before));
   assert.deepEqual(Object.keys(all), ['about', ...ALL], 'the committed file\'s layout');
-  assert.match(all.about, /^The latest videos on YouTube for the site's four video buttons, one for each weighting and colouring: .* Written by \.github\/workflows\/video\.yml /);
+  assert.match(all.about, /^The latest videos on YouTube for the site's FULL HISTORY VIDEOS menu, one for each weighting and colouring: .* Written by \.github\/workflows\/video\.yml /);
   assert.equal(all.about, JSON.parse(before).about, 'the committed file says the same');
   for (const l of ALL) assert.deepEqual(all[l], { id: ids[l], end: '2026-09-25' }, l);
   assert.equal(record(every, before), JSON.stringify(all, null, 2) + '\n', 'the same layout as the committed file');

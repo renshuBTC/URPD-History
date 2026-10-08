@@ -4,7 +4,7 @@ name: Site check
 # (the domain or GitHub Pages) turns this workflow red and GitHub emails the owner:
 #   - https://www.bitcoinurpd.com/ serves this repository's index.html, byte for byte, and plain http redirects there
 #   - so are the two pages it links to (privacy.html, terms.html) and the data it loads from this site:
-#     data/youtube.json, which says where its video buttons go, and data/scales.json, the axis history
+#     data/youtube.json, which says where its videos menu's links go, and data/scales.json, the axis history
 # The page links to no file to download (tests/security.test.cjs), so a live page that is index.html links to none either.
 on:
   schedule:
