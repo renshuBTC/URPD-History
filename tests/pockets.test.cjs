@@ -127,10 +127,10 @@ test('TIME POCKETS draws the pockets in LTH/STH in a marked range\'s place, name
   assert.deepEqual([c.timePockets, c.rangeMark], [true, null]);
 });
 
-test('PIN Y-AXIS and TIME POCKETS come right after LTH/STH | AGE, named in each language', () => {
+test('TIME POCKETS and PIN Y-AXIS come right after LTH/STH | AGE, in that order, named in each language', () => {
   const { c, element } = app();
-  assert.match(html, /<button id="btnAge"[^>]*>[^<]*<\/button>\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*<button id="btnPeak"[^>]*>Pin Y-axis<\/button>\s*<button id="btnPockets" aria-pressed="false" title="Time pockets: [^"]+">Time pockets<\/button>\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<label class="field" id="signalWrap"/,
-    'AGE, then PIN Y-AXIS and TIME POCKETS together, then BOTTOM SIGNAL');
+  assert.match(html, /<button id="btnAge"[^>]*>[^<]*<\/button>\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*<button id="btnPockets" aria-pressed="false" title="Time pockets: [^"]+">Time pockets<\/button>\s*<button id="btnPeak"[^>]*>Pin Y-axis<\/button>\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<label class="field" id="signalWrap"/,
+    'AGE, then TIME POCKETS and PIN Y-AXIS together, then BOTTOM SIGNAL');
   assert.match(html, /#controls button:disabled \{ opacity: 0\.4; cursor: not-allowed; \}/, 'dimmed where it does not apply');
   for (const [lang, word] of [['zh', '时间口袋'], ['ja', 'タイムポケット'], ['en', 'Time pockets']]) {
     c.lang = lang; c.applyLang();
