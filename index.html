@@ -255,6 +255,10 @@
     <button id="btnAge" aria-pressed="false" title="AGE: each bar stacked out of 23 age bands, by how long its coins have sat unmoved">AGE</button>
   </div>
   <div class="ctrl-sep"></div>
+  <div class="mode-toggle">
+    <button id="btnPeak" aria-pressed="false" title="Pin the Y-axis where it is now, so every other day is drawn against the same height (the Y-max field is off while it is pinned)">Pin Y-axis</button>
+  </div>
+  <div class="ctrl-sep"></div>
   <label class="field" id="signalWrap" title="Bottom signal: the dashed line and the price box turn yellow, and the box says so, once at least this share of the day is in loss (USD: its value, 80 by default; BTC: its coins, 50 by default). Each mode keeps the value you type">
     <span class="field-label">Bottom signal</span><input type="text" id="signalInput" value="80" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="field-unit">% IN LOSS</span>
   </label>
@@ -270,10 +274,6 @@
   <label class="field" id="ymaxWrap" title="Y-max: where the left axis ends, as a percentile of the day's bar heights (100 = the tallest bar; BTC starts at 99.8, so its tallest bar runs off the top, marked ▲). Off while the Y-axis is pinned">
     <span class="field-label">Y-max</span><input type="text" id="ymaxInput" value="100" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="field-unit">PCTL</span>
   </label>
-  <div class="ctrl-sep"></div>
-  <div class="mode-toggle">
-    <button id="btnPeak" aria-pressed="false" title="Pin the Y-axis where it is now, so every other day is drawn against the same height (the Y-max field is off while it is pinned)">Pin Y-axis</button>
-  </div>
   <div class="ctrl-sep"></div>
   <!-- The chart's four full-history videos, in one menu (on YouTube: the site offers no file to download), one for each
        weighting and colouring,
