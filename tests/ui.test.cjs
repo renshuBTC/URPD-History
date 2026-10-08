@@ -132,8 +132,8 @@ test('the toolbar is one row that never scrolls; the videos menu in words, then 
   assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
   assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|signalWrap|btnPockets|ytMenuBtn|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
-    ['btnUSD', 'btnBTC', 'btnSplit', 'btnAge', 'signalWrap', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'btnPeak', 'btnPockets', 'ytMenuBtn', 'ytUsdSplitBtn', 'ytUsdAgeBtn', 'ytBtcSplitBtn', 'ytBtcAgeBtn'],
-    'USD | BTC, LTH/STH | AGE, BOTTOM SIGNAL, BINS left of SMOOTHING, Y-MAX, PIN Y-AXIS and TIME POCKETS on their right, then FULL HISTORY VIDEOS and its four videos');
+    ['btnUSD', 'btnBTC', 'btnSplit', 'btnAge', 'btnPeak', 'btnPockets', 'signalWrap', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'ytMenuBtn', 'ytUsdSplitBtn', 'ytUsdAgeBtn', 'ytBtcSplitBtn', 'ytBtcAgeBtn'],
+    'USD | BTC, LTH/STH | AGE, then PIN Y-AXIS and TIME POCKETS, BOTTOM SIGNAL, BINS left of SMOOTHING and Y-MAX, then FULL HISTORY VIDEOS and its four videos');
   // The videos in the menu show their icon and words: VIDEO and which video, in brackets.
   for (const [key, tag] of [['UsdAge', '% USD-AGE'], ['BtcAge', '% BTC-AGE'], ['UsdSplit', '% USD-LTH/STH'], ['BtcSplit', '% BTC-LTH/STH']])
     assert.match(bar, new RegExp(`id="yt${key}Btn"[^>]*>\\s*<svg[\\s\\S]*?</svg><span id="yt${key}Word" class="yt-word">Video</span><span id="yt${key}Tag" class="yt-tag">${tag}</span></a>`), 'the videos say what they give you: ' + tag);
