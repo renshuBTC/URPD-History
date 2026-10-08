@@ -131,9 +131,9 @@ test('the toolbar is one row that never scrolls; the videos menu in words, then 
   assert.deepEqual([...end.matchAll(/\sid="(explainWrap|githubLink|langBtn)"/g)].map(m => m[1]), ['explainWrap', 'githubLink', 'langBtn'], 'How to read, GitHub and the language together at the right-hand end');
   assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|signalWrap|btnPockets|ytMenuBtn|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
-    ['btnUSD', 'btnBTC', 'btnSplit', 'btnAge', 'btnPockets', 'btnPeak', 'signalWrap', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'ytMenuBtn', 'ytUsdSplitBtn', 'ytUsdAgeBtn', 'ytBtcSplitBtn', 'ytBtcAgeBtn'],
-    'USD | BTC, LTH/STH | AGE, then TIME POCKETS and PIN Y-AXIS, BOTTOM SIGNAL, BINS left of SMOOTHING and Y-MAX, then FULL HISTORY VIDEOS and its four videos');
+  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|signalWrap|ytMenuBtn|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
+    ['btnUSD', 'btnBTC', 'btnSplit', 'btnAge', 'signalWrap', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'btnPeak', 'ytMenuBtn', 'ytUsdSplitBtn', 'ytUsdAgeBtn', 'ytBtcSplitBtn', 'ytBtcAgeBtn'],
+    'USD | BTC, LTH/STH | AGE, BOTTOM SIGNAL, BINS left of SMOOTHING, Y-MAX, PIN Y-AXIS on their right, then FULL HISTORY VIDEOS and its four videos');
   // The videos in the menu show their icon and words: VIDEO and which video, in brackets.
   for (const [key, tag] of [['UsdAge', '% USD-AGE'], ['BtcAge', '% BTC-AGE'], ['UsdSplit', '% USD-LTH/STH'], ['BtcSplit', '% BTC-LTH/STH']])
     assert.match(bar, new RegExp(`id="yt${key}Btn"[^>]*>\\s*<svg[\\s\\S]*?</svg><span id="yt${key}Word" class="yt-word">Video</span><span id="yt${key}Tag" class="yt-tag">${tag}</span></a>`), 'the videos say what they give you: ' + tag);
@@ -178,7 +178,7 @@ test('the bar fits its one row: each step only if the row does not fit without i
   // wide, where the row runs past the window at every step), and a window of W px: the bar's own width, in its own
   // (zoomed) pixels, is W / zoom. extra: what BINS adds on the first days, $0.0016 against $201.
   let W = 0, extra = 0;
-  const need = () => extra + (classes.has('tight') ? 1664 : classes.has('dense') ? 1810 : 2116);
+  const need = () => extra + (classes.has('tight') ? 1571 : classes.has('dense') ? 1704 : 2000);
   Object.defineProperty(bar, 'scrollWidth', { get: () => need() });
   Object.defineProperty(bar, 'clientWidth', { get: () => W / (parseFloat(bar.style.zoom) || 1) });
   const fit = (w) => { W = w; c.fitToolbarWords(); return [[...classes].join(' '), bar.style.zoom || '', bar.style['--bar-zoom'] || '']; };
@@ -187,11 +187,11 @@ test('the bar fits its one row: each step only if the row does not fit without i
   extra = 21;
   assert.deepEqual(fit(1920), ['dense', '', ''], 'on the first days too');
   extra = 0;
-  assert.deepEqual(fit(1700), ['dense tight', '', '']);
-  assert.deepEqual(fit(1366), ['dense tight', '0.82', '0.82'], 'narrower still: the whole bar drawn just small enough, every word kept');
+  assert.deepEqual(fit(1650), ['dense tight', '', '']);
+  assert.deepEqual(fit(1366), ['dense tight', '0.869', '0.869'], 'narrower still: the whole bar drawn just small enough, every word kept');
   const [cls, zoom, varZoom] = fit(1000);
   assert.equal(cls, 'dense tight');
-  assert.ok(+zoom >= 0.59 && +zoom <= 1000 / 1664, zoom);
+  assert.ok(+zoom > 0.6 && +zoom <= 1000 / 1571, zoom);
   assert.equal(varZoom, zoom, 'the panel and the menu are told how far to undo it');
   assert.ok(need() <= W / +zoom + 1, 'and then it fits');
   assert.deepEqual(fit(2560), ['', '', ''], 'a wider window takes every step back');
