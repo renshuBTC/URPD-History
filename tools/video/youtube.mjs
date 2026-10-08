@@ -6,7 +6,7 @@
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
 // so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
 //
-// The video goes up unlisted: anyone with the link can watch it (the site's video buttons), but it is shown neither
+// The video goes up unlisted: anyone with the link can watch it (the site's videos menu), but it is shown neither
 // on the channel nor in search. Its title is the chart's own title for its last day, which names its weighting and
 // colouring. Until
 // the Google Cloud project behind the credentials passes YouTube's API audit, YouTube records every upload as private

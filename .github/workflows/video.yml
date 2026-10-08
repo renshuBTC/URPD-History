@@ -15,7 +15,7 @@ name: Weekly videos
 #               run which day they reach (the site does not link to them)
 #   5. youtube-usd-age, youtube-btc-age, youtube-usd-lthsth, youtube-btc-lthsth: post each to YouTube, unlisted
 #               (tools/video/youtube.mjs), once the channel's credentials are set up, each from a job of its own
-#   6. record:  names them in data/youtube.json for the site's four video buttons, once YouTube lets others watch them
+#   6. record:  names them in data/youtube.json for the site's FULL HISTORY VIDEOS menu, once YouTube lets others watch them
 #
 # A run started by hand draws all four at once, or with "only" just one of them, outside the weekly cycle: that one is
 # vetted, attested, posted and named for its button as usual, but the release and its notes (which set the week) are
@@ -386,7 +386,7 @@ jobs:
           for k in 1 2 3 4 5; do gh release edit video --notes "$NOTES" && break; [ "$k" = 5 ] && exit 1; sleep $((k * 5)); done
 
   youtube-usd-age:
-    # Posts the % USD-AGE video (each bar its share of the realized cap, in age bands) to YouTube, unlisted: anyone with the link can watch it (the site's video button links it),
+    # Posts the % USD-AGE video (each bar its share of the realized cap, in age bands) to YouTube, unlisted: anyone with the link can watch it (the site's videos menu links it),
     # but it is shown neither on the channel nor in search. Its title is the chart's own title on its last day, which
     # names its weighting and colouring. The channel's OAuth credentials are three repository secrets (see README), seen
     # only by the two steps that use them. Without them the job does nothing, so the videos are published the same
@@ -579,7 +579,7 @@ jobs:
         run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$VIDEO_BTC_LTHSTH" "$START" "$END" btc-lthsth >> "$GITHUB_OUTPUT"
 
   record:
-    # Names the new videos in data/youtube.json for the site's four video buttons. A video that others cannot watch yet
+    # Names the new videos in data/youtube.json for the site's FULL HISTORY VIDEOS menu. A video that others cannot watch yet
     # (a private upload, or none because its post failed) is not recorded: its button keeps the last one they could, or
     # opens the channel. Runs when any post was viewable, also when others failed.
     needs: [update, youtube-usd-age, youtube-btc-age, youtube-usd-lthsth, youtube-btc-lthsth]
@@ -623,7 +623,7 @@ jobs:
           BA=$(entry btc-age "$BTC_AGE_ID" "$BTC_AGE_PRIVACY")
           UL=$(entry usd-lthsth "$USD_LTHSTH_ID" "$USD_LTHSTH_PRIVACY")
           BL=$(entry btc-lthsth "$BTC_LTHSTH_ID" "$BTC_LTHSTH_PRIVACY")
-          ABOUT="The latest videos on YouTube for the site's four video buttons, one for each weighting and colouring: usd-age and btc-age, each bar as its share of the day's realized cap and of all the coins, stacked in age bands (VIDEO (% USD-AGE), VIDEO (% BTC-AGE)), and usd-lthsth and btc-lthsth, split into short- and long-term holders (VIDEO (% USD-LTH/STH), VIDEO (% BTC-LTH/STH)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
+          ABOUT="The latest videos on YouTube for the site's FULL HISTORY VIDEOS menu, one for each weighting and colouring: usd-age and btc-age, each bar as its share of the day's realized cap and of all the coins, stacked in age bands (VIDEO (% USD-AGE), VIDEO (% BTC-AGE)), and usd-lthsth and btc-lthsth, split into short- and long-term holders (VIDEO (% USD-LTH/STH), VIDEO (% BTC-LTH/STH)). Written by .github/workflows/video.yml once an upload is viewable (unlisted or public); null until then."
           jq -n --arg about "$ABOUT" --argjson ua "$UA" --argjson ba "$BA" --argjson ul "$UL" --argjson bl "$BL" \
             '{about: $about, "usd-age": $ua, "btc-age": $ba, "usd-lthsth": $ul, "btc-lthsth": $bl}' > "$RUNNER_TEMP/youtube.json"
           mv "$RUNNER_TEMP/youtube.json" data/youtube.json

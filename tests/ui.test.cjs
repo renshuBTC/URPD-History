@@ -121,7 +121,7 @@ test('an open How to read panel follows the toolbar when it re-fits, under the b
   assert.equal(panel.style.top, '65px');
 });
 
-test('the toolbar is one row that never scrolls; two videos in words, then How to read and GitHub as icons and the language button, together at the right', () => {
+test('the toolbar is one row that never scrolls; the videos menu in words, then How to read and GitHub as icons and the language button, together at the right', () => {
   assert.match(decls('#controls'), /flex-wrap:\s*nowrap/);
   assert.match(decls('#controls'), /overflow:\s*hidden/);
   assert.doesNotMatch(decls('#controls'), /overflow-x|scrollbar|flex-wrap:\s*wrap/);
@@ -131,37 +131,36 @@ test('the toolbar is one row that never scrolls; two videos in words, then How t
   assert.deepEqual([...end.matchAll(/\sid="(explainWrap|githubLink|langBtn)"/g)].map(m => m[1]), ['explainWrap', 'githubLink', 'langBtn'], 'How to read, GitHub and the language together at the right-hand end');
   assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
   const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|signalWrap|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
-    ['btnUSD', 'btnBTC', 'btnSplit', 'btnAge', 'signalWrap', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'btnPeak', 'ytUsdSplitBtn', 'ytUsdAgeBtn', 'ytBtcSplitBtn', 'ytBtcAgeBtn'],
-    'USD | BTC, LTH/STH | AGE, BOTTOM SIGNAL, BINS left of SMOOTHING, Y-MAX, PIN Y-AXIS on their right, then the four videos');
-  // The video buttons show their icon and words, at the weight of the other buttons: VIDEO, which gives way in a
-  // narrow bar, and which video, in brackets.
+  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|signalWrap|ytMenuBtn|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
+    ['btnUSD', 'btnBTC', 'btnSplit', 'btnAge', 'signalWrap', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'btnPeak', 'ytMenuBtn', 'ytUsdSplitBtn', 'ytUsdAgeBtn', 'ytBtcSplitBtn', 'ytBtcAgeBtn'],
+    'USD | BTC, LTH/STH | AGE, BOTTOM SIGNAL, BINS left of SMOOTHING, Y-MAX, PIN Y-AXIS on their right, then FULL HISTORY VIDEOS and its four videos');
+  // The videos in the menu show their icon and words: VIDEO and which video, in brackets.
   for (const [key, tag] of [['UsdAge', '% USD-AGE'], ['BtcAge', '% BTC-AGE'], ['UsdSplit', '% USD-LTH/STH'], ['BtcSplit', '% BTC-LTH/STH']])
-    assert.match(bar, new RegExp(`id="yt${key}Btn"[^>]*>\\s*<svg[\\s\\S]*?</svg><span id="yt${key}Word" class="yt-word">Video</span><span id="yt${key}Tag" class="yt-tag">${tag}</span></a>`), 'the video buttons say what they give you: ' + tag);
+    assert.match(bar, new RegExp(`id="yt${key}Btn"[^>]*>\\s*<svg[\\s\\S]*?</svg><span id="yt${key}Word" class="yt-word">Video</span><span id="yt${key}Tag" class="yt-tag">${tag}</span></a>`), 'the videos say what they give you: ' + tag);
   // How to read and GitHub: their icons only, named by their tooltips and for screen readers.
   assert.match(end, /<a id="githubLink"[^>]*aria-label="View code on GitHub \(opens in a new tab\)" title="View code on GitHub \(opens in a new tab\)">\s*<svg[\s\S]*?<\/svg>\s*<\/a>/);
   assert.match(end, /<button id="explainBtn" aria-label="How to read this chart" title="How to read this chart" aria-expanded="false"><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><\/button>/);
   assert.doesNotMatch(html, /btn-word|explainLabel/);
-  // In a narrower bar the video buttons drop VIDEO, which their icon already says (compact, below).
+  // Nothing gives way to fit: no word is shortened or dropped.
   assert.doesNotMatch(html, /yt-tag-short|yt-tag-full|yt-video|controls\.short/);
   // Transitions would be measured half-way, so the buttons animate their colours only.
   for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
-  // To fit: the spacing tightens (dense), the type goes a size down (tight), a row at most 11% too wide is drawn that
-  // much smaller, else the video buttons drop VIDEO and keep % USD-AGE and the rest (compact), and last the whole bar is
-  // drawn smaller; the How to read panel undoes that.
+  // To fit: the spacing tightens (dense), the type goes a size down (tight), and last the whole bar is drawn smaller;
+  // the How to read panel and the videos menu undo that.
   assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
   assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);
   assert.match(decls('#controls.tight button'), /font-size:\s*11px;\s*letter-spacing:\s*0/);
-  assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
+  assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-word($|::)/.test(x))), 'VIDEO never goes');
   assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'which video it is never goes');
   assert.match(decls('#explainPanel'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
+  assert.match(decls('#ytMenu'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
   // The bar keeps its buttons on one line (nowrap), and the panel inside it wraps its text again: it scrolls down only.
   assert.match(decls('#controls'), /white-space:\s*nowrap/);
   assert.match(decls('#explainPanel'), /white-space:\s*normal/);
   assert.match(decls('#explainPanel'), /overflow-x:\s*hidden/);
   assert.match(decls('#explainPanel'), /overflow-wrap:\s*anywhere/);
   assert.match(decls('#explainPanel .formula'), /white-space:\s*pre-wrap/);
-  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight", "compact"\], TOOLBAR_LIGHT_ZOOM = 0\.89;/);
+  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight"\];/);
   for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
   const { c, element } = app();
   for (const lang of ['zh', 'ja', 'en']) {
@@ -175,25 +174,25 @@ test('the bar fits its one row: each step only if the row does not fit without i
   const { c, element } = app();
   const bar = element('controls'), classes = new Set();
   bar.classList = { add: (k) => classes.add(k), remove: (k) => classes.delete(k), contains: (k) => classes.has(k), toggle() {} };
-  // The row's width at each step, as measured in English on the latest day, BINS 625 $201 (tools: a browser at
-  // 3000 px), and a window of W px: the bar's own width, in its own (zoomed) pixels, is W / zoom.
-  const need = () => (classes.has('compact') ? 1893 : classes.has('tight') ? 2113 : classes.has('dense') ? 2190 : 2522);
-  let W = 0;
+  // The row's width at each step, as measured in English on the latest day, BINS 625 $201 (tools: a browser 1000 px
+  // wide, where the row runs past the window at every step), and a window of W px: the bar's own width, in its own
+  // (zoomed) pixels, is W / zoom. extra: what BINS adds on the first days, $0.0016 against $201.
+  let W = 0, extra = 0;
+  const need = () => extra + (classes.has('tight') ? 1571 : classes.has('dense') ? 1704 : 2000);
   Object.defineProperty(bar, 'scrollWidth', { get: () => need() });
   Object.defineProperty(bar, 'clientWidth', { get: () => W / (parseFloat(bar.style.zoom) || 1) });
   const fit = (w) => { W = w; c.fitToolbarWords(); return [[...classes].join(' '), bar.style.zoom || '', bar.style['--bar-zoom'] || '']; };
   assert.deepEqual(fit(2560), ['', '', ''], 'room for everything');
-  assert.deepEqual(fit(2200), ['dense', '', '']);
-  assert.deepEqual(fit(2150), ['dense tight', '', '']);
-  assert.deepEqual(fit(1920), ['dense tight', '0.908', '0.908'], '1920 px: every word, drawn 9% smaller');
-  assert.deepEqual(fit(1890), ['dense tight', '0.894', '0.894'], 'at most 11% too wide: every word, drawn that much smaller');
-  // On the first days BINS reads $0.0016, 21 px more: at 1920 px the words stay, drawn at 0.899 (0.9 would drop them).
-  assert.ok(Math.floor(1000 * 1920 / (2113 + 21)) / 1000 >= 0.89);
-  assert.deepEqual(fit(1870), ['dense tight compact', '0.987', '0.987'], 'more than 11% too wide: the videos keep % USD-AGE and the rest');
-  const [cls, zoom, varZoom] = fit(1440);
-  assert.equal(cls, 'dense tight compact');
-  assert.ok(+zoom > 0.7 && +zoom <= 1440 / 1893, zoom);
-  assert.equal(varZoom, zoom, 'the panel is told how far to undo it');
+  assert.deepEqual(fit(1920), ['dense', '', ''], '1920 px: every word at full size, only the spacing tightened');
+  extra = 21;
+  assert.deepEqual(fit(1920), ['dense', '', ''], 'on the first days too');
+  extra = 0;
+  assert.deepEqual(fit(1650), ['dense tight', '', '']);
+  assert.deepEqual(fit(1366), ['dense tight', '0.869', '0.869'], 'narrower still: the whole bar drawn just small enough, every word kept');
+  const [cls, zoom, varZoom] = fit(1000);
+  assert.equal(cls, 'dense tight');
+  assert.ok(+zoom > 0.6 && +zoom <= 1000 / 1571, zoom);
+  assert.equal(varZoom, zoom, 'the panel and the menu are told how far to undo it');
   assert.ok(need() <= W / +zoom + 1, 'and then it fits');
   assert.deepEqual(fit(2560), ['', '', ''], 'a wider window takes every step back');
 });

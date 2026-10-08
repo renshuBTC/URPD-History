@@ -57,8 +57,8 @@ Sigstore). To check a copy of any of them:
   jobs after the vetting take the vetted videos by their exact names, never another file the renderer could have left.
 - **A watch:** the [Site check](.github/workflows/site-check.yml) workflow checks four times a day that
   www.bitcoinurpd.com serves this repository's `index.html` byte for byte, and its privacy and terms pages and the
-  data it loads from the site (`data/youtube.json`, where the video buttons go, and `data/scales.json`), so a page
-  changed anywhere on the way (a download slipped in, say, or a video button sent elsewhere) turns it red, and that
+  data it loads from the site (`data/youtube.json`, where the videos menu's links go, and `data/scales.json`), so a page
+  changed anywhere on the way (a download slipped in, say, or a video link sent elsewhere) turns it red, and that
   plain http is sent to https. If anything differs it fails, and
   GitHub emails the owner.
 

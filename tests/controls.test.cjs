@@ -1,4 +1,4 @@
-// The toolbar's controls: the date box, the step sizes, the settings fields, pins, the four video buttons and the
+// The toolbar's controls: the date box, the step sizes, the settings fields, pins, the videos menu and the
 // languages (the two Y-MAX buttons: ymax-modes.test.cjs). Each test here pins down a bug the 2026-09-24 audit found.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -168,14 +168,23 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   }
 });
 
-test('the four video buttons always show: VIDEO (% USD-LTH/STH), (% USD-AGE), (% BTC-LTH/STH) and (% BTC-AGE), each its latest video others can watch, else the channel', async () => {
+test('FULL HISTORY VIDEOS: one menu in the bar holding the four videos, VIDEO (% USD-LTH/STH), (% USD-AGE), (% BTC-LTH/STH) and (% BTC-AGE), each its latest video others can watch, else the channel', async () => {
   const CHANNEL = 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg';
-  // as the markup writes them: the play icon, VIDEO (which gives way in a narrow bar) and which video, in brackets
+  // as the markup writes them: the play icon, VIDEO and which video, in brackets
   const BUTTONS = [['ytUsdSplitBtn', 'ytUsdSplit', '% USD-LTH/STH', 'usd-lthsth'], ['ytUsdAgeBtn', 'ytUsdAge', '% USD-AGE', 'usd-age'],
     ['ytBtcSplitBtn', 'ytBtcSplit', '% BTC-LTH/STH', 'btc-lthsth'], ['ytBtcAgeBtn', 'ytBtcAge', '% BTC-AGE', 'btc-age']];
+  // The menu's button, like the bar's others: the play icon, FULL HISTORY VIDEOS and a caret; under it, the list.
+  const menu = html.match(/<div id="ytWrap"><button id="ytMenuBtn" class="yt-btn" aria-haspopup="true" aria-expanded="false" aria-controls="ytMenu" aria-label="([^"]+)" title="([^"]+)">(<svg[\s\S]*?<\/svg>)<span id="ytMenuWord">Full history videos<\/span>(<svg class="yt-caret"[\s\S]*?<\/svg>)<\/button><div id="ytMenu" role="menu" aria-label="Full history videos">\n([\s\S]*?)  <\/div><\/div>\n/);
+  assert.ok(menu, 'one button, FULL HISTORY VIDEOS, and the menu it opens');
+  assert.equal(menu[1], "Full history videos: the chart's every day, in four videos on YouTube");
+  assert.equal(menu[1], menu[2]);
+  for (const icon of [menu[3], menu[4]]) {
+    assert.match(icon, /aria-hidden="true"/);
+    assert.equal(icon.replace(/<[^>]*>/g, '').trim(), '', 'its icons are only pictures');
+  }
   for (const [id, key, name] of BUTTONS) {
-    const a = html.match(new RegExp(`<a id="${id}" class="yt-btn" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${key}Word" class="yt-word">Video</span><span id="${key}Tag" class="yt-tag">([^<]+)</span></a>`));
-    assert.ok(a, id + ': a visible link that opens in a new tab: the play symbol on the left, VIDEO and which video, named for screen readers and tooltips');
+    const a = menu[5].match(new RegExp(`<a id="${id}" class="yt-item" role="menuitem" href="([^"]+)" target="_blank" rel="noopener noreferrer" aria-label="([^"]+)" title="([^"]+)">(<svg[\\s\\S]*?</svg>)<span id="${key}Word" class="yt-word">Video</span><span id="${key}Tag" class="yt-tag">([^<]+)</span></a>`));
+    assert.ok(a, id + ': in the menu, a link that opens in a new tab: the play symbol on the left, VIDEO and which video, named for screen readers and tooltips');
     assert.equal(a[1], CHANNEL, 'the channel until the page learns of a video');
     assert.equal(a[5], name);
     assert.equal(a[2], `Video (${name}): on YouTube once YouTube lets others watch it; until then this opens the channel (new tab)`);
@@ -183,18 +192,24 @@ test('the four video buttons always show: VIDEO (% USD-LTH/STH), (% USD-AGE), (%
     assert.match(a[4], /aria-hidden="true"/);
     assert.equal(a[4].replace(/<[^>]*>/g, '').trim(), '', 'the icon is only a picture');
   }
+  assert.equal(menu[5].match(/<a /g).length, 4, 'the four, and nothing else');
   const at = BUTTONS.map(b => html.indexOf(`id="${b[0]}"`));
-  assert.deepEqual(at.slice().sort((x, y) => x - y), at, '% USD-LTH/STH, % USD-AGE, % BTC-LTH/STH, % BTC-AGE, left to right');
+  assert.deepEqual(at.slice().sort((x, y) => x - y), at, '% USD-LTH/STH, % USD-AGE, % BTC-LTH/STH, % BTC-AGE, top to bottom');
   assert.doesNotMatch(html, /ytFitBtn|id="ytBtn"|id="ytUsdBtn"|id="ytBtcBtn"|ytRawBtn|ytPct|yt-video/, 'no other video');
   assert.doesNotMatch(html, /\.yt-btn\[hidden\]|#ytBtn\[hidden\]|el\.hidden/, 'never hidden');
   assert.match(decls('#controls .yt-btn'), /border:\s*1px solid #595959/);
   assert.match(decls('#controls .yt-btn:hover'), /border-color:\s*#fff/);
   assert.match(decls('.yt-btn:focus-visible'), /outline:\s*2px solid #fff/);
-  // The bracketed name beside VIDEO, and on its own where VIDEO gives way.
+  assert.match(decls('#controls #ytMenuBtn[aria-expanded="true"]'), /background:\s*#fff;\s*color:\s*#000/);
+  // The menu hangs under the bar, fixed (the bar's one row would clip it), at full size whatever the bar's zoom.
+  assert.match(decls('#ytMenu'), /display:\s*none/);
+  assert.match(decls('#ytMenu'), /position:\s*fixed/);
+  assert.match(decls('#ytMenu'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
+  assert.match(decls('#ytMenu .yt-item:focus-visible'), /background:\s*#fff;\s*color:\s*#000/);
+  // The bracketed name beside VIDEO; nothing gives way in a narrow bar any more (the bar is drawn smaller instead).
   assert.match(decls('#controls .yt-tag::before'), /content:\s*"\("/);
   assert.match(decls('#controls .yt-tag::after'), /content:\s*"\)"/);
-  assert.match(decls('#controls.compact .yt-word'), /display:\s*none/);
-  assert.match(decls('#controls.compact .yt-tag::before'), /content:\s*none/);
+  assert.doesNotMatch(html, /\.compact|"compact"/);
   // data/youtube.json names each video once others can watch it; anything else leaves that button on the channel.
   const { c, element } = app(), btn = Object.fromEntries(BUTTONS.map(b => [b[3], element(b[0])]));
   const IDS = { 'usd-age': 'dQw4w9WgXcQ', 'btc-age': 'Abc_123-xyZ', 'usd-lthsth': 'Usd_Lth-Sth', 'btc-lthsth': 'Btc_Lth-Sth' };
@@ -254,6 +269,45 @@ test('the four video buttons always show: VIDEO (% USD-LTH/STH), (% USD-AGE), (%
     assert.equal(h.element('ytBtcSplitBtn').href, found ? 'https://www.youtube.com/watch?v=Abc_123-xyZ' : CHANNEL);
     assert.equal(h.element('ytBtcAgeBtn').href, CHANNEL);
   }
+  // The menu's button says FULL HISTORY VIDEOS in the page's language, its spoken name starting with those words.
+  for (const [lang, word] of [['zh', '完整历史视频'], ['ja', '全期間の動画'], ['en', 'Full history videos']]) {
+    c.lang = lang; c.labelYouTube();
+    assert.equal(element('ytMenuWord').textContent, word, lang);
+    assert.ok(element('ytMenuBtn').title.startsWith(word + (lang === 'en' ? ': ' : '：')), lang);
+    assert.equal(element('ytMenuBtn').getAttribute('aria-label'), element('ytMenuBtn').title, lang);
+    assert.equal(element('ytMenu').getAttribute('aria-label'), word, lang);
+  }
+});
+
+test('the videos menu opens and shuts from its button; while it is open its keys are its own and the chart stays where it is', () => {
+  const { c, element, docListeners } = app();
+  const menu = element('ytMenu'), btn = element('ytMenuBtn');
+  assert.equal(c.ytMenuIsOpen(), false);
+  let focused = null;
+  for (const id of ['ytUsdSplitBtn', 'ytUsdAgeBtn', 'ytBtcSplitBtn', 'ytBtcAgeBtn', 'ytMenuBtn'])
+    element(id).focus = function () { focused = id; c.document.activeElement = this; };
+  c.setYtMenu(true);
+  assert.deepEqual([menu.style.display, btn.getAttribute('aria-expanded'), c.ytMenuIsOpen(), focused], ['block', 'true', true, null], 'opened by a click: the focus stays where it was');
+  c.setYtMenu(false);
+  assert.deepEqual([menu.style.display, btn.getAttribute('aria-expanded'), c.ytMenuIsOpen()], ['none', 'false', false]);
+  // Opened from the keyboard, the first video takes the focus; Down, Up, Home and End move through the four, round again.
+  c.setYtMenu(true, true);
+  assert.equal(focused, 'ytUsdSplitBtn');
+  const press = (key) => { let prevented = false; docListeners.keydown[0]({ key, target: { tagName: 'A' }, preventDefault() { prevented = true; } }); return prevented; };
+  const before = [c.stepIdx, c.currentIdx];
+  assert.ok(press('ArrowDown')); assert.equal(focused, 'ytUsdAgeBtn');
+  assert.ok(press('End')); assert.equal(focused, 'ytBtcAgeBtn');
+  assert.ok(press('ArrowDown')); assert.equal(focused, 'ytUsdSplitBtn', 'round again');
+  assert.ok(press('ArrowUp')); assert.equal(focused, 'ytBtcAgeBtn');
+  assert.ok(press('Home')); assert.equal(focused, 'ytUsdSplitBtn');
+  assert.equal(press('d'), false, 'the chart\'s own keys do nothing while the menu is open');
+  assert.equal(press('Tab'), false, 'Tab moves on, as everywhere');
+  assert.deepEqual([c.stepIdx, c.currentIdx], before, 'the step size and the day stay as they were');
+  // Escape shuts it and hands the focus back to its button; then the keys are the chart's again.
+  assert.ok(press('Escape'));
+  assert.deepEqual([c.ytMenuIsOpen(), btn.getAttribute('aria-expanded'), focused], [false, 'false', 'ytMenuBtn']);
+  assert.ok(press('ArrowUp'));
+  assert.equal(c.stepIdx, (before[0] + 1) % 4);
 });
 
 test('data/youtube.json names each video by its YouTube id, or none yet', () => {
