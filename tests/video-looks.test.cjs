@@ -1,7 +1,7 @@
 // The four videos, one for each of the site's weightings (USD and BTC) and colourings (AGE and LTH/STH): each draws its
 // bars and its left axis as the site does in that weighting by default (Y-max 100 in USD, 99.8 in BTC, with the ▲ figure
 // for the bars it cuts), colours them as the site does and words its chart as the site's English does
-// (tools/video/looks.mjs and render.mjs against index.html); the Weekly videos workflow draws them once a week, renders,
+// (tools/video/looks.mjs and render.mjs against index.html); the Monthly videos workflow draws them once a month, renders,
 // publishes and posts all four, and its record step keeps each video's last viewable upload in data/youtube.json. The videos before them stay on the release under their
 // own names, which nothing here writes.
 const test = require('node:test');
@@ -320,13 +320,17 @@ function due({ NOTES = '', GH_ERR = '', SCALES_END = '2026-12-31', ...env }) {
 }
 function haveGnuDate() { try { return execFileSync('date', ['-u', '-d', '2026-09-24 + 7 days', '+%F'], { encoding: 'utf8' }).trim() === '2026-10-01'; } catch (e) { return false; } }
 
-test('new videos are drawn once a week: seven days after the published ones, at once if there are none, and on a run started by hand', { skip: !haveGnuDate() && 'needs GNU date' }, () => {
+test('new videos are drawn once a month: a month after the published ones, at once if there are none, and on a run started by hand', { skip: !haveGnuDate() && 'needs GNU date' }, () => {
   const shown = (day) => notes('2010-05-18', day);   // the notes the publish job wrote for videos through that day
-  assert.equal(due({ END: '2026-09-30', NOTES: shown('2026-09-24') }).render, false, 'six days on');
-  assert.match(due({ END: '2026-09-30', NOTES: shown('2026-09-24') }).said, /the next are drawn once the store reaches 2026-10-01/);
-  assert.equal(due({ END: '2026-10-01', NOTES: shown('2026-09-24') }).render, true, 'seven days on');
-  assert.equal(due({ END: '2026-10-04', NOTES: shown('2026-09-24') }).render, true, 'after missed runs');
-  assert.equal(due({ END: '2027-01-04', NOTES: shown('2026-12-28') }).render, true, 'across a year');
+  assert.equal(due({ END: '2026-10-01', NOTES: shown('2026-09-24') }).render, false, 'a week on');
+  assert.equal(due({ END: '2026-10-23', NOTES: shown('2026-09-24') }).render, false, 'a day short of a month');
+  assert.match(due({ END: '2026-10-23', NOTES: shown('2026-09-24') }).said, /the next are drawn once the store reaches 2026-10-24/);
+  assert.equal(due({ END: '2026-10-24', NOTES: shown('2026-09-24') }).render, true, 'a month on');
+  assert.equal(due({ END: '2026-10-27', NOTES: shown('2026-09-24') }).render, true, 'after missed runs');
+  assert.equal(due({ END: '2027-01-28', NOTES: shown('2026-12-28') }).render, true, 'across a year');
+  // From the last day of a long month, GNU date's month runs into the first days of the month after a short one.
+  assert.match(due({ END: '2026-03-02', NOTES: shown('2026-01-31') }).said, /the next are drawn once the store reaches 2026-03-03/);
+  assert.equal(due({ END: '2026-03-03', NOTES: shown('2026-01-31') }).render, true, 'a month on from 31 January');
   assert.equal(due({ END: '2026-09-20', NOTES: shown('2026-09-24') }).render, false, 'a store still catching up');
   assert.match(due({ END: '2026-09-20', NOTES: shown('2026-09-24') }).said, /behind the published videos/);
   // By hand: new videos whenever the store is not behind, the same days included.
@@ -334,7 +338,7 @@ test('new videos are drawn once a week: seven days after the published ones, at 
     assert.equal(due({ END, NOTES: shown('2026-09-24'), GITHUB_EVENT_NAME: 'workflow_dispatch' }).render, want, END);
   }
   // The schedule itself stays daily: the axis history needs every day.
-  assert.match(workflow, /^name: Weekly videos$/m);
+  assert.match(workflow, /^name: Monthly videos$/m);
   assert.match(workflow, /- cron: "23 1 \* \* \*"\n\s+- cron: "23 5 \* \* \*"/);
 });
 
@@ -356,7 +360,7 @@ test('the published videos\' day is the last date in the notes the publish job w
     'SHA-256 of BitcoinSupplyChart.com-Y-Max-Expands-On-ATH.mp4: 70b66800dbf61eaefb35658f4274b60e7cc095487e4c4196ebfb3bd1614345b4\n' +
     'SHA-256 of BitcoinSupplyChart.com-Y-Max-Always-At-100-Percent.mp4: fbc491f51f289eaafa515cdb99113cd4871850c5b7d7ef5c11d446845eceea9e\n' +
     'Check either: gh attestation verify FILE --repo renshuBTC/URPD-History (see SECURITY.md)';
-  assert.match(due({ END: '2026-09-27', NOTES: ymax }).said, /The published videos run to 2026-09-26; the next are drawn once the store reaches 2026-10-03\./);
+  assert.match(due({ END: '2026-09-27', NOTES: ymax }).said, /The published videos run to 2026-09-26; the next are drawn once the store reaches 2026-10-26\./);
   assert.equal(due({ END: '2026-09-27', NOTES: ymax, GITHUB_EVENT_NAME: 'workflow_dispatch' }).render, true, 'by hand, at once');
 });
 

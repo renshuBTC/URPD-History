@@ -1,13 +1,13 @@
-name: Weekly videos
+name: Monthly videos
 
-# Once a week, four videos of the whole history for YouTube, one for each weighting and colouring the site draws, as it
+# Once a month, four videos of the whole history for YouTube, one for each weighting and colouring the site draws, as it
 # draws it by default (tools/video/looks.mjs): each bar as its share of the day's realized cap (% USD) with the left
 # axis at each day's tallest bar, and as its share of all the coins (% BTC) with it at the 99.8th percentile of each
 # day's bars, each stacked in the 23 age bands (AGE) and split into short- and long-term holders (LTH/STH).
 # The workflow runs every day all the same, because its first job also keeps the site's axis history current:
 #   1. update:  adds the day that just ended to the axis history (data/scales.json, committed to main) and to the
 #               videos' store (the files on the "video-store-2" release), and decides whether new videos are due: once
-#               the store reaches seven days past the published ones, or on a run started by hand
+#               the store reaches a month past the published ones, or on a run started by hand
 #   2. render:  draws each 4K video with tools/video, each on a runner of its own
 #   3. vet:     accepts each file only if it is exactly the expected video, and rewrites its container keeping only
 #               the picture
@@ -17,9 +17,9 @@ name: Weekly videos
 #               (tools/video/youtube.mjs), once the channel's credentials are set up, each from a job of its own
 #   6. record:  names them in data/youtube.json for the site's FULL HISTORY VIDEOS menu, once YouTube lets others watch them
 #
-# A run started by hand draws all four at once, or with "only" just one of them, outside the weekly cycle: that one is
-# vetted, attested, posted and named for its button as usual, but the release and its notes (which set the week) are
-# left as they are, and the next weekly run draws both together again.
+# A run started by hand draws all four at once, or with "only" just one of them, outside the monthly cycle: that one is
+# vetted, attested, posted and named for its button as usual, but the release and its notes (which set the month) are
+# left as they are, and the next monthly run draws all four together again.
 #
 # The jobs are split by trust. Only this repository's own code runs with a token that can write (update, publish,
 # record), and none of them ever parses a video. The YouTube credentials are seen only by the two steps of each
@@ -43,7 +43,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Draw and post all four videos, or only one of them now, outside the weekly cycle (the release and its week stay as they are)"
+        description: "Draw and post all four videos, or only one of them now, outside the monthly cycle (the release and its month stay as they are)"
         type: choice
         options: [all, usd-age, btc-age, usd-lthsth, btc-lthsth]
         default: all
@@ -158,13 +158,14 @@ jobs:
             [ "$k" = 5 ] && { cat "$RUNNER_TEMP/notes.err" >&2; exit 1; }
             sleep $((k * 5))
           done
-          # New videos once a week: when the store reaches seven days past the published ones. With none published,
+          # New videos once a month: when the store reaches a month past the published ones (GNU date's month: the same
+          # day of the next month, or the first days of the one after when the next is too short). With none published,
           # once the store has every day the axis history has: a lost store is rebuilt over several runs, and a short
           # video must not go out meanwhile. While it is rebuilt it stays behind the published videos, and shorter
           # videos must not replace the full ones. A run started by hand draws new videos whenever the store is not
           # behind.
           SCALES_END=$(node -p "require('./data/scales.json').end")
-          DUE=$([ -n "$SHOWN" ] && date -u -d "$SHOWN + 7 days" +%F || true)
+          DUE=$([ -n "$SHOWN" ] && date -u -d "$SHOWN + 1 month" +%F || true)
           if [ -z "$SHOWN" ] && [ "$END" != "$SCALES_END" ]; then
             echo "No videos are published yet, and the store runs to $END of $SCALES_END: it catches up first."
           elif [ -z "$SHOWN" ] || [[ ! "$END" < "$DUE" ]] || { [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [[ ! "$END" < "$SHOWN" ]]; }; then
@@ -359,7 +360,7 @@ jobs:
         with:
           subject-path: ${{ runner.temp }}/vetted/*.mp4
 
-      # The release holds the four videos of one week together, and its notes set the next week's date: a run by hand
+      # The release holds the four videos of one month together, and its notes set the next month's date: a run by hand
       # for one video leaves them all as they are (its video is attested above and posted to YouTube below).
       - name: Publish the videos
         if: needs.update.outputs.only == 'all'
@@ -372,7 +373,7 @@ jobs:
           sha() { sha256sum "$RUNNER_TEMP/vetted/$1" | cut -d' ' -f1; }
           # The last date in these notes is how the next run knows which day the published videos reach: none may
           # follow $END.
-          NOTES="Four videos, one for each of the site's weightings and colourings, as the site draws it by default: $VIDEO_USD_AGE and $VIDEO_USD_LTHSTH (% USD: each bar its share of the day's realized cap, the left axis at each day's tallest bar), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC_AGE and $VIDEO_BTC_LTHSTH (% BTC: each bar its share of all the coins, the left axis at the 99.8th percentile of each day's bars, the first bar running off the top with its share printed there), every day from $START (the first with anything on the chart), the -AGE ones stacked in 23 age bands and the -LTH-STH ones split into short- and long-term holders at 150 days, all four to $END. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a week by the Weekly videos workflow, which posts them to YouTube; the site does not link to these files. The videos drawn before them (BitcoinSupplyChart.com-*.mp4) are kept here as they were.
+          NOTES="Four videos, one for each of the site's weightings and colourings, as the site draws it by default: $VIDEO_USD_AGE and $VIDEO_USD_LTHSTH (% USD: each bar its share of the day's realized cap, the left axis at each day's tallest bar), every day from $START_USD (the first with a realized cap above zero), and $VIDEO_BTC_AGE and $VIDEO_BTC_LTHSTH (% BTC: each bar its share of all the coins, the left axis at the 99.8th percentile of each day's bars, the first bar running off the top with its share printed there), every day from $START (the first with anything on the chart), the -AGE ones stacked in 23 age bands and the -LTH-STH ones split into short- and long-term holders at 150 days, all four to $END. 5 minutes at 60 fps, 3840x2160, H.264. Drawn again once a month by the Monthly videos workflow, which posts them to YouTube; the site does not link to these files. The videos drawn before them (BitcoinSupplyChart.com-*.mp4) are kept here as they were.
 
           SHA-256 of $VIDEO_USD_AGE: $(sha "$VIDEO_USD_AGE")
           SHA-256 of $VIDEO_BTC_AGE: $(sha "$VIDEO_BTC_AGE")

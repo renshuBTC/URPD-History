@@ -1,7 +1,7 @@
 // Posts one of the week's four videos to the channel on YouTube, one for each of the site's weightings and colourings
 // (looks.mjs): each bar as its share of the day's realized cap (usd-, % USD), with the left axis at each day's tallest
 // bar, or of all the coins (btc-, % BTC), with it at the 99.8th percentile of each day's bars, in their 23 age bands (-age) or split into short- and long-term holders
-// (-lthsth). The Weekly videos workflow's four youtube jobs run it, one for each video, once they are published on
+// (-lthsth). The Monthly videos workflow's four youtube jobs run it, one for each video, once they are published on
 // GitHub. It speaks the YouTube Data API's resumable upload itself
 // (https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol) with Node's own http and https,
 // so the job that holds the channel's credentials runs nothing installed, only this repository's own code.
