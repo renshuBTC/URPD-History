@@ -80,17 +80,17 @@ on the chart, and BTC with Y-max at 99.8, its first bar running off the top with
 when the first price comes onto the chart; the bars as short- and long-term holders (LTH/STH) or in their 23 age bands
 (AGE); the bottom signal at its default threshold (80% in loss in USD, 50% in BTC); all four to the latest day,
 5:00 at 60 fps in 4K (3840×2160).
-The **Weekly videos** workflow draws all four again once a week on GitHub’s runners, one runner each, taking in the week
-just ended, and posts them to YouTube (see [Posting to YouTube](#posting-to-youtube)). Run by hand (**Actions → Weekly
+The **Monthly videos** workflow draws all four again once a month on GitHub’s runners, one runner each, taking in the month
+since the last ones, and posts them to YouTube (see [Posting to YouTube](#posting-to-youtube)). Run by hand (**Actions → Monthly
 videos → Run workflow**), it draws all four at once, or with **only** (`usd-age`, `btc-age`, `usd-lthsth` or
-`btc-lthsth`) just one of them: run with `all`, it publishes and posts all four and starts a new week; with one, that
-one is posted and its link in the menu updated, while the release and its week stay as they are until the next weekly run draws
+`btc-lthsth`) just one of them: run with `all`, it publishes and posts all four and starts a new month; with one, that
+one is posted and its link in the menu updated, while the release and its month stay as they are until the next monthly run draws
 all four together.
 The site offers no file to download, so that a break-in could not use it to hand anyone a file. The workflow keeps its
 latest renders on the `video` release, whose notes tell the next run which day they reach; nothing links to them. A
 render goes out only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
 It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there; `tools/video/looks.mjs` holds the
-four looks), from a store of every day’s bars in their age bands, in dollars and in coins, kept on the `video-store-2` release: past days never change, so each day’s run adds the new day, and once a week the 18,000 frames
+four looks), from a store of every day’s bars in their age bands, in dollars and in coins, kept on the `video-store-2` release: past days never change, so each day’s run adds the new day, and once a month the 18,000 frames
 of each video are drawn again. Free for a public
 repository.
 
@@ -98,8 +98,8 @@ The price axis needs the whole history to be a function of the date alone, which
 day’s download contains, so `data/scales.json` (about 5 KB) carries it: for every day
 since 2009-01-03, the right end of the price axis, as steps. `tools/build-scales.cjs` builds it with the page’s own binning code;
 run again, it extends the file by each finished day (23 requests to bitview.space per
-day). The Weekly videos workflow does that every day (it runs daily for this, and draws
-the videos once a week) and commits the result. Days after the file’s last day still
+day). The Monthly videos workflow does that every day (it runs daily for this, and draws
+the videos once a month) and commits the result. Days after the file’s last day still
 draw, carrying on from its last values with their own data.
 
 To deploy: push to GitHub and enable Pages on `main` at the repository root. That is
@@ -107,10 +107,10 @@ the whole deployment.
 
 ## Posting to YouTube
 
-After publishing the videos, the **Weekly videos** workflow posts all four to the [renshuBTC](https://www.youtube.com/@renshuBTC)
+After publishing the videos, the **Monthly videos** workflow posts all four to the [renshuBTC](https://www.youtube.com/@renshuBTC)
 channel with `tools/video/youtube.mjs`, through the YouTube Data API, each from a job of its own: one video's trouble
 does not hold back the others, and a failed post can be run again (**Re-run failed jobs**, within a week) without
-posting the others twice. Each week's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
+posting the others twice. Each month's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
 channel nor in search), titled with the chart's own title on their last day, such as *Bitcoin URPD (% USD, AGE) as of 24 Sept 2026* and *Bitcoin URPD (% BTC, LTH/STH) as of 24 Sept 2026*. Once
 YouTube lets others watch one, the
 workflow names it in `data/youtube.json` and its button on the site links to it; until then that button opens the

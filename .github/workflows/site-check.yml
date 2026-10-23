@@ -29,7 +29,7 @@ jobs:
       - name: The live site is this repository's files
         run: |
           # A merge takes a few minutes to go live, so only a difference that lasts counts. Each try compares with the
-          # latest main, fetched again: the daily axis history and the weekly videos commit to it while this runs.
+          # latest main, fetched again: the daily axis history and the monthly videos commit to it while this runs.
           files="index.html privacy.html terms.html data/youtube.json data/scales.json"
           for _ in $(seq 1 8); do
             git fetch -q --depth=1 origin main

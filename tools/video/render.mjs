@@ -1,4 +1,4 @@
-// Renders a full-history video the Weekly videos workflow posts to YouTube: every day in the store (store.mjs) from the first
+// Renders a full-history video the Monthly videos workflow posts to YouTube: every day in the store (store.mjs) from the first
 // with anything to draw (startIndex: 2011-01-31 in USD, 2010-05-18 in BTC) to the latest, in 5:00 at 60 fps (18,000
 // frames), 3840x2160, H.264. Neighbouring days are blended so the picture moves continuously however many days there
 // are; the chart is the site's, drawn by page.html, in one of the site's two weightings and two colourings as the site

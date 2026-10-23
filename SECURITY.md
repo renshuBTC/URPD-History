@@ -11,7 +11,7 @@ The four full-history videos, one for each weighting (% USD, each bar as its sha
 its share of all the coins) and colouring (by age band, AGE, or as short- and long-term holders, LTH/STH), are on
 YouTube, not on the site. VIDEO (% USD-AGE), VIDEO (% USD-LTH/STH),
 VIDEO (% BTC-AGE) and VIDEO (% BTC-LTH/STH) in the toolbar open the latest of each, posted
-unlisted once a week by the [Weekly videos](.github/workflows/video.yml) workflow to the
+unlisted once a month by the [Monthly videos](.github/workflows/video.yml) workflow to the
 [renshuBTC](https://www.youtube.com/@renshuBTC) channel (the channel itself until there is a video of that look
 others can watch). They only ever go to the channel or to `https://www.youtube.com/watch?v=` and a video's id, which the
 page checks before using. The site has no video download, so that someone who broke into it could not use it to hand
@@ -21,7 +21,7 @@ The workflow keeps its latest renders on this repository's
 [`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video)
 (`BitcoinURPD.com-USD-AGE.mp4`, `BitcoinURPD.com-BTC-AGE.mp4`, `BitcoinURPD.com-USD-LTH-STH.mp4` and
 `BitcoinURPD.com-BTC-LTH-STH.mp4`), where the next run reads which day they reach; nothing
-links to them (a video drawn on its own by hand is posted but joins the release only with the next weekly run). The
+links to them (a video drawn on its own by hand is posted but joins the release only with the next monthly run). The
 videos drawn before them (`BitcoinSupplyChart.com-*.mp4`) stay on the same release as they were and are no longer
 updated. GitHub keeps a signed record of the run that built each of them (a build provenance attestation, logged by
 Sigstore). To check a copy of any of them:

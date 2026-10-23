@@ -1,4 +1,4 @@
-// tools/video/youtube.mjs, the weekly posts to YouTube, against a stand-in for Google's token and upload endpoints.
+// tools/video/youtube.mjs, the monthly posts to YouTube, against a stand-in for Google's token and upload endpoints.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
