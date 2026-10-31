@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { app } = require('./helpers.cjs');
+const { app, firstHeights, urpd } = require('./helpers.cjs');
 const plain = v => JSON.parse(JSON.stringify(v));   // out of the page's realm, for deepEqual
 
 const DAY = 864e5;
@@ -458,10 +458,10 @@ test('build-scales writes the history the page reads back, one day at a time', a
   const realFetch = global.fetch;
   global.fetch = async url => {
     const u = String(url), body =
-      u.endsWith('/cost-basis/all/dates') ? dates.concat('2009-01-13') :   // the API lists the day in progress too
+      u.endsWith('/first_height/day1') ? firstHeights(priceDates, dates.concat('2009-01-13')) :   // and the day in progress
       u.endsWith('/price_close/day1') ? { data: closes } :
       u.endsWith('/date/day1') ? { data: priceDates } :
-      /utxos_under_1h_old\/(\d{4}-\d\d-\d\d)$/.test(u) ? stamps[u.slice(-10)] : {};
+      /\/api\/urpd\/age_under_1h\/(\d{4}-\d\d-\d\d)$/.test(u) ? urpd(u.slice(-10), stamps[u.slice(-10)]) : urpd(u.slice(-10));
     return { ok: true, json: async () => body };
   };
   try {

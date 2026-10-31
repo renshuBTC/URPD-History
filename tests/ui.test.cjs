@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
-const { html, scripts, app, deferred, flush } = require('./helpers.cjs');
+const { html, scripts, app, deferred, flush, dayAnswer } = require('./helpers.cjs');
 
 const plain = v => JSON.parse(JSON.stringify(v));   // out of the page's realm, for deepEqual
 const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '');
@@ -82,7 +82,7 @@ test('a failed first load keeps its message until a chart draws, and the message
 
 test('a start-up that could not reach the API says so in whatever language the page is switched to', async () => {
   const { c, element } = app();
-  c.fetchJSON = url => (url.endsWith('/all/dates') ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve(null));
+  c.fetchJSON = url => (url.endsWith('/first_height/day1') ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve(null));
   await c.init();
   assert.equal(element('status').textContent, c.T.en.errBRK);
   c.lang = 'ja'; c.applyLang();
@@ -95,7 +95,7 @@ test('a start-up that could not reach the API says so in whatever language the p
 test('while the dates load, the date box says so in the language chosen meanwhile', async () => {
   const { c, element } = app();
   const dates = deferred();
-  c.fetchJSON = url => (url.endsWith('/all/dates') ? dates.promise : Promise.resolve(null));
+  c.fetchJSON = url => (url.endsWith('/first_height/day1') ? dates.promise : Promise.resolve(null));
   const ready = c.init(); await flush();
   assert.equal(element('dateDisplay').textContent, c.T.en.loadingDates);
   c.lang = 'zh'; c.applyLang();
@@ -591,7 +591,7 @@ test('the page\'s own error messages are in the page\'s language, and follow it'
   assert.throws(() => c.cleanDates('x'), { message: c.T.ja.errDates });
   assert.throws(() => c.cleanCohort(null), { message: c.T.ja.errCostBasis });
   await assert.rejects(c.fetchRaw('../x'), { message: c.T.ja.errNotDate + '../x' });
-  c.fetchJSON = url => Promise.resolve(url.endsWith('/all/dates') ? [] : null);
+  c.fetchJSON = url => Promise.resolve(dayAnswer(url, []) || null);
   await c.init();
   assert.equal(h.element('dateDisplay').textContent, c.T.ja.errPrefix + c.T.ja.errNoDates);
   assert.equal(c.errorText(new Error('HTTP 404')), 'HTTP 404', 'technical messages stay as they are');

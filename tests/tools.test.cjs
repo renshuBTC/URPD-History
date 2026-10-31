@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { firstHeights, urpd } = require('./helpers.cjs');
 
 const DAY = 864e5, iso = t => new Date(t).toISOString().slice(0, 10);
 // Runs build-scales against a fake API: `stamps` per day for the first cohort, `closes` per calendar day from
@@ -17,10 +18,10 @@ async function build(stamps, closes) {
   const realFetch = global.fetch;
   global.fetch = async url => {
     const u = String(url), body =
-      u.endsWith('/cost-basis/all/dates') ? listed :
+      u.endsWith('/first_height/day1') ? firstHeights(priceDates, listed) :
       u.endsWith('/price_close/day1') ? { data: closes } :
       u.endsWith('/date/day1') ? { data: priceDates } :
-      /utxos_under_1h_old\/(\d{4}-\d\d-\d\d)$/.test(u) ? stamps[u.slice(-10)] : {};
+      /\/api\/urpd\/age_under_1h\/(\d{4}-\d\d-\d\d)$/.test(u) ? urpd(u.slice(-10), stamps[u.slice(-10)]) : urpd(u.slice(-10));
     return { ok: true, json: async () => body };
   };
   try { return await main(['--rebuild', '--until', dates[dates.length - 1], '--out', out]); }

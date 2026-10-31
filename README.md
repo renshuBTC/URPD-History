@@ -68,15 +68,15 @@ the price line; the chart itself does not pan or zoom.
 One HTML file, no build step, no dependencies to install. Charts render with
 [Plotly.js](https://plotly.com/javascript/) from a CDN with an SRI hash. Data is
 fetched per day from the Bitcoin Research Kit API mirrored at
-[bitview.space](https://bitview.space), one request per age cohort
-(`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
-scrubbing backwards is instant.
+[bitview.space](https://bitview.space), one URPD request per age cohort
+(`/api/urpd/<cohort>/<date>`, the cohorts `age_under_1h` to `age_over_15y`). The days it has (every UTC day with a
+block) come from its day1 series, `/api/series/date/day1` and `/api/series/first_height/day1`. Loaded days are cached
+in memory, so scrubbing backwards is instant.
 
 **FULL HISTORY VIDEOS** in the toolbar opens a menu of four, **VIDEO (% USD-LTH/STH)**, **VIDEO (% USD-AGE)**,
 **VIDEO (% BTC-LTH/STH)** and **VIDEO (% BTC-AGE)**, each of which opens the whole history as one video on YouTube,
 drawn as the page draws that choice by default: USD with the left axis at
-each day’s tallest bar (each frame’s, as the days blend into each other), from 2011-01-31, the first day with any value
-on the chart, and BTC with Y-max at 99.8, its first bar running off the top with its height printed, from 2010-05-18,
+each day’s tallest bar (each frame’s, as the days blend into each other), from 2011-01-31, and BTC with Y-max at 99.8, its first bar running off the top with its height printed, from 2010-05-18,
 when the first price comes onto the chart; the bars as short- and long-term holders (LTH/STH) or in their 23 age bands
 (AGE); the bottom signal at its default threshold (80% in loss in USD, 50% in BTC); all four to the latest day,
 5:00 at 60 fps in 4K (3840×2160).

@@ -102,8 +102,8 @@ async function main() {
   const until = opt.until || new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const scales = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "scales.json"), "utf8"));
   const site = loadSite();
-  const [dates, close, priceDates] = await Promise.all([
-    getJSON(site.BASE + "/api/series/cost-basis/all/dates"),
+  const [firstHeights, close, priceDates] = await Promise.all([
+    getJSON(site.BASE + "/api/series/first_height/day1"),
     getJSON(site.BASE + "/api/series/price_close/day1"),
     getJSON(site.BASE + "/api/series/date/day1")
   ]);
@@ -123,7 +123,7 @@ async function main() {
     }
   }
   // Only days the axis history already covers, so every bar sits on the axis the site draws for that day.
-  const todo = site.cleanDates(dates).filter((d) => d > last && d <= until && d <= scales.end);
+  const todo = site.blockDays(priceDates.data || priceDates, firstHeights.data || firstHeights).filter((d) => d > last && d <= until && d <= scales.end);
   const changed = new Set();
   const added = {}, deadline = opt.seconds ? Date.now() + opt.seconds * 1000 : Infinity;
   // A day's 23 cohorts, from the cache or the API.
@@ -132,7 +132,7 @@ async function main() {
     if (cached && fs.existsSync(cached)) return JSON.parse(zlib.gunzipSync(fs.readFileSync(cached))).map(site.cleanCohort);
     const res = [];
     for (let i = 0; i < site.AGE_BANDS.length; i += 6) {
-      res.push(...(await Promise.all(site.AGE_BANDS.slice(i, i + 6).map((b) => getJSON(site.BASE + "/api/series/cost-basis/" + b.cohort + "/" + date)))).map(site.cleanCohort));
+      res.push(...(await Promise.all(site.AGE_BANDS.slice(i, i + 6).map((b) => getJSON(site.BASE + "/api/urpd/" + b.cohort + "/" + date)))).map((v) => site.cleanUrpd(v, date)));
     }
     if (cached) { fs.mkdirSync(opt.cache, { recursive: true }); fs.writeFileSync(cached, zlib.gzipSync(JSON.stringify(res))); }
     return res;
