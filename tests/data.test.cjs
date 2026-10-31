@@ -45,7 +45,7 @@ test('zero USD denominator is unavailable while BTC ratio remains valid', async 
 test('startup publishes dates only after price initialization settles', async () => {
   const { c } = app(); const price = deferred();
   c.fetchJSON = url => {
-    if (url.endsWith('/all/dates')) return Promise.resolve(['2009-01-03']);
+    if (url.endsWith('/first_height/day1')) return Promise.resolve([0, 0, 0]);   // 2009-01-03, genesis, the latest day
     if (url.endsWith('/price_close/day1')) return price.promise;
     if (url.endsWith('/date/day1')) return Promise.resolve(['2009-01-01', '2009-01-02', '2009-01-03']);
     return Promise.resolve({ 5: 2, 20: 1 });
@@ -159,4 +159,23 @@ test('BTC/USD overlay is linear from $0 to the highest close shown so far, and o
     tops.push(y3.range[1]);
   }
   for (let k = 1; k < tops.length; k++) assert.ok(tops[k] >= tops[k - 1], 'the axis never shrinks when moving forward');
+});
+
+test("the days with a URPD and the width of a price stamp follow Bitcoin Research Kit's API", () => {
+  const { c } = app();
+  const list = (v) => JSON.parse(JSON.stringify(v));
+  // BRK's own day1 series from 2009-01-01 (first block heights 0, 0, 0, 1, ..., 1, 15, 76): blocks on the genesis day
+  // and from 2009-01-09, and none on the days between, which the API answers 404.
+  const dates = ['2009-01-01', '2009-01-02', '2009-01-03', '2009-01-04', '2009-01-05', '2009-01-06', '2009-01-07',
+    '2009-01-08', '2009-01-09', '2009-01-10', '2009-01-11'];
+  const heights = [0, 0, 0, 1, 1, 1, 1, 1, 1, 15, 76];
+  assert.deepEqual(list(c.blockDays(dates, heights)), ['2009-01-03', '2009-01-09', '2009-01-10', '2009-01-11'], 'the latest day with its blocks so far');
+  // One series a day ahead of the other (a request either side of midnight UTC): read as far as both go.
+  assert.deepEqual(list(c.blockDays(dates.slice(0, 10), heights)), ['2009-01-03', '2009-01-09', '2009-01-10']);
+  assert.deepEqual(list(c.blockDays(dates, heights.slice(0, 10))), ['2009-01-03', '2009-01-09', '2009-01-10']);
+  assert.throws(() => c.blockDays(null, heights), { message: c.T.en.errDates });
+  // Each stamp is its block's price to four significant figures in cents: the half step either side is what
+  // smoothing spreads it over.
+  for (const [price, step] of [[0.05, 0.01], [99.99, 0.01], [100, 0.1], [999.9, 0.1], [1000, 1], [9999, 1], [34250, 10],
+    [99990, 10], [125700, 100], [999900, 100], [2e6, 1000]]) assert.equal(c.stampStep(price), step, String(price));
 });

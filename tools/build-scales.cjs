@@ -38,7 +38,7 @@ function loadSite() {
     return {
       BASE: BASE, AGE_BANDS: AGE_BANDS, BINS_DEFAULT: BINS_DEFAULT, KERNEL_DEFAULT: KERNEL_DEFAULT,
       aggregate: aggregate, buildData: buildData, setScales: setScales, xAxisEnd: xAxisEnd, axisLevel: axisLevel,
-      barValues: barValues, cleanDates: cleanDates, cleanCohort: cleanCohort,
+      barValues: barValues, cleanDates: cleanDates, cleanCohort: cleanCohort, cleanUrpd: cleanUrpd, blockDays: blockDays,
       // The API's checks as the page makes them (see "What the API may send"): gaps for anything unexpected.
       setPrices: function (close, dates) {
         priceArray = cleanSeries(close, function (v) { return isAmount(v) && v > 0; });
@@ -90,8 +90,8 @@ async function main(argv = process.argv.slice(2)) {
   const deadline = opt.seconds ? Date.now() + opt.seconds * 1000 : Infinity;
   const until = opt.until || new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const site = loadSite();
-  const [dates, close, priceDates] = await Promise.all([
-    getJSON(site.BASE + '/api/series/cost-basis/all/dates'),
+  const [firstHeights, close, priceDates] = await Promise.all([
+    getJSON(site.BASE + '/api/series/first_height/day1'),
     getJSON(site.BASE + '/api/series/price_close/day1'),
     getJSON(site.BASE + '/api/series/date/day1')
   ]);
@@ -109,7 +109,7 @@ async function main(argv = process.argv.slice(2)) {
   for (const k of ['usd', 'btc', 'usdPct', 'btcPct', 'bins', 'smoothing']) delete file[k];
   // Only days the API has moved past: it lists today from its first minutes, and a day it is still indexing (if
   // it has fallen behind) would be frozen here half-finished, since past days are never recomputed.
-  const listed = site.cleanDates(dates), lastListed = listed[listed.length - 1];
+  const listed = site.blockDays(priceDates.data || priceDates, firstHeights.data || firstHeights), lastListed = listed[listed.length - 1];
   const todo = listed.filter(d => d >= START && d <= until && d < lastListed && (!file.end || d > file.end));
   // The closes feed the price axis too (the day's own close and the highest one so far) and the video's store, so
   // they get the same kind of guard as the stamps below: none may be over three times the highest close before it
@@ -128,8 +128,8 @@ async function main(argv = process.argv.slice(2)) {
     if (cached && fs.existsSync(cached)) return JSON.parse(zlib.gunzipSync(fs.readFileSync(cached))).map(site.cleanCohort);
     const res = [];
     for (let i = 0; i < site.AGE_BANDS.length; i += 6) {   // six requests at a time, gently
-      const part = await Promise.all(site.AGE_BANDS.slice(i, i + 6).map(b => getJSON(site.BASE + '/api/series/cost-basis/' + b.cohort + '/' + date)));
-      res.push(...part.map(site.cleanCohort));
+      const part = await Promise.all(site.AGE_BANDS.slice(i, i + 6).map(b => getJSON(site.BASE + '/api/urpd/' + b.cohort + '/' + date)));
+      res.push(...part.map(v => site.cleanUrpd(v, date)));
     }
     if (cached) { fs.mkdirSync(opt.cache, { recursive: true }); fs.writeFileSync(cached, zlib.gzipSync(JSON.stringify(res))); }
     return res;

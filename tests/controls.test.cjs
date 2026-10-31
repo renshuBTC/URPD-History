@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
-const { html, scripts, app, flush } = require('./helpers.cjs');
+const { html, scripts, app, flush, dayAnswer } = require('./helpers.cjs');
 
 const plain = v => JSON.parse(JSON.stringify(v));   // out of the page's realm, for deepEqual
 // The page's stylesheet, comments stripped, as rules; decls(sel) is every declaration given to exactly that selector.
@@ -161,7 +161,7 @@ test('the day counter looks like the cycle list: same frame, grey text, normal w
   assert.match(counter.padding, /^0 8px$/);
   for (const [n, width] of [[3, 'calc(3ch + 18px)'], [150, 'calc(7ch + 18px)'], [6469, 'calc(9ch + 18px)']]) {
     const h = app(), dates = days('2009-01-03', '2030-01-01').slice(0, n);
-    h.c.fetchJSON = url => Promise.resolve(url.endsWith('/all/dates') ? dates : null);
+    h.c.fetchJSON = url => Promise.resolve(dayAnswer(url, dates) || null);
     h.c.loadAndRender = () => Promise.resolve();
     await h.c.init();
     assert.equal(h.element('dateDisplay').style.minWidth, width, n + ' days');
@@ -260,7 +260,7 @@ test('FULL HISTORY VIDEOS: one menu in the bar holding the four videos, VIDEO (%
     const h = app(), asked = [];
     for (const b of BUTTONS) h.element(b[0]).href = CHANNEL;   // as the page starts
     const yt = () => (found ? Promise.resolve({ 'usd-age': { id: 'dQw4w9WgXcQ' }, 'btc-lthsth': { id: 'Abc_123-xyZ' } }) : Promise.reject(new Error('HTTP 404')));
-    h.c.fetchJSON = url => { asked.push(url); return url === 'data/youtube.json' ? yt() : Promise.resolve(url.endsWith('/all/dates') ? days('2026-09-20', '2026-09-24') : null); };
+    h.c.fetchJSON = url => { asked.push(url); return url === 'data/youtube.json' ? yt() : Promise.resolve(dayAnswer(url, days('2026-09-20', '2026-09-24')) || null); };
     h.c.loadAndRender = () => Promise.resolve();
     await h.c.init(); await flush();
     assert.equal(asked[0], 'data/youtube.json');

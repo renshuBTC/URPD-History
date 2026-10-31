@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { html, scripts, app } = require('./helpers.cjs');
+const { html, scripts, app, urpd } = require('./helpers.cjs');
 const { scriptHashes, readPolicy } = require('../tools/update-csp.cjs');
 
 const ROOT = path.join(__dirname, '..');
@@ -70,16 +70,26 @@ test('whatever the API sends, the page keeps only real dates and finite amounts'
   const cohort = JSON.parse('{"0":1.5,"100":2,"1e2":7,"abc":3,"200":"5","300":-1,"400":null,"":4,"__proto__":9,"500":{"x":1}}');
   assert.deepEqual(plain(c.cleanCohort(cohort)), { 0: 1.5, 100: 2, '1e2': 7 });
   for (const bad of [null, [], '<script>', 5]) assert.throws(() => c.cleanCohort(bad), /Unexpected/);
+  // A URPD as the API sends it: price and supply in columns, each bucket checked as above.
+  const day = JSON.parse('{"date":"2020-01-01","buckets":{"price":[0,100,"x",200,-1,300,400],"supply":[1.5,2,3,"5",4,null,"<img src=x>"],' +
+    '"realized_cap":[0,0,0,0,0,0,0],"unrealized_pnl":[0,0,0,0,0,0,0]}}');
+  assert.deepEqual(plain(c.cleanCohort(day)), { 0: 1.5, 100: 2 });
+  for (const bad of [{ buckets: null }, { buckets: { price: [1], supply: [] } }, { buckets: { price: '1', supply: [1] } }])
+    assert.throws(() => c.cleanCohort(bad), /Unexpected/);
+  assert.deepEqual(plain(c.cleanUrpd(day, '2020-01-01')), { 0: 1.5, 100: 2 });
+  assert.throws(() => c.cleanUrpd(day, '2020-01-02'), /Unexpected/, 'another day than the one asked for');
   assert.deepEqual(plain(c.cleanSeries([1, 'x', -2, 3, null, Infinity], c.isAmount)), [1, null, null, 3, null, null]);
   assert.equal(c.cleanSeries('nope', c.isAmount), null);
 });
 
 test('cost-basis data is cleaned before it reaches the chart, and nothing that is not a date is ever requested', async () => {
   const urls = [];
-  const { c } = app({ fetch: async url => { urls.push(url); return { ok: true, json: async () => JSON.parse('{"100":5,"200":"<img src=x onerror=alert(1)>"}') }; } });
+  const body = JSON.stringify(Object.assign(urpd('2020-01-01', { 100: 5 }), { buckets: { price: [100, 200], supply: [5, '<img src=x onerror=alert(1)>'] } }));
+  const { c } = app({ fetch: async url => { urls.push(url); return { ok: true, json: async () => JSON.parse(body) }; } });
   const raw = await c.fetchRaw('2020-01-01');
   assert.equal(urls.length, c.AGE_BANDS.length);
-  assert.ok(urls.every(u => /^https:\/\/bitview\.space\/api\/series\/cost-basis\/utxos_[a-z0-9_]+\/2020-01-01$/.test(u)));
+  assert.ok(urls.every(u => /^https:\/\/bitview\.space\/api\/urpd\/age_[a-z0-9_]+\/2020-01-01$/.test(u)));
+  assert.deepEqual(urls.map(u => u.split('/')[5]), Array.from(c.AGE_BANDS, b => b.cohort), 'one request per age band, by its URPD cohort');
   assert.deepEqual(plain(raw.age[0]), { 100: 5 });
   assert.deepEqual(plain(raw.all), { 100: 5 * c.AGE_BANDS.length });
   await assert.rejects(c.fetchRaw('../../other'), /Not a date/);
@@ -89,7 +99,7 @@ test('cost-basis data is cleaned before it reaches the chart, and nothing that i
 test('startup keeps only real dates and prices from the API', async () => {
   const { c } = app();
   c.fetchJSON = url => {
-    if (url.endsWith('/all/dates')) return Promise.resolve(['2009-01-03', '<b>2009-01-04</b>']);
+    if (url.endsWith('/first_height/day1')) return Promise.resolve([0, '<b>1</b>', 0, 1]);
     if (url.endsWith('/price_close/day1')) return Promise.resolve([0, 'x', '<a href="https://x">10</a>']);
     if (url.endsWith('/date/day1')) return Promise.resolve(['2009-01-01', 'javascript:alert(1)', '2009-01-03']);
     return Promise.resolve({ 5: 2, 20: 1 });
