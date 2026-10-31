@@ -285,29 +285,30 @@ test('landmark markers sit on the line\'s own extreme within a week, labelled in
   assert.equal(graph.layout.yaxis3.range[1], 67000, 'the line still fills the height');
 });
 
-test('a click and drag marks a range of prices instead of zooming; it stays, with its share of the day', async () => {
+test('a click and drag marks a range of prices instead of zooming; it stays, with the range and the days until every coin there is long-term', async () => {
   const { c, element } = app();
-  c.splitMode = false;                                          // in AGE: the box lists the age bands
+  c.splitMode = false;                                          // in AGE as in LTH/STH: the range and the days
   const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: () => [{ 100: 1, 60000: 1, 70000: 2 }] });
   const data = c.buildData(dates[50], raws[50]);
+  c.priceHighLow = { high: null, low: null };                   // no highs and lows: the age bands alone
+  const markBox = layout => layout.annotations.find(a => a.xref === 'x' && a.width);
+  const flat = a => a.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   await c.renderChart(data);
   let gd = element('chart'), L = gd.layout;
   assert.equal(L.dragmode, false, 'Plotly neither zooms nor pans');
   assert.equal(gd.config.doubleClick, false);
   for (const b of ['zoom2d', 'pan2d', 'select2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']) assert.ok(gd.config.modeBarButtonsToRemove.includes(b), b);
   for (const ax of ['xaxis', 'yaxis', 'xaxis2', 'yaxis3']) assert.equal(L[ax].fixedrange, true, ax);
-  assert.ok(!L.annotations.some(a => /Last Moved Here/.test(a.text.replace(/<br>/g, ' '))), 'nothing marked yet');
-  // A mark over the prices 50,000 to 65,000: the value there is the 60,000 stamp's, 60000 / (100 + 60000 + 140000).
+  assert.ok(!markBox(L), 'nothing marked yet');
+  // A mark over the prices 50,000 to 65,000. Every coin there is in the first age band, under an hour old, so with no
+  // highs and lows to go by, each is a long-term holder within 150 days: by 20 Mar 2022, from 21 Oct 2021.
   c.rangeMark = { lo: 50000, hi: 65000 };
   await c.renderChart(data);
   L = element('chart').layout;
-  const box = L.annotations.find(a => /Last Moved Here/.test(a.text.replace(/<br>/g, ' ')));
+  const box = markBox(L);
   assert.ok(box, 'a box with the figures');
-  const want = 100 * 60000 / 200100;
-  const flat = box.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-  // Every coin here is in the first age band: all of the share is <1h.
-  assert.equal(flat, 'Price: $50,000 \u2013 $65,000 USD Value Last Moved Here: ' + c.pctCompact(want) + ' <1h USD Value Last Moved Here: ' + c.pctCompact(want), 'the range, its share and its bands, wrapped');
-  assert.ok(!/All LTH|Already All/.test(box.text), 'AGE: no days line');
+  const want = 'Price: $50,000 \u2013 $65,000 All LTH Within: 150 Days (by 20 Mar 2022)';
+  assert.equal(flat(box), want, 'the range and the days, wrapped, and nothing else');
   // Inside the mark, as wide as it is, at the top: from 3 px inside its left edge to 3 px inside its right one.
   const bandPx = (65000 - 50000) / L.xaxis.range[1] * 1040;
   assert.equal(box.xref, 'x'); assert.equal(box.x, 50000); assert.equal(box.xanchor, 'left'); assert.equal(box.xshift, 3);
@@ -322,110 +323,110 @@ test('a click and drag marks a range of prices instead of zooming; it stays, wit
   assert.ok(!L.shapes.some(s => s.xsizemode === 'pixel' || s.ysizemode === 'pixel'), 'no corner brackets');
   assert.match(require('./helpers.cjs').html, /#markBand \{[^}]*background: rgba\(255,255,255,0\.06\);[^}]*border-left: 1px solid rgba\(255,255,255,0\.75\);[^}]*border-right: 1px solid rgba\(255,255,255,0\.75\);/, 'the drag looks the same');
   assert.equal(c.MARK_TINT, 'rgba(255,255,255,0.06)'); assert.equal(c.MARK_EDGE, 'rgba(255,255,255,0.75)');
-  // In % BTC the share is of the coins: 1 of 4.
+  // The same box in % BTC.
   c.coinMode = true;
   await c.renderChart(data);
-  assert.match(element('chart').layout.annotations.find(a => /Last Moved Here/.test(a.text.replace(/<br>/g, ' '))).text.replace(/<br>/g, ' '), /BTC Supply Last Moved Here: 25\.0%/);
+  assert.equal(flat(markBox(element('chart').layout)), want, '% BTC');
   c.coinMode = false;
   // Escape clears it.
   c.rangeMark = { lo: 50000, hi: 65000 };
   c.rangeMark = null;
   await c.renderChart(data);
-  assert.ok(!element('chart').layout.annotations.some(a => /Last Moved Here/.test(a.text.replace(/<br>/g, ' '))), 'cleared');
+  assert.ok(!markBox(element('chart').layout), 'cleared');
 });
 
 test('a marked range\'s box text wraps to the mark\'s width and shrinks only as far as its words need', () => {
   const { c } = app();
   const mono = (str, size) => { let w = 0; for (let i = 0; i < str.length; i++) w += str.charCodeAt(i) > 0x2e7f ? size : 0.6 * size; return w; };
-  const wide = c.fitMarkText(['Price: $50,000 \u2013 $65,000', 'USD Value Last Moved Here: 23.5%'], 2000, mono);
-  assert.equal(wide.size, 13); assert.deepEqual(JSON.parse(JSON.stringify(wide.lines)), [['Price: $50,000 \u2013 $65,000'], ['USD Value Last Moved Here: 23.5%']], 'room for every line');
-  const narrow = c.fitMarkText(['USD Value Last Moved Here: 23.5%'], 130, mono);
+  const wide = c.fitMarkText(['Price: $50,000 \u2013 $65,000', 'All LTH Within: 79 Days (by 18 Jan 2027)'], 2000, mono);
+  assert.equal(wide.size, 13); assert.deepEqual(JSON.parse(JSON.stringify(wide.lines)), [['Price: $50,000 \u2013 $65,000'], ['All LTH Within: 79 Days (by 18 Jan 2027)']], 'room for every line');
+  const narrow = c.fitMarkText(['All LTH Within: 79 Days (by 18 Jan 2027)'], 130, mono);
   assert.equal(narrow.size, 13, 'every word still fits at 13 px');
   for (const row of narrow.lines[0]) assert.ok(mono(row, 13) * 1.07 <= 130, row);
-  assert.equal(narrow.lines[0].join(' '), 'USD Value Last Moved Here: 23.5%', 'nothing lost or doubled');
+  assert.equal(narrow.lines[0].join(' '), 'All LTH Within: 79 Days (by 18 Jan 2027)', 'nothing lost or doubled');
   const tight = c.fitMarkText(['Price: $50,000'], 50, mono);
   assert.ok(tight.size < 13 && tight.size >= 9, 'a word wider than the box: a smaller size');
-  const cjk = c.fitMarkText(['最后在此移动的美元价值占比: 23.5%'], 60, mono);
+  const cjk = c.fitMarkText(['全部成为长期持有者: 79 天内（2027年1月18日前）'], 60, mono);
   for (const row of cjk.lines[0]) assert.ok(mono(row, cjk.size) * 1.07 <= 60, row + ': CJK breaks between characters');
-  assert.equal(cjk.lines[0].join('').replace(/ /g, ''), '最后在此移动的美元价值占比:23.5%', 'nothing lost or doubled');
+  assert.equal(cjk.lines[0].join('').replace(/ /g, ''), '全部成为长期持有者:79天内（2027年1月18日前）', 'nothing lost or doubled');
 });
 
-test('a marked range\'s box breaks its share down as the bars are coloured: by age band in AGE, by holders in LTH/STH, each part of the whole day', async () => {
+test('a marked range\'s box gives the range and the most days until every coin there is long-term, the same in every mode', async () => {
   const { c, element } = app();
-  // At $60,000: 1 coin a week old (short-term) and 2 coins three years old (long-term); at $70,000 one more long-term.
-  const bands = () => { const a = new Array(23).fill(null).map(() => ({})); a[3] = { 60000: 1 }; a[13] = { 60000: 2, 70000: 1 }; return a; };
+  // At $60,000: 1 coin a week old (short-term) and 2 coins three years old (long-term); at $30,000 and $70,000 one more
+  // long-term each.
+  const bands = () => { const a = new Array(23).fill(null).map(() => ({})); a[3] = { 60000: 1 }; a[13] = { 30000: 1, 60000: 2, 70000: 1 }; return a; };
   const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: bands });
   const data = c.buildData(dates[50], raws[50]);
   c.priceHighLow = { high: null, low: null };   // no highs and lows: the age bands alone
   c.splitMode = true;
   c.rangeMark = { lo: 50000, hi: 65000 };
-  const box = async () => { await c.renderChart(data); return element('chart').layout.annotations.find(a => a.xref === 'x' && a.width).text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); };
-  // Value: 60,000 short-term, 120,000 long-term in the mark, of 250,000 in the day.
-  let text = await box();
-  assert.match(text, /USD Value Last Moved Here: 72\.0%/);
-  assert.match(text, /LTH USD Value Last Moved Here: 48\.0%/);
-  assert.match(text, /STH USD Value Last Moved Here: 24\.0%/, 'and the two add up to the share above');
-  assert.match(text, /All LTH Within: 143 Days \(by 13 Mar 2022\)/, 'the youngest coins there are at least a week old; 143 days after 21 Oct 2021');
+  const markBox = () => element('chart').layout.annotations.find(a => a.xref === 'x' && a.width);
+  const box = async () => { await c.renderChart(data); return markBox().text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); };
+  // The youngest coins there are at least a week old: 143 days after 21 Oct 2021. No share of the day, no LTH or STH share.
+  const want = 'Price: $50,000 \u2013 $65,000 All LTH Within: 143 Days (by 13 Mar 2022)';
+  assert.equal(await box(), want);
+  assert.ok(markBox().text.startsWith('Price: '), 'the range in the box\'s own colour');
+  assert.match(markBox().text, new RegExp("<span style='color:" + c.LTH_COLOR + "'>All LTH Within: "), 'the days in the LTH legend colour');
   // (CJK wraps between any two characters, so the rows are joined without the spaces here.)
-  c.lang = 'zh'; assert.ok((await box()).replace(/ /g, '').includes('全部成为长期持有者:143天内（2022年3月13日前）'));
-  c.lang = 'ja'; assert.ok((await box()).replace(/ /g, '').includes('すべて長期保有者になるまで:143日以内（2022年3月13日まで）'));
-  c.lang = 'en'; await box();
-  assert.ok(text.indexOf('LTH USD Value') < text.indexOf('STH USD Value') && text.indexOf('STH USD Value') < text.indexOf('All LTH'), 'LTH, then STH, then the days');
-  const raw = element('chart').layout.annotations.find(a => a.xref === 'x' && a.width).text;
-  assert.match(raw, new RegExp("<span style='color:" + c.LTH_COLOR + "'>LTH USD"), 'LTH in its legend colour');
-  assert.match(raw, new RegExp("<span style='color:" + c.STH_COLOR + "'>STH USD"), 'STH in its');
-  // Coins: 1 short-term and 2 long-term in the mark, of 4.
-  c.coinMode = true;
-  text = await box();
-  assert.match(text, /BTC Supply Last Moved Here: 75\.0%/);
-  assert.match(text, /LTH BTC Supply Last Moved Here: 50\.0%/);
-  assert.match(text, /STH BTC Supply Last Moved Here: 25\.0%/);
-  // AGE breaks it down by age band instead, youngest first, each in its colour: 1w-1m holds the short-term coin, 2y-3y
-  // the long-term ones; no holder lines, no days.
-  c.splitMode = false; c.coinMode = false;
-  text = await box();
-  assert.match(text, /1w-1m USD Value Last Moved Here: 24\.0% 2y-3y USD Value Last Moved Here: 48\.0%$/);
-  assert.ok(!/LTH|STH|All LTH|Already All/.test(text), text);
-  assert.match(element('chart').layout.annotations.find(a => a.xref === 'x' && a.width).text, new RegExp("<span style='color:" + c.AGE_BAND_COLORS[13] + "'>2y-3y"));
+  c.lang = 'zh'; assert.ok((await box()).replace(/ /g, '').endsWith('全部成为长期持有者:143天内（2022年3月13日前）'));
+  c.lang = 'ja'; assert.ok((await box()).replace(/ /g, '').endsWith('すべて長期保有者になるまで:143日以内（2022年3月13日まで）'));
+  c.lang = 'en';
+  // The same in % BTC, and in AGE, in either weighting.
+  c.coinMode = true; assert.equal(await box(), want, 'LTH/STH, % BTC');
+  c.splitMode = false; assert.equal(await box(), want, 'AGE, % BTC');
+  c.coinMode = false; assert.equal(await box(), want, 'AGE, % USD');
+  // Where no short-term holder is: the coin at $30,000 is three years old.
+  c.rangeMark = { lo: 25000, hi: 35000 };
+  assert.equal(await box(), 'Price: $25,000 \u2013 $35,000 Already All Long-Term Holders');
+  // Until the daily highs and lows are in, the days wait for them, and AGE asks for them as LTH/STH does.
+  let asked = 0;
+  c.priceHighLow = null; c.loadPriceHighLow = () => { asked++; };
+  c.rangeMark = { lo: 50000, hi: 65000 };
+  assert.equal(await box(), 'Price: $50,000 \u2013 $65,000 All LTH Within: \u2026');
+  assert.ok(asked > 0, 'asked for the highs and lows');
 });
 
-test('a tall AGE box fits the plot\'s height: the bands in short, then the range and its share alone', async () => {
+test('a marked range\'s box fits the plot and the mark: the days line alone, then the number of days alone', async () => {
   const { c, element } = app();
   c.splitMode = false;
-  // One coin at $60,000 in each of the 23 bands.
+  // One coin at $60,000 in each of the 23 bands, the youngest under an hour old: all long-term within 150 days.
   const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: () => new Array(23).fill(null).map(() => ({ 60000: 1 })) });
   const data = c.buildData(dates[50], raws[50]);
-  c.rangeMark = { lo: 50000, hi: 65000 };
-  const box = async (h) => {
+  c.priceHighLow = { high: null, low: null };   // no highs and lows: the age bands alone
+  const box = async (lo, hi, h) => {
+    c.rangeMark = { lo, hi };
     await c.renderChart(data);                                  // the box takes the plot's height from the last drawing
     element('chart')._fullLayout.yaxis = { _length: h };
     await c.renderChart(data);
     const a = element('chart').layout.annotations.find(a => a.xref === 'x' && a.width);
-    return { text: a.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'), rows: a.text.split('<br>').length, size: a.font.size };
+    return a ? { text: a.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, ''), rows: a.text.split('<br>').length, size: a.font.size, pad: a.borderpad, yshift: a.yshift } : null;
   };
-  let b = await box(2000);
-  assert.match(b.text, /<1h USD Value Last Moved Here: /, 'room for every line in full'); assert.match(b.text, />15y USD Value Last Moved Here: /);
-  b = await box(420);
-  assert.match(b.text, /<1h: \d/, 'in short'); assert.ok(!/<1h USD Value/.test(b.text));
-  assert.ok(b.rows * Math.round(b.size * 1.31) + 12 <= 420 - 6, 'inside the plot');
-  // (The price, $60,000, is inside the mark, so the box starts below the price box, about 69 px down.)
-  b = await box(200);
-  assert.ok(!/<1h/.test(b.text) && /^Price: .* USD Value Last Moved Here: 100\.0%$/.test(b.text), 'the range and its share: ' + b.text);
-  b = await box(120);
-  assert.equal(b.text, '100.0%', 'the share alone');
+  // (The axis ends at $60,156, and so does a mark past it. The price, $60,000, is inside the mark, so the box starts
+  // below the price box.)
+  let b = await box(50000, 65000, 2000);
+  assert.equal(b.text, 'Price: $50,000 \u2013 $60,156 All LTH Within: 150 Days (by 20 Mar 2022)', 'room for both lines');
+  assert.equal(b.size, 13);
+  b = await box(50000, 65000, 130);
+  assert.match(b.text, /^Price: .* All LTH Within: 150 Days/, 'both lines, smaller'); assert.ok(b.size < 13);
+  // Its bottom (how far down it starts, -yshift, plus its rows, padding and border) stays 3 px inside the plot.
+  assert.ok(b.rows * Math.round(b.size * 1.31) + 2 * (b.pad + 1) - b.yshift <= 130 - 3, 'inside the plot');
+  b = await box(50000, 65000, 120);
+  assert.equal(b.text, 'All LTH Within: 150 Days (by 20 Mar 2022)', 'too short for both: the days line alone');
+  b = await box(50000, 65000, 100);
+  assert.equal(b.text, '150 Days', 'too short for that: the number of days alone'); assert.equal(b.pad, 1, 'on less padding');
+  assert.equal(await box(50000, 65000, 80), null, 'too short even for that: no box');
+  // A mark too narrow for the words keeps the number of days alone too; where no short-term holder is, 0 days.
+  b = await box(58000, 65000, 2000);
+  assert.equal(b.text, '150 Days'); assert.equal(b.pad, 1);
+  b = await box(20000, 26000, 2000);
+  assert.equal(b.text, 'Price: $20,000 \u2013 $26,000 Already All Long-Term Holders');
+  b = await box(20000, 23000, 2000);
+  assert.equal(b.text, '0 Days', 'too narrow for the words');
+  assert.equal(await box(20000, 21500, 2000), null, 'too narrow even for that: no box');
 });
 
-test('a marked range\'s share comes from the recorded prices, [a, b)', () => {
-  const { c } = app();
-  const ladder = c.priceLadder({ 10: 1, 20: 2, 30: 3 });
-  assert.equal(c.shareInRange(ladder, 10, 20, true), 100 / 6, 'the 10 stamp, not the 20 one');
-  assert.equal(c.shareInRange(ladder, 10, 21, true), 50);
-  assert.equal(c.shareInRange(ladder, 0, 1000, false), 100);
-  assert.equal(c.shareInRange(ladder, 31, 40, false), 0);
-  assert.equal(c.shareInRange(c.priceLadder({}), 0, 10, false), null);
-});
-
-test('in LTH/STH a marked range gives the most days until every coin there is a long-term holder', () => {
+test('a marked range gives the most days until every coin there is a long-term holder', () => {
   const { c } = app();
   // Day 1000 of BRK's index; the price was between 50 and 60 on day 990, ten days earlier, and nowhere near it since.
   const dateStr = new Date(Date.UTC(2009, 0, 1) + 1000 * 864e5).toISOString().slice(0, 10);
